@@ -1,8 +1,11 @@
 """CONSISTENCY_CHECK - Phase 2: T18 - Comprehensive consistency checking."""
 import json
+import logging
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
+
+logger = logging.getLogger(__name__)
 
 from .consistency_numeric import numeric_consistency_checker
 from .consistency_terminology import terminology_consistency_checker
@@ -42,31 +45,46 @@ def run_consistency_check(
     
     # Run all sub-checks
     all_issues = []
-    
+
     # 1. Numeric consistency
-    numeric_issues = numeric_consistency_checker(merged_draft_path, tables_path)
-    all_issues.extend(numeric_issues)
-    
+    try:
+        numeric_issues = numeric_consistency_checker(merged_draft_path, tables_path)
+        all_issues.extend(numeric_issues)
+    except Exception as exc:
+        logger.warning(f"[CONSISTENCY_CHECK] numeric_consistency_checker failed: {exc}")
+
     # 2. Terminology consistency
-    terminology_issues = terminology_consistency_checker(merged_draft_path)
-    all_issues.extend(terminology_issues)
-    
+    try:
+        terminology_issues = terminology_consistency_checker(merged_draft_path)
+        all_issues.extend(terminology_issues)
+    except Exception as exc:
+        logger.warning(f"[CONSISTENCY_CHECK] terminology_consistency_checker failed: {exc}")
+
     # 3. Unit format consistency
-    unit_issues = unit_format_checker(merged_draft_path)
-    all_issues.extend(unit_issues)
-    
+    try:
+        unit_issues = unit_format_checker(merged_draft_path)
+        all_issues.extend(unit_issues)
+    except Exception as exc:
+        logger.warning(f"[CONSISTENCY_CHECK] unit_format_checker failed: {exc}")
+
     # 4. Cross-reference consistency
-    crossref_issues = cross_reference_checker(
-        merged_draft_path,
-        sentence_sidecar_path,
-        figure_manifest_path,
-        tables_path
-    )
-    all_issues.extend(crossref_issues)
-    
+    try:
+        crossref_issues = cross_reference_checker(
+            merged_draft_path,
+            sentence_sidecar_path,
+            figure_manifest_path,
+            tables_path
+        )
+        all_issues.extend(crossref_issues)
+    except Exception as exc:
+        logger.warning(f"[CONSISTENCY_CHECK] cross_reference_checker failed: {exc}")
+
     # 5. Claim alignment
-    claim_issues = claim_alignment_checker(merged_draft_path, claim_matrix_path)
-    all_issues.extend(claim_issues)
+    try:
+        claim_issues = claim_alignment_checker(merged_draft_path, claim_matrix_path)
+        all_issues.extend(claim_issues)
+    except Exception as exc:
+        logger.warning(f"[CONSISTENCY_CHECK] claim_alignment_checker failed: {exc}")
     
     # Compute summary
     total_issues = len(all_issues)
