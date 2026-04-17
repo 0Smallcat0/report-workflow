@@ -1,0 +1,32 @@
+name: work_report
+description: Business/work report format with executive summary
+section_order:
+  - executive_summary
+  - findings
+  - recommendations
+  - appendix
+sections:
+  executive_summary:
+    section_id: executive_summary
+    title: Executive Summary
+    required: true
+    section_type: exec_summary
+    order: 1
+  findings:
+    section_id: findings
+    title: Key Findings
+    required: true
+    section_type: findings
+    order: 2
+  recommendations:
+    section_id: recommendations
+    title: Recommendations
+    required: true
+    section_type: recommendations
+    order: 3
+  appendix:
+    section_id: appendix
+    title: Appendix
+    required: false
+    section_type: appendix
+    order: 4

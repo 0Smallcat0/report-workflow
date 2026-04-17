@@ -1,0 +1,118 @@
+{
+  "guideline": "SRQR",
+  "version": "2014",
+  "items": [
+    {
+      "item_id": "SRQR_1",
+      "description": "Title - Concise description of nature and topic of study",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["title"],
+      "detection_hints": ["qualitative", "interview", "focus group", "ethnography", "grounded theory", "phenomenology"]
+    },
+    {
+      "item_id": "SRQR_2",
+      "description": "Abstract - Summary of key aspects of study design and findings",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["abstract"],
+      "detection_hints": ["qualitative", "design", "participants", "findings", " themes"]
+    },
+    {
+      "item_id": "SRQR_3",
+      "description": "Problem statement - Problem the study addresses with relevant literature",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["introduction", "background"],
+      "detection_hints": ["problem statement", "research problem", "gap", "literature review"]
+    },
+    {
+      "item_id": "SRQR_4",
+      "description": "Research question - Research questions the study addresses",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["introduction"],
+      "detection_hints": ["research question", "research aim", "research objectives"]
+    },
+    {
+      "item_id": "SRQR_5",
+      "description": "Qualitative approach - Qualitative methodology and tradition informing study",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["qualitative approach", "methodology", "ethnography", "grounded theory", "phenomenology", "case study", "ethnomethodology"]
+    },
+    {
+      "item_id": "SRQR_6",
+      "description": "Researcher characteristics - Reflexivity: researchers background and position",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["methods"],
+      "detection_hints": ["reflexivity", "researcher bias", "investigator bias", "background", "position"]
+    },
+    {
+      "item_id": "SRQR_7",
+      "description": "Setting - Setting where data were collected and rationale",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["setting", "context", "field site", "location", "environment"]
+    },
+    {
+      "item_id": "SRQR_8",
+      "description": "Sampling strategy - How participants were selected and rationale",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["sampling", "purposive", "snowball", "convenience", "theoretical sampling", "recruitment"]
+    },
+    {
+      "item_id": "SRQR_9",
+      "description": "Ethical issues - How consent was obtained and ethical approval",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["ethics", "informed consent", "IRB", "ethics committee", "approval"]
+    },
+    {
+      "item_id": "SRQR_10",
+      "description": "Data collection - Methods of data collection with rationale",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["data collection", "interview", "focus group", "observation", "document analysis"]
+    },
+    {
+      "item_id": "SRQR_11",
+      "description": "Data collection instruments - Describe instruments and devices used",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["methods"],
+      "detection_hints": ["interview guide", "questionnaire", "observation protocol", "recording"]
+    },
+    {
+      "item_id": "SRQR_12",
+      "description": "Units of study - Number and relevant characteristics of participants",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["participants", "sample size", "characteristics", "demographics"]
+    },
+    {
+      "item_id": "SRQR_13",
+      "description": "Data processing - Methods for processing and analyzing data",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["data analysis", "thematic analysis", "content analysis", "coding", "NVivo", " ATLAS.ti"]
+    },
+    {
+      "item_id": "SRQR_14",
+      "description": "Links to data - Include links to raw data if available",
+      "required": false,
+      "severity": "warn",
+      "covers_sections": ["methods"],
+      "detection_hints": ["raw data", "supplementary material", "data repository"]
+    }
+  ]
+}

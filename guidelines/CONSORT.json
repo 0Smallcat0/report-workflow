@@ -1,0 +1,206 @@
+{
+  "guideline": "CONSORT",
+  "version": "2010",
+  "items": [
+    {
+      "item_id": "CONSORT_1a",
+      "description": "Title - Identify as randomized controlled trial",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["title"],
+      "detection_hints": ["randomized", "randomised", "RCT", "controlled trial"]
+    },
+    {
+      "item_id": "CONSORT_1b",
+      "description": "Abstract - Provide structured summary of trial design and results",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["abstract"],
+      "detection_hints": ["design", "setting", "participants", "intervention", "outcome"]
+    },
+    {
+      "item_id": "CONSORT_2a",
+      "description": "Background - Scientific background and explanation of rationale",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["introduction", "background"],
+      "detection_hints": ["background", "rationale", "previous studies", "literature"]
+    },
+    {
+      "item_id": "CONSORT_2b",
+      "description": "Objectives - Specific objectives and hypotheses",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["introduction"],
+      "detection_hints": ["objective", "hypothesis", "aim", "goal"]
+    },
+    {
+      "item_id": "CONSORT_3a",
+      "description": "Trial design - Describe trial design with allocation ratio",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["trial design", "parallel", "crossover", "cluster", "allocation ratio"]
+    },
+    {
+      "item_id": "CONSORT_3b",
+      "description": "Changes - Important changes to trial after commencement",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["methods"],
+      "detection_hints": ["amendment", "protocol change", "modification"]
+    },
+    {
+      "item_id": "CONSORT_4a",
+      "description": "Participants - Eligibility criteria for participants",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["eligibility", "inclusion", "exclusion", "criteria"]
+    },
+    {
+      "item_id": "CONSORT_4b",
+      "description": "Settings - Settings and locations where data were collected",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["setting", "location", "site", "hospital", "clinic"]
+    },
+    {
+      "item_id": "CONSORT_5",
+      "description": "Interventions - Interventions for each group with details",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["intervention", "treatment", "control", "dose", "duration"]
+    },
+    {
+      "item_id": "CONSORT_6a",
+      "description": "Outcomes - Completely defined primary and secondary outcomes",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["primary outcome", "secondary outcome", "endpoint", "measurement"]
+    },
+    {
+      "item_id": "CONSORT_6b",
+      "description": "Changes - Changes to trial outcomes after trial commencement",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["methods"],
+      "detection_hints": ["outcome change", "modified endpoint"]
+    },
+    {
+      "item_id": "CONSORT_7a",
+      "description": "Sample size - How sample size was determined",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["sample size", "power calculation", "effect size", "power"]
+    },
+    {
+      "item_id": "CONSORT_7b",
+      "description": "Interim analysis - When applicable, explain any interim analyses",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["methods"],
+      "detection_hints": ["interim analysis", "stopping rules", " Data Safety Monitoring Board"]
+    },
+    {
+      "item_id": "CONSORT_8a",
+      "description": "Randomization - Method used to generate allocation sequence",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["randomization", "randomisation", "sequence generation", "block"]
+    },
+    {
+      "item_id": "CONSORT_8b",
+      "description": "Allocation concealment - Method to implement allocation sequence",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["allocation concealment", "sealed envelopes", "central randomization"]
+    },
+    {
+      "item_id": "CONSORT_9",
+      "description": "Blinding - Who was blinded after assignment to interventions",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["blinding", "masking", "double-blind", "single-blind", "participant", "assessor"]
+    },
+    {
+      "item_id": "CONSORT_10",
+      "description": "Statistical methods - Statistical methods used to compare groups",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["statistical analysis", "intention-to-treat", "per-protocol", "analysis"]
+    },
+    {
+      "item_id": "CONSORT_11a",
+      "description": "Participant flow - Numbers randomized, treated, and analyzed",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["flow diagram", "CONSORT diagram", "enrollment", "randomized", "allocated"]
+    },
+    {
+      "item_id": "CONSORT_11b",
+      "description": "Losses - For each group, losses and exclusions after randomization",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["lost to follow-up", "discontinued", "withdrew", "excluded"]
+    },
+    {
+      "item_id": "CONSORT_12a",
+      "description": "Participant characteristics - Baseline demographic and clinical characteristics",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["baseline characteristics", "demographics", "table 1"]
+    },
+    {
+      "item_id": "CONSORT_12b",
+      "description": "Baseline data - Numbers analyzed for each analysis",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["results"],
+      "detection_hints": ["analyzed", "analysis set", "included in analysis"]
+    },
+    {
+      "item_id": "CONSORT_13a",
+      "description": " Outcomes - For each group, number analyzed and effect estimates",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["outcome data", "effect size", "confidence interval", "p-value"]
+    },
+    {
+      "item_id": "CONSORT_13b",
+      "description": "Binary outcomes - For binary outcomes, present absolute effect sizes",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["results"],
+      "detection_hints": ["absolute risk", "risk difference", "number needed to treat"]
+    },
+    {
+      "item_id": "CONSORT_14a",
+      "description": "Harms - All important harms in each group",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["adverse events", "side effects", "harms", "complications", "safety"]
+    },
+    {
+      "item_id": "CONSORT_15",
+      "description": "Discussion - General interpretation of results in context of evidence",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["discussion"],
+      "detection_hints": ["interpretation", "findings", "context", "evidence"]
+    }
+  ]
+}

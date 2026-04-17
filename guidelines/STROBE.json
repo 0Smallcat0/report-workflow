@@ -1,0 +1,182 @@
+{
+  "guideline": "STROBE",
+  "version": "2007",
+  "items": [
+    {
+      "item_id": "STROBE_1a",
+      "description": "Title and abstract - Indicate study design in title or abstract",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["abstract", "title"],
+      "detection_hints": ["cohort", "case-control", "cross-sectional", "observational"]
+    },
+    {
+      "item_id": "STROBE_1b",
+      "description": "Abstract - Provide structured summary in title or abstract",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["abstract"],
+      "detection_hints": ["objective", "design", "setting", "participants", "outcome"]
+    },
+    {
+      "item_id": "STROBE_2",
+      "description": "Background/rationale - Explain scientific background and rationale",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["introduction", "background"],
+      "detection_hints": ["background", "rationale", "previous work", "literature"]
+    },
+    {
+      "item_id": "STROBE_3",
+      "description": "Objectives - State specific objectives including pre-specified hypotheses",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["introduction", "objectives"],
+      "detection_hints": ["objective", "hypothesis", "aim", "goal", "purpose"]
+    },
+    {
+      "item_id": "STROBE_4",
+      "description": "Study design - Present key elements of study design early in paper",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["study design", "prospective", "retrospective", "cohort study"]
+    },
+    {
+      "item_id": "STROBE_5",
+      "description": "Setting - Describe setting, locations, and relevant dates",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["setting", "location", "hospital", "clinic", "community", "time period"]
+    },
+    {
+      "item_id": "STROBE_6a",
+      "description": "Participants - Cohort: give eligibility criteria and methods of follow-up",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["participants", "eligibility", "inclusion", "exclusion", "follow-up"]
+    },
+    {
+      "item_id": "STROBE_6b",
+      "description": "Participants - Case-control: give eligibility criteria and case definition",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["case", "control", "case definition", "diagnostic criteria"]
+    },
+    {
+      "item_id": "STROBE_7",
+      "description": "Variables - Clearly define all outcomes, exposures, predictors",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["outcome", "exposure", "predictor", "variable", "definition"]
+    },
+    {
+      "item_id": "STROBE_8",
+      "description": "Data sources/measurement - For each variable, describe measurement methods",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["measurement", "data source", "questionnaire", "interview", "registry"]
+    },
+    {
+      "item_id": "STROBE_9",
+      "description": "Bias - Describe efforts to address potential sources of bias",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["methods"],
+      "detection_hints": ["bias", "confounding", "adjustment", "matching", "stratification"]
+    },
+    {
+      "item_id": "STROBE_10",
+      "description": "Study size - Explain how study size was determined",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["methods"],
+      "detection_hints": ["sample size", "power calculation", "statistical power", "sample size calculation"]
+    },
+    {
+      "item_id": "STROBE_11a",
+      "description": "Quantitative variables - Describe how quantitative variables were handled",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["methods"],
+      "detection_hints": ["quantitative", "continuous", "categorical", "transformed"]
+    },
+    {
+      "item_id": "STROBE_12a",
+      "description": "Descriptive results - Report numbers and characteristics of participants",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["participants", "characteristics", "flow diagram", "enrollment"]
+    },
+    {
+      "item_id": "STROBE_12b",
+      "description": "Descriptive results - Report follow-up times and outcomes",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["results"],
+      "detection_hints": ["follow-up", "follow up", "outcome data", "person-time"]
+    },
+    {
+      "item_id": "STROBE_13a",
+      "description": "Outcome data - Report numbers of events/outcomes for main analysis",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["outcome", "events", "incidence", "prevalence", "risk"]
+    },
+    {
+      "item_id": "STROBE_14a",
+      "description": "Main results - Report associations with unadjusted estimates",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["relative risk", "odds ratio", "hazard ratio", "association"]
+    },
+    {
+      "item_id": "STROBE_14b",
+      "description": "Main results - Report adjusted estimates and confounders",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["results"],
+      "detection_hints": ["adjusted", "confounder", "multivariate", "covariate"]
+    },
+    {
+      "item_id": "STROBE_15",
+      "description": "Sensitivity analysis - Report results of sensitivity analyses",
+      "required": false,
+      "severity": "warn",
+      "covers_sections": ["results"],
+      "detection_hints": ["sensitivity analysis", "robustness", "subgroup analysis"]
+    },
+    {
+      "item_id": "STROBE_16",
+      "description": "Discussion - Summarize key findings and limitations",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["discussion"],
+      "detection_hints": ["key findings", "limitations", "strengths", "weaknesses"]
+    },
+    {
+      "item_id": "STROBE_17",
+      "description": "Interpretation - Discuss generalizability and limitations",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["discussion"],
+      "detection_hints": ["generalizability", "external validity", "interpretation", "implications"]
+    },
+    {
+      "item_id": "STROBE_18",
+      "description": "Funding - Provide funding sources and role of funders",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["other"],
+      "detection_hints": ["funding", "financial support", "grant", "sponsor"]
+    }
+  ]
+}

@@ -1,0 +1,36 @@
+{
+  "academic": {
+    "positive": [
+      "thus", "hence", "consequently", "therefore", "accordingly",
+      "furthermore", "moreover", "additionally", "indeed", "specifically",
+      "demonstrates", "indicates", "suggests", "reveals", "illustrates"
+    ],
+    "negative": [
+      "lots of", "a lot", "thing", "stuff", "things",
+      "pretty much", "kind of", "sort of", "basically", "gotta",
+      "really", "very", "quite", "pretty", "super"
+    ]
+  },
+  "work": {
+    "positive": [
+      "focus", "key", "important", "critical", "essential",
+      "deliver", "achieve", "result", "outcome", "objective",
+      "improve", "increase", "decrease", "reduce", "enhance"
+    ],
+    "negative": [
+      "lots of", "a lot", "thing", "stuff", "things",
+      "as you can see", "it goes without saying", "needless to say",
+      "obviously", "clearly", "basically", "literally"
+    ]
+  },
+  "hybrid": {
+    "positive": [
+      "thus", "hence", "therefore", "key", "important",
+      "focus", "objective", "result", "outcome", "conclusion"
+    ],
+    "negative": [
+      "lots of", "a lot", "thing", "stuff", "things",
+      "pretty much", "kind of", "sort of", "obviously", "clearly"
+    ]
+  }
+}

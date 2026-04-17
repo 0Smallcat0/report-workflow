@@ -1,0 +1,17 @@
+{
+  "hard": {
+    "academic": ["STROBE_1a", "STROBE_2", "STROBE_3", "STROBE_4", "CONSORT_1a", "CONSORT_2a", "PRISMA_1a"],
+    "work": ["STROBE_1a", "STROBE_2", "CONSORT_1a"],
+    "hybrid": ["STROBE_1a", "STROBE_2", "STROBE_3"]
+  },
+  "soft": {
+    "academic": ["STROBE_9", "STROBE_10", "CONSORT_2b", "PRISMA_4", "STARD_9"],
+    "work": ["STROBE_9", "CONSORT_2b", "PRISMA_4"],
+    "hybrid": ["STROBE_9", "CONSORT_2b", "PRISMA_4"]
+  },
+  "warn": {
+    "academic": ["STROBE_15", "SRQR_14", "STARD_20"],
+    "work": ["STROBE_15", "STARD_20"],
+    "hybrid": ["STROBE_15", "STARD_20"]
+  }
+}

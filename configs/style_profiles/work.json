@@ -1,0 +1,47 @@
+{
+  "profile": "work",
+  "voice_register": "semi-formal",
+  "acceptable_sentence_length": {
+    "min": 8,
+    "max": 25,
+    "target": 15
+  },
+  "hedging_rules": {
+    "allow_hedging": true,
+    "required_for_weak_evidence": true,
+    "allowed_hedges": [
+      "may", "might", "could", "possibly", "suggests", "indicates"
+    ],
+    "forbidden_superlatives": [
+      "proves", "demonstrates conclusively", "absolutely", "definitively"
+    ]
+  },
+  "passive_voice": {
+    "allowed": false,
+    "max_percentage_per_paragraph": 10
+  },
+  "impersonal_constructions": {
+    "allowed": false,
+    "flag_list": [
+      "it is found", "it was observed", "it has been shown",
+      "it should be noted", "it is important to note"
+    ]
+  },
+  "contractions": {
+    "allowed": true
+  },
+  "colloquialisms": {
+    "allowed": false
+  },
+  "rhetorical_questions": {
+    "allowed": false
+  },
+  "emoji": {
+    "allowed": false
+  },
+  "jargon": {
+    "tolerance": "low",
+    "technical_terms_allowed": true,
+    "must_define": true
+  }
+}

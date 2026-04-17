@@ -1,0 +1,190 @@
+{
+  "guideline": "TRIPOD",
+  "version": "2015",
+  "items": [
+    {
+      "item_id": "TRIPOD_1a",
+      "description": "Title - Identify as study developing or validating prediction model",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["title"],
+      "detection_hints": ["prediction model", "prediction model development", "prediction model validation", "risk prediction", "prognostic model"]
+    },
+    {
+      "item_id": "TRIPOD_1b",
+      "description": "Abstract - Provide structured summary of design and findings",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["abstract"],
+      "detection_hints": ["design", "setting", "participants", "outcome", "predictors", "results"]
+    },
+    {
+      "item_id": "TRIPOD_2a",
+      "description": "Background/rationale - Scientific background and rationale for model development",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["introduction", "background"],
+      "detection_hints": ["background", "rationale", "clinical context", "prediction model needed"]
+    },
+    {
+      "item_id": "TRIPOD_2b",
+      "description": "Objectives - Specific objectives including whether developing or validating model",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["introduction"],
+      "detection_hints": ["objective", "aim", "goal", "develop", "validate", "prediction model"]
+    },
+    {
+      "item_id": "TRIPOD_3a",
+      "description": "Study design - Describe design elements and when performed",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["study design", "prospective", "retrospective", "cohort", "case-control"]
+    },
+    {
+      "item_id": "TRIPOD_3b",
+      "description": "Setting - Specify setting, locations, and relevant dates",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["setting", "location", "hospital", "clinic", "time period", "dates"]
+    },
+    {
+      "item_id": "TRIPOD_4a",
+      "description": "Participants - Specify eligibility criteria and study flow",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["eligibility criteria", "inclusion", "exclusion", "study flow", "flow diagram"]
+    },
+    {
+      "item_id": "TRIPOD_4b",
+      "description": "Study size - Explain how sample size was determined",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["sample size", "power calculation", "number of events", "events per variable"]
+    },
+    {
+      "item_id": "TRIPOD_5a",
+      "description": "Outcome - Define completely the outcome and how it was measured",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["outcome", "endpoint", "definition", "measurement", "how measured"]
+    },
+    {
+      "item_id": "TRIPOD_5b",
+      "description": "Outcome timing - Specify time point outcome was assessed",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["follow-up", "time point", "assessment time", "outcome timing"]
+    },
+    {
+      "item_id": "TRIPOD_6a",
+      "description": "Predictors - Define completely all predictors and how they were measured",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["predictor", "predictors", "variable", "covariate", "risk factor", "measurement"]
+    },
+    {
+      "item_id": "TRIPOD_6b",
+      "description": "Predictor timing - Specify when predictors were measured",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["methods"],
+      "detection_hints": ["predictor timing", "baseline", "at diagnosis", "at admission"]
+    },
+    {
+      "item_id": "TRIPOD_7",
+      "description": "Sample flow - Describe how participants flowed through study",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["flow diagram", "enrollment", "included", "excluded", "lost to follow-up"]
+    },
+    {
+      "item_id": "TRIPOD_8a",
+      "description": "Descriptive statistics - Describe characteristics of participants and outcome",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["baseline characteristics", "demographics", "table 1", "outcome frequency"]
+    },
+    {
+      "item_id": "TRIPOD_8b",
+      "description": "Missing data - Report number of participants with missing data for each predictor",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["results"],
+      "detection_hints": ["missing data", "missing values", "imputation", "complete case analysis"]
+    },
+    {
+      "item_id": "TRIPOD_9",
+      "description": "Model development - Describe how model was built (variable selection, modeling)",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["model building", "variable selection", "predictor selection", "regression", "algorithm"]
+    },
+    {
+      "item_id": "TRIPOD_10",
+      "description": "Model specification - Present full prediction model with all parameters",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["model equation", "model coefficients", "intercept", "beta", "score points"]
+    },
+    {
+      "item_id": "TRIPOD_11a",
+      "description": "Model performance - Report estimated model performance with C-statistic",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["C-statistic", "AUC", "ROC", "discrimination", "Brier score", "calibration"]
+    },
+    {
+      "item_id": "TRIPOD_11b",
+      "description": "Calibration - Report calibration of model predictions",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["calibration", "calibration plot", "observed vs predicted", "Hosmer-Lemeshow"]
+    },
+    {
+      "item_id": "TRIPOD_12a",
+      "description": "Interpretation - Discuss interpretation and clinical usefulness of model",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["discussion"],
+      "detection_hints": ["interpretation", "clinical usefulness", "implications", "risk prediction"]
+    },
+    {
+      "item_id": "TRIPOD_12b",
+      "description": "Validation results - For validation studies, report results on model performance",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["discussion"],
+      "detection_hints": ["validation", "discrimination", "calibration", "external validation"]
+    },
+    {
+      "item_id": "TRIPOD_13a",
+      "description": "Limitations - Discuss limitations including sources of bias",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["discussion"],
+      "detection_hints": ["limitations", "bias", "weaknesses", "overfitting", "generalizability"]
+    },
+    {
+      "item_id": "TRIPOD_13b",
+      "description": "Comparison - Compare with other studies and discuss generalizability",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["discussion"],
+      "detection_hints": ["comparison", "other studies", "generalizability", "external validity"]
+    }
+  ]
+}

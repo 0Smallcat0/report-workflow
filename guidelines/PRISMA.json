@@ -1,0 +1,222 @@
+{
+  "guideline": "PRISMA",
+  "version": "2020",
+  "items": [
+    {
+      "item_id": "PRISMA_1a",
+      "description": "Title - Identify report as systematic review/meta-analysis",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["title"],
+      "detection_hints": ["systematic review", "meta-analysis", "meta analysis", "systematic"]
+    },
+    {
+      "item_id": "PRISMA_1b",
+      "description": "Abstract - Structured summary of review design and findings",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["abstract"],
+      "detection_hints": ["design", "data sources", "study eligibility", "participants", "interventions", "results"]
+    },
+    {
+      "item_id": "PRISMA_2",
+      "description": "Rationale - Describe rationale for review in context of existing knowledge",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["introduction", "background"],
+      "detection_hints": ["rationale", "background", "why this review is needed", "gap"]
+    },
+    {
+      "item_id": "PRISMA_3",
+      "description": "Objectives - Provide explicit statement of research question",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["introduction"],
+      "detection_hints": ["objective", "research question", "PICOTS", "PICO", "aim"]
+    },
+    {
+      "item_id": "PRISMA_4",
+      "description": "Protocol - Indicate if review protocol exists and where accessible",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["methods"],
+      "detection_hints": ["protocol", "registration", "PROSPERO", "registered"]
+    },
+    {
+      "item_id": "PRISMA_5",
+      "description": "Eligibility criteria - Specify inclusion and exclusion criteria with rationale",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["eligibility criteria", "inclusion criteria", "exclusion criteria", "study design"]
+    },
+    {
+      "item_id": "PRISMA_6a",
+      "description": "Information sources - Describe all sources and date last searched",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["information sources", "database", "searched", "PubMed", "Embase", "Cochrane"]
+    },
+    {
+      "item_id": "PRISMA_6b",
+      "description": "Search strategy - Present full search strategies for all databases",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["search strategy", "search terms", "keywords", "MeSH terms"]
+    },
+    {
+      "item_id": "PRISMA_7",
+      "description": "Study selection - Specify methods for study selection (screening, eligibility)",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["study selection", "screening", "eligibility assessment", "two reviewers"]
+    },
+    {
+      "item_id": "PRISMA_8",
+      "description": "Data items - List and define all variables for which data were sought",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["data items", "variables", "data extracted", "outcomes", "exposures"]
+    },
+    {
+      "item_id": "PRISMA_9",
+      "description": "Risk of bias - Describe methods for assessing risk of bias in included studies",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["risk of bias", "quality assessment", "Cochrane risk of bias", "ROBINS-I", " Newcastle-Ottawa"]
+    },
+    {
+      "item_id": "PRISMA_10",
+      "description": "Effect measures - Specify primary effect measure(s) for each outcome",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["effect measure", "risk ratio", "odds ratio", "mean difference", "standardized mean difference"]
+    },
+    {
+      "item_id": "PRISMA_11a",
+      "description": "Synthesis methods - Describe methods for synthesizing results",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["synthesis", "meta-analysis", "pooled estimate", "summary effect"]
+    },
+    {
+      "item_id": "PRISMA_11b",
+      "description": "Meta-analytic methods - Describe methods for meta-analysis if applicable",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["methods"],
+      "detection_hints": ["fixed effect", "random effects", "heterogeneity", "I2", "tau"]
+    },
+    {
+      "item_id": "PRISMA_12a",
+      "description": "Study selection - Report numbers of studies screened and included",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["study selection", "PRISMA flow diagram", "studies identified", "included"]
+    },
+    {
+      "item_id": "PRISMA_12b",
+      "description": "Study characteristics - Cite each included study and describe characteristics",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["study characteristics", "included studies", "table of studies"]
+    },
+    {
+      "item_id": "PRISMA_13a",
+      "description": "Risk of bias - Present assessments of risk of bias for each study",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["risk of bias", "quality assessment", "bias assessment", "table"]
+    },
+    {
+      "item_id": "PRISMA_13b",
+      "description": "Results of syntheses - Present results for all syntheses",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["forest plot", "pooled estimate", "meta-analysis results", "heterogeneity"]
+    },
+    {
+      "item_id": "PRISMA_14a",
+      "description": "Reporting biases - Present assessments of risk of bias due to missing results",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["results"],
+      "detection_hints": ["publication bias", "small study effect", "funnel plot", "trim and fill"]
+    },
+    {
+      "item_id": "PRISMA_14b",
+      "description": "Certainty of evidence - Present assessments of certainty of evidence",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["results"],
+      "detection_hints": ["GRADE", "certainty of evidence", "quality of evidence", "confidence"]
+    },
+    {
+      "item_id": "PRISMA_15",
+      "description": "Results of included studies - For all outcomes, present results and character",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["results", "effect estimates", "forest plot", "summary table"]
+    },
+    {
+      "item_id": "PRISMA_16",
+      "description": "Reporting biases - Present assessments of reporting biases across studies",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["results"],
+      "detection_hints": ["reporting bias", "selective reporting", "publication bias"]
+    },
+    {
+      "item_id": "PRISMA_17",
+      "description": "Certainty of evidence - Present assessments of certainty of evidence for each outcome",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["results"],
+      "detection_hints": ["GRADE", "certainty", "quality", "confidence in estimates"]
+    },
+    {
+      "item_id": "PRISMA_18",
+      "description": "Discussion - Provide general interpretation of results in context of evidence",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["discussion"],
+      "detection_hints": ["interpretation", "meaning", "comparison with other studies"]
+    },
+    {
+      "item_id": "PRISMA_19",
+      "description": "Strengths - Discuss any strengths of the review process",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["discussion"],
+      "detection_hints": ["strengths", "limitations", "strengths and limitations"]
+    },
+    {
+      "item_id": "PRISMA_20",
+      "description": "Limitations - Discuss any limitations of evidence and review process",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["discussion"],
+      "detection_hints": ["limitations", "caveats", "weaknesses", "bias"]
+    },
+    {
+      "item_id": "PRISMA_21",
+      "description": "Conclusions - Provide general interpretation and implications for future research",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["conclusion", "discussion"],
+      "detection_hints": ["conclusion", "implications", "future research", "recommendations"]
+    }
+  ]
+}

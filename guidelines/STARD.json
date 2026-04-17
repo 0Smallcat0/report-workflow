@@ -1,0 +1,230 @@
+{
+  "guideline": "STARD",
+  "version": "2015",
+  "items": [
+    {
+      "item_id": "STARD_1a",
+      "description": "Title - Identify article as report of diagnostic accuracy study",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["title"],
+      "detection_hints": ["diagnostic accuracy", "sensitivity", "specificity", "ROC", "AUC"]
+    },
+    {
+      "item_id": "STARD_1b",
+      "description": "Abstract - Structured summary of design and findings",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["abstract"],
+      "detection_hints": ["design", "setting", "participants", "index test", "reference standard", "results"]
+    },
+    {
+      "item_id": "STARD_2",
+      "description": "Background - Scientific and clinical background for study",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["introduction", "background"],
+      "detection_hints": ["background", "rationale", "clinical context", "clinical need"]
+    },
+    {
+      "item_id": "STARD_3",
+      "description": "Objectives - Specific objectives and pre-specified hypotheses",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["introduction"],
+      "detection_hints": ["objective", "hypothesis", "aim", "goal", "purpose"]
+    },
+    {
+      "item_id": "STARD_4",
+      "description": "Study design - Design elements described early in methods",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["study design", "prospective", "retrospective", "consecutive enrollment"]
+    },
+    {
+      "item_id": "STARD_5",
+      "description": "Participants - Eligibility criteria and setting where data collected",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["eligibility criteria", "inclusion", "exclusion", "setting", "location"]
+    },
+    {
+      "item_id": "STARD_6a",
+      "description": "Index test - Pre-specified definition and execution of index test",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["index test", "new test", "experimental test", "diagnostic test"]
+    },
+    {
+      "item_id": "STARD_6b",
+      "description": "Index test thresholds - Pre-specified thresholds used for positivity",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["threshold", "cutoff", "cut-off", "positive criterion", "diagnostic cutoff"]
+    },
+    {
+      "item_id": "STARD_7a",
+      "description": "Reference standard - Pre-specified definition and execution of reference standard",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["reference standard", "gold standard", "confirmatory diagnosis", "definitive diagnosis"]
+    },
+    {
+      "item_id": "STARD_7b",
+      "description": "Rationale for reference standard - Rationale for reference standard choice",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["methods"],
+      "detection_hints": ["reference standard rationale", "why gold standard", "clinical reference standard"]
+    },
+    {
+      "item_id": "STARD_8",
+      "description": "Target disease - How target disease was defined in the study",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["target disease", "condition", "diagnosis", "case definition"]
+    },
+    {
+      "item_id": "STARD_9",
+      "description": "Sample size - How sample size was determined with power calculation",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["methods"],
+      "detection_hints": ["sample size", "power calculation", "precision", "confidence interval width"]
+    },
+    {
+      "item_id": "STARD_10a",
+      "description": "Index test interpretation - How index test was interpreted",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["index test interpretation", "blinded", "independently interpreted"]
+    },
+    {
+      "item_id": "STARD_10b",
+      "description": "Reference standard interpretation - How reference standard was interpreted",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["reference standard interpretation", "blinded", "independently interpreted"]
+    },
+    {
+      "item_id": "STARD_11",
+      "description": "Statistical methods - Methods for calculating diagnostic accuracy measures",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["methods"],
+      "detection_hints": ["sensitivity", "specificity", "positive predictive value", "negative predictive value", "accuracy", "ROC", "AUC"]
+    },
+    {
+      "item_id": "STARD_12a",
+      "description": "Study flow - Number of participants meeting inclusion criteria",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["flow diagram", "enrollment", "included", "excluded"]
+    },
+    {
+      "item_id": "STARD_12b",
+      "description": "Study flow - Participants underwent both index test and reference standard",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["both tests", "underwent", "received", "tested with"]
+    },
+    {
+      "item_id": "STARD_13a",
+      "description": "Baseline demographics - Clinical characteristics and demographics",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["demographics", "baseline characteristics", "age", "sex", "gender", "clinical characteristics"]
+    },
+    {
+      "item_id": "STARD_13b",
+      "description": "Disease prevalence - Number of participants with and without target disease",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["disease prevalence", "target disease", "condition present", "cases"]
+    },
+    {
+      "item_id": "STARD_14a",
+      "description": "Index test results - Distribution of index test results and reference standard",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["2x2 table", "cross-tabulation", "index test results", "positive", "negative"]
+    },
+    {
+      "item_id": "STARD_14b",
+      "description": "Test results uncertainty - Indeterminate or intermediate test results",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["results"],
+      "detection_hints": ["indeterminate results", "uninterpretable", "borderline", "intermediate"]
+    },
+    {
+      "item_id": "STARD_15a",
+      "description": "Adverse events - Any adverse events from testing",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["results"],
+      "detection_hints": ["adverse events", "side effects", "complications", "harm"]
+    },
+    {
+      "item_id": "STARD_16",
+      "description": "Diagnostic accuracy - Reported diagnostic accuracy for each measure",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["results"],
+      "detection_hints": ["sensitivity", "specificity", "PPV", "NPV", "accuracy", "likelihood ratio", "AUC", "ROC"]
+    },
+    {
+      "item_id": "STARD_17",
+      "description": "Uncertainty - How uncertainty in measurements was addressed",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["results"],
+      "detection_hints": ["confidence interval", "standard error", "uncertainty", "precision"]
+    },
+    {
+      "item_id": "STARD_18",
+      "description": "Discussion - General interpretation and comparison with other studies",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["discussion"],
+      "detection_hints": ["interpretation", "comparison", "other studies", "findings"]
+    },
+    {
+      "item_id": "STARD_19",
+      "description": "Limitations - Discuss any limitations including sources of bias",
+      "required": true,
+      "severity": "hard",
+      "covers_sections": ["discussion"],
+      "detection_hints": ["limitations", "bias", "weaknesses", "sources of bias"]
+    },
+    {
+      "item_id": "STARD_20",
+      "description": "Registration - Provide registration number and name of registry",
+      "required": false,
+      "severity": "warn",
+      "covers_sections": ["other"],
+      "detection_hints": ["registration", "registry", "PROSPERO", "clinicaltrials.gov"]
+    },
+    {
+      "item_id": "STARD_21",
+      "description": "Funding - Sources of funding and role of funders",
+      "required": true,
+      "severity": "soft",
+      "covers_sections": ["other"],
+      "detection_hints": ["funding", "financial support", "grant", "sponsor"]
+    }
+  ]
+}

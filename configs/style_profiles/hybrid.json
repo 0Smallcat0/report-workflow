@@ -1,0 +1,44 @@
+{
+  "profile": "hybrid",
+  "voice_register": "mixed",
+  "acceptable_sentence_length": {
+    "min": 10,
+    "max": 30,
+    "target": 18
+  },
+  "hedging_rules": {
+    "allow_hedging": true,
+    "required_for_weak_evidence": true,
+    "allowed_hedges": [
+      "may", "might", "could", "possibly", "suggests",
+      "indicates", "appears", "potentially"
+    ],
+    "forbidden_superlatives": [
+      "proves", "demonstrates conclusively"
+    ]
+  },
+  "passive_voice": {
+    "allowed": true,
+    "max_percentage_per_paragraph": 25
+  },
+  "impersonal_constructions": {
+    "allowed": true,
+    "flag_list": []
+  },
+  "contractions": {
+    "allowed": true
+  },
+  "colloquialisms": {
+    "allowed": false
+  },
+  "rhetorical_questions": {
+    "allowed": false
+  },
+  "emoji": {
+    "allowed": false
+  },
+  "jargon": {
+    "tolerance": "moderate",
+    "technical_terms_allowed": true
+  }
+}
