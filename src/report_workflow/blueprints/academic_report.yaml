@@ -1,0 +1,98 @@
+name: academic_report
+description: Standard IMRAD academic report format
+
+# ICMJE-compliant front matter (ICMJE = International Committee of Medical Journal Editors)
+# These fields are required for academic publication submission
+front_matter:
+  title: ""                    # Required: Full title (Nature recommends ≤120 chars, verb-first style)
+  short_title: ""              # Optional: Running title for page headers
+  author_block: ""             # Required: "Author Name, Author Affiliation" (one per line for multiple)
+  affiliation_block: ""        # Required: "Department, Institution, City, Country"
+  correspondence: ""          # Required: "Correspondence: author@institution.edu"
+  keywords: []                 # Required: 4-6 keywords (ICMJE recommendation)
+  acknowledgements: ""         # Optional: Funding, institutional acknowledgements
+  funding: ""                  # Optional: Funding body and grant numbers
+  conflict_note: ""            # Optional: "The authors declare no conflict of interest."
+
+# Supplementary materials are REQUIRED for academic reports.
+# Include: verification_summary, schema_specifications, compilation_trace, extended methods.
+supplementary:
+  required: true
+
+# Thesis/contribution framing required before drafting
+thesis:
+  required: true
+  placement: introduction_final_paragraph  # Thesis appears in last paragraph of Introduction
+
+section_order:
+  - abstract
+  - introduction
+  - methods
+  - results
+  - discussion
+  - conclusion
+  - references
+sections:
+  abstract:
+    section_id: abstract
+    title: Abstract
+    required: true
+    section_type: abstract
+    order: 1
+    # Contract: abstract must have these subsections (checked by ABSTRACT_CHECK)
+    required_subsections:
+      - background
+      - objective
+      - methods
+      - principal findings
+      - significance
+    word_count_min: 180
+    word_count_max: 220
+  introduction:
+    section_id: introduction
+    title: Introduction
+    required: true
+    section_type: introduction
+    order: 2
+  methods:
+    section_id: methods
+    title: Methods
+    required: true
+    section_type: methods
+    order: 3
+    # Contract: methods must describe procedure, not findings
+    tense: past
+    voice: passive_or_past_first_person
+  results:
+    section_id: results
+    title: Results
+    required: true
+    section_type: results
+    order: 4
+    # results_mode controls what kinds of claims are allowed:
+    # "empirical"        — actual measured results (performance numbers, experiments)
+    # "architectural_characterization" — system description, no performance claims
+    # Default: architectural_characterization (for code/architecture analysis papers)
+    # Override to "empirical" for experimental papers with performance data
+    results_mode: architectural_characterization
+    results_mode_options:
+      - empirical
+      - architectural_characterization
+  discussion:
+    section_id: discussion
+    title: Discussion
+    required: true
+    section_type: discussion
+    order: 5
+  conclusion:
+    section_id: conclusion
+    title: Conclusion
+    required: true
+    section_type: conclusion
+    order: 6
+  references:
+    section_id: references
+    title: References
+    required: true
+    section_type: references
+    order: 7

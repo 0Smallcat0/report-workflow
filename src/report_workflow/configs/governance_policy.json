@@ -1,0 +1,28 @@
+{
+  "quality_gate_policy": {
+    "consistency": "not_enforced",
+    "style": "not_enforced",
+    "guideline": "not_enforced",
+    "figure_interpretation": "not_enforced"
+  },
+  "research_enabled": false,
+  "figure_table_enabled": false,
+  "waiver_policy": {
+    "numeric_contradiction": "never",
+    "self_contradiction": "never",
+    "broken_crossref": "patch",
+    "missing_crossref_target": "patch",
+    "claim_evidence_mismatch": "patch",
+    "overclaiming": "patch",
+    "value_range_violation": "patch",
+    "unit_mismatch": "patch",
+    "inconsistent_citation": "patch",
+    "terminology_drift": "patch",
+    "inconsistent_reporting": "waive",
+    "unreported_item": "patch",
+    "missing_required_section": "patch",
+    "missing_critical_element": "never",
+    "default": "waive"
+  },
+  "waiver_severity_threshold": "high"
+}

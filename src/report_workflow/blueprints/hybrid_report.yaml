@@ -1,0 +1,73 @@
+name: hybrid_report
+description: Hybrid academic/work report format
+
+# Front matter for hybrid reports (follows academic standards when abstract/references present)
+front_matter:
+  title: ""                    # Required: Report title
+  short_title: ""              # Optional: Running title
+  author_block: ""             # Recommended: Author attribution
+  affiliation_block: ""        # Recommended: Organization/Institution
+  correspondence: ""          # Optional: Contact information
+  keywords: []                 # Recommended: 3-5 keywords
+  acknowledgements: ""         # Optional
+  funding: ""                  # Optional
+  conflict_note: ""            # Optional
+
+section_order:
+  - abstract
+  - introduction
+  - methods
+  - results
+  - discussion
+  - recommendations
+  - references
+  - appendix
+sections:
+  abstract:
+    section_id: abstract
+    title: Abstract
+    required: true
+    section_type: abstract
+    order: 1
+  introduction:
+    section_id: introduction
+    title: Introduction
+    required: true
+    section_type: introduction
+    order: 2
+  methods:
+    section_id: methods
+    title: Methods
+    required: true
+    section_type: methods
+    order: 3
+  results:
+    section_id: results
+    title: Results
+    required: true
+    section_type: results
+    order: 4
+  discussion:
+    section_id: discussion
+    title: Discussion
+    required: true
+    section_type: discussion
+    order: 5
+  recommendations:
+    section_id: recommendations
+    title: Recommendations
+    required: true
+    section_type: recommendations
+    order: 6
+  references:
+    section_id: references
+    title: References
+    required: true
+    section_type: references
+    order: 7
+  appendix:
+    section_id: appendix
+    title: Appendix
+    required: false
+    section_type: appendix
+    order: 8
