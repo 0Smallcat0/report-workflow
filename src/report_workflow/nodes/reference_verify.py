@@ -24,6 +24,7 @@ from pathlib import Path
 from ..state import ReportState
 from ..errors import QAHardBlockError
 from ..runtime_support import write_json_artifact
+from ..policies import get_policy
 
 
 def _verify_doi(doi: str) -> tuple[bool, str]:
@@ -176,7 +177,7 @@ def run_reference_verify(state: ReportState) -> ReportState:
       - Author name plausibility
     """
     report_family = state.spec.get("report_family", "")
-    academic_mode = report_family == "academic_report"
+    policy = get_policy(report_family)
 
     # Get references from citation_bind output
     refs = _load_refs_from_citation_bind(state)
@@ -313,12 +314,12 @@ def run_reference_verify(state: ReportState) -> ReportState:
     report_path = write_json_artifact(state, "reference_verify_report.json", report)
     state.runtime["reference_verify_report_path"] = str(report_path)
 
-    # Hard block for academic mode if any references failed
-    if academic_mode and failed_refs:
+    # Hard block if DOI verification is required and any references failed
+    if policy.reference.doi_verification_required and failed_refs:
         error_samples = [f"{r['ref_id'][:60]}: {'; '.join(r['errors'][:2])}" for r in failed_refs[:3]]
         raise QAHardBlockError(
-            f"REFERENCE_VERIFY: {len(failed_refs)} reference(s) could not be verified "
-            f"in academic mode: {'; '.join(error_samples)}. "
+            f"REFERENCE_VERIFY: {len(failed_refs)} reference(s) could not be verified: "
+            f"{'; '.join(error_samples)}. "
             "Fix the references or remove unverifiable ones before submission."
         )
 

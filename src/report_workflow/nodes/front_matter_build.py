@@ -19,6 +19,7 @@ import re
 from pathlib import Path
 
 from ..state import ReportState, WORKFLOW_RUNS_DIR
+from ..policies import get_policy
 from ..runtime_support import write_json_artifact
 
 
@@ -308,7 +309,8 @@ def _build_front_matter(state: ReportState) -> dict:
     }
 
     # For academic_report: ensure required fields
-    if report_family == "academic_report":
+    policy = get_policy(report_family)
+    if policy.front_matter.auto_populate_missing_fields:
         # Try to populate title from user prompt if empty
         if not front_matter["title"]:
             title = _parse_title_from_user_prompt(user_prompt)
@@ -350,7 +352,8 @@ def _validate_front_matter(front_matter: dict, report_family: str) -> list[str]:
     """Validate front matter completeness. Returns list of warnings (not hard errors)."""
     warnings = []
 
-    if report_family != "academic_report":
+    policy = get_policy(report_family)
+    if not policy.front_matter.required:
         return warnings
 
     # ICMJE requires: title, author, affiliation, keywords, correspondence
@@ -449,11 +452,12 @@ def run_front_matter_build(state: ReportState) -> ReportState:
         ]
 
     # ------------------------------------------------------------------
-    # ACADEMIC MODE: Hard block on placeholder values.
-    # Previously only warnings were emitted. Now we hard-block to prevent
-    # submission documents with [Author Name], [email@institution.edu], etc.
+    # POLICY-BASED: Hard block on placeholder values.
+    # Uses policy.front_matter.placeholder_blocked (True for academic,
+    # False for work/hybrid which may not have formal front matter).
     # ------------------------------------------------------------------
-    if report_family == "academic_report":
+    policy = get_policy(report_family)
+    if policy.front_matter.placeholder_blocked:
         import re
         _PLACEHOLDER_PATTERNS = [
             (r"\[Author\s+Name\]", "author_block"),

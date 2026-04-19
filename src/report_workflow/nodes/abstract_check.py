@@ -31,6 +31,7 @@ from pathlib import Path
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
 from ..runtime_support import PLACEHOLDER_TEXT
+from ..policies import get_policy
 
 
 # ------------------------------------------------------------------
@@ -140,14 +141,20 @@ def _sanity_checks(text: str) -> list[str]:
 
 
 def _word_count_check(text: str, family: str) -> list[str]:
-    """Check word count is in range."""
+    """Check word count is in range per policy."""
     errors = []
     words = _count_words(text)
-    if family == "academic_report":
-        if words < 180:
-            errors.append(f"Abstract too short: {words} words (minimum 180 for academic)")
-        elif words > 220:
-            errors.append(f"Abstract too long: {words} words (maximum 220 for academic)")
+    policy = get_policy(family)
+    if words < policy.abstract.word_count_min:
+        errors.append(
+            f"Abstract too short: {words} words "
+            f"(minimum {policy.abstract.word_count_min} for {family})"
+        )
+    elif words > policy.abstract.word_count_max:
+        errors.append(
+            f"Abstract too long: {words} words "
+            f"(maximum {policy.abstract.word_count_max} for {family})"
+        )
     return errors
 
 
@@ -191,8 +198,9 @@ def run_abstract_check(state: ReportState) -> ReportState:
     # Step 1: Strip internal markers
     cleaned = _strip_markers(raw_text)
 
-    # Step 2: Structure check (academic mode)
-    if family == "academic_report":
+    # Step 2: Structure check per policy
+    policy = get_policy(family)
+    if policy.abstract.structure_required:
         all_errors.extend(_check_structure(cleaned))
 
     # Step 3: Sanity checks (always run)

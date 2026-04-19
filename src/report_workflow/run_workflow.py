@@ -13,24 +13,19 @@ from .nodes.source_parse import run_source_parse
 from .nodes.evidence_normalize import run_evidence_normalize
 from .nodes.evidence_store import run_evidence_store
 from .nodes.agent_tasks import run_agent_task_briefs
-from .nodes.claim_plan import run_claim_plan
-from .nodes.outline_plan import run_outline_plan
-from .nodes.paper_scope_freeze import run_paper_scope_freeze
-from .nodes.section_plan_freeze import run_section_plan_freeze
-from .nodes.front_matter_build import run_front_matter_build
-from .nodes.section_draft import run_section_draft
-from .nodes.abstract_check import run_abstract_check
+from .nodes.agent_artifact_intake import run_agent_artifact_intake
+from .nodes.plan_freeze import run_plan_freeze
+from .nodes.doc_metadata_gate import run_doc_metadata_gate
 from .nodes.figure_build import run_figure_build
 from .nodes.figure_quality import run_figure_quality
 from .nodes.methods_protocol_build import run_methods_protocol_build
-from .nodes.merge_draft import run_merge_draft
-from .nodes.citation_bind import run_citation_bind
-from .nodes.reference_verify import run_reference_verify
+from .nodes.draft_assembly import run_draft_assembly
+from .nodes.section_role_check import run_section_role_check
+from .nodes.citation_layer import run_citation_layer
 from .nodes.factuality_check import run_factuality_check
 from .nodes.consistency_check import run_consistency_check  # kept for explicit quality command
 from .nodes.guideline_check import run_guideline_check      # kept for explicit quality command
 from .nodes.base_document_parse import run_base_document_parse
-from .nodes.revision_apply import run_revision_apply
 from .nodes.qa_gate import run_qa_gate
 from .nodes.style_pass import run_style_pass
 from .nodes.section_role_check import run_section_role_check
@@ -64,40 +59,29 @@ def prepare_nodes() -> list[tuple[str, object]]:
 def validate_nodes() -> list[tuple[str, object]]:
     """Return nodes that validate external agent-produced artifacts.
 
-    Simplified pipeline (post-retrospective refactor):
-    - MERGE_DRAFT absorbs: results_sanity_pass + main_text_artifact_filter
-      (those functions remain available for belt-and-suspenders but no longer run as separate nodes)
-    - SECTION_ROLE_CHECK runs BEFORE CITATION_BIND to catch role violations before citation stripping
-    - GUIDELINE_CHECK and CONSISTENCY_CHECK are moved to explicit quality commands
+    Simplified pipeline (17 → 11 nodes, post-retrospective refactor):
+    - AGENT_ARTIFACT_INTAKE: CLAIM_PLAN + OUTLINE_PLAN + SECTION_DRAFT combined
+    - PLAN_FREEZE: PAPER_SCOPE_FREEZE + SECTION_PLAN_FREEZE combined
+    - DOC_METADATA_GATE: FRONT_MATTER_BUILD + ABSTRACT_CHECK combined
+    - DRAFT_ASSEMBLY: REVISION_APPLY + MERGE_DRAFT combined
+      (MERGE_DRAFT absorbs: results_sanity_pass + main_text_artifact_filter)
+    - CITATION_LAYER: CITATION_BIND + REFERENCE_VERIFY combined
+    - FIGURE_QUALITY: absorbs caption_interpreter + figure_contract_check
+    - GUIDELINE_CHECK and CONSISTENCY_CHECK moved to explicit quality commands
       (run via: report-workflow check-quality --job-id <id>)
     """
     return [
-        ("CLAIM_PLAN", run_claim_plan),
-        ("OUTLINE_PLAN", run_outline_plan),
-        # PAPER_SCOPE_FREEZE: freeze thesis + RQs + contribution framing BEFORE drafting
-        # Addresses retrospective failure: "Scope was too broad at the start"
-        ("PAPER_SCOPE_FREEZE", run_paper_scope_freeze),
-        ("SECTION_PLAN_FREEZE", run_section_plan_freeze),
-        ("FRONT_MATTER_BUILD", run_front_matter_build),
-        ("SECTION_DRAFT", run_section_draft),
-        ("ABSTRACT_CHECK", run_abstract_check),
+        ("AGENT_ARTIFACT_INTAKE", run_agent_artifact_intake),
+        ("PLAN_FREEZE", run_plan_freeze),
+        ("DOC_METADATA_GATE", run_doc_metadata_gate),
         ("METHODS_PROTOCOL_BUILD", run_methods_protocol_build),
         ("FIGURE_BUILD", run_figure_build),
-        ("REVISION_APPLY", run_revision_apply),
-        # MERGE_DRAFT: single canonical cleaning node (absorbs results_sanity_pass + main_text_artifact_filter)
-        ("MERGE_DRAFT", run_merge_draft),
-        # SECTION_ROLE_CHECK before CITATION_BIND: catch IMRaD boundary violations before citation stripping
+        ("DRAFT_ASSEMBLY", run_draft_assembly),
         ("SECTION_ROLE_CHECK", run_section_role_check),
-        ("CITATION_BIND", run_citation_bind),
-        # REFERENCE_VERIFY: verify DOI/arXiv resolve (academic mode hard block)
-        ("REFERENCE_VERIFY", run_reference_verify),
+        ("CITATION_LAYER", run_citation_layer),
         ("FACTUALITY_CHECK", run_factuality_check),
-        # FIGURE_QUALITY: consolidated figure quality check (absorbs caption_interpreter + figure_contract_check)
         ("FIGURE_QUALITY", run_figure_quality),
         ("QA_GATE", run_qa_gate),
-        # DEPRECATED - moved to explicit quality command: report-workflow check-quality
-        # ("CONSISTENCY_CHECK", run_consistency_check),
-        # ("GUIDELINE_CHECK", run_guideline_check),
     ]
 
 

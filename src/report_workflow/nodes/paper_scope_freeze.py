@@ -21,6 +21,7 @@ import json
 from ..errors import QAHardBlockError
 from ..state import ReportState
 from ..runtime_support import write_json_artifact
+from ..policies import get_policy
 
 
 def _stable_hash(payload: dict) -> str:
@@ -32,13 +33,11 @@ def _stable_hash(payload: dict) -> str:
 def _require_thesis(outline: dict, report_family: str) -> tuple[str, str]:
     """Extract and validate thesis statement from outline.
 
-    For academic_report: thesis must appear in the introduction section's
-    final paragraph (or in a dedicated "thesis" or "contribution" field).
-
     Returns (thesis_text, thesis_location).
-    Raises QAHardBlockError if thesis is missing for academic_report.
+    Raises QAHardBlockError if thesis is required but missing per policy.
     """
-    if report_family != "academic_report":
+    policy = get_policy(report_family)
+    if not policy.claim.thesis_required:
         return "", ""
 
     sections = outline.get("sections", {})
@@ -73,12 +72,13 @@ def _require_thesis(outline: dict, report_family: str) -> tuple[str, str]:
 
 
 def _require_rqs(outline: dict, blueprint: dict, report_family: str) -> list[str]:
-    """Extract research questions if the blueprint requires them.
+    """Extract research questions if the policy and blueprint require them.
 
-    Returns list of RQ strings (may be empty for non-academic).
+    Returns list of RQ strings (may be empty if not required).
     Raises QAHardBlockError if RQs are required but missing.
     """
-    if report_family != "academic_report":
+    policy = get_policy(report_family)
+    if not policy.claim.rqs_required:
         return outline.get("research_questions", [])
 
     requires_rqs = blueprint.get("thesis", {}).get("requires_rqs", False)
@@ -155,14 +155,12 @@ def _rank_claims(claim_matrix: dict) -> dict:
 
 
 def _validate_claim_allocation(ranking: dict, report_family: str) -> None:
-    """Validate that claim allocation makes sense.
+    """Validate that claim allocation makes sense per policy.
 
-    For academic_report:
-      - At least 1 primary claim must be in main_text
-      - Background claims should not dominate main_text
-      - Supporting claims should not outnumber primary claims 5:1
+    Raises QAHardBlockError if allocation rules are violated.
     """
-    if report_family != "academic_report":
+    policy = get_policy(report_family)
+    if not policy.claim.thesis_required:
         return
 
     primary_count = len(ranking["primary_claims"])

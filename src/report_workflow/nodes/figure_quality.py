@@ -23,6 +23,7 @@ from pathlib import Path
 from ..errors import QAHardBlockError
 from ..state import ReportState
 from ..runtime_support import write_json_artifact
+from ..policies import get_policy
 
 
 logger = logging.getLogger(__name__)
@@ -76,17 +77,14 @@ _AUDIT_TABLE_PATTERNS = [
 
 
 def _check_no_audit_tables_in_main_text(merged_text: str, report_family: str) -> list[dict]:
-    """Check that internal audit tables are NOT in the main publication text.
-
-    For academic_report: these tables belong in supplementary materials, not in
-    the main publication text. If they're in the main text, it means they
-    weren't removed by MERGE_DRAFT's audit table stripping.
+    """Check that internal audit tables are NOT in main text.
 
     Returns hard issues if audit tables are FOUND in main text.
     """
     issues = []
 
-    if report_family != "academic_report":
+    policy = get_policy(report_family)
+    if not policy.figure.audit_table_hard_block:
         return issues
 
     for pattern, table_type in _AUDIT_TABLE_PATTERNS:
@@ -178,7 +176,7 @@ def run_figure_quality(state: ReportState) -> ReportState:
 
     merged_text = Path(merged_path).read_text(encoding="utf-8")
     report_family = state.spec.get("report_family", "")
-    academic_mode = report_family == "academic_report"
+    policy = get_policy(report_family)
 
     # Collect figure_ids from outline
     outline = state.plan.get("outline", {})
@@ -225,11 +223,11 @@ def run_figure_quality(state: ReportState) -> ReportState:
     report_path = write_json_artifact(state, "figure_quality_report.json", report)
     state.qa["figure_quality_report_path"] = str(report_path)
 
-    # Hard block for audit tables in main text (academic mode)
-    if academic_mode and hard_issues:
+    # Hard block if audit tables in main text (per policy)
+    if policy.figure.audit_table_hard_block and hard_issues:
         hard_details = [f"[{h.get('type')}] {h.get('detail', '')}" for h in hard_issues[:3]]
         raise QAHardBlockError(
-            f"FIGURE_QUALITY: {len(hard_issues)} hard issue(s) in academic mode: {'; '.join(hard_details)}"
+            f"FIGURE_QUALITY: {len(hard_issues)} hard issue(s): {'; '.join(hard_details)}"
         )
 
     return state

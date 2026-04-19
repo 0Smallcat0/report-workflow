@@ -37,6 +37,7 @@ from typing import Optional
 
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..runtime_support import write_json_artifact
+from ..policies import get_policy
 
 
 # ------------------------------------------------------------------
@@ -597,10 +598,11 @@ def run_citation_bind(state: ReportState) -> ReportState:
     publication_bib = _build_bibtex(evidence_ledger, literature_refs)
 
     # ----------------------------------------------------------------------
-    # Academic mode: hard block if any [Source:] remains after stripping.
+    # Hard block per policy if any [Source:] remains after stripping.
     # This is the last line of defense before render.
     # ----------------------------------------------------------------------
-    if state.spec.get("report_family") == "academic_report":
+    family = state.spec.get("report_family", "academic_report")
+    if get_policy(family).citation.source_marker_hard_block:
         remaining_source = re.findall(r'\[Source:', stripped_md)
         if remaining_source:
             from ..errors import QAHardBlockError

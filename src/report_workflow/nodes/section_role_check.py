@@ -17,6 +17,7 @@ from pathlib import Path
 
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..runtime_support import write_json_artifact
+from ..policies import get_policy
 
 
 # Patterns that indicate wrong section content
@@ -186,8 +187,9 @@ def run_section_role_check(state: ReportState) -> ReportState:
     report_path = write_json_artifact(state, "section_role_report.json", report)
     state.qa["section_role_report_path"] = str(report_path)
 
-    # For academic_report, hard issues should block
-    if state.spec.get("report_family") == "academic_report" and hard_issues:
+    # Hard block per policy if role validation is required
+    family = state.spec.get("report_family", "academic_report")
+    if get_policy(family).claim.role_validation_required and hard_issues:
         from ..errors import QAHardBlockError
         reasons = [f"{i['section']}: {i['intrusion_type']}" for i in hard_issues[:5]]
         raise QAHardBlockError(f"Section role violations: {', '.join(reasons)}")

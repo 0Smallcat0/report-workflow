@@ -17,6 +17,7 @@ from pathlib import Path
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
 from ..runtime_support import write_json_artifact
+from ..policies import get_policy
 from .section_contract import planned_section_ids
 from .heading_dedup import dedupe_merged_draft
 
@@ -252,17 +253,24 @@ def run_merge_draft(state: ReportState) -> ReportState:
     # Step 2: Remove audit tables from results section
     merged_text, removed_tables = _remove_audit_tables(merged_text)
 
-    # Step 3: Strip removable markers
-    merged_text, markers_stripped = _strip_markers(merged_text)
+    # Step 3: Strip [Source:] and [graphify:] markers only.
+    # NOTE: [CITE:...] markers are preserved — CITATION_BIND needs them in merged_draft_md
+    # to resolve and audit citations. Stripping [CITE:] here breaks the citation audit chain
+    # (cite_id not found in merged_md at citation_bind).
+    before = len(merged_text)
+    merged_text = re.sub(r"\[Source:\s*[^\]]+\]", "", merged_text)
+    merged_text = re.sub(r"\[graphify:\s*[^\]]+\]", "", merged_text)
+    markers_stripped = before - len(merged_text)
 
     # Step 4: Scan for structural artifacts
     violations = _scan_for_internal_artifacts(merged_text)
     removable_violations = [v for v in violations if v["type"] in ("source_marker", "cite_marker", "graphify_marker")]
     structural_violations = [v for v in violations if v["type"] not in ("source_marker", "cite_marker", "graphify_marker")]
 
-    # Step 5: Hard block on structural violations in academic mode
-    academic_mode = state.spec.get("report_family") == "academic_report"
-    if academic_mode and structural_violations:
+    # Step 5: Hard block on structural violations per policy
+    family = state.spec.get("report_family", "academic_report")
+    policy = get_policy(family)
+    if policy.figure.audit_table_hard_block and structural_violations:
         sample = structural_violations[:3]
         examples = "; ".join(f"{v['type']}: '{v['matched'][:50]}'" for v in sample)
         raise QAHardBlockError(

@@ -9,6 +9,7 @@ from docx.enum.text import WD_ALIGN_PARAGRAPH
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
 from ..runtime_support import PLACEHOLDER_TEXT
+from ..policies import get_policy
 
 logger = logging.getLogger(__name__)
 
@@ -87,17 +88,17 @@ def run_docx_render(state: ReportState) -> ReportState:
     if qa_decision and qa_decision != "pass":
         raise QAHardBlockError(f"QA gate failed: {qa_decision}")
 
-    # Academic mode: prefer publication_draft_md (output of RESULTS_SANITY_PASS
-    # then CITATION_BIND stripping). This is the cleaned, marker-free publication
-    # draft and must be the canonical input. See academic-artifact-policy.md.
-    academic_mode = state.spec.get("report_family") == "academic_report"
-    if academic_mode:
+    # Select draft path per policy
+    family = state.spec.get("report_family", "academic_report")
+    policy = get_policy(family)
+
+    if policy.citation.draft_prefer_marker_stripped:
+        # Prefer publication_draft_md (marker-stripped, citation-bound)
         cited_md_path = state.drafts.get("publication_draft_md")
         if not cited_md_path or not Path(cited_md_path).exists():
             cited_md_path = state.drafts.get("merged_draft_cited_md")
-
-    if not academic_mode or not cited_md_path or not Path(cited_md_path).exists():
-        # Non-academic or fallback: prefer publication_style_draft (after QA_GATE polish)
+    else:
+        # Prefer publication_style_draft (style-polished) with fallbacks
         cited_md_path = state.drafts.get("publication_style_draft")
         if not cited_md_path or not Path(cited_md_path).exists():
             cited_md_path = state.drafts.get("merged_draft_cited_md")

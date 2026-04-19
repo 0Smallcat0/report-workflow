@@ -12,6 +12,7 @@ from pathlib import Path
 from ..errors import AgentWorkRequired, QAHardBlockError
 from ..runtime_support import run_dir_for, write_json_artifact
 from ..state import ReportState
+from ..policies import get_policy
 from .agent_tasks import write_agent_task_briefs
 
 
@@ -54,12 +55,13 @@ def _validate_claim_matrix(payload: dict, report_family: str = "") -> list[dict]
         claim.setdefault("status", "supported")
 
     # ------------------------------------------------------------------
-    # ACADEMIC MODE: claim_role validation.
+    # Claim role validation per policy.
     # claim_role must be present and must be one of: primary, supporting, background.
     # Max 3 primary claims. All primary claims must directly support the
     # primary contribution (enforced by PAPER_SCOPE_FREEZE later).
     # ------------------------------------------------------------------
-    if report_family == "academic_report":
+    policy = get_policy(report_family)
+    if policy.claim.role_validation_required:
         VALID_ROLES = {"primary", "supporting", "background"}
         role_counts = {"primary": 0, "supporting": 0, "background": 0}
         for claim in claims:

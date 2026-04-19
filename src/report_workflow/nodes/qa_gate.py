@@ -1,11 +1,11 @@
 """QA_GATE node - pass/fail decision based on factuality and citation reports."""
-import importlib.resources
 import json
 import logging
 import re
 from pathlib import Path
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
+from ..policies import get_policy
 from ..runtime_support import PLACEHOLDER_TEXT, load_jsonl
 
 # Internal alias for backward compatibility with local _load_jsonl references
@@ -13,38 +13,6 @@ _load_jsonl = load_jsonl
 from .remediation_router import write_remediation_plan
 
 logger = logging.getLogger(__name__)
-
-# ----------------------------------------------------------------------
-# F3: Hard style rules — banned phrases
-# ----------------------------------------------------------------------
-# Config access is inside _load_banned_phrases() using importlib.resources
-# so configs are found whether the package is pip-installed (site-packages)
-# or run from source (editable install).
-# pyproject.toml bundles configs/ via include-package-data.
-
-
-def _load_banned_phrases(report_family: str) -> list[str]:
-    try:
-        # as_file() is required for Python <3.11 where Traversable.open()
-        # is not directly supported. Also handles zip installs correctly.
-        with importlib.resources.as_file(
-            importlib.resources.files("report_workflow") / "configs" / "banned_phrases.json"
-        ) as bp_path:
-            if not bp_path.exists():
-                return []
-            with open(bp_path, encoding="utf-8") as f:
-                data = json.load(f)
-    except Exception:
-        return []
-    family = report_family or "academic"
-    # Map common family aliases
-    if family == "academic_report":
-        family = "academic"
-    elif family == "work_report":
-        family = "work"
-    elif family == "hybrid_report":
-        family = "hybrid"
-    return data.get(family, data.get("academic", []))
 
 
 def _banned_phrase_reasons(state: ReportState) -> list[str]:
@@ -55,8 +23,9 @@ def _banned_phrase_reasons(state: ReportState) -> list[str]:
         return reasons
 
     merged_text = Path(merged_path).read_text(encoding="utf-8").lower()
-    report_family = state.spec.get("report_family", "")
-    banned = _load_banned_phrases(report_family)
+    family = state.spec.get("report_family", "academic_report")
+    policy = get_policy(family)
+    banned = policy.banned_phrases
 
     found = []
     for phrase in banned:
@@ -74,24 +43,18 @@ def _banned_phrase_reasons(state: ReportState) -> list[str]:
 
 
 def _results_section_reasons(state: ReportState) -> list[str]:
-    """Verify academic_report results section is correctly labeled.
+    """Verify results section correctness.
 
-    If results_mode == "architectural_characterization":
+    For academic_report (empirical_strict=True):
       - Claims of "improves / reduces / superior / better / faster"
         without empirical performance data → hard fail.
-
-    If results_mode == "empirical":
-      - Section draft must contain actual numeric results or be empty
-        (outline can defer results to future work, but then it must
-        not claim performance improvements).
-
-    Performs pattern-matching on merged draft text.
     """
     import re
 
     reasons = []
-    report_family = state.spec.get("report_family", "")
-    if report_family != "academic_report":
+    family = state.spec.get("report_family", "academic_report")
+    policy = get_policy(family)
+    if not policy.results.empirical_strict:
         return reasons
 
     # Load results_mode — outline takes priority over blueprint
@@ -182,8 +145,9 @@ def _source_diversity_reasons(state: ReportState) -> list[str]:
     (derived_summary cannot stand alone for publishable claims).
     """
     reasons = []
-    report_family = state.spec.get("report_family", "")
-    if report_family != "academic_report":
+    family = state.spec.get("report_family", "academic_report")
+    policy = get_policy(family)
+    if not policy.claim.primary_source_required:
         return reasons
 
     evidence_ledger = _load_jsonl(state.sources.get("evidence_ledger_path", ""))

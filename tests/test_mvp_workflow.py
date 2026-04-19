@@ -20,7 +20,7 @@ from report_workflow.nodes.evidence_store import run_evidence_store
 from report_workflow.nodes.factuality_check import run_factuality_check_fa, run_factuality_check_fb, run_factuality_check_fd
 from report_workflow.nodes.consistency_check import run_consistency_check
 from report_workflow.nodes.guideline_check import run_guideline_check, _check_guideline, _split_by_sections
-from report_workflow.nodes.figure_contract_check import run_figure_contract_check, _check_figure_contract, _check_academic_report_tables
+from report_workflow.nodes.figure_quality import run_figure_quality, _check_figure_contract, _check_no_audit_tables_in_main_text
 from report_workflow.nodes.citation_bind import resolve_citations
 from report_workflow.nodes.figure_build import run_figure_build
 from report_workflow.nodes.guideline_select import run_guideline_select
@@ -1063,38 +1063,30 @@ class FigureContractCheckTests(unittest.TestCase):
             state.plan["outline"] = {
                 "sections": {"results": {"figure_ids": ["1"]}}
             }
-            result = run_figure_contract_check(state)
-            self.assertNotEqual(result.qa.get("figure_contract_report_path", ""), "")
+            result = run_figure_quality(state)
+            self.assertNotEqual(result.qa.get("figure_quality_report_path", ""), "")
 
     # ------------------------------------------------------------------
     # Fix #3: academic_report flat hard issues must enter hard_issues
     # ------------------------------------------------------------------
-    def test_academic_report_missing_table_hard_fails(self):
-        """academic_report missing graph metrics table → hard fail via flat hard issue."""
+    def test_no_audit_tables_in_academic_main_text_passes(self):
+        """academic_report with no forbidden markdown audit tables → no issue raised."""
         state = ReportState.new("report", [], "out")
         with tempfile.TemporaryDirectory() as tmpdir:
             merged = Path(tmpdir) / "merged.md"
-            # No graph metrics table (no "nodes", "edges", "INFERRED" near each other)
+            # Plain results text with no markdown audit tables
             merged.write_text("# Results\n\nSome results without tables.\n", encoding="utf-8")
             state.drafts["merged_draft_md"] = str(merged)
             state.plan["outline"] = {"sections": {"results": {}}}
             state.spec["report_family"] = "academic_report"
-            # Directly test the flat hard issue collection
-            issues = _check_academic_report_tables(
+            # _check_no_audit_tables_in_main_text returns [] when no forbidden tables found
+            issues = _check_no_audit_tables_in_main_text(
                 merged.read_text(encoding="utf-8"), "academic_report"
             )
-            # These are flat dicts (not nested) with severity=hard
-            hard_issues = []
-            for i in issues:
-                if "issues" in i:
-                    if any(j.get("severity") == "hard" for j in i.get("issues", [])):
-                        hard_issues.append(i)
-                elif i.get("severity") == "hard":
-                    hard_issues.append(i)
-            self.assertGreater(len(hard_issues), 0)
-            # The node itself should raise
-            with self.assertRaises(QAHardBlockError):
-                run_figure_contract_check(state)
+            self.assertEqual(len(issues), 0)
+            # run_figure_quality should not raise for plain text
+            result = run_figure_quality(state)
+            self.assertNotEqual(result.qa.get("figure_quality_report_path", ""), "")
 
     def test_academic_report_table_found_passes(self):
         """academic_report with all three required tables → no hard issue."""
@@ -1116,9 +1108,9 @@ class FigureContractCheckTests(unittest.TestCase):
             state.drafts["merged_draft_md"] = str(merged)
             state.plan["outline"] = {"sections": {"results": {}}}
             state.spec["report_family"] = "academic_report"
-            result = run_figure_contract_check(state)
+            result = run_figure_quality(state)
             # Should not raise
-            self.assertNotEqual(result.qa.get("figure_contract_report_path", ""), "")
+            self.assertNotEqual(result.qa.get("figure_quality_report_path", ""), "")
 
 
 # ------------------------------------------------------------------

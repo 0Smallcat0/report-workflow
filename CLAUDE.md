@@ -50,7 +50,7 @@ report-workflow export   --job-id <id> [--checkpoint <name>] [--output <file>]  
 The workflow is split so the deterministic Python work and the agent's authoring work are strictly separate. [src/report_workflow/run_workflow.py](src/report_workflow/run_workflow.py) defines three node lists; when editing, **keep these in sync with this doc** — drift here breaks debugging.
 
 1. **`prepare_nodes()`** (sync, runs from `prepare` CLI):
-   `CONTRACT_SNAPSHOT → INTAKE → GUIDELINE_SELECT → BLUEPRINT_PLAN → CORPUS_BUILD → SOURCE_PARSE → BASE_DOCUMENT_PARSE → EVIDENCE_NORMALIZE → EVIDENCE_STORE → AGENT_TASKS`
+   `INTAKE → GUIDELINE_SELECT → BLUEPRINT_PLAN → CORPUS_BUILD → SOURCE_PARSE → BASE_DOCUMENT_PARSE → EVIDENCE_NORMALIZE → EVIDENCE_STORE → AGENT_TASKS`
    Ends in status `awaiting_agent_artifacts`. Writes task briefs to `~/.hermes/workflow_runs/<job_id>/agent_tasks/01_claim_plan.md`, `02_outline_plan.md`, `03_section_draft.md`.
 
 2. **Agent authoring (external)** — agent reads the briefs and writes into `~/.hermes/workflow_runs/<job_id>/`:
@@ -59,12 +59,23 @@ The workflow is split so the deterministic Python work and the agent's authoring
    - `section_drafts/*.md` (one per blueprint section; must embed `[CITE:<evidence_id>]`)
    - `sentence_map.jsonl`
 
-3. **`validate_nodes()`** (22 nodes — runs from `validate` CLI):
-   `CLAIM_PLAN → OUTLINE_PLAN → CHART_RECOMMENDER → SECTION_PLAN_FREEZE → FRONT_MATTER_BUILD → SECTION_DRAFT → ABSTRACT_COMPRESS → ABSTRACT_SANITY_CHECK → METHODS_PROTOCOL_BUILD → FIGURE_BUILD → CAPTION_INTERPRETER → REVISION_APPLY → MERGE_DRAFT → RESULTS_SANITY_PASS → MAIN_TEXT_ARTIFACT_FILTER → CITATION_BIND → SECTION_ROLE_CHECK → FACTUALITY_CHECK → CONSISTENCY_CHECK → GUIDELINE_CHECK → FIGURE_CONTRACT_CHECK → QA_GATE`
+3. **`validate_nodes()`** (11 nodes — runs from `validate` CLI):
+   `AGENT_ARTIFACT_INTAKE → PLAN_FREEZE → DOC_METADATA_GATE → METHODS_PROTOCOL_BUILD → FIGURE_BUILD → DRAFT_ASSEMBLY → SECTION_ROLE_CHECK → CITATION_LAYER → FACTUALITY_CHECK → FIGURE_QUALITY → QA_GATE`
    Ends in status `validated` with `state.qa.qa_decision` set. Any `QAHardBlockError` here triggers a remediation plan and a `FAILED` checkpoint.
 
-4. **`render_nodes()`** (runs from `render` CLI, requires `qa_decision == "pass"`):
-   `LANGUAGE_SANITY_PASS → PUBLICATION_STYLE_PASS → DOCX_RENDER → SOURCE_APPENDIX_RENDER → FINAL_PUBLISH → SUPPLEMENTARY_PACKAGE_BUILD → ARTIFACTS`
+   **Consolidated nodes** (17 → 11 per §6.2 retrospective):
+   - `AGENT_ARTIFACT_INTAKE`: CLAIM_PLAN + OUTLINE_PLAN + SECTION_DRAFT
+   - `PLAN_FREEZE`: PAPER_SCOPE_FREEZE + SECTION_PLAN_FREEZE
+   - `DOC_METADATA_GATE`: FRONT_MATTER_BUILD + ABSTRACT_CHECK
+   - `DRAFT_ASSEMBLY`: REVISION_APPLY + MERGE_DRAFT (MERGE_DRAFT absorbs results_sanity_pass + main_text_artifact_filter)
+   - `CITATION_LAYER`: CITATION_BIND + REFERENCE_VERIFY
+   - `FIGURE_QUALITY`: absorbs caption_interpreter + figure_contract_check
+
+   **Explicit quality commands** (NOT in validate path; run separately):
+   - `report-workflow check-quality --job-id <id>` runs: CONSISTENCY_CHECK, GUIDELINE_CHECK
+
+4. **`render_nodes()`** (6 nodes, runs from `render` CLI, requires `qa_decision == "pass"`):
+   `STYLE_PASS → DOCX_RENDER → SOURCE_APPENDIX_RENDER → FINAL_PUBLISH → SUPPLEMENTARY_PACKAGE_BUILD → ARTIFACTS`
 
 `run_workflow()` (convenience) runs prepare, then validate+render only if agent artifacts already exist; otherwise it raises `AgentWorkRequired`. `resume_workflow()` picks up from the last checkpoint: `awaiting_agent_artifacts` resumes at `validate_nodes() + render_nodes()`, `validated` resumes at `render_nodes()`, anything else resumes mid-list at `runtime["current_node"]`.
 
@@ -104,6 +115,49 @@ From [nodes/factuality_check.py](src/report_workflow/nodes/factuality_check.py),
 
 `state.spec.report_family` drives which YAML blueprint in [src/report_workflow/blueprints/](src/report_workflow/blueprints/) is loaded at `BLUEPRINT_PLAN`. Inference logic is in `nodes/intake.py:infer_report_family` (override with `--family`). Supported: `academic_report` (IMRAD), `work_report` (executive summary / findings / recommendations), `hybrid_report`. The blueprint's `section_order` is the authoritative list of required section IDs — `outline.json` and `section_drafts/` must cover every required section (references and appendix are optional in specific families).
 
+## Policy Packs
+
+Family-specific behavior is centralized in [src/report_workflow/policies/](src/report_workflow/policies/policy_pack.py). Instead of `if report_family == "academic_report":` scattered across nodes, use `get_policy(family)`.
+
+### Usage in nodes
+
+```python
+from ..policies import get_policy
+
+policy = get_policy(state.spec.get("report_family", "academic_report"))
+if policy.abstract.structure_required:
+    # validate abstract structure
+if policy.figure.audit_table_hard_block:
+    # check audit tables
+```
+
+### Policy fields
+
+| Policy class | Key fields |
+|-------------|-----------|
+| `FrontMatterPolicy` | `required`, `placeholder_blocked`, `author_block_required`, `auto_populate_missing_fields` |
+| `AbstractPolicy` | `word_count_min`, `word_count_max`, `structure_required` |
+| `CitationPolicy` | `style` ("APA"/"none"), `source_marker_hard_block`, `draft_prefer_marker_stripped` |
+| `ReferencePolicy` | `doi_verification_required`, `arxiv_verification_required` |
+| `FigurePolicy` | `audit_table_hard_block`, `figure_contract_required` |
+| `ResultsPolicy` | `empirical_strict`, `architectural_allowed` |
+| `ClaimPolicy` | `primary_source_required`, `role_validation_required`, `thesis_required`, `rqs_required` |
+| `GuidelinePolicy` | `hard_guideline_ids`, `auto_select_allowed` |
+
+### Family values
+
+| Field | academic_report | work_report | hybrid_report |
+|-------|---------------|-------------|--------------|
+| `abstract.structure_required` | true | false | false |
+| `abstract.word_count_min/max` | 180/220 | 100/200 | 150/250 |
+| `citation.style` | APA | none | APA |
+| `citation.source_marker_hard_block` | true | false | true |
+| `figure.audit_table_hard_block` | true | false | false |
+| `reference.doi_verification_required` | true | false | true |
+| `claim.role_validation_required` | true | false | false |
+| `claim.thesis_required` | true | false | false |
+| `guideline.auto_select_allowed` | false | true | true |
+
 ## Debugging QA Gate Failures
 
 When `report-workflow validate` fails at `QA_GATE` with "factuality blocked claims: N", use this checklist:
@@ -127,7 +181,7 @@ python -c "import json; print(json.load(open('...\\factuality_report.json',encod
 
 | What | File | Notes |
 |------|------|-------|
-| Claim matrix | `~/.hermes/workflow_runs/<job_id>/claim_matrix.json` | **Canonical source** — loaded by `CLAIM_PLAN` node; `factuality_check` reads from this, NOT from checkpoint-embedded `claim_matrix` |
+| Claim matrix | `~/.hermes/workflow_runs/<job_id>/claim_matrix.json` | **Canonical source** — loaded by `AGENT_ARTIFACT_INTAKE` node; `factuality_check` reads from this, NOT from checkpoint-embedded `claim_matrix` |
 | Evidence content | `~/.hermes/workflow_runs/<job_id>/evidence_ledger.jsonl` | **Canonical source** — loaded via `state.sources["evidence_ledger_path"]` on every run |
 | Checkpoint state | `~/.hermes/workflow_runs/<job_id>/checkpoint_*.json` | Checkpoint files embed a snapshot of claim_matrix but are NOT what the factuality checker reads |
 | Factuality report | `~/.hermes/workflow_runs/<job_id>/factuality_report.json` | Written fresh each validate run; READ THIS to see current failures |
@@ -164,16 +218,16 @@ After editing `claim_matrix.json` or `evidence_ledger.jsonl`, verify:
 2. For numeric claims, the evidence contains `"<number> <unit>"` (with space) matching the claim
 3. Evidence content is ASCII/Latin-readable (FE check skips term overlap for >30% non-ASCII text)
 
-## Debugging ABSTRACT_SANITY_CHECK Failures
+## Debugging Abstract Validation Failures
 
-`ABSTRACT_SANITY_CHECK` runs after `ABSTRACT_COMPRESS` in `validate_nodes()`. It raises `QAHardBlockError` for any of these issues:
+`ABSTRACT_CHECK` (part of `DOC_METADATA_GATE` in validate_nodes) raises `QAHardBlockError` for any of these issues:
 
 | Check | Failure message example | Root cause | Fix |
 |-------|------------------------|------------|-----|
 | Trailing ellipses | `Line 1: trailing ellipsis: '# Abstract This report presents...'` | Abstract ends mid-sentence with `that.....` dots | Agent must rewrite abstract with complete sentences |
 | Incomplete sentence | `Missing ending punctuation: 'The results demonstrate that'` | No `.` `!` `?` at end of last sentence | Rewrite to end with proper punctuation |
 | Incomplete comparative | `Incomplete comparative: 'more X than enforceable'` | Malformed `more X than Y` pattern | Rewrite the comparative phrase |
-| Internal marker | `Internal marker残留: [CITE:E001]` | `[CITE:]`, `[Source:]`, `[graphify:]` left in abstract | `abstract_compress` strips these, but agent should avoid |
+| Internal marker | `Internal marker残留: [CITE:E001]` | `[CITE:]`, `[Source:]`, `[graphify:]` left in abstract | Agent must remove these before submitting |
 | Placeholder text | `Placeholder text found: This section is under development` | Abstract was not written | Agent must write a real abstract |
 | Abstract too short | `Abstract too short: 23 words (minimum 150)` | Abstract has too few words OR compression destroyed content | See below |
 
@@ -182,7 +236,7 @@ After editing `claim_matrix.json` or `evidence_ledger.jsonl`, verify:
 **Symptom**: `Abstract too short: N words (minimum 150)` where N is very small (e.g., 22 words).
 
 **Root cause A — the abstract genuinely has <150 words of real content:**
-The agent wrote a short abstract (e.g., 170 words) that ends mid-sentence with trailing dots (`that.....`). When `ABSTRACT_COMPRESS` tries to fit it within the 150-word limit, it can only take complete sentences from the beginning, leaving only a fragment.
+The agent wrote a short abstract (e.g., 170 words) that ends mid-sentence with trailing dots (`that.....`). When `ABSTRACT_CHECK` validates word count, a fragment with trailing dots will fail the minimum word count gate.
 
 **Fix**: The agent must write a new abstract that:
 - Has 180–220 words
@@ -192,7 +246,7 @@ The agent wrote a short abstract (e.g., 170 words) that ends mid-sentence with t
 - NO `[CITE:]`, `[Source:]`, or `[graphify:]` markers
 
 **Root cause B — `_detect_abstract_structure` failed to split sections:**
-If the abstract has `# Abstract` as a markdown heading but no `##` section headings, the entire text is treated as one sentence-less blob. The heading `# Abstract` itself has no period, so the sentence-splitting in `ABSTRACT_COMPRESS` treats it as part of the first "sentence", causing massive over-truncation.
+If the abstract has `# Abstract` as a markdown heading but no `##` section headings, the entire text is treated as one sentence-less blob. The heading `# Abstract` itself has no period, so the sentence-splitting in the word-count routine treats it as part of the first "sentence", causing massive over-truncation.
 
 **Fix**: Add `##`-level section headings in the abstract draft:
 ```markdown
@@ -204,8 +258,8 @@ If the abstract has `# Abstract` as a markdown heading but no `##` section headi
 **Significance:** This work contributes...
 ```
 
-**Root cause C — `_rebuild_abstract` outputs original text instead of compressed:**
-A bug where `compressed_sections` was computed but the output loop used `active_sections` (original text) instead. This is fixed in the codebase, but if you see this on an older run, the compressed result was never actually used.
+**Root cause C — word count counting the heading token:**
+If the abstract starts with `# Abstract` (no period) as a heading, the word counter includes "Abstract" in the first sentence's word count. For short abstracts this can cause the 180-word minimum to appear to fail when the content is actually sufficient. Fix: ensure the abstract body (after `# Abstract`) starts with a complete sentence.
 
 ### Verifying abstract quality before running validate
 

@@ -4,6 +4,7 @@ from pathlib import Path
 from ..state import ReportState
 from ..state import WORKFLOW_RUNS_DIR
 from ..runtime_support import write_json_artifact
+from ..policies import get_policy
 
 GUIDELINE_RULES_PATH = Path(__file__).parent.parent / "configs" / "guideline_rules.json"
 GUIDELINES_DIR = Path(__file__).parent.parent / "guidelines"
@@ -41,15 +42,15 @@ def run_guideline_select(state: ReportState) -> ReportState:
 
     if not candidates:
         # ------------------------------------------------------------------
-        # Academic reports: do NOT auto-select PRISMA/STROBE guidelines.
-        # Only activate guideline checking when user explicitly specifies
-        # --guidelines on the CLI. This prevents false-positive hard blocks
-        # from medical checklist rules applied to non-clinical project reports.
+        # Per policy: some families require explicit --guidelines flag.
+        # This prevents false-positive hard blocks from medical checklist
+        # rules applied to non-clinical project reports.
         # ------------------------------------------------------------------
-        if report_family == "academic_report":
-            candidates = []
-        else:
+        policy = get_policy(report_family)
+        if policy.guideline.auto_select_allowed:
             candidates = config.get("defaults", {}).get(report_family, [])
+        else:
+            candidates = []
         matched_rule = {
             "id": f"default:{report_family}",
             "matched_keywords": [],
