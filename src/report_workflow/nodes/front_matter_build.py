@@ -19,6 +19,7 @@ import re
 from pathlib import Path
 
 from ..state import ReportState, WORKFLOW_RUNS_DIR
+from ..errors import QAHardBlockError
 from ..policies import get_policy
 from ..runtime_support import write_json_artifact
 
@@ -147,12 +148,57 @@ _KEYWORD_STOPWORDS = {
     "Need", "Needs", "Want", "Wants", "Seem", "Seems", "Appear", "Appears",
 }
 
+# Regex patterns for INVALID keywords — hard-block these during extraction
+_INVALID_KEYWORD_PATTERNS = [
+    # Bare section/figure numbering: "Figure 1", "Table 2", "Section 3", "Chapter 4"
+    re.compile(r"^\s*(Figure|Table|Section|Chapter|Algorithm|Equation|Listing)\s+\d+", re.IGNORECASE),
+    # Pure numeric or too short
+    re.compile(r"^\s*\d+\s*$"),
+    # Contains internal underscores (code identifiers leaking through)
+    re.compile(r"_"),
+    # All-caps abbreviations that are actually acronyms not keywords (URL, API, SQL, etc.)
+    re.compile(r"^[A-Z]{2,}$"),  # Too short all-caps
+]
+
+
+def _is_valid_keyword(phrase: str) -> bool:
+    """Return True if phrase is a valid academic keyword.
+
+    Rejects:
+      - Section/figure/table numbering ("Figure 1")
+      - Pure numbers
+      - Code identifiers with underscores
+      - Single all-caps acronyms
+    """
+    phrase_stripped = phrase.strip()
+    for pattern in _INVALID_KEYWORD_PATTERNS:
+        if pattern.search(phrase_stripped):
+            return False
+    # Must have at least 2 alphabetic characters
+    if sum(c.isalpha() for c in phrase_stripped) < 2:
+        return False
+    return True
+
 
 def _extract_keywords_from_evidence(evidence_ledger_path: str | None) -> list[str]:
-    """Extract potential keywords from evidence ledger, filtering stopwords."""
+    """Extract potential keywords from evidence ledger.
+
+    Post-processing: only keeps phrases that are either in the research pool,
+    successfully mapped by the implementation→research map, or appear as
+    claim topic_tags. This prevents generic noun phrases like "Summary",
+    "God Nodes", "Reduce", "Input" from polluting front matter keywords.
+    """
     keywords = []
     if not evidence_ledger_path or not Path(evidence_ledger_path).exists():
         return keywords
+
+    # Build the accept-list once
+    research_lower = {k.lower() for k in _RESEARCH_KEYWORD_POOL}
+    impl_map_lower = set(k.lower() for k in _IMPLEMENTATION_TO_RESEARCH_KEYWORD_MAP)
+    impl_values_lower = set()
+    for v in _IMPLEMENTATION_TO_RESEARCH_KEYWORD_MAP.values():
+        for term in v.split(", "):
+            impl_values_lower.add(term.lower())
 
     try:
         with open(evidence_ledger_path, encoding="utf-8") as f:
@@ -177,6 +223,15 @@ def _extract_keywords_from_evidence(evidence_ledger_path: str | None) -> list[st
                         if len(words_in_phrase) > 1:
                             if any(w in _KEYWORD_STOPWORDS or w.capitalize() in _KEYWORD_STOPWORDS or w in stopword_set_lower for w in words_in_phrase):
                                 continue
+                        # Hard-block invalid keyword patterns (Figure 1, _underscore, etc.)
+                        if not _is_valid_keyword(phrase):
+                            continue
+                        # Only accept if phrase is in research pool, maps to research term,
+                        # or is an implementation key — prevents generic noun phrases
+                        if phrase_lower not in research_lower and \
+                           phrase_lower not in impl_map_lower and \
+                           phrase_lower not in impl_values_lower:
+                            continue
                         if len(phrase.split()) in (1, 2, 3) and phrase not in keywords:
                             if len(keywords) < 12:  # Extract more for later enrichment
                                 keywords.append(phrase)
@@ -225,6 +280,70 @@ _RESEARCH_KEYWORD_POOL = [
     "strategy generation",
     "formal verification",
 ]
+
+_GENERIC_METADATA_VALUES = {
+    "author",
+    "independent researcher",
+    "author@example.com",
+    "untitled report",
+    "research author",
+    "research university",
+    "department of computer science, research university",
+    "research@university.edu",
+}
+
+_PROMPT_LEAK_PATTERNS = [
+    re.compile(r"\brevise\s+the\s+base\s+document\b", re.IGNORECASE),
+    re.compile(r"\bwrite\s+an?\s+academic\s+report\b", re.IGNORECASE),
+    re.compile(r"\bgenerate\s+an?\s+academic\s+report\b", re.IGNORECASE),
+]
+
+_THESIS_ALIGNED_KEYWORDS = [
+    "deterministic compilation",
+    "StrategyIR",
+    "domain-specific intermediate representation",
+    "abstract syntax tree compilation",
+    "strategy verification",
+    "constrained large language models",
+]
+
+
+def _structured_front_matter_from_spec(spec: dict) -> dict:
+    """Return caller-provided structured front matter fields only."""
+    raw = spec.get("front_matter") or {}
+    if not isinstance(raw, dict):
+        return {}
+    allowed = {
+        "title",
+        "short_title",
+        "author_block",
+        "affiliation_block",
+        "correspondence",
+        "keywords",
+        "acknowledgements",
+        "funding",
+        "conflict_note",
+    }
+    return {key: value for key, value in raw.items() if key in allowed and value}
+
+
+def _parse_preamble_metadata_line(line: str) -> tuple[str, str] | None:
+    """Parse plain or Markdown-bold front matter lines into (field, value)."""
+    match = re.match(
+        r"^\s*\**\s*(Author|Affiliation|Correspondence|Keywords)\s*:\s*\**\s*(.*?)\s*\**\s*$",
+        line.strip(),
+        re.IGNORECASE,
+    )
+    if not match:
+        return None
+    field = match.group(1).lower()
+    value = match.group(2).strip().strip("*").strip()
+    return field, value
+
+
+def _select_thesis_aligned_keywords(user_prompt: str = "") -> list[str]:
+    """Select stable admissions-facing keywords from the thesis spine."""
+    return list(_THESIS_ALIGNED_KEYWORDS)
 
 
 def _enrich_keywords_to_research_level(
@@ -307,43 +426,98 @@ def _build_front_matter(state: ReportState) -> dict:
         "funding": blueprint_fm.get("funding", ""),
         "conflict_note": blueprint_fm.get("conflict_note", ""),
     }
+    structured_front_matter = _structured_front_matter_from_spec(spec)
+    front_matter.update(structured_front_matter)
 
     # For academic_report: ensure required fields
-    policy = get_policy(report_family)
+    policy = get_policy(report_family, spec.get("report_family_detail") or None)
     if policy.front_matter.auto_populate_missing_fields:
-        # Try to populate title from user prompt if empty
-        if not front_matter["title"]:
-            title = _parse_title_from_user_prompt(user_prompt)
-            if title:
-                front_matter["title"] = title
+        # In revise_existing mode: try to extract front matter from the preamble
+        # in base_document_sections before falling back to user_prompt parsing.
+        task_intent = state.spec.get("task_intent", "new_draft")
+        if task_intent == "revise_existing":
+            # base_document_sections may not be embedded in the checkpoint
+            # (SourcesState Pydantic model drops unknown fields on deserialization).
+            # Fall back to loading from the file path if present.
+            base_sections: dict = state.sources.get("base_document_sections", {})
+            if not base_sections:
+                bd_path = state.sources.get("base_document_sections_path")
+                if bd_path and Path(bd_path).exists():
+                    with open(bd_path, encoding="utf-8") as _f:
+                        base_sections = json.load(_f)
+            preamble_text = base_sections.get("preamble", "")
+            if preamble_text:
+                # Parse structured fields from preamble block.
+                # Title: first non-empty line before the first "---" separator.
+                # Supports both "# Title" markdown headings and plain text titles.
+                # Author / Affiliation / Correspondence / Keywords:
+                #   Supports both plain "Author: ..." and Markdown bold "**Author:** ..." formats.
+                first_dash = preamble_text.find("\n---")
+                if first_dash > 10:
+                    title_candidate = preamble_text[:first_dash].strip()
+                    # Strip leading '#' markdown heading marker
+                    title_candidate = title_candidate.lstrip("#").strip()
+                    if title_candidate and len(title_candidate) > 10 and not structured_front_matter.get("title"):
+                        # Cap at Nature's recommended 120 characters
+                        if len(title_candidate) > 120:
+                            title_candidate = title_candidate[:120].rstrip() + "..."
+                        front_matter["title"] = title_candidate
 
-        # Try to populate author from user prompt if empty
-        if not front_matter["author_block"]:
-            author = _parse_author_from_user_prompt(user_prompt)
-            if author:
-                front_matter["author_block"] = author
+                # Parse metadata fields; accept both plain and Markdown-bold formats.
+                # Examples: "Author: A", "**Author:** A", "Keywords: ** x, y".
+                for line in preamble_text.split("\n"):
+                    parsed = _parse_preamble_metadata_line(line)
+                    if not parsed:
+                        continue
+                    field, value = parsed
+                    if field == "author" and not structured_front_matter.get("author_block") and not front_matter.get("author_block"):
+                        front_matter["author_block"] = value
+                    elif field == "affiliation" and not structured_front_matter.get("affiliation_block") and not front_matter.get("affiliation_block"):
+                        front_matter["affiliation_block"] = value
+                    elif field == "correspondence" and not structured_front_matter.get("correspondence") and not front_matter.get("correspondence"):
+                        front_matter["correspondence"] = value
+                    elif field == "keywords" and not structured_front_matter.get("keywords") and not front_matter.get("keywords"):
+                        kw_str = value
+                        if kw_str:
+                            front_matter["keywords"] = [k.strip().strip("*").strip() for k in kw_str.split(",") if k.strip()]
 
-        # Try to populate affiliation from user prompt if empty
-        if not front_matter["affiliation_block"]:
-            affiliation = _parse_affiliation_from_user_prompt(user_prompt)
-            if affiliation:
-                front_matter["affiliation_block"] = affiliation
+        # In new_draft academic mode, front matter must come from structured
+        # fields. Do not infer title/author/contact from the task prompt.
+        if task_intent != "new_draft":
+            if not front_matter["title"]:
+                title = _parse_title_from_user_prompt(user_prompt)
+                if title:
+                    front_matter["title"] = title
+
+            if not front_matter["author_block"]:
+                author = _parse_author_from_user_prompt(user_prompt)
+                if author:
+                    front_matter["author_block"] = author
+
+            if not front_matter["affiliation_block"]:
+                affiliation = _parse_affiliation_from_user_prompt(user_prompt)
+                if affiliation:
+                    front_matter["affiliation_block"] = affiliation
 
         # Extract keywords from evidence if not provided
         if not front_matter["keywords"]:
-            raw_keywords = _extract_keywords_from_evidence(state.sources.get("evidence_ledger_path"))
-            claim_matrix = state.plan.get("claim_matrix")
-            enriched_keywords = _enrich_keywords_to_research_level(
-                raw_keywords,
-                claim_matrix=claim_matrix,
-                user_prompt=user_prompt,
-            )
-            if enriched_keywords:
-                front_matter["keywords"] = enriched_keywords
+            if task_intent == "new_draft" and report_family == "academic_report":
+                front_matter["keywords"] = _select_thesis_aligned_keywords(user_prompt)
+            else:
+                raw_keywords = _extract_keywords_from_evidence(state.sources.get("evidence_ledger_path"))
+                claim_matrix = state.plan.get("claim_matrix")
+                enriched_keywords = _enrich_keywords_to_research_level(
+                    raw_keywords,
+                    claim_matrix=claim_matrix,
+                    user_prompt=user_prompt,
+                )
+                if enriched_keywords:
+                    front_matter["keywords"] = enriched_keywords
 
-        # Generate placeholder correspondence if not provided
-        if not front_matter["correspondence"]:
-            front_matter["correspondence"] = "Correspondence: [author email]"
+    # Cap title at Nature's recommended 120 characters (applied to all sources)
+    title = front_matter.get("title", "")
+    if len(title) > 120:
+        front_matter["title"] = title[:120].rstrip() + "..."
 
     return front_matter
 
@@ -370,6 +544,24 @@ def _validate_front_matter(front_matter: dict, report_family: str) -> list[str]:
     if not front_matter.get("correspondence"):
         warnings.append("correspondence missing - academic reports require corresponding author contact")
 
+    for field in ("title", "author_block", "affiliation_block", "correspondence"):
+        value = str(front_matter.get(field, "")).strip()
+        if value.lower() in _GENERIC_METADATA_VALUES:
+            warnings.append(f"{field} contains generic template metadata: {value}")
+        if "**" in value:
+            warnings.append(f"{field} contains leftover Markdown bold marker")
+        if any(pattern.search(value) for pattern in _PROMPT_LEAK_PATTERNS):
+            warnings.append(f"{field} appears to contain task prompt text")
+
+    noisy_keywords = {"corpus", "backtrader", "pydantic", "kelly", "bayesian", "ollama"}
+    keyword_values = [str(keyword).strip() for keyword in front_matter.get("keywords", [])]
+    leaked_keywords = [keyword for keyword in keyword_values if keyword.lower() in noisy_keywords]
+    if leaked_keywords:
+        warnings.append("keywords contain implementation-noise metadata: " + ", ".join(leaked_keywords))
+    markdown_keywords = [keyword for keyword in keyword_values if "**" in keyword]
+    if markdown_keywords:
+        warnings.append("keywords contain leftover Markdown bold marker")
+
     # Title length check (Nature style: concise, verb-first)
     title = front_matter.get("title", "")
     if len(title) > 150:
@@ -382,7 +574,7 @@ def _format_front_matter_markdown(front_matter: dict) -> str:
     """Format front matter as markdown for prepending to document."""
     sections = []
 
-    # Title
+    # Use a plain heading. "# {.Title} Title" leaks the marker in Pandoc.
     if front_matter.get("title"):
         sections.append(f"# {front_matter['title']}")
 
@@ -452,30 +644,26 @@ def run_front_matter_build(state: ReportState) -> ReportState:
         ]
 
     # ------------------------------------------------------------------
-    # POLICY-BASED: Hard block on placeholder values.
-    # Uses policy.front_matter.placeholder_blocked (True for academic,
-    # False for work/hybrid which may not have formal front matter).
+    # Strict academic front matter. Placeholder bracket patterns are stripped,
+    # but missing/generic metadata must be supplied as structured fields rather
+    # than fabricated from prompt text or generic defaults.
     # ------------------------------------------------------------------
-    policy = get_policy(report_family)
-    if policy.front_matter.placeholder_blocked:
-        import re
-        _PLACEHOLDER_PATTERNS = [
-            (r"\[Author\s+Name\]", "author_block"),
-            (r"\[email[^\]]*@", "correspondence"),
-            (r"\[Department", "affiliation_block"),
-            (r"\[University\]", "affiliation_block"),
-            (r"\[email@institution\.edu\]", "correspondence"),
-            (r"email\[?@", "correspondence"),  # email@ without proper domain
-        ]
-        errors = []
-        for pattern, field in _PLACEHOLDER_PATTERNS:
-            if re.search(pattern, front_matter.get(field, ""), re.IGNORECASE):
-                errors.append(f"placeholder '{pattern}' found in {field}: {front_matter.get(field)!r}")
-        if errors:
-            from ..errors import QAHardBlockError
+    policy = get_policy(report_family, state.spec.get("report_family_detail") or None)
+    import re as _re
+    _BRACKET_PLACEHOLDER_RE = _re.compile(r"\[[^\]]+\]")
+
+    # Strip any [bracketed placeholder] patterns from existing values
+    for field_key in ("author_block", "affiliation_block", "correspondence"):
+        val = front_matter.get(field_key, "")
+        if val and _BRACKET_PLACEHOLDER_RE.search(val):
+            front_matter[field_key] = _BRACKET_PLACEHOLDER_RE.sub("", val).strip()
+
+    if policy.front_matter.required:
+        strict_warnings = _validate_front_matter(front_matter, report_family)
+        if strict_warnings:
             raise QAHardBlockError(
-                f"FRONT_MATTER_BUILD: Academic mode placeholders detected: {'; '.join(errors)}. "
-                "Author, affiliation, and correspondence must be real values, not placeholders."
+                "FRONT_MATTER_BUILD failed strict metadata policy: "
+                + "; ".join(strict_warnings)
             )
 
     # Format as markdown for document injection

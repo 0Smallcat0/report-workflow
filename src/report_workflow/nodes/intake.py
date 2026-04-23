@@ -25,6 +25,25 @@ def infer_report_family(user_prompt: str) -> str:
     return "academic_report"
 
 
+def infer_report_family_detail(user_prompt: str, report_family: str) -> str:
+    """Infer a subtype/detail for policy and prompting."""
+    text = user_prompt.lower()
+    if report_family == "academic_report" and any(
+        keyword in text for keyword in (
+            "admissions",
+            "graduate school",
+            "application",
+            "push",
+            "interview professor",
+            "admissions-facing",
+        )
+    ):
+        if "project report" in text or "project-report" in text or "internal" in text or "project" in text:
+            return "admissions_project_report"
+        return "admissions_report"
+    return ""
+
+
 def _enforce_mvp_scope(state: ReportState) -> None:
     task_intent = state.spec.get("task_intent", "new_draft")
     delivery_mode = state.spec.get("delivery_mode", "fresh_doc")
@@ -54,6 +73,11 @@ def run_intake(state: ReportState) -> ReportState:
     # task_intent may already be set by CLI; default to new_draft
     state.spec.setdefault("task_intent", "new_draft")
     state.spec["report_family"] = override or infer_report_family(state.spec.get("user_prompt", ""))
+    if not state.spec.get("report_family_detail"):
+        state.spec["report_family_detail"] = infer_report_family_detail(
+            state.spec.get("user_prompt", ""),
+            state.spec["report_family"],
+        )
     state.spec.setdefault("delivery_mode", "fresh_doc")
     state.spec.setdefault("audience", "expert")
     state.spec.setdefault("citation_style", "apa")

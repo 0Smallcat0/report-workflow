@@ -5,20 +5,16 @@ from pathlib import Path
 from ..errors import AgentWorkRequired, QAHardBlockError
 from ..runtime_support import PLACEHOLDER_TEXT, run_dir_for
 from ..state import ReportState
+from ..artifact_contract import load_jsonl_without_contract, make_artifact_contract, validate_artifact_contract, write_artifact_contract
 from .agent_tasks import write_agent_task_briefs
 from .section_contract import planned_section_ids
 
 
 def _load_jsonl(path: Path) -> list[dict]:
-    rows = []
     try:
-        with open(path, encoding="utf-8") as f:
-            for line_number, line in enumerate(f, 1):
-                if line.strip():
-                    try:
-                        rows.append(json.loads(line))
-                    except json.JSONDecodeError as exc:
-                        raise QAHardBlockError(f"Malformed sentence_map.jsonl line {line_number}: {exc}") from exc
+        rows = load_jsonl_without_contract(path)
+    except json.JSONDecodeError as exc:
+        raise QAHardBlockError(f"Malformed sentence_map.jsonl: {exc}") from exc
     except OSError as exc:
         raise QAHardBlockError(f"Could not read sentence_map.jsonl: {exc}") from exc
     return rows
@@ -62,8 +58,19 @@ def run_section_draft(state: ReportState) -> ReportState:
         raise AgentWorkRequired("Agent section draft artifacts are incomplete", missing)
 
     sentence_map_entries = _load_jsonl(sentence_map_path)
+    validate_artifact_contract(state, sentence_map_path, allow_missing=True)
     if not sentence_map_entries:
         raise QAHardBlockError("sentence_map.jsonl must contain at least one entry")
+    known_claims = {
+        claim.get("claim_id")
+        for claim in state.plan.get("claim_matrix", {}).get("claims", [])
+        if claim.get("claim_id")
+    }
+    known_evidence = {
+        eid
+        for claim in state.plan.get("claim_matrix", {}).get("claims", [])
+        for eid in claim.get("evidence_ids", [])
+    }
     for index, entry in enumerate(sentence_map_entries):
         if not isinstance(entry, dict):
             raise QAHardBlockError(f"sentence_map entry {index} must be an object")
@@ -76,7 +83,19 @@ def run_section_draft(state: ReportState) -> ReportState:
             raise QAHardBlockError(f"sentence_map entry {index} claim_ids must be a list")
         if not isinstance(entry.get("evidence_ids", []), list):
             raise QAHardBlockError(f"sentence_map entry {index} evidence_ids must be a list")
+        unknown_claims = sorted(cid for cid in entry.get("claim_ids", []) if cid not in known_claims)
+        if unknown_claims:
+            raise QAHardBlockError(f"sentence_map entry {index} references unknown claims: {', '.join(unknown_claims)}")
+        unknown_evidence = sorted(eid for eid in entry.get("evidence_ids", []) if known_evidence and eid not in known_evidence)
+        if unknown_evidence:
+            raise QAHardBlockError(
+                f"sentence_map entry {index} references evidence IDs outside claim_matrix/current run: "
+                + ", ".join(unknown_evidence)
+                + f". Run `report-workflow remap-evidence --from-job <old> --to-job {state.job_id} --write` "
+                "or rebuild sentence_map.jsonl from this run."
+            )
 
     state.drafts["section_drafts"] = section_paths
     state.drafts["sentence_map_path"] = str(sentence_map_path)
+    write_artifact_contract(sentence_map_path, make_artifact_contract(state))
     return state

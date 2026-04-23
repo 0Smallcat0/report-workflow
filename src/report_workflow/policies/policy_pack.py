@@ -33,6 +33,7 @@ class AbstractPolicy:
     word_count_min: int
     word_count_max: int
     structure_required: bool
+    allow_plain_paragraph: bool = False  # If True, single-paragraph abstract is OK
 
 
 @dataclass(frozen=True)
@@ -46,6 +47,8 @@ class CitationPolicy:
 class ReferencePolicy:
     doi_verification_required: bool
     arxiv_verification_required: bool
+    reality_report_required: bool = False
+    human_review_hard_block: bool = False
 
 
 @dataclass(frozen=True)
@@ -153,6 +156,8 @@ class AcademicReportPolicy(ReportPolicy):
             reference=ReferencePolicy(
                 doi_verification_required=True,
                 arxiv_verification_required=True,
+                reality_report_required=True,
+                human_review_hard_block=False,
             ),
             figure=FigurePolicy(
                 audit_table_hard_block=True,
@@ -198,6 +203,8 @@ class WorkReportPolicy(ReportPolicy):
             reference=ReferencePolicy(
                 doi_verification_required=False,
                 arxiv_verification_required=False,
+                reality_report_required=False,
+                human_review_hard_block=False,
             ),
             figure=FigurePolicy(
                 audit_table_hard_block=False,
@@ -243,6 +250,8 @@ class HybridReportPolicy(ReportPolicy):
             reference=ReferencePolicy(
                 doi_verification_required=True,
                 arxiv_verification_required=False,
+                reality_report_required=True,
+                human_review_hard_block=False,
             ),
             figure=FigurePolicy(
                 audit_table_hard_block=False,
@@ -273,15 +282,49 @@ _POLICY_REGISTRY: dict[str, type[ReportPolicy]] = {
     "hybrid_report": HybridReportPolicy,
 }
 
+# Subtype overrides: key = "family::subtype", value = dict of policy field overrides
+_SUBTYPE_OVERRIDES: dict[str, dict] = {
+    "academic_report::admissions_report": {
+        "abstract": AbstractPolicy(
+            word_count_min=150,
+            word_count_max=250,
+            structure_required=False,
+            allow_plain_paragraph=True,
+        ),
+        "reference": ReferencePolicy(
+            doi_verification_required=True,
+            arxiv_verification_required=True,
+            reality_report_required=True,
+            human_review_hard_block=False,
+        ),
+    },
+    "academic_report::admissions_project_report": {
+        "abstract": AbstractPolicy(
+            word_count_min=150,
+            word_count_max=250,
+            structure_required=False,
+            allow_plain_paragraph=True,
+        ),
+        "reference": ReferencePolicy(
+            doi_verification_required=False,
+            arxiv_verification_required=False,
+            reality_report_required=False,
+            human_review_hard_block=False,
+        ),
+    },
+}
+
 _POLICY_CACHE: dict[str, ReportPolicy] = {}
 
 
-def get_policy(family: Optional[str] = None) -> ReportPolicy:
+def get_policy(family: Optional[str] = None, subtype: Optional[str] = None) -> ReportPolicy:
     """Return the ReportPolicy singleton for the given family.
 
     Args:
         family: "academic_report", "work_report", or "hybrid_report".
                  Defaults to "academic_report" if None.
+        subtype: Optional subtype like "admissions_report" that adjusts
+                 specific policy fields (e.g., relaxed abstract rules).
 
     Returns:
         The corresponding ReportPolicy singleton.
@@ -298,7 +341,19 @@ def get_policy(family: Optional[str] = None) -> ReportPolicy:
             f"Known families: {list(_POLICY_REGISTRY.keys())}"
         )
 
-    if family not in _POLICY_CACHE:
-        _POLICY_CACHE[family] = _POLICY_REGISTRY[family]()
+    cache_key = f"{family}::{subtype}" if subtype else family
 
-    return _POLICY_CACHE[family]
+    if cache_key not in _POLICY_CACHE:
+        base = _POLICY_REGISTRY[family]()
+
+        # Apply subtype overrides if any
+        if subtype:
+            override_key = f"{family}::{subtype}"
+            overrides = _SUBTYPE_OVERRIDES.get(override_key, {})
+            for field_name, value in overrides.items():
+                if hasattr(base, field_name):
+                    setattr(base, field_name, value)
+
+        _POLICY_CACHE[cache_key] = base
+
+    return _POLICY_CACHE[cache_key]

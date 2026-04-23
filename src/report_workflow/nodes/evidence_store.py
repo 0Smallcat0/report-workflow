@@ -8,6 +8,18 @@ from ..state import ReportState, WORKFLOW_RUNS_DIR
 
 def run_evidence_store(state: ReportState) -> ReportState:
     """Build a queryable manifest over evidence_ledger.jsonl."""
+    # In revise_existing mode, evidence is carried from the previous run's artifacts.
+    # EVIDENCE_NORMALIZE already skips in this case; EVIDENCE_STORE must also skip.
+    task_intent = state.spec.get("task_intent", "new_draft")
+    source_registry = state.sources.get("source_registry", [])
+    only_base_docs = all(
+        entry.get("artifact_role") == "base_document"
+        for entry in source_registry
+    )
+    if task_intent == "revise_existing" and only_base_docs:
+        state.sources["evidence_store_manifest_path"] = ""
+        return state
+
     evidence_path = state.sources.get("evidence_ledger_path")
     if not evidence_path or not Path(evidence_path).exists():
         raise QAHardBlockError("Cannot build evidence store without evidence ledger")

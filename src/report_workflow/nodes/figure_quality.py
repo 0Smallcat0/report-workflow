@@ -16,6 +16,7 @@ Academic report-specific rules:
     This node CHECKS that these tables are NOT in the main text.
   - Figure captions and in-text references are validated.
 """
+import json
 import logging
 import re
 from pathlib import Path
@@ -106,6 +107,7 @@ def _check_no_audit_tables_in_main_text(merged_text: str, report_family: str) ->
 def _check_figure_contract(
     merged_text: str,
     outline_figure_ids: list[str],
+    hard_contract: bool = False,
 ) -> list[dict]:
     """Check figure contract and return list of issues."""
     issues = []
@@ -116,6 +118,20 @@ def _check_figure_contract(
 
     outline_ids = {str(fid).lower() for fid in outline_figure_ids}
     all_fig_ids = placeholders | outline_ids
+    issue_severity = "hard" if hard_contract else "soft"
+
+    for fig_id in sorted(prose_refs - all_fig_ids):
+        issues.append({
+            "figure_id": fig_id,
+            "issues": [{
+                "type": "undeclared_prose_reference",
+                "severity": issue_severity,
+                "detail": (
+                    f"Figure '{fig_id}' is mentioned in prose but is not declared "
+                    "in outline figure_ids or as a [FIGURE:<id>] placeholder"
+                ),
+            }],
+        })
 
     for fig_id in sorted(all_fig_ids):
         issues_dict: dict = {"figure_id": fig_id, "issues": []}
@@ -124,7 +140,7 @@ def _check_figure_contract(
         if outline_ids and fig_id not in placeholders and fig_id in outline_ids:
             issues_dict["issues"].append({
                 "type": "missing_placeholder",
-                "severity": "soft",
+                "severity": issue_severity,
                 "detail": f"Figure '{fig_id}' is in outline but has no [FIGURE:{fig_id}] placeholder",
             })
 
@@ -132,7 +148,7 @@ def _check_figure_contract(
         if fig_id not in prose_refs:
             issues_dict["issues"].append({
                 "type": "missing_prose_reference",
-                "severity": "soft",
+                "severity": issue_severity,
                 "detail": f"Figure '{fig_id}' is referenced but not mentioned in prose (e.g. 'see Figure {fig_id}')",
             })
 
@@ -140,7 +156,7 @@ def _check_figure_contract(
         if fig_id not in captions:
             issues_dict["issues"].append({
                 "type": "missing_caption",
-                "severity": "soft",
+                "severity": issue_severity,
                 "detail": f"Figure '{fig_id}' has no caption ('Figure {fig_id}: ...' or similar)",
             })
 
@@ -194,9 +210,41 @@ def run_figure_quality(state: ReportState) -> ReportState:
         all_issues.extend(audit_issues)
 
     # 2. Figure contract checks (placeholder, prose reference, caption)
-    contract_issues = _check_figure_contract(merged_text, outline_figure_ids)
+    contract_issues = _check_figure_contract(
+        merged_text,
+        outline_figure_ids,
+        hard_contract=policy.figure.figure_contract_required,
+    )
     if contract_issues:
         all_issues.extend(contract_issues)
+
+    # 3. Figure manifest reality check: outline declared figures but no manifest
+    # means figure_plan.json was missing/malformed or matplotlib skipped them.
+    # For academic_report (where figures are load-bearing), this is a hard fail
+    # per the user's directive: never ship a silently-missing-figure doc.
+    if outline_figure_ids and policy.figure.audit_table_hard_block:
+        manifest_path = state.output.get("figure_manifest_path", "")
+        manifest_generated = 0
+        manifest_errors: list[str] = []
+        if manifest_path and Path(manifest_path).exists():
+            try:
+                with open(manifest_path, encoding="utf-8") as f:
+                    manifest = json.load(f)
+                manifest_generated = int(manifest.get("generated_count", 0) or 0)
+                manifest_errors = list(manifest.get("errors", []) or [])
+            except Exception as exc:
+                manifest_errors = [f"manifest parse error: {exc}"]
+        if manifest_generated < len(outline_figure_ids):
+            all_issues.append({
+                "type": "figure_manifest_shortfall",
+                "severity": "hard",
+                "detail": (
+                    f"Outline declares {len(outline_figure_ids)} figure(s) "
+                    f"but figure manifest generated only {manifest_generated}. "
+                    f"Errors: {manifest_errors[:3] if manifest_errors else 'no manifest / empty'}. "
+                    "Either remove figures from outline or fix figure_plan.json."
+                ),
+            })
 
     # Collect hard issues
     hard_issues = []

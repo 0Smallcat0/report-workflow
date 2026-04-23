@@ -13,6 +13,8 @@ from ..errors import AgentWorkRequired, QAHardBlockError
 from ..runtime_support import run_dir_for, write_json_artifact
 from ..state import ReportState
 from ..policies import get_policy
+from ..artifact_contract import load_jsonl_without_contract, make_artifact_contract, validate_artifact_contract, write_artifact_contract
+from ..artifact_contract import validate_evidence_ledger_provenance
 from .agent_tasks import write_agent_task_briefs
 
 
@@ -102,8 +104,32 @@ def run_claim_plan(state: ReportState) -> ReportState:
         raise AgentWorkRequired(f"Agent artifact required: {path}", [str(path)])
 
     claim_matrix = _load_claim_matrix(path)
+    validate_artifact_contract(state, path, allow_missing=True)
     report_family = state.spec.get("report_family", "")
     claims = _validate_claim_matrix(claim_matrix, report_family=report_family)
+    evidence_path = state.sources.get("evidence_ledger_path")
+    known_evidence = {
+        item.get("evidence_id")
+        for item in load_jsonl_without_contract(evidence_path)
+        if item.get("evidence_id")
+    }
+    if known_evidence:
+        unknown = sorted({
+            eid
+            for claim in claims
+            for eid in claim.get("evidence_ids", [])
+            if eid not in known_evidence
+        })
+        if unknown:
+            raise QAHardBlockError(
+                "claim_matrix.json references evidence IDs that do not exist in this run: "
+                + ", ".join(unknown[:12])
+                + ". These artifacts likely came from another run. Use "
+                f"`report-workflow remap-evidence --from-job <old> --to-job {state.job_id} --write` "
+                "or rebuild from this run's evidence_ledger.jsonl."
+            )
+    validate_evidence_ledger_provenance(evidence_path)
     state.plan["claim_matrix"] = {"claims": claims}
     state.plan["claim_matrix_path"] = write_json_artifact(state, "claim_matrix.json", state.plan["claim_matrix"])
+    write_artifact_contract(state.plan["claim_matrix_path"], make_artifact_contract(state))
     return state

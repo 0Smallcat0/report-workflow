@@ -1,7 +1,7 @@
 """REVISION_APPLY node - apply a revision_plan to the base_document.
 
 Sits between SECTION_DRAFT and MERGE_DRAFT.
-Only runs when state.spec["task_intent"] == "revise_existing".
+Only runs when state.spec["task_intent"] == 'revise_existing'.
 
 Reads:
   - run_dir / "revision_plan.json"     ← agent-authored change manifest
@@ -20,10 +20,41 @@ Each change carries claim_ids + evidence_ids so it feeds into sentence_map
 and the normal FACTUALITY/CONSISTENCY gates.
 """
 import json
+import re
 from pathlib import Path
 
 from ..errors import QAHardBlockError
 from ..state import ReportState, WORKFLOW_RUNS_DIR
+from ..artifact_contract import validate_base_document_integrity
+
+
+def _reference_ids(sections: dict[str, str], kind: str) -> set[str]:
+    pattern = re.compile(rf"\b{kind}\s+(\d+|[A-Za-z])\b", re.IGNORECASE)
+    text = "\n".join(sections.values())
+    return {match.group(1).lower() for match in pattern.finditer(text)}
+
+
+def _preservation_reason_allowed(changes: list[dict], reason: str) -> bool:
+    return any(str(change.get("change_reason", "")).lower() == reason for change in changes)
+
+
+def _preservation_change_complete(changes: list[dict], reason: str) -> bool:
+    for change in changes:
+        if str(change.get("change_reason", "")).lower() != reason:
+            continue
+        decision = str(change.get("figure_preservation_decision", "")).strip().lower()
+        replacement = str(change.get("replacement_text", "")).strip()
+        if reason == "remove_figure_reference":
+            if decision in {"replace_with_textual_description", "replace_with_table_reference", "remove_because_no_source_asset"}:
+                return True
+            if replacement:
+                return True
+        if reason == "remove_table_reference":
+            if decision in {"replace_with_textual_description", "remove_because_no_source_asset"}:
+                return True
+            if replacement:
+                return True
+    return False
 
 
 def _apply_changes(
@@ -88,27 +119,62 @@ def _apply_changes(
     return updated, unapplied
 
 
+def _strip_leading_heading_from_content(content: str, sid: str) -> str:
+    """If section content's first line is identical (case-insensitive) to the
+    formatted heading, strip that first line. This prevents duplicate headings
+    like '## Research Questions And Contributions' + 'Research Questions And Contributions'.
+    """
+    formatted_heading = sid.replace("_", " ").title()
+    first_line = content.split("\n", 1)[0].strip()
+    if first_line.lower() == formatted_heading.lower():
+        # Strip the first line and leading whitespace
+        remaining = content[len(first_line):]
+        return remaining.lstrip("\n")
+    return content
+
+
 def run_revision_apply(state: ReportState) -> ReportState:
     """T12b: REVISION_APPLY - apply revision_plan to base_document.
 
     Only runs for revise_existing workflows.
     Reads base_document_sections (from BASE_DOCUMENT_PARSE) and
     revision_plan.json (from agent), applies changes, and writes merged_draft_md.
+
+    Canonical assembly order:
+      1. Abstract (always first)
+      2. Blueprint sections in section_order
+      3. Other non-blueprint sections (middle)
+      4. References (always last)
     """
     task_intent = state.spec.get("task_intent", "new_draft")
     if task_intent != "revise_existing":
         return state  # passthrough — MERGE_DRAFT will handle new_draft
 
-    # Load base_document_sections
-    base_sections: dict[str, str] = state.sources.get("base_document_sections", {})
+    # Load canonical base_document_sections from disk rather than trusting
+    # checkpoint-embedded mutable state. The immutable integrity sidecar catches
+    # direct edits to this file.
+    run_dir = WORKFLOW_RUNS_DIR / state.job_id
+    sections_path = Path(state.sources.get("base_document_sections_path", "")) if state.sources.get("base_document_sections_path") else run_dir / "base_document_sections.json"
+    base_sections: dict[str, str] = {}
+    if sections_path.exists():
+        try:
+            with open(sections_path, encoding="utf-8") as f:
+                loaded_sections = json.load(f)
+            if isinstance(loaded_sections, dict):
+                base_sections = loaded_sections
+                state.sources["base_document_sections"] = loaded_sections
+                state.sources["base_document_sections_path"] = str(sections_path)
+        except (json.JSONDecodeError, OSError) as exc:
+            raise QAHardBlockError(f"Could not read base_document_sections.json: {exc}") from exc
     if not base_sections:
         raise QAHardBlockError(
             "revision_plan requires base_document sections; "
             "BASE_DOCUMENT_PARSE may have failed"
         )
 
+    validate_base_document_integrity(state, base_sections)
+
     # Load revision_plan
-    run_dir = WORKFLOW_RUNS_DIR / state.job_id
     revision_plan_path = run_dir / "revision_plan.json"
     if not revision_plan_path.exists():
         raise QAHardBlockError(
@@ -124,29 +190,162 @@ def run_revision_apply(state: ReportState) -> ReportState:
     changes = revision_plan.get("changes", [])
     if not changes:
         raise QAHardBlockError("revision_plan.json has no changes; aborting revision")
+    for index, change in enumerate(changes):
+        if change.get("change_type") == "replace" and change.get("original_text", "") == change.get("new_text", ""):
+            raise QAHardBlockError(f"revision_plan change {index} is a no-op replace")
+        if change.get("change_type") == "insert" and not str(change.get("new_text", "")).strip():
+            raise QAHardBlockError(f"revision_plan change {index} is a no-op insert")
+
+    # --- Conflict detection ---
+    from .base_document_diff import (
+        detect_overlapping_changes,
+        compute_section_diff_summary,
+        write_diff_report,
+    )
+
+    conflicts = detect_overlapping_changes(changes, base_sections)
+    if conflicts:
+        conflict_desc = "; ".join(
+            f"change {a} vs change {b}" for a, b in conflicts
+        )
+        raise QAHardBlockError(
+            f"Conflicting changes detected in revision_plan.json: {conflict_desc}. "
+            f"Two changes modify overlapping text in the same section. "
+            f"Split them into non-overlapping changes."
+        )
 
     # Apply changes
+    base_figures = _reference_ids(base_sections, "Figure")
+    base_tables = _reference_ids(base_sections, "Table")
     updated_sections, unapplied = _apply_changes(base_sections, changes)
+    updated_figures = _reference_ids(updated_sections, "Figure")
+    updated_tables = _reference_ids(updated_sections, "Table")
+    removed_figures = sorted(base_figures - updated_figures)
+    removed_tables = sorted(base_tables - updated_tables)
+    if removed_figures and not _preservation_reason_allowed(changes, "remove_figure_reference"):
+        raise QAHardBlockError(
+            "revision_plan removed figure references without explicit change_reason='remove_figure_reference': "
+            + ", ".join(removed_figures)
+        )
+    if removed_figures and not _preservation_change_complete(changes, "remove_figure_reference"):
+        raise QAHardBlockError(
+            "figure reference removal requires replacement_text or figure_preservation_decision "
+            "(replace_with_textual_description | replace_with_table_reference | remove_because_no_source_asset)"
+        )
+    if removed_tables and not _preservation_reason_allowed(changes, "remove_table_reference"):
+        raise QAHardBlockError(
+            "revision_plan removed table references without explicit change_reason='remove_table_reference': "
+            + ", ".join(removed_tables)
+        )
+    if removed_tables and not _preservation_change_complete(changes, "remove_table_reference"):
+        raise QAHardBlockError(
+            "table reference removal requires replacement_text or figure_preservation_decision "
+            "(replace_with_textual_description | remove_because_no_source_asset)"
+        )
+
+    prompt = str(state.spec.get("user_prompt", "")).lower()
+    if any(phrase in prompt for phrase in ("preserve figure", "preserve table", "preserve figure/table", "all figure/table references preserved")):
+        if removed_figures or removed_tables:
+            raise QAHardBlockError(
+                "User requested preservation of figure/table references; revision_plan cannot remove them in this run."
+            )
 
     if unapplied:
-        # Emit warnings (not hard-fail) into runtime
-        state.runtime["revision_unapplied"] = unapplied
+        allow_partial = state.flags.get("allow_partial_revision", False)
+        if allow_partial:
+            # Backward-compatible: warn but don't block
+            state.runtime["revision_unapplied"] = unapplied
+        else:
+            # Default: hard block on any unapplied change
+            unapplied_desc = "; ".join(unapplied)
+            raise QAHardBlockError(
+                f"Revision plan has {len(unapplied)} unapplied change(s): "
+                f"{unapplied_desc}. "
+                f"Ensure original_text matches the base document exactly. "
+                f"Set state.flags['allow_partial_revision'] = True to allow partial application."
+            )
 
-    # Build merged_draft_md in blueprint section order
+    # --- Per-section diff summary ---
+    diff_summaries: dict[str, dict] = {}
+    for sid in updated_sections:
+        old = base_sections.get(sid, "")
+        new = updated_sections[sid]
+        if old != new:
+            summary = compute_section_diff_summary(old, new)
+            diff_summaries[sid] = summary
+            if summary["similarity_ratio"] < 0.3:
+                import logging
+                logging.getLogger(__name__).warning(
+                    f"[REVISION_APPLY] Section '{sid}' was changed by "
+                    f"{(1 - summary['similarity_ratio']) * 100:.0f}% — "
+                    f"this may indicate an unintended full rewrite. "
+                    f"Consider using new_draft mode instead."
+                )
+
+    # Write diff report
+    diff_report = {
+        "total_changes": len(changes),
+        "applied": len(changes) - len(unapplied),
+        "unapplied": len(unapplied),
+        "section_diffs": diff_summaries,
+    }
+    report_path = write_diff_report(state.job_id, diff_report)
+    state.runtime["revision_diff_report_path"] = report_path
+
+    # Canonical order: Abstract first, blueprint sections, other sections, References last
     blueprint = state.plan.get("blueprint") or {}
-    section_order = blueprint.get("section_order", [])
+    section_order: list[str] = blueprint.get("section_order", [])
+
+    ABSTRACT_SECTION = "abstract"
+    REFERENCES_SECTION = "references"
+
+    # Sections neither abstract nor references nor preamble (preamble is metadata-only;
+    # its front matter fields are extracted by front_matter_build separately)
+    other_sections = {
+        sid: content for sid, content in updated_sections.items()
+        if sid not in (ABSTRACT_SECTION, REFERENCES_SECTION, "preamble")
+    }
 
     merged_lines: list[str] = []
-    # First emit any preamble (sections not in blueprint order)
-    for sid, content in updated_sections.items():
-        if sid not in section_order and content.strip():
-            merged_lines.append(f"# {sid.replace('_', ' ').title()}\n\n{content}\n")
 
-    # Then emit in blueprint order
+    # 1. Abstract — always first
+    abstract_content = updated_sections.get(ABSTRACT_SECTION, "").strip()
+    if abstract_content:
+        abstract_content = _strip_leading_heading_from_content(abstract_content, ABSTRACT_SECTION)
+        merged_lines.append(f"# Abstract\n\n{abstract_content}\n")
+
+    # 2. Blueprint sections in order
     for sid in section_order:
-        content = updated_sections.get(sid, "")
+        if sid in (ABSTRACT_SECTION, REFERENCES_SECTION):
+            continue
+        content = other_sections.get(sid, "")
         if content.strip():
-            merged_lines.append(f"# {sid.replace('_', ' ').title()}\n\n{content}\n")
+            content = _strip_leading_heading_from_content(content, sid)
+            formatted_heading = sid.replace("_", " ").title()
+            merged_lines.append(f"# {formatted_heading}\n\n{content}\n")
+            del other_sections[sid]  # avoid re-emitting
+
+    # 3. Other non-blueprint sections (middle)
+    for sid, content in other_sections.items():
+        if sid in (ABSTRACT_SECTION, REFERENCES_SECTION):
+            continue
+        if content.strip():
+            content = _strip_leading_heading_from_content(content, sid)
+            formatted_heading = sid.replace("_", " ").title()
+            merged_lines.append(f"# {formatted_heading}\n\n{content}\n")
+
+    # 4. References — always last
+    # Uses ## so docx_render can detect and apply APA hanging-indent formatting.
+    refs_content = updated_sections.get(REFERENCES_SECTION, "").strip()
+    if refs_content:
+        # Strip stray "References" plain-text label that may appear as the first line
+        # (the "## References" heading already provides the label)
+        refs_lines = refs_content.splitlines()
+        if refs_lines and refs_lines[0].strip() == "References":
+            refs_lines = refs_lines[1:]
+        refs_content = "\n".join(refs_lines).strip()
+        if refs_content:
+            merged_lines.append(f"## References\n\n{refs_content}\n")
 
     merged_draft_md = "\n\n".join(merged_lines)
 

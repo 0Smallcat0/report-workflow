@@ -54,6 +54,13 @@ _REQUIRED_ABSTRACT_HEADINGS = {
     "background", "objective", "methods", "principal findings", "significance"
 }
 
+_ABSTRACT_HEADING_ALIASES = {
+    "methodology": "methods",
+    "method": "methods",
+    "principal finding": "principal findings",
+    "findings": "principal findings",
+}
+
 
 # ------------------------------------------------------------------
 # Stripping helpers
@@ -89,9 +96,10 @@ def _check_structure(text: str) -> list[str]:
 
     for line in text.split('\n'):
         line = line.strip()
-        m = re.match(r'^##\s+([^\s:]+)(?:\s*:?\s*)?(.*)$', line, re.IGNORECASE)
+        m = re.match(r'^##\s+([^:]+?)(?:\s*:?\s*)?$', line, re.IGNORECASE)
         if m:
             heading = m.group(1).strip().lower()
+            heading = _ABSTRACT_HEADING_ALIASES.get(heading, heading)
             heading_counts[heading] = heading_counts.get(heading, 0) + 1
 
     found = set(heading_counts.keys())
@@ -140,11 +148,11 @@ def _sanity_checks(text: str) -> list[str]:
     return errors
 
 
-def _word_count_check(text: str, family: str) -> list[str]:
+def _word_count_check(text: str, family: str, subtype: str | None = None) -> list[str]:
     """Check word count is in range per policy."""
     errors = []
     words = _count_words(text)
-    policy = get_policy(family)
+    policy = get_policy(family, subtype)
     if words < policy.abstract.word_count_min:
         errors.append(
             f"Abstract too short: {words} words "
@@ -199,7 +207,7 @@ def run_abstract_check(state: ReportState) -> ReportState:
     cleaned = _strip_markers(raw_text)
 
     # Step 2: Structure check per policy
-    policy = get_policy(family)
+    policy = get_policy(family, state.spec.get("report_family_detail") or None)
     if policy.abstract.structure_required:
         all_errors.extend(_check_structure(cleaned))
 
@@ -207,7 +215,7 @@ def run_abstract_check(state: ReportState) -> ReportState:
     all_errors.extend(_sanity_checks(cleaned))
 
     # Step 4: Word count check
-    all_errors.extend(_word_count_check(cleaned, family))
+    all_errors.extend(_word_count_check(cleaned, family, state.spec.get("report_family_detail") or None))
 
     if all_errors:
         raise QAHardBlockError(

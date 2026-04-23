@@ -12,6 +12,7 @@ from .run_workflow import (
     render_workflow,
     status_workflow,
     validate_workflow,
+    validate_workflow_dry_run,
     validate_nodes,
 )
 from .state import ReportState
@@ -50,11 +51,26 @@ def build_parser() -> argparse.ArgumentParser:
     )
     prepare.add_argument("--output", required=True, help="Directory for final.docx")
     prepare.add_argument("--family", choices=REPORT_FAMILIES, help="Override inferred report family")
+    prepare.add_argument("--detail", help="Optional report family detail/subtype, e.g. admissions_report")
     prepare.add_argument(
         "--intent",
         choices=("new_draft", "revise_existing"),
         default="new_draft",
         help="Task intent (default: new_draft)",
+    )
+    prepare.add_argument("--title", help="Structured front matter title")
+    prepare.add_argument("--author", help="Structured front matter author block")
+    prepare.add_argument("--affiliation", help="Structured front matter affiliation block")
+    prepare.add_argument("--correspondence", help="Structured front matter correspondence email/contact")
+    prepare.add_argument(
+        "--keyword",
+        action="append",
+        default=[],
+        help="Structured front matter keyword; may be repeated",
+    )
+    prepare.add_argument(
+        "--project-identity",
+        help="Path to project_identity.json with required/forbidden project identity terms",
     )
 
     validate = subcommands.add_parser("validate", help="Validate agent-authored artifacts")
@@ -63,6 +79,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--verbose",
         action="store_true",
         help="Show per-node pass/fail results",
+    )
+    validate.add_argument(
+        "--deep-audit",
+        action="store_true",
+        help="Enable deep-audit citation substantiveness checking "
+             "(verifies evidence content actually supports claim content, not just ID linkage).",
     )
 
     render = subcommands.add_parser("render", help="Render and package a validated workflow")
@@ -96,6 +118,53 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output file path (default: stdout)",
     )
 
+    # Item 8: invalidate-cache subcommand - force reload from disk files
+    inv = subcommands.add_parser(
+        "invalidate-cache",
+        help="Clear cached state and force reload from disk files. "
+             "Use when you've edited workflow files directly and need to refresh state."
+    )
+    inv.add_argument("--job-id", required=True, help="Workflow job id")
+    inv.add_argument(
+        "--sources",
+        action="store_true",
+        help="Also invalidate cached sources (base_document_sections, evidence_ledger)",
+    )
+    inv.add_argument(
+        "--drafts",
+        action="store_true",
+        help="Also clear draft paths to force rebuild (MERGE_DRAFT will rebuild from sources)",
+    )
+
+    # Item 9: diagnose subcommand - inspect workflow state and find inconsistencies
+    diag = subcommands.add_parser(
+        "diagnose",
+        help="Inspect workflow state, find discrepancies between checkpoint and disk files, "
+             "and report revision_plan application status"
+    )
+    diag.add_argument("--job-id", required=True, help="Workflow job id")
+    diag.add_argument(
+        "--verbose",
+        action="store_true",
+        help="Show full checkpoint diff",
+    )
+
+    remap = subcommands.add_parser(
+        "remap-evidence",
+        help="Remap claim, sentence, and section citation evidence IDs from one job to another",
+    )
+    remap.add_argument("--from-job", required=True, dest="from_job", help="Previous workflow job id")
+    remap.add_argument("--to-job", required=True, dest="to_job", help="Current workflow job id")
+    remap.add_argument("--write", action="store_true", help="Apply changes instead of dry-run")
+
+    # Item 10: validate with --dry-run option
+    validate.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Simulate validation without writing checkpoint. "
+             "Use to pre-check before committing changes.",
+    )
+
     return parser
 
 
@@ -110,9 +179,11 @@ def _print_state(state) -> None:
     print(f"published_dir: {state.output.get('published_dir', '')}")
 
 
-def _verbose_validate(job_id: str) -> ReportState:
+def _verbose_validate(job_id: str, deep_audit: bool = False) -> ReportState:
     """Run validate with per-node progress printed."""
     state = ReportState.resume(job_id)
+    if deep_audit:
+        state.flags["deep_audit"] = True
     nodes = validate_nodes()
     print(f"[VALIDATE] Running {len(nodes)} nodes for job {job_id} ...")
 
@@ -190,6 +261,185 @@ def _compute_diff(a: dict, b: dict, path: str = "") -> list[tuple[str, str, str]
     return diffs
 
 
+def _run_invalidate_cache(job_id: str, invalidate_sources: bool, invalidate_drafts: bool) -> int:
+    """Clear cached state in checkpoint and optionally force reload from disk."""
+    from .state import WORKFLOW_RUNS_DIR
+
+    run_dir = WORKFLOW_RUNS_DIR / job_id
+    latest = run_dir / "checkpoint_latest.json"
+    if not latest.exists():
+        print(f"No checkpoint found for job {job_id}", file=sys.stderr)
+        return 1
+
+    with open(latest, encoding="utf-8") as f:
+        data = json.load(f)
+
+    changes = []
+
+    # Clear draft paths to force MERGE_DRAFT rebuild
+    if invalidate_drafts:
+        drafts = data.get("drafts", {})
+        for key in ["merged_draft_md", "publication_draft_md", "merged_draft_cited_md"]:
+            if key in drafts:
+                changes.append(f"Cleared drafts.{key}")
+                del drafts[key]
+        data["drafts"] = drafts
+
+    # Clear cached sources to force reload from disk
+    if invalidate_sources:
+        sources = data.get("sources", {})
+        for key in ["base_document_sections"]:
+            if key in sources:
+                changes.append(f"Cleared sources.{key}")
+                del sources[key]
+        data["sources"] = sources
+
+    if not changes:
+        print("No cache to invalidate. Use --sources or --drafts to specify what to invalidate.")
+        return 0
+
+    # Write updated checkpoint
+    with open(latest, "w", encoding="utf-8") as f:
+        json.dump(data, f, indent=2, default=str)
+
+    print(f"Invalidated cache for job {job_id}:")
+    for change in changes:
+        print(f"  - {change}")
+    print("\nNext validate run will reload from disk files.")
+
+    return 0
+
+
+def _run_diagnose(job_id: str, verbose: bool) -> int:
+    """Inspect workflow state and find discrepancies between checkpoint and disk."""
+    from .state import WORKFLOW_RUNS_DIR
+
+    run_dir = WORKFLOW_RUNS_DIR / job_id
+    latest = run_dir / "checkpoint_latest.json"
+    if not latest.exists():
+        print(f"No checkpoint found for job {job_id}", file=sys.stderr)
+        return 1
+
+    with open(latest, encoding="utf-8") as f:
+        data = json.load(f)
+
+    print(f"=== Diagnose: {job_id} ===\n")
+
+    # 1. Checkpoint status
+    print(f"Status: {data.get('status', 'unknown')}")
+    print(f"qa_decision: {data.get('qa', {}).get('qa_decision', 'none')}")
+    print(f"current_node: {data.get('runtime', {}).get('current_node', 'unknown')}")
+    print()
+
+    # 2. Check disk files vs checkpoint paths
+    drafts = data.get("drafts", {})
+    sources = data.get("sources", {})
+    issues = []
+
+    print("--- File Existence Checks ---")
+    for key, path in drafts.items():
+        if path and isinstance(path, str):
+            exists = Path(path).exists()
+            status = "✓" if exists else "✗ MISSING"
+            print(f"  drafts.{key}: {status} ({path})")
+            if not exists:
+                issues.append(f"drafts.{key} points to missing file: {path}")
+
+    for key in ["base_document_sections_path", "evidence_ledger_path"]:
+        path = sources.get(key)
+        if path and isinstance(path, str):
+            exists = Path(path).exists()
+            status = "✓" if exists else "✗ MISSING"
+            print(f"  sources.{key}: {status} ({path})")
+            if not exists:
+                issues.append(f"sources.{key} points to missing file: {path}")
+    print()
+
+    # 3. Check if base_document_sections in checkpoint matches disk file
+    print("--- Cache Consistency Checks ---")
+    disk_base_path = sources.get("base_document_sections_path")
+    cached_base = sources.get("base_document_sections", {})
+    if disk_base_path and Path(disk_base_path).exists():
+        with open(disk_base_path, encoding="utf-8") as f:
+            disk_base = json.load(f)
+        if cached_base != disk_base:
+            print("  ⚠ WARNING: base_document_sections in checkpoint differs from disk file!")
+            print(f"    Disk file: {disk_base_path}")
+            print(f"    Cache size: {len(str(cached_base))} chars")
+            print(f"    Disk size: {len(str(disk_base))} chars")
+            issues.append("base_document_sections cache is stale - use 'invalidate-cache --job-id <id> --sources' to refresh")
+        else:
+            print("  ✓ base_document_sections matches disk file")
+    print()
+
+    # 4. Check revision_plan application status
+    revision_unapplied = data.get("runtime", {}).get("revision_unapplied", [])
+    if revision_unapplied:
+        print("--- Revision Plan Issues ---")
+        print(f"  {len(revision_unapplied)} change(s) could not be applied:")
+        for reason in revision_unapplied:
+            print(f"    - {reason}")
+        print()
+    else:
+        print("--- Revision Plan ---")
+        print("  ✓ All changes applied successfully")
+        print()
+
+    # 5. Check banned phrases in current merged_draft
+    merged_path = drafts.get("merged_draft_md")
+    if merged_path and Path(merged_path).exists():
+        merged_text = Path(merged_path).read_text(encoding="utf-8").lower()
+        banned_hints = ["just", "justification", "justified"]
+        found_banned = [p for p in banned_hints if p in merged_text]
+        if found_banned:
+            print("--- Banned Phrase Warning ---")
+            print(f"  Found banned phrases: {found_banned}")
+            print("    These may cause QA_GATE to fail.")
+            print()
+
+    # 6. Citation coverage summary
+    sentence_map_path = drafts.get("sentence_map_path")
+    if sentence_map_path and Path(sentence_map_path).exists():
+        with open(sentence_map_path, encoding="utf-8") as f:
+            sents = [json.loads(line) for line in f if line.strip()]
+        expected_cites = set()
+        for s in sents:
+            for cid in s.get("citation_ids", []):
+                if cid:
+                    expected_cites.add(cid)
+
+        if merged_path and Path(merged_path).exists():
+            merged_text = Path(merged_path).read_text(encoding="utf-8")
+            present_cites = set()
+            import re
+            for m in re.findall(r"\[CITE:([^\]]+)\]", merged_text):
+                for cid in m.split(","):
+                    cid = cid.strip()
+                    if cid:
+                        present_cites.add(cid)
+
+            missing = expected_cites - present_cites
+            if missing:
+                print("--- Citation Coverage ---")
+                print(f"  Missing citations: {sorted(missing)}")
+                print()
+            else:
+                print("--- Citation Coverage ---")
+                print(f"  ✓ All {len(expected_cites)} expected citations present")
+                print()
+
+    # 7. Summary
+    print("=== Summary ===")
+    if issues:
+        for issue in issues:
+            print(f"  ✗ {issue}")
+        print(f"\n{len(issues)} issue(s) found. Run with --verbose for full diff.")
+    else:
+        print("  ✓ No issues found")
+
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
@@ -201,23 +451,42 @@ def main(argv: list[str] | None = None) -> int:
             for path, role in args.source:
                 source_files.append(str(Path(path)))
                 artifact_role_map[str(Path(path).name)] = role
+            project_identity = None
+            if args.project_identity:
+                with open(args.project_identity, encoding="utf-8") as f:
+                    project_identity = json.load(f)
 
             state = prepare_workflow(
                 args.prompt,
                 source_files,
                 args.output,
                 report_family=args.family,
+                report_family_detail=args.detail,
                 intent=args.intent,
                 artifact_role_map=artifact_role_map,
+                front_matter={
+                    key: value for key, value in {
+                        "title": args.title,
+                        "author_block": args.author,
+                        "affiliation_block": args.affiliation,
+                        "correspondence": args.correspondence,
+                        "keywords": args.keyword,
+                    }.items()
+                    if value
+                },
+                project_identity=project_identity,
             )
             _print_state(state)
             return 0
 
         if args.command == "validate":
-            if args.verbose:
-                state = _verbose_validate(args.job_id)
+            if args.dry_run:
+                state = validate_workflow_dry_run(args.job_id, deep_audit=args.deep_audit)
+                _print_state(state)
+            elif args.verbose:
+                state = _verbose_validate(args.job_id, deep_audit=args.deep_audit)
             else:
-                state = validate_workflow(args.job_id)
+                state = validate_workflow(args.job_id, deep_audit=args.deep_audit)
             _print_state(state)
             return 0
 
@@ -242,6 +511,18 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "diff":
             return _run_diff(args.job_id, args.against)
+
+        if args.command == "invalidate-cache":
+            return _run_invalidate_cache(args.job_id, args.sources, args.drafts)
+
+        if args.command == "diagnose":
+            return _run_diagnose(args.job_id, args.verbose)
+
+        if args.command == "remap-evidence":
+            from .artifact_contract import remap_evidence_ids
+            result = remap_evidence_ids(args.to_job, args.from_job, write=args.write)
+            print(json.dumps(result, indent=2, default=str))
+            return 0 if result.get("status") == "ok" else 2
 
         if args.command == "export":
             from .state import WORKFLOW_RUNS_DIR

@@ -131,7 +131,7 @@ _INTERNAL_PATTERNS = [
     (r"\[CITE:\s*[^\]]+\]", "cite_marker"),
     (r"\[graphify:\s*[^\]]+\]", "graphify_marker"),
     (r"(?<!`)(?<!\w)([a-zA-Z_][\w]*\.py)(?!\`)", "python_filename"),
-    (r"(?<!`)(?:[A-Z]:\\[^\s,;]+|/[home|Users|var|tmp][^\s,;]+)", "internal_path"),
+    (r"(?<!`)(?:[A-Z]:\\[^\s,;]+|/(?:home|Users|var|tmp)/[^\s,;]+)", "internal_path"),
     (r"(?<![\w`])(E\d{3,}|evidence_ledger|claim_matrix)(?![\w`])", "evidence_id"),
     (r"\|\s*Claim\s+ID\s*\|", "claim_evidence_table"),
     (r"\|\s*Evidence\s+ID\s*\|", "claim_evidence_table"),
@@ -143,6 +143,12 @@ _SAFE_CONTEXTS = [
     r"https?://",
     r"<[^>]+>",
 ]
+
+_SECTION_HEADING_ALIASES = {
+    "methods": {"methodology", "research methodology"},
+    "results": {"findings"},
+    "discussion": {"analysis"},
+}
 
 
 def _is_in_safe_context(text: str, start: int, end: int) -> bool:
@@ -178,6 +184,76 @@ def _scan_for_internal_artifacts(text: str) -> list[dict]:
     return violations
 
 
+def _canonical_section_title(section_id: str) -> str:
+    return section_id.replace("_", " ").title()
+
+
+def _canonicalize_section_content(section_id: str, content: str) -> str:
+    """Normalize section-local heading structure before global merge.
+
+    - Removes the outer section heading from agent-authored section drafts.
+    - Demotes any additional level-1 headings inside a section to level-2.
+    - Drops repeated empty duplicate headings such as multiple consecutive
+      "## Data Source and Corpus" lines with no body content between them.
+    """
+    lines = content.splitlines()
+    result: list[str] = []
+    canonical_title = _canonical_section_title(section_id).strip().lower()
+    alias_set = _SECTION_HEADING_ALIASES.get(section_id, set())
+
+    first_heading_skipped = False
+    last_heading_norm: str | None = None
+    content_since_heading = True
+
+    for line in lines:
+        stripped = line.strip()
+        heading_match = re.match(r"^(#+)\s+(.+)$", stripped)
+        if not heading_match:
+            if stripped:
+                content_since_heading = True
+            result.append(line)
+            continue
+
+        level = len(heading_match.group(1))
+        heading_text = heading_match.group(2).strip()
+        heading_norm = heading_text.lower()
+
+        # Drop the outer section heading from the raw section draft.
+        if not first_heading_skipped and (
+            heading_norm == canonical_title
+            or canonical_title in heading_norm
+        ):
+            first_heading_skipped = True
+            last_heading_norm = None
+            content_since_heading = False
+            continue
+
+        first_heading_skipped = True
+
+        # If a section embeds another top-level heading, keep the text but
+        # demote it into a subsection to preserve structure.
+        if level == 1:
+            level = 2
+
+        if heading_norm in alias_set and level == 2:
+            heading_text = heading_text.title()
+
+        # Skip duplicate headings when nothing substantive appeared between them.
+        if heading_norm == last_heading_norm and not content_since_heading:
+            continue
+
+        result.append(f"{'#' * level} {heading_text}")
+        last_heading_norm = heading_norm
+        content_since_heading = False
+
+    # Trim leading/trailing blank lines after stripping the outer heading.
+    while result and not result[0].strip():
+        result.pop(0)
+    while result and not result[-1].strip():
+        result.pop()
+    return "\n".join(result)
+
+
 # ------------------------------------------------------------------
 # Main node
 # ------------------------------------------------------------------
@@ -197,9 +273,14 @@ def run_merge_draft(state: ReportState) -> ReportState:
       - publication_draft_md (artifact-free version for academic publication)
       - merge_draft_report.json
     """
-    # If merged_draft_md was already written by REVISION_APPLY, still run artifact stripping
+    # Only revise_existing may reuse a merged draft from REVISION_APPLY.
+    # new_draft must rebuild from section_drafts on every validate pass to avoid
+    # stale revise_existing or prior-run draft contamination in checkpoints.
     existing = state.drafts.get("merged_draft_md", "")
-    skip_merge = bool(existing and Path(existing).exists())
+    skip_merge = (
+        state.spec.get("task_intent") == "revise_existing"
+        and bool(existing and Path(existing).exists())
+    )
 
     run_dir = WORKFLOW_RUNS_DIR / state.job_id
     removed_tables = []
@@ -232,7 +313,9 @@ def run_merge_draft(state: ReportState) -> ReportState:
                         raise QAHardBlockError(f"Section draft is empty: {section_id}")
                     if "This section is under development" in content:
                         raise QAHardBlockError(f"Section draft is placeholder content: {section_id}")
-                    merged_sections.append(content)
+                    normalized = _canonicalize_section_content(section_id, content)
+                    section_title = _canonical_section_title(section_id)
+                    merged_sections.append(f"# {section_title}\n\n{normalized}".strip())
                 except QAHardBlockError:
                     raise
                 except Exception as exc:

@@ -1,0 +1,267 @@
+"""Tests for base_document_diff and revision_apply enhancements."""
+import json
+import os
+import tempfile
+import unittest
+from pathlib import Path
+
+from report_workflow.nodes.base_document_diff import (
+    compute_revision_diff,
+    detect_overlapping_changes,
+    compute_section_diff_summary,
+    write_diff_report,
+)
+from report_workflow.agent_wrapper import (
+    submit_revision_plan,
+    preview_revision_diff,
+)
+
+
+class ComputeRevisionDiffTests(unittest.TestCase):
+    """Test compute_revision_diff function."""
+
+    def setUp(self):
+        self.base = {
+            "introduction": "The system uses AST parsing to build intermediate representations.",
+            "results": "We analyzed 388 files with 5,171 nodes and 9,764 edges.",
+            "discussion": "The hub structure suggests a modular design pattern.",
+        }
+
+    def test_all_valid_changes(self):
+        plan = {"changes": [
+            {
+                "section_id": "results",
+                "change_type": "replace",
+                "original_text": "388 files",
+                "new_text": "400 files",
+            },
+            {
+                "section_id": "discussion",
+                "change_type": "replace",
+                "original_text": "modular design",
+                "new_text": "highly modular design",
+            },
+        ]}
+        result = compute_revision_diff(self.base, plan)
+        self.assertEqual(result["total_changes"], 2)
+        self.assertEqual(result["valid_changes"], 2)
+        self.assertEqual(len(result["unresolvable"]), 0)
+        self.assertEqual(len(result["conflicts"]), 0)
+
+    def test_unresolvable_original_text(self):
+        plan = {"changes": [
+            {
+                "section_id": "results",
+                "change_type": "replace",
+                "original_text": "THIS TEXT DOES NOT EXIST",
+                "new_text": "replacement",
+            },
+        ]}
+        result = compute_revision_diff(self.base, plan)
+        self.assertEqual(result["valid_changes"], 0)
+        self.assertEqual(len(result["unresolvable"]), 1)
+        self.assertIn("not found", result["unresolvable"][0]["reason"])
+
+    def test_unknown_section(self):
+        plan = {"changes": [
+            {
+                "section_id": "nonexistent_section",
+                "change_type": "replace",
+                "original_text": "foo",
+                "new_text": "bar",
+            },
+        ]}
+        result = compute_revision_diff(self.base, plan)
+        self.assertEqual(len(result["unresolvable"]), 1)
+        self.assertIn("not found", result["unresolvable"][0]["reason"])
+
+    def test_unknown_change_type(self):
+        plan = {"changes": [
+            {
+                "section_id": "results",
+                "change_type": "merge",
+                "original_text": "388",
+                "new_text": "400",
+            },
+        ]}
+        result = compute_revision_diff(self.base, plan)
+        self.assertEqual(len(result["unresolvable"]), 1)
+
+    def test_context_preview_populated(self):
+        plan = {"changes": [
+            {
+                "section_id": "results",
+                "change_type": "replace",
+                "original_text": "5,171 nodes",
+                "new_text": "5,200 nodes",
+            },
+        ]}
+        result = compute_revision_diff(self.base, plan)
+        preview = result["preview"][0]
+        self.assertEqual(preview["status"], "valid")
+        self.assertTrue(len(preview["context_before"]) > 0)
+
+
+class DetectOverlappingChangesTests(unittest.TestCase):
+    """Test detect_overlapping_changes function."""
+
+    def test_no_overlap_different_sections(self):
+        changes = [
+            {"section_id": "intro", "change_type": "replace", "original_text": "hello"},
+            {"section_id": "results", "change_type": "replace", "original_text": "world"},
+        ]
+        base = {"intro": "hello world", "results": "hello world"}
+        conflicts = detect_overlapping_changes(changes, base)
+        self.assertEqual(len(conflicts), 0)
+
+    def test_overlap_same_section(self):
+        changes = [
+            {"section_id": "results", "change_type": "replace", "original_text": "hello world"},
+            {"section_id": "results", "change_type": "replace", "original_text": "world foo"},
+        ]
+        base = {"results": "hello world foo bar"}
+        conflicts = detect_overlapping_changes(changes, base)
+        self.assertEqual(len(conflicts), 1)
+        self.assertEqual(conflicts[0], (0, 1))
+
+    def test_no_overlap_same_section(self):
+        changes = [
+            {"section_id": "results", "change_type": "replace", "original_text": "hello"},
+            {"section_id": "results", "change_type": "replace", "original_text": "bar"},
+        ]
+        base = {"results": "hello world foo bar"}
+        conflicts = detect_overlapping_changes(changes, base)
+        self.assertEqual(len(conflicts), 0)
+
+    def test_no_base_sections_returns_empty(self):
+        conflicts = detect_overlapping_changes([{"section_id": "a"}], None)
+        self.assertEqual(conflicts, [])
+
+
+class ComputeSectionDiffSummaryTests(unittest.TestCase):
+    """Test compute_section_diff_summary function."""
+
+    def test_identical_text(self):
+        text = "Line 1\nLine 2\nLine 3"
+        result = compute_section_diff_summary(text, text)
+        self.assertEqual(result["similarity_ratio"], 1.0)
+        self.assertEqual(result["added_lines"], 0)
+        self.assertEqual(result["removed_lines"], 0)
+
+    def test_small_change_high_ratio(self):
+        old = "Line 1\nLine 2\nLine 3\nLine 4\nLine 5"
+        new = "Line 1\nLine 2 modified\nLine 3\nLine 4\nLine 5"
+        result = compute_section_diff_summary(old, new)
+        self.assertGreater(result["similarity_ratio"], 0.7)
+
+    def test_large_change_low_ratio(self):
+        old = "Original line 1\nOriginal line 2\nOriginal line 3"
+        new = "Completely different A\nCompletely different B\nCompletely different C"
+        result = compute_section_diff_summary(old, new)
+        self.assertLess(result["similarity_ratio"], 0.3)
+
+    def test_added_lines_counted(self):
+        old = "Line 1"
+        new = "Line 1\nLine 2\nLine 3"
+        result = compute_section_diff_summary(old, new)
+        self.assertGreater(result["added_lines"], 0)
+
+
+class WriteDiffReportTests(unittest.TestCase):
+    """Test write_diff_report function."""
+
+    def test_writes_json(self):
+        job_id = "test_diff_report"
+        run_dir = Path(os.path.expanduser("~")) / ".hermes" / "workflow_runs" / job_id
+        run_dir.mkdir(parents=True, exist_ok=True)
+
+        try:
+            path = write_diff_report(job_id, {"test": True})
+            self.assertTrue(Path(path).exists())
+            with open(path) as f:
+                data = json.load(f)
+            self.assertTrue(data["test"])
+        finally:
+            import shutil
+            shutil.rmtree(run_dir, ignore_errors=True)
+
+
+class AgentToolRevisionTests(unittest.TestCase):
+    """Test submit_revision_plan and preview_revision_diff agent tools."""
+
+    def setUp(self):
+        self.job_id = "test_revision_tools"
+        self.run_dir = Path(os.path.expanduser("~")) / ".hermes" / "workflow_runs" / self.job_id
+        self.run_dir.mkdir(parents=True, exist_ok=True)
+
+        # Write base_document_sections
+        base = {"results": "We found 388 files with 5,171 nodes."}
+        (self.run_dir / "base_document_sections.json").write_text(
+            json.dumps(base), encoding="utf-8"
+        )
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree(self.run_dir, ignore_errors=True)
+
+    def test_submit_validates_valid_plan(self):
+        plan = {"changes": [
+            {
+                "section_id": "results",
+                "change_type": "replace",
+                "original_text": "388 files",
+                "new_text": "400 files",
+            },
+        ]}
+        (self.run_dir / "revision_plan.json").write_text(
+            json.dumps(plan), encoding="utf-8"
+        )
+        result = submit_revision_plan(self.job_id)
+        self.assertEqual(result["status"], "ok")
+        self.assertIn("preview", result)
+
+    def test_submit_detects_invalid_plan(self):
+        plan = {"changes": [
+            {
+                "section_id": "results",
+                "change_type": "replace",
+                "original_text": "NONEXISTENT TEXT",
+                "new_text": "replacement",
+            },
+        ]}
+        (self.run_dir / "revision_plan.json").write_text(
+            json.dumps(plan), encoding="utf-8"
+        )
+        result = submit_revision_plan(self.job_id)
+        self.assertEqual(result["status"], "validation_failed")
+
+    def test_preview_is_readonly(self):
+        plan = {"changes": [
+            {
+                "section_id": "results",
+                "change_type": "replace",
+                "original_text": "388 files",
+                "new_text": "400 files",
+            },
+        ]}
+        (self.run_dir / "revision_plan.json").write_text(
+            json.dumps(plan), encoding="utf-8"
+        )
+        result = preview_revision_diff(self.job_id)
+        self.assertEqual(result["status"], "ok")
+        self.assertEqual(result["valid_changes"], 1)
+        # Should NOT write any report file (readonly)
+        self.assertNotIn("diff_report_path", result)
+
+    def test_missing_base_document(self):
+        (self.run_dir / "base_document_sections.json").unlink()
+        result = submit_revision_plan(self.job_id)
+        self.assertEqual(result["status"], "error")
+
+    def test_missing_revision_plan(self):
+        result = submit_revision_plan(self.job_id)
+        self.assertEqual(result["status"], "error")
+
+
+if __name__ == "__main__":
+    unittest.main()

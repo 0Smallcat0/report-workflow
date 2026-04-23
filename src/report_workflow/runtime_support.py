@@ -18,7 +18,10 @@ def load_jsonl(path: Optional[str]) -> list[dict]:
     with open(path, encoding="utf-8") as f:
         for line in f:
             if line.strip():
-                rows.append(json.loads(line))
+                payload = json.loads(line)
+                if isinstance(payload, dict) and "_contract" in payload:
+                    continue
+                rows.append(payload)
     return rows
 
 

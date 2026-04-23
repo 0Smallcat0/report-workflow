@@ -11,6 +11,7 @@ Given an outline, claim matrix, and evidence, write precise, evidence-bound pros
 4. Write in formal academic/work style
 5. Each section should be self-contained but coherent with other sections
 6. Do not invent data or claims - only use provided evidence
+7. For admissions-facing reports, prefer a project monograph voice over a journal-template voice
 
 ## Output Format
 Return a JSON object:
@@ -55,15 +56,30 @@ Write the prose for each section using the outline and evidence provided. Output
 import json
 
 
-def get_writer_user_prompt(outline: dict, claim_matrix: dict, evidence_ledger: list[dict]) -> str:
+def get_writer_user_prompt(
+    outline: dict,
+    claim_matrix: dict,
+    evidence_ledger: list[dict],
+    report_family_detail: str = "",
+) -> str:
     evidence_str = json.dumps(evidence_ledger, indent=2)
     if len(evidence_str) > 5000:
         evidence_str = evidence_str[:5000] + "\n... [EVIDENCE TRUNCATED — may exceed context limit]"
-    return WRITER_USER_PROMPT_TEMPLATE.format(
+    prompt = WRITER_USER_PROMPT_TEMPLATE.format(
         outline_json=json.dumps(outline, indent=2),
         claim_matrix_json=json.dumps(claim_matrix, indent=2),
         evidence_summary=evidence_str
     )
+    if report_family_detail == "admissions_report":
+        prompt += (
+            "\n\n## Admissions-facing narrative guidance\n"
+            "- Write for reviewers evaluating research ability and project judgment.\n"
+            "- Make the research problem, design choice, and significance progression explicit.\n"
+            "- Keep deterministic compilation / StrategyIR / AST / quality gates as the spine.\n"
+            "- Keep LLM modules subordinate and constrained.\n"
+            "- Avoid journal-template scaffolding such as 'The remainder of this paper is organized as follows'.\n"
+        )
+    return prompt
 
 
 def get_writer_system_prompt() -> str:

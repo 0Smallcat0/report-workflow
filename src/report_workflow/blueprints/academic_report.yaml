@@ -27,9 +27,11 @@ thesis:
 section_order:
   - abstract
   - introduction
+  - research_scope
   - methods
   - results
   - discussion
+  - limitations
   - conclusion
   - references
 sections:
@@ -54,12 +56,18 @@ sections:
     required: true
     section_type: introduction
     order: 2
+  research_scope:
+    section_id: research_scope
+    title: Research Scope and Design Framing
+    required: true
+    section_type: scope
+    order: 3
   methods:
     section_id: methods
     title: Methods
     required: true
     section_type: methods
-    order: 3
+    order: 4
     # Contract: methods must describe procedure, not findings
     tense: past
     voice: passive_or_past_first_person
@@ -68,7 +76,7 @@ sections:
     title: Results
     required: true
     section_type: results
-    order: 4
+    order: 5
     # results_mode controls what kinds of claims are allowed:
     # "empirical"        — actual measured results (performance numbers, experiments)
     # "architectural_characterization" — system description, no performance claims
@@ -83,16 +91,22 @@ sections:
     title: Discussion
     required: true
     section_type: discussion
-    order: 5
+    order: 6
+  limitations:
+    section_id: limitations
+    title: Limitations
+    required: true
+    section_type: limitations
+    order: 7
   conclusion:
     section_id: conclusion
     title: Conclusion
     required: true
     section_type: conclusion
-    order: 6
+    order: 8
   references:
     section_id: references
     title: References
     required: true
     section_type: references
-    order: 7
+    order: 9

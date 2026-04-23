@@ -1,7 +1,7 @@
-# Report Workflow Local MVP
+# Report Workflow
 
-Report Workflow is an agent-skill-driven source-to-report pipeline. It is meant
-to run inside Codex, Hermes, Claude Code, or a similar agent environment.
+Report Workflow is an agent-skill-driven source-to-report pipeline. It runs
+inside Codex, Hermes, Claude Code, or a similar agent environment.
 
 The Python package does not call an LLM provider and does not require an API key.
 It owns deterministic work: source parsing, evidence normalization, artifact
@@ -9,12 +9,45 @@ contracts, validation, DOCX rendering, and traceability packaging. The external
 agent owns judgment and writing by reading task briefs and producing the required
 artifacts.
 
-## Install
+---
+
+## Prerequisites
+
+### System Dependencies
+
+| Dependency | Required | Install | Purpose |
+|-----------|----------|---------|---------|
+| **Python 3.11+** | Yes | — | Runtime |
+| **pandoc 3.x** | Yes | `winget install JohnMacFarlane.Pandoc` (Windows) or `apt install pandoc` (Linux) | DOCX rendering (primary path) |
+
+> **Why pandoc?** The DOCX renderer uses pandoc as the primary Markdown→DOCX conversion path. This produces correctly rendered tables, code blocks, nested lists, and inline formatting. If pandoc is not installed, the pipeline falls back to a limited python-docx regex-based converter, which may produce broken tables and formatting artifacts.
+
+### Python Dependencies
 
 ```powershell
 pip install -r requirements.txt
 pip install -e .
 ```
+
+### Verify Installation
+
+```powershell
+pandoc --version          # Should show 3.x
+python -c "import report_workflow; print('OK')"
+```
+
+### Optional Integration Dependencies
+
+These enable advanced features but are **never required** — the pipeline gracefully skips when they are missing.
+
+| Dependency | Feature | Setup |
+|------------|---------|-------|
+| **notebooklm-py** | NotebookLM knowledge sync | `pip install notebooklm-py` + browser auth |
+| **TAVILY_API_KEY** | Web research for claim verification | Set environment variable (recommended backend) |
+| **SERPER_API_KEY** | Alternative web research backend | Set environment variable |
+| **SERPAPI_API_KEY** | Alternative web research backend | Set environment variable |
+
+---
 
 ## Workflow
 
@@ -24,7 +57,13 @@ pip install -e .
 report-workflow prepare `
   --prompt "write an academic report from this source" `
   --source C:\path\to\source.txt `
-  --output C:\path\to\out
+  --output C:\path\to\out `
+  --title "Deterministic Compilation Architecture for Quantitative Trading Strategy Generation" `
+  --author "Example Student" `
+  --affiliation "Department of Engineering, Example University" `
+  --correspondence "student@example.edu" `
+  --keyword "deterministic compilation" `
+  --keyword "StrategyIR"
 ```
 
 Prepare writes deterministic artifacts and agent task briefs under:
@@ -44,35 +83,42 @@ Key files:
 - `agent_tasks/02_outline_plan.md`
 - `agent_tasks/03_section_draft.md`
 
-### 2. Agent Work
+### 2. Agent Work (4-Step Incremental)
 
-Use your agent environment to read `agent_tasks/*.md` and create:
+Use your agent environment to read `agent_tasks/*.md` and create artifacts
+**one step at a time**, validating after each:
 
-- `claim_matrix.json`
-- `outline.json`
-- `section_drafts/*.md`
-- `sentence_map.jsonl`
+| Step | Artifact | Validate Tool |
+|------|----------|---------------|
+| 2a | `claim_matrix.json` | `submit_claim_matrix` |
+| 2b | `outline.json` | `submit_outline` |
+| 2c | `section_drafts/*.md` + `sentence_map.jsonl` | `submit_drafts` |
 
-The task briefs define the exact required shapes and hard rules.
+Each step checkpoints independently, preventing context window exhaustion
+on large projects. The task briefs define the exact required shapes and hard
+rules.
 
-### 3. Validate
+> **Legacy mode**: You can also create all artifacts at once and skip directly
+> to step 3. This is faster for small projects but risky for large ones.
+
+### 3. Validate + Render
 
 ```powershell
 report-workflow validate --job-id <job_id>
-```
-
-Validate loads the agent-authored artifacts and runs deterministic gates.
-
-### 4. Render
-
-```powershell
 report-workflow render --job-id <job_id>
 ```
 
-Render requires `qa_decision=pass`, then writes:
+Or via the agent tool:
+
+```
+submit_and_publish_report(job_id="<job_id>")
+```
+
+Render uses pandoc with a reference template (`templates/reference.docx`) for
+academic styling (A4, Times New Roman 12pt, 1.5× line spacing). Output:
 
 ```text
-<output>/final.docx
+~/.hermes/workflow_runs/<job_id>/rendered_report.docx
 ~/.hermes/published/<job_id>/
 ```
 
@@ -90,43 +136,70 @@ To inspect state:
 report-workflow status --job-id <job_id>
 ```
 
-## MVP Support
+---
 
-Supported:
+## Agent Skill Tools
+
+| Tool | Purpose |
+|------|---------|
+| `start_report_task` | Start workflow, parse sources, generate task briefs. Accepts `enable_research`, `enable_notebook_sync`, `notebooklm_notebook_id` |
+| `submit_claim_matrix` | Validate claim_matrix.json (Step 2a) |
+| `submit_outline` | Validate outline.json (Step 2b) |
+| `submit_drafts` | Validate section drafts + sentence map (Step 2c) |
+| `submit_and_publish_report` | Full validate + render pipeline |
+| `query_evidence` | Browse or look up evidence entries by ID |
+| `remap_agent_artifacts` | Remap evidence IDs from a previous run |
+| `submit_revision_plan` | Pre-validate revision_plan.json |
+| `preview_revision_diff` | Read-only diff preview for revision plans |
+
+---
+
+## Supported Features
 
 - `fresh_doc` delivery mode
-- report families: `academic_report`, `work_report`, `hybrid_report`
-- source parsing for `txt`, `docx`, `csv`, `xlsx`, `json`, and `pdf`
-- deterministic evidence ledger, claim matrix validation, outline validation,
-  sentence map validation, citation audit, factuality linkage report, QA summary,
-  DOCX output
+- Report families: `academic_report`, `work_report`, `hybrid_report`
+- Source parsing for `txt`, `docx`, `csv`, `xlsx`, `json`, `pdf`, `md`, `py`, `js`
+- Deterministic evidence ledger, claim matrix validation, outline validation,
+  sentence map validation, citation audit, factuality linkage, QA summary
+- DOCX output via pandoc (primary) or python-docx (fallback)
+- Post-render validation (paragraph count, heading structure, text length)
+- **External web research** for claim verification (Tavily, Serper, SerpAPI, BrowserMCP)
+- **NotebookLM knowledge sync** for source context and analysis Q&A
+- **Claim verification** with coverage scoring and status upgrades
+- **Chinese engineering report** guidelines and CJK parser enrichment
+- **Matplotlib figure generation** from agent-authored figure plans
 
-Not supported in this MVP:
+## Not Supported
 
-- embedded LLM provider calls
-- agent fallback parsing after deterministic parser failure
+- Embedded LLM provider calls
 - Word native tracked changes
-- preserving an existing document's formatting
-- diagnostics, research retrieval, figure planning, waiver governance, or revision automation in the MVP path
-- production CI or monitoring
+- Preserving an existing document's formatting
+- Automatic figure generation from ASCII art (requires manual image creation)
+- Production CI or monitoring
+
+---
 
 ## Quality Gates
 
-The MVP hard gates are:
+The hard gates are:
 
-- source files must register and parse
-- evidence ledger must be non-empty
-- claims must have evidence
-- claim/evidence/sentence-map linkage must be valid
-- claim status cannot be `blocked`, `unverified`, or `disputed`
-- claim type must be allowed by linked evidence
-- evidence-backed sentences must include matching `[CITE:<id>]` placeholders
-- citation audit must have no unresolved citations
-- final DOCX is rendered only after `qa_decision=pass`
+- Source files must register and parse
+- Evidence ledger must be non-empty (minimum 5 entries for academic mode)
+- Claims must have evidence
+- Claim/evidence/sentence-map linkage must be valid
+- Claim status cannot be `blocked`, `unverified`, or `disputed`
+- Evidence-backed sentences must include matching `[CITE:<id>]` placeholders
+- Citation audit must have no unresolved citations
+- Pre-render sanity gate blocks prompt leakage, template metadata leakage, and noisy front matter keywords
+- Final DOCX is rendered only after `qa_decision=pass`
+- Post-render validation checks DOCX structure (headings, paragraph count)
 
-Diagnostics such as consistency, style, guideline, figure, research, waiver, and
-revision checks are intentionally outside the MVP path. Add them later as
-explicit commands rather than implicit prepare/validate/render steps.
+> **Note:** `graph_analysis` and `research_document` evidence diversity are
+> checked as warnings, not hard blocks. `code_artifact` is preferred for
+> implementation-scoped claims, but architecture/system claims may be grounded
+> by graphify/docs/spec evidence.
+
+---
 
 ## Tests
 

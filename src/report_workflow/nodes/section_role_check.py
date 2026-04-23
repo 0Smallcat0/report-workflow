@@ -47,6 +47,35 @@ INTRODUCTION_INTRUSION_PATTERNS = [
 ]
 
 
+# Thesis-spine tokens that must appear in Introduction for academic_report /
+# admissions_report. This is the `_THESIS_ALIGNED_KEYWORDS` contract mirrored
+# at the prose level: if Introduction fails to mention the deterministic-
+# compilation / IR / AST / orthogonal-gates / constrained-LLM story, the draft
+# has drifted into a generic architecture summary.
+_THESIS_SPINE_TOKENS = [
+    r"deterministic compilation",
+    r"strategy\s*ir",
+    r"domain[- ]specific intermediate representation",
+    r"abstract syntax tree",
+    r"\bast\b",
+    r"orthogonal (?:quality )?gates?",
+    r"orthogonal validation",
+    r"constrained (?:large )?language model",
+    r"constrained llm",
+    r"strategy verification",
+]
+
+# Paper-roadmap sentence (only required for non-admissions academic_report).
+# Admissions mode intentionally strips the roadmap to keep the project-
+# monograph tone.
+_PAPER_ROADMAP_PATTERNS = [
+    r"remainder of this (?:report|paper) is organized",
+    r"the (?:report|paper) is structured as follows",
+    r"this (?:report|paper) proceeds as follows",
+    r"section\s+\d+\s+(?:presents|describes|introduces|discusses)",
+]
+
+
 def _load_jsonl(path: str | None) -> list[dict]:
     """Load JSONL file."""
     rows = []
@@ -100,6 +129,75 @@ def _check_section(section_name: str, content: str, patterns: list) -> list[dict
                 "context": context,
                 "severity": "hard" if intrusion_type in ("conclusion", "raw_result") else "soft",
             })
+    return issues
+
+
+def _check_thesis_spine(state: ReportState, intro_content: str) -> list[dict]:
+    """Flag Introductions that drift away from the thesis spine.
+
+    For academic_report + admissions_report + new_draft we require the
+    Introduction to name at least two thesis-spine concepts (deterministic
+    compilation, StrategyIR/IR, AST, orthogonal gates, constrained LLM).
+    revise_existing preserves the base document, so this guard is skipped.
+    """
+    issues: list[dict] = []
+    family = state.spec.get("report_family", "")
+    detail = state.spec.get("report_family_detail", "")
+    intent = state.spec.get("task_intent", "new_draft")
+
+    if family != "academic_report":
+        return issues
+    if intent != "new_draft":
+        return issues
+    if detail != "admissions_report":
+        return issues
+
+    lowered = intro_content.lower()
+    hit_tokens = [
+        tok for tok in _THESIS_SPINE_TOKENS
+        if re.search(tok, lowered)
+    ]
+    if len(hit_tokens) < 2:
+        issues.append({
+            "section": "introduction",
+            "intrusion_type": "thesis_spine_missing",
+            "detail": (
+                f"Introduction mentions only {len(hit_tokens)} thesis-spine concept(s); "
+                "admissions-facing academic reports must name at least two of: "
+                "deterministic compilation, StrategyIR / IR, AST compilation, "
+                "orthogonal quality gates, constrained LLM."
+            ),
+            "matched_tokens": hit_tokens,
+            "severity": "hard",
+        })
+    return issues
+
+
+def _check_paper_roadmap(state: ReportState, intro_content: str) -> list[dict]:
+    """Soft-flag missing paper-roadmap sentence for non-admissions academic reports.
+
+    Skipped for admissions_report (that mode intentionally strips academic
+    boilerplate) and for non-academic families. Soft severity — this is a
+    quality signal, not a hard gate.
+    """
+    issues: list[dict] = []
+    family = state.spec.get("report_family", "")
+    detail = state.spec.get("report_family_detail", "")
+    if family != "academic_report":
+        return issues
+    if detail == "admissions_report":
+        return issues
+    if any(re.search(p, intro_content, re.IGNORECASE) for p in _PAPER_ROADMAP_PATTERNS):
+        return issues
+    issues.append({
+        "section": "introduction",
+        "intrusion_type": "missing_paper_roadmap",
+        "detail": (
+            "Introduction has no paper-roadmap sentence "
+            "(\"The remainder of this report is organized as follows ...\")."
+        ),
+        "severity": "soft",
+    })
     return issues
 
 
@@ -166,6 +264,8 @@ def run_section_role_check(state: ReportState) -> ReportState:
     intro_content = section_map.get("introduction", "")
     if intro_content:
         all_issues.extend(_check_section("introduction", intro_content, INTRODUCTION_INTRUSION_PATTERNS))
+        all_issues.extend(_check_thesis_spine(state, intro_content))
+        all_issues.extend(_check_paper_roadmap(state, intro_content))
 
     # Check Abstract claims
     abstract_content = section_map.get("abstract", "")

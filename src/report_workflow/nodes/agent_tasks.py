@@ -6,6 +6,7 @@ from pathlib import Path
 
 from ..state import ReportState
 from ..runtime_support import run_dir_for
+from ..artifact_contract import make_artifact_contract
 
 
 def agent_tasks_dir(state: ReportState) -> Path:
@@ -28,6 +29,35 @@ def _read_jsonl_preview(path: str | None, limit: int = 8) -> list[dict]:
     return rows
 
 
+def _read_jsonl_compact_summary(path: str | None, limit: int = 20) -> str:
+    """Build a compact evidence summary for task briefs.
+
+    Returns a concise table-like string instead of full JSON,
+    drastically reducing context consumption for the Agent.
+    Each entry: evidence_id | source_file | evidence_type | quote (first 80 chars)
+    """
+    if not path or not Path(path).exists():
+        return "(no evidence ledger found)"
+    rows = []
+    total = 0
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                total += 1
+                if len(rows) < limit:
+                    entry = json.loads(line)
+                    eid = entry.get("evidence_id", "?")
+                    src = entry.get("source_file_name", "?")
+                    etype = entry.get("evidence_type", "?")
+                    quote = (entry.get("quote", "") or "")[:80].replace("\n", " ")
+                    allowed = ", ".join(entry.get("allowed_claim_types", []))
+                    rows.append(f"  {eid} | {src} | {etype} | allowed:[{allowed}] | {quote}")
+    header = f"Total evidence entries: {total} (showing first {min(total, limit)})\n"
+    header += "  evidence_id | source_file | evidence_type | allowed_claim_types | quote_preview\n"
+    header += "  " + "-" * 80 + "\n"
+    return header + "\n".join(rows)
+
+
 def write_agent_task_briefs(state: ReportState) -> ReportState:
     """Write all task briefs required for the external agent authoring phase.
 
@@ -36,8 +66,31 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
     tasks_dir = agent_tasks_dir(state)
     run_dir = run_dir_for(state)
     evidence_path = state.sources.get("evidence_ledger_path", "")
-    evidence_preview = json.dumps(_read_jsonl_preview(evidence_path), indent=2, ensure_ascii=False)
+    evidence_summary = _read_jsonl_compact_summary(evidence_path)
     task_intent = state.spec.get("task_intent", "new_draft")
+    contract = make_artifact_contract(state)
+    contract_json = json.dumps(contract, indent=2)
+
+    if (
+        task_intent == "new_draft"
+        and state.spec.get("report_family") == "academic_report"
+        and not state.spec.get("project_identity")
+    ):
+        candidate_path = run_dir / "project_identity_candidate.json"
+        if not candidate_path.exists():
+            candidate_path.write_text(
+                json.dumps({
+                    "required_terms": [],
+                    "required_context_terms": [],
+                    "forbidden_terms": [],
+                    "canonical_title_terms": [],
+                    "domain_context": "",
+                    "author_metadata": {},
+                    "source": "agent_must_review",
+                }, indent=2),
+                encoding="utf-8",
+            )
+        state.runtime["project_identity_candidate_path"] = str(candidate_path)
 
     claim_task = f"""# 01 Claim Plan
 
@@ -53,6 +106,7 @@ Write `{run_dir / "claim_matrix.json"}` with this shape:
 
 ```json
 {{
+  "_contract": {contract_json},
   "claims": [
     {{
       "claim_id": "c1",
@@ -68,6 +122,15 @@ Write `{run_dir / "claim_matrix.json"}` with this shape:
 }}
 ```
 
+## Artifact Contract
+Keep `_contract` exactly aligned with this run. If you reuse artifacts from an older job,
+run `remap_agent_artifacts(job_id="{state.job_id}", previous_job_id="<old>", write=true)`
+instead of manually copying evidence IDs.
+
+Do not edit `merged_draft.md`, checkpoint files, or `base_document_sections.json`.
+For `new_draft`, the editable artifacts are `claim_matrix.json`, `outline.json`,
+`section_drafts/*.md`, and `sentence_map.jsonl`.
+
 ## Hard Rules
 - Every claim must have at least one `evidence_id`.
 - Use only evidence IDs from `evidence_ledger.jsonl`.
@@ -79,9 +142,10 @@ Write `{run_dir / "claim_matrix.json"}` with this shape:
   - `background`: Context, definitions, or prior work not central to contribution.
   - At least 1 primary claim required. No more than 3 primary claims.
 
-## Evidence Preview
-```json
-{evidence_preview}
+## Evidence Summary
+(Full ledger at `{evidence_path}` — read individual entries as needed)
+```
+{evidence_summary}
 ```
 """
 
@@ -96,6 +160,7 @@ Write `{run_dir / "outline.json"}` with this shape:
 
 ```json
 {{
+  "_contract": {contract_json},
   "results_mode": "empirical" | "architectural_characterization",
   "sections": {{
     "results": {{
@@ -108,6 +173,12 @@ Write `{run_dir / "outline.json"}` with this shape:
   }}
 }}
 ```
+
+## Artifact Contract
+Include the `_contract` block shown above. It lets the workflow catch stale
+artifacts before QA_GATE.
+
+Do not edit `merged_draft.md` directly. It is generated and will be overwritten.
 
 ## results_mode Selection (required for academic reports)
 
@@ -141,6 +212,7 @@ Write `{run_dir / "outline.json"}` with this shape:
 Each sentence map line must be JSON:
 
 ```json
+{{"_contract": {contract_json}}}
 {{
   "sentence_id": "sent_0",
   "section_id": "results",
@@ -151,6 +223,12 @@ Each sentence map line must be JSON:
   "draft_origin": "agent_draft"
 }}
 ```
+
+The first line of `sentence_map.jsonl` should be the `_contract` line shown above.
+All following lines should be sentence entries.
+
+Do not edit `merged_draft.md` directly. For `new_draft`, fix section files under
+`section_drafts/`; the workflow rebuilds merged drafts from them.
 
 ## Hard Rules
 - Every evidence-backed sentence must include `[CITE:<evidence_id>]` in the Markdown.
@@ -163,9 +241,11 @@ Each sentence map line must be JSON:
   - Any table containing "audit", "evidence", or "claim" in the header — these are internal artifacts.
   - **Write real content; do not use placeholder names** like `[Author Name]`, `[University]`, `[email@domain.com]`.
 
-## Academic Reports — Abstract Template (MANDATORY structure)
+## Academic Reports — Abstract Template
 
-The abstract MUST use exactly these 5 headings with colons:
+**Two accepted formats** (choose one based on your report_subtype):
+
+### Option A: Structured Abstract (for journal submissions)
 
 ```markdown
 # Abstract
@@ -182,9 +262,53 @@ The abstract MUST use exactly these 5 headings with colons:
 
 ```
 
-**Word count: 180–220 words total.** Count words after removing `[CITE:]` markers.
+### Option B: Plain Paragraph (for admissions reports, project reports)
+
+```markdown
+# Abstract
+
+[Single continuous paragraph, 150-250 words. No sub-headings needed.
+Covers background, objective, methods, key findings, and significance
+in a flowing narrative.]
+```
+
+**Word count: 150–250 words total.** Count words after removing `[CITE:]` markers.
 **No trailing ellipses (`.....`), no incomplete sentences.**
 **No `[CITE:]`, `[Source:]`, or `[graphify:]` markers in the abstract.**
+
+## Admissions-facing academic reports
+
+If `report_family_detail=admissions_report`, prefer:
+- Option B plain-paragraph abstract by default
+- project-monograph tone rather than journal-template tone
+- research narrative that foregrounds contribution, design choices, and research potential
+- deterministic compilation / StrategyIR / AST / orthogonal quality gates as the spine
+- LLM components as constrained supporting modules, not co-equal contributions
+
+## Evidence Lookup
+
+For large projects with many evidence entries, use the `query_evidence` tool
+to look up specific evidence entries by ID instead of reading the full ledger:
+
+```
+query_evidence(job_id="<job_id>", evidence_ids=["E001", "E002"])
+query_evidence(job_id="<job_id>", offset=20, limit=20)  # page 2
+```
+
+## Facts Freeze (Optional)
+
+If a `facts_freeze.json` file exists in the run directory, its key-value pairs
+are treated as **confirmed facts**. The pipeline will hard-block if any frozen
+fact value is NOT found in the final document.
+
+Example `facts_freeze.json`:
+```json
+{{
+  "total_files": "388",
+  "graph_nodes": "5,171",
+  "top_hub": "Context (226 edges)"
+}}
+```
 
 ## Academic Reports — Methods Protocol Guidance
 
@@ -208,6 +332,39 @@ If `results_mode` is `architectural_characterization`: Describe structural prope
 ## Academic Reports — Figures
 
 Reference figures by their number in the body text at the natural point of discussion (e.g. "as shown in Figure 2"). Do NOT dump all figures at the end of the document. The rendering pipeline will embed each figure after its first reference.
+
+**Use `mermaid` code fences for diagrams.** The pipeline auto-converts them to PNG images
+if `mmdc` is installed. Examples:
+
+````markdown
+```mermaid
+graph LR
+    A[Source Files] --> B[AST Parser]
+    B --> C[Graph Builder]
+    C --> D[Community Detection]
+```
+````
+
+````markdown
+```mermaid
+sequenceDiagram
+    Agent->>Pipeline: start_report_task()
+    Pipeline-->>Agent: job_id + task briefs
+    Agent->>Pipeline: submit_claim_matrix()
+    Agent->>Pipeline: submit_and_publish_report()
+    Pipeline-->>Agent: rendered_report.docx
+```
+````
+
+**FORBIDDEN:** Do NOT use ASCII art / box-drawing character diagrams (┌─┐ └─┘).
+These render poorly in DOCX and will be **hard-blocked** by the pre-render sanity gate.
+
+## Project Identity
+
+For academic `new_draft`, if `{run_dir / "project_identity.json"}` does not exist,
+review `{run_dir / "project_identity_candidate.json"}` and write a confirmed
+`project_identity.json` before final publication. Use it to keep the thesis from
+drifting into a topic-adjacent report.
 """
 
     files: dict[str, str] = {
@@ -267,6 +424,29 @@ Write `{run_dir / "revision_plan.json"}` with this shape:
 - `evidence_ids` must exist in `evidence_ledger.jsonl`.
 - Provide enough `original_text` for unambiguous matching (≥20 characters).
 - Do not repeat changes for the same text.
+- **Two changes must NOT overlap**: if change A modifies "hello world" and
+  change B modifies "world foo" in the same section, this is a conflict
+  and will be hard-blocked.
+
+## Validation Workflow
+
+1. Write `revision_plan.json` following the schema above.
+2. Call `submit_revision_plan(job_id="...")` to pre-validate:
+   - Checks every `original_text` exists in the base document
+   - Detects overlapping/conflicting changes
+   - Returns a diff preview showing what each change would do
+3. If validation fails, fix `revision_plan.json` and call again.
+4. Optionally call `preview_revision_diff(job_id="...")` for a read-only preview.
+5. Once validated, call `submit_and_publish_report(job_id="...")`.
+
+Do not edit `base_document_sections.json`, checkpoint files, or rendered markdown
+artifacts directly. For `revise_existing`, the only supported authoring surface is
+`revision_plan.json`.
+
+## Best Practices
+- Modify 1-3 sections per revision plan. Large plans risk conflicts.
+- Copy `original_text` exactly from the base document — even whitespace matters.
+- If you need to rewrite an entire section (>70% change), consider `new_draft` mode instead.
 """
         files["04_revision_plan.md"] = revision_task
         required_artifacts.append(str(run_dir / "revision_plan.json"))
@@ -276,7 +456,98 @@ Write `{run_dir / "revision_plan.json"}` with this shape:
 
     state.runtime["agent_task_paths"] = {name: str(tasks_dir / name) for name in files}
     state.runtime["required_agent_artifacts"] = required_artifacts
+
+    # Generate skeleton templates for section drafts
+    _generate_section_skeletons(state, run_dir)
+
     return state
+
+
+def _generate_section_skeletons(state: ReportState, run_dir: Path) -> None:
+    """Create starter skeleton files for each required section.
+
+    Gives the Agent a pre-formatted starting point with correct headings,
+    placeholder paragraphs, and CITE examples, reducing format errors.
+    """
+    try:
+        skeleton_dir = run_dir / "section_skeletons"
+        skeleton_dir.mkdir(parents=True, exist_ok=True)
+
+        # Read blueprint to get required sections
+        blueprint_path = run_dir / "blueprint.json"
+        if not blueprint_path.exists():
+            return
+
+        with open(blueprint_path, encoding="utf-8") as f:
+            blueprint = json.load(f)
+
+        sections = blueprint.get("sections", [])
+        if not sections:
+            return
+
+        # Section-specific guidance
+        section_hints = {
+            "abstract": (
+                "Write a concise summary of the entire report. "
+                "No citations. 150-250 words."
+            ),
+            "introduction": (
+                "Introduce the problem, motivation, and research questions. "
+                "No raw results here. End with a paper organization paragraph."
+            ),
+            "methods": (
+                "Describe what was done (past tense, protocol style). "
+                "Do NOT include results or conclusions."
+            ),
+            "results": (
+                "Present findings: data, measurements, observations. "
+                "Do NOT interpret results here — save that for Discussion."
+            ),
+            "discussion": (
+                "Interpret results, compare with related work. "
+                "Address each primary claim from the claim matrix."
+            ),
+            "conclusion": (
+                "Summarize contributions, acknowledge limitations, "
+                "suggest future work."
+            ),
+            "references": (
+                "List all cited references in APA format. "
+                "Each entry on its own line."
+            ),
+        }
+
+        for section in sections:
+            # Handle both dict format ({"section_id": "...", "title": "..."})
+            # and plain string format ("introduction")
+            if isinstance(section, dict):
+                sid = section.get("section_id", "")
+                title = section.get("title", sid.replace("_", " ").title())
+            else:
+                sid = str(section)
+                title = sid.replace("_", " ").title()
+
+            if not sid:
+                continue
+
+            hint = section_hints.get(sid, "Write content for this section.")
+
+            skeleton_content = f"""# {title}
+
+<!-- {hint} -->
+
+<!-- Replace this placeholder with your content. -->
+<!-- Use [CITE:<evidence_id>] for every evidence-backed claim. -->
+
+"""
+
+            skeleton_path = skeleton_dir / f"{sid}.md"
+            skeleton_path.write_text(skeleton_content, encoding="utf-8")
+
+        state.runtime["section_skeletons_dir"] = str(skeleton_dir)
+    except Exception:
+        # Skeleton generation is non-critical; never crash the pipeline
+        pass
 
 
 def run_agent_task_briefs(state: ReportState) -> ReportState:

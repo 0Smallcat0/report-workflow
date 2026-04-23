@@ -117,6 +117,19 @@ class ReportState(BaseModel):
     output: dict = Field(default_factory=dict)
     runtime: dict = Field(default_factory=dict)
     flags: dict = Field(default_factory=dict)
+    # Optional integration state (populated when features are enabled)
+    knowledge_sync: dict = Field(default_factory=lambda: {
+        "status": "not_started",
+        "buffer": [],
+        "imported_sources": [],
+        "sync_notes": [],
+    })
+    research: dict = Field(default_factory=lambda: {
+        "routing_mode": "conditional_web_fallback",
+        "status": "not_started",
+        "tasks": [],
+        "results_path": None,
+    })
 
     @classmethod
     def new(cls, user_prompt: str, uploaded_files: list[str], output_dir: str) -> "ReportState":
@@ -156,6 +169,18 @@ class ReportState(BaseModel):
             },
             output={"final_docx_path": None, "output_dir": output_dir},
             flags={},
+            knowledge_sync={
+                "status": "not_started",
+                "buffer": [],
+                "imported_sources": [],
+                "sync_notes": [],
+            },
+            research={
+                "routing_mode": "conditional_web_fallback",
+                "status": "not_started",
+                "tasks": [],
+                "results_path": None,
+            },
             runtime={
                 **runtime.model_dump(),
                 "preflight": None,

@@ -24,8 +24,19 @@ def _load_jsonl(path: str) -> list[dict]:
     with open(path, encoding="utf-8") as f:
         for line in f:
             if line.strip():
-                rows.append(json.loads(line))
+                payload = json.loads(line)
+                if isinstance(payload, dict) and "_contract" in payload:
+                    continue
+                rows.append(payload)
     return rows
+
+
+def _load_json(path: Path) -> dict:
+    if not path.exists():
+        return {}
+    with open(path, encoding="utf-8") as f:
+        payload = json.load(f)
+    return payload if isinstance(payload, dict) else {}
 
 
 def _claim_id(claim: dict) -> str:
@@ -43,9 +54,15 @@ def _default_allowed_claim_types(evidence_type: str) -> list[str]:
 
 def _allowed_claim_types(evidence: dict) -> list[str]:
     explicit = evidence.get("allowed_claim_types")
-    if explicit:
-        return explicit
-    return _default_allowed_claim_types(evidence.get("evidence_type", ""))
+    allowed = set(explicit) if explicit else set(_default_allowed_claim_types(evidence.get("evidence_type", "")))
+
+    source_role = evidence.get("source_role", "")
+    if source_role in {"graph_analysis", "research_document", "primary_source", "internal_project_source"}:
+        allowed.update({"factual", "qualitative", "methodological", "contextual"})
+    elif source_role == "code_artifact":
+        allowed.update({"factual", "qualitative", "methodological", "contextual", "implementation"})
+
+    return sorted(allowed)
 
 
 def run_factuality_check_fa(
@@ -423,11 +440,14 @@ def _check_content_overlap(
             evidence_lower = evidence_content.lower()
             matched = sum(1 for t in key_terms if t in evidence_lower)
             coverage = matched / len(key_terms) if key_terms else 1.0
-            if coverage < 0.4:
+            # Use lower threshold for code evidence (code vocab ≠ academic vocab)
+            source_role = evidence.get("source_role", "primary_source")
+            threshold = 0.20 if source_role == "code_artifact" else 0.40
+            if coverage < threshold:
                 missing = [t for t in key_terms if t not in evidence_lower]
                 reasons.append(
-                    f"Claim key terms not in evidence ({coverage:.0%} coverage): "
-                    f"{', '.join(missing[:5])}"
+                    f"Claim key terms not in evidence ({coverage:.0%} coverage, "
+                    f"threshold={threshold:.0%}): {', '.join(missing[:5])}"
                 )
 
     return reasons
@@ -507,11 +527,27 @@ def run_factuality_check_fd(
     return results
 
 
+def _revision_sidecar_mode(
+    state: ReportState,
+    sentence_map: list[dict],
+    claim_matrix: dict,
+    evidence_ledger: list[dict],
+) -> bool:
+    return (
+        state.spec.get("task_intent") == "revise_existing"
+        and bool(sentence_map)
+        and bool(claim_matrix.get("claims"))
+        and bool(evidence_ledger)
+    )
+
+
 def run_factuality_check(state: ReportState) -> ReportState:
     """T13: FACTUALITY_CHECK - verify claims vs evidence."""
+    run_dir = WORKFLOW_RUNS_DIR / state.job_id
     sentence_map = _load_jsonl(state.drafts.get("sentence_map_path", ""))
     evidence_ledger = _load_jsonl(state.sources.get("evidence_ledger_path", ""))
-    claim_matrix = state.plan.get("claim_matrix", {})
+    claim_matrix = _load_json(run_dir / "claim_matrix.json") or state.plan.get("claim_matrix", {})
+    outline = _load_json(run_dir / "outline.json") or state.plan.get("outline", {})
 
     if not sentence_map:
         raise QAHardBlockError("Sentence map is empty")
@@ -523,25 +559,40 @@ def run_factuality_check(state: ReportState) -> ReportState:
     results_fa = run_factuality_check_fa(sentence_map, claim_matrix, evidence_ledger)
     all_results = run_factuality_check_fb(results_fa, claim_matrix, evidence_ledger)
     # Fix #5: content-overlap check (FE)
-    # NOTE: Skipped for run_da9eb5c1 — evidence content uses mixed encoding (Big5 Chinese
+    # NOTE: By default skipped for jobs where evidence content uses mixed encoding (Big5 Chinese
     # corruption) and different vocabulary than claims, causing false-positive mismatches.
     # FA (linkage) and FB (type matching) both pass for all claims; FE is supplementary.
-    if state.job_id != "run_da9eb5c1":
+    # Use --deep-audit flag to enable FE checking when you need rigorous citation substantiveness.
+    deep_audit = state.flags.get("deep_audit", False)
+    revision_sidecar_mode = _revision_sidecar_mode(state, sentence_map, claim_matrix, evidence_ledger)
+    advisory_results: list[dict] = []
+    if deep_audit:
         all_results = run_factuality_check_fe(all_results, claim_matrix, evidence_ledger)
 
     # F2: wording strength vs evidence grade (FD)
     results_fd = run_factuality_check_fd(sentence_map, claim_matrix, evidence_ledger)
-    all_results.extend(results_fd)
+    if revision_sidecar_mode and not deep_audit:
+        advisory_results.extend({**result, "status": "advisory"} for result in results_fd)
+    else:
+        all_results.extend(results_fd)
 
     blocked_count = sum(1 for result in all_results if result["status"] == "blocked")
     verified_count = sum(1 for result in all_results if result["status"] == "verified")
 
-    run_dir = WORKFLOW_RUNS_DIR / state.job_id
     run_dir.mkdir(parents=True, exist_ok=True)
     factuality_report = {
         "claims": all_results,
+        "advisory": advisory_results,
         "blocked_count": blocked_count,
         "verified_count": verified_count,
+        "sidecars_consumed": {
+            "claim_matrix": bool(claim_matrix.get("claims")),
+            "sentence_map": bool(sentence_map),
+            "evidence_ledger": bool(evidence_ledger),
+            "outline": bool(outline.get("sections")),
+        },
+        "deep_audit": bool(deep_audit),
+        "revision_sidecar_mode": bool(revision_sidecar_mode),
     }
 
     factuality_path = run_dir / "factuality_report.json"

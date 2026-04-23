@@ -8,10 +8,12 @@ state.sources['base_document_sections'] as a dict.
 base_document is NOT evidence — it is the document being revised.
 """
 import json
+import re
 from pathlib import Path
 
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
+from ..artifact_contract import write_base_document_integrity
 
 
 def _parse_docx_section(path: str) -> dict[str, str]:
@@ -75,6 +77,91 @@ def _parse_docx_section(path: str) -> dict[str, str]:
     return sections
 
 
+_NUMBERED_HEADING_RE = re.compile(r"^\s*\d+(?:\.\d+)*\.?\s+")
+
+
+def _section_id_from_heading(heading: str) -> str:
+    """Map a publication heading to the workflow's canonical section id."""
+    normalized = _NUMBERED_HEADING_RE.sub("", heading).strip().lower()
+    normalized = re.sub(r"[^a-z0-9]+", "_", normalized).strip("_")
+
+    aliases = {
+        "abstract": "abstract",
+        "introduction": "introduction",
+        "research_scope": "research_scope",
+        "research_scope_and_design_framing": "research_scope",
+        "scope": "research_scope",
+        "scope_boundary": "research_scope",
+        "design_framing": "research_scope",
+        "methods": "methods",
+        "method": "methods",
+        "methodology": "methods",
+        "results": "results",
+        "findings": "results",
+        "discussion": "discussion",
+        "analysis": "discussion",
+        "limitations": "limitations",
+        "limitation": "limitations",
+        "conclusion": "conclusion",
+        "conclusions": "conclusion",
+        "references": "references",
+        "reference": "references",
+        "bibliography": "references",
+    }
+    return aliases.get(normalized, normalized[:48] or "preamble")
+
+
+def _parse_markdown_sections(path: str) -> dict[str, str]:
+    """Extract section_id -> markdown content from a Markdown base document.
+
+    The parser preserves the body markdown under each top-level section instead
+    of flattening it. This is intentionally lightweight but strict enough for
+    revise_existing: headings create section boundaries, while all tables,
+    figures, lists, and subsection headings remain part of the section body.
+    """
+    text = Path(path).read_text(encoding="utf-8-sig")
+    sections: dict[str, str] = {}
+
+    heading_re = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
+    all_matches = list(heading_re.finditer(text))
+    if not all_matches:
+        return {"preamble": text}
+    matches = [match for match in all_matches if len(match.group(1)) <= 2]
+    if not matches:
+        matches = all_matches
+
+    first = matches[0]
+    preamble = text[:first.start()].strip()
+    if preamble:
+        sections["preamble"] = preamble
+
+    # Treat the first H1 as front-matter/title unless it is the only heading
+    # before section-level H2/H3 headings. Its content before the next heading
+    # is still retained in preamble.
+    for index, match in enumerate(matches):
+        level = len(match.group(1))
+        heading_text = match.group(2).strip()
+        start = match.end()
+        end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        body = text[start:end].strip()
+
+        if level == 1 and index == 0 and matches[1:]:
+            title_block = f"# {heading_text}"
+            if body:
+                title_block += "\n\n" + body
+            existing = sections.get("preamble", "")
+            sections["preamble"] = "\n\n".join(part for part in (existing, title_block) if part).strip()
+            continue
+
+        section_id = _section_id_from_heading(heading_text)
+        if section_id in sections and sections[section_id].strip():
+            sections[section_id] = sections[section_id].rstrip() + "\n\n" + body
+        else:
+            sections[section_id] = body
+
+    return sections
+
+
 def run_base_document_parse(state: ReportState) -> ReportState:
     """T7b: BASE_DOCUMENT_PARSE - extract sections from base_document (if any).
 
@@ -108,13 +195,15 @@ def run_base_document_parse(state: ReportState) -> ReportState:
     file_path = entry.get("file_path", "")
     file_type = entry.get("file_type", "")
 
-    if file_type not in ("docx", "txt"):
+    if file_type not in ("docx", "txt", "md"):
         raise QAHardBlockError(
-            f"base_document must be .docx or .txt; got .{file_type}"
+            f"base_document must be .docx, .md, or .txt; got .{file_type}"
         )
 
     if file_type == "docx":
         sections = _parse_docx_section(file_path)
+    elif file_type == "md":
+        sections = _parse_markdown_sections(file_path)
     else:
         text = Path(file_path).read_text(encoding="utf-8")
         sections = {"preamble": text}
@@ -127,4 +216,5 @@ def run_base_document_parse(state: ReportState) -> ReportState:
 
     state.sources["base_document_sections"] = sections
     state.sources["base_document_sections_path"] = str(sections_path)
+    write_base_document_integrity(state, sections, entry)
     return state

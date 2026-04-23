@@ -31,7 +31,7 @@ python -m unittest tests.test_mvp_workflow.StageWorkflowTests.test_full_staged_a
 # CLI (exposed by entry point `report-workflow = report_workflow.cli:main`)
 report-workflow prepare  --prompt "..." --source path\to\src.txt [--source base.docx:base_document] --output out\dir \
                          [--family academic_report|work_report|hybrid_report] [--intent new_draft|revise_existing]
-report-workflow validate --job-id <job_id> [--verbose]       # --verbose prints per-node pass/fail
+report-workflow validate --job-id <job_id> [--verbose] [--dry-run] [--deep-audit]
 report-workflow render   --job-id <job_id>
 report-workflow status   --job-id <job_id>
 report-workflow run      --job-id <job_id> [--verbose]        # validate + render an already-prepared run
@@ -50,7 +50,8 @@ report-workflow export   --job-id <id> [--checkpoint <name>] [--output <file>]  
 The workflow is split so the deterministic Python work and the agent's authoring work are strictly separate. [src/report_workflow/run_workflow.py](src/report_workflow/run_workflow.py) defines three node lists; when editing, **keep these in sync with this doc** — drift here breaks debugging.
 
 1. **`prepare_nodes()`** (sync, runs from `prepare` CLI):
-   `INTAKE → GUIDELINE_SELECT → BLUEPRINT_PLAN → CORPUS_BUILD → SOURCE_PARSE → BASE_DOCUMENT_PARSE → EVIDENCE_NORMALIZE → EVIDENCE_STORE → AGENT_TASKS`
+   `INTAKE → GUIDELINE_SELECT → BLUEPRINT_PLAN → CORPUS_BUILD → SOURCE_PARSE → BASE_DOCUMENT_PARSE → EVIDENCE_NORMALIZE → EVIDENCE_STORE → NOTEBOOK_SYNC* → AGENT_TASKS`
+   (*NOTEBOOK_SYNC is optional; runs only when `enable_notebook_sync=True`)
    Ends in status `awaiting_agent_artifacts`. Writes task briefs to `~/.hermes/workflow_runs/<job_id>/agent_tasks/01_claim_plan.md`, `02_outline_plan.md`, `03_section_draft.md`.
 
 2. **Agent authoring (external)** — agent reads the briefs and writes into `~/.hermes/workflow_runs/<job_id>/`:
@@ -59,8 +60,9 @@ The workflow is split so the deterministic Python work and the agent's authoring
    - `section_drafts/*.md` (one per blueprint section; must embed `[CITE:<evidence_id>]`)
    - `sentence_map.jsonl`
 
-3. **`validate_nodes()`** (11 nodes — runs from `validate` CLI):
-   `AGENT_ARTIFACT_INTAKE → PLAN_FREEZE → DOC_METADATA_GATE → METHODS_PROTOCOL_BUILD → FIGURE_BUILD → DRAFT_ASSEMBLY → SECTION_ROLE_CHECK → CITATION_LAYER → FACTUALITY_CHECK → FIGURE_QUALITY → QA_GATE`
+3. **`validate_nodes()`** (14 nodes — runs from `validate` CLI):
+   `AGENT_ARTIFACT_INTAKE → PLAN_FREEZE → DOC_METADATA_GATE → METHODS_PROTOCOL_BUILD → FIGURE_BUILD → DRAFT_ASSEMBLY → SECTION_ROLE_CHECK → CITATION_LAYER → FACTUALITY_CHECK → RESEARCH_EXECUTE* → CLAIM_VERIFY_EXECUTE* → FIGURE_QUALITY → QA_GATE`
+   (*RESEARCH_EXECUTE runs only when `enable_research=True`; *CLAIM_VERIFY_EXECUTE runs only when `enable_claim_verification=True`)
    Ends in status `validated` with `state.qa.qa_decision` set. Any `QAHardBlockError` here triggers a remediation plan and a `FAILED` checkpoint.
 
    **Consolidated nodes** (17 → 11 per §6.2 retrospective):
@@ -81,7 +83,15 @@ The workflow is split so the deterministic Python work and the agent's authoring
 
 ### State & persistence
 
-`ReportState` ([src/report_workflow/state.py](src/report_workflow/state.py)) is the single source of truth — a pydantic model carrying `spec`, `plan`, `sources`, `drafts`, `citations`, `qa`, `output`, `runtime`. After every node, `state.checkpoint(node_name)` writes `checkpoint_<NODE>.json` and `checkpoint_latest.json` under `~/.hermes/workflow_runs/<job_id>/`. `ReportState.resume(job_id)` reloads from `checkpoint_latest.json`. Final packaged artifacts are copied to `~/.hermes/published/<job_id>/` by [nodes/artifacts.py](src/report_workflow/nodes/artifacts.py).
+`ReportState` ([src/report_workflow/state.py](src/report_workflow/state.py)) is the single source of truth — a pydantic model carrying `spec`, `plan`, `sources`, `drafts`, `citations`, `qa`, `output`, `runtime`, `flags`, `knowledge_sync`, `research`. After every node, `state.checkpoint(node_name)` writes `checkpoint_<NODE>.json` and `checkpoint_latest.json` under `~/.hermes/workflow_runs/<job_id>/`. `ReportState.resume(job_id)` reloads from `checkpoint_latest.json`. Final packaged artifacts are copied to `~/.hermes/published/<job_id>/` by [nodes/artifacts.py](src/report_workflow/nodes/artifacts.py).
+
+### Connectors
+
+Pluggable external integrations live under [src/report_workflow/connectors/](src/report_workflow/connectors/):
+
+- **`research_backends.py`** — 5 web research backends (Tavily, Serper, SerpAPI, BrowserMCP, ManualAgent) with a `select_backend(mode)` fallback chain. Uses stdlib `urllib` only.
+- **`notebooklm_connector.py`** — Optional NotebookLM integration via `notebooklm-py`. Gracefully degrades when the library is not installed.
+- **`arxiv_adapter.py`**, **`pubmed_adapter.py`**, **`openalex_adapter.py`** — Academic metadata lookup connectors.
 
 ### Error contract
 
@@ -92,10 +102,14 @@ All control flow uses two exception types from [src/report_workflow/errors.py](s
 
 ### Agent skill entry points
 
-The repo is also packaged as an agent skill. [agent_skill/skill.yaml](agent_skill/skill.yaml) declares two tools:
+The repo is also packaged as an agent skill. [agent_skill/skill.yaml](agent_skill/skill.yaml) declares nine tools:
 
-- `start_report_task` → `src/report_workflow/agent_wrapper.py:start_report_task` (wraps `prepare_workflow`)
+- `start_report_task` → `src/report_workflow/agent_wrapper.py:start_report_task` (wraps `prepare_workflow`; accepts `enable_research`, `enable_notebook_sync`, `notebooklm_notebook_id`, `notebooklm_storage_path`)
 - `submit_and_publish_report` → `agent_wrapper.py:submit_and_publish_report` (wraps `validate_workflow` + `render_workflow`)
+- `submit_claim_matrix`, `submit_outline`, `submit_drafts` → incremental validation tools
+- `query_evidence` → paginated evidence ledger lookup
+- `remap_agent_artifacts` → evidence ID remapping for cross-run reuse
+- `submit_revision_plan`, `preview_revision_diff` → revision workflow tools
 
 [agent_skill/agent_instructions.md](agent_skill/agent_instructions.md) is the canonical agent-side procedure: call start, read the three task briefs, write the four artifacts, call submit.
 
@@ -157,6 +171,69 @@ if policy.figure.audit_table_hard_block:
 | `claim.role_validation_required` | true | false | false |
 | `claim.thesis_required` | true | false | false |
 | `guideline.auto_select_allowed` | false | true | true |
+
+## Important: revise_existing vs new_draft Behavior
+
+**This is a common source of confusion:**
+
+| Mode | How merged_draft.md is built |
+|------|----------------------------|
+| `new_draft` | MERGE_DRAFT concatenates section_drafts/*.md in blueprint order |
+| `revise_existing` | REVISION_APPLY reads `base_document_sections` + `revision_plan.json` → writes merged_draft.md. **section_drafts are ignored!** |
+
+### revise_existing mode details
+
+When `task_intent=revise_existing`:
+1. `BASE_DOCUMENT_PARSE` extracts sections from the base_document into `base_document_sections.json` (stored in `state.sources.base_document_sections`)
+2. `REVISION_APPLY` reads `base_document_sections` + `revision_plan.json` → applies string replacements → writes `merged_draft_md`
+3. `MERGE_DRAFT` finds `merged_draft_md` already exists → skips rebuild, only runs artifact stripping
+4. **section_drafts/*.md files are never merged into the final document in revise_existing mode**
+
+### If you need to modify the document in revise_existing mode
+
+**Edit `base_document_sections.json` directly**, then invalidate the checkpoint cache:
+```powershell
+# Option 1: Edit the file on disk, then invalidate cache
+report-workflow invalidate-cache --job-id <id> --sources --drafts
+report-workflow validate --job-id <id>
+
+# Option 2: Use revision_plan.json changes (safer but requires exact string matching)
+# Add new replace/insert changes to revision_plan.json
+# Then run validate (revision_plan is re-read every time)
+```
+
+## Checkpoint Cache Invalidation
+
+**CRITICAL**: The checkpoint (`checkpoint_latest.json`) caches source and draft state. Editing files on disk does NOT automatically update the checkpoint.
+
+If you edit these files directly, you MUST invalidate the cache:
+- `base_document_sections.json` — cached in `state.sources.base_document_sections`
+- `merged_draft.md`, `publication_draft.md` — cached paths in `state.drafts`
+
+```powershell
+# Invalidate specific caches
+report-workflow invalidate-cache --job-id <id> --sources   # Force reload of base_document_sections
+report-workflow invalidate-cache --job-id <id> --drafts     # Force MERGE_DRAFT to rebuild from sources
+
+# Invalidate both
+report-workflow invalidate-cache --job-id <id> --sources --drafts
+```
+
+**New commands:**
+```powershell
+# Diagnose workflow issues
+report-workflow diagnose --job-id <id>           # Quick check for common issues
+report-workflow diagnose --job-id <id> --verbose  # Full diff
+
+# Dry-run validation (no checkpoint written)
+report-workflow validate --job-id <id> --dry-run  # Simulate validate before committing
+
+# Deep-audit citation substantiveness (verifies evidence content supports claim content)
+report-workflow validate --job-id <id> --deep-audit  # Enable FE content-overlap checking
+
+# Force reload from disk
+report-workflow invalidate-cache --job-id <id> --sources --drafts
+```
 
 ## Debugging QA Gate Failures
 

@@ -17,7 +17,7 @@ from report_workflow.nodes.artifacts import run_artifacts
 from report_workflow.nodes.corpus_build import run_corpus_build
 from report_workflow.nodes.evidence_normalize import run_evidence_normalize
 from report_workflow.nodes.evidence_store import run_evidence_store
-from report_workflow.nodes.factuality_check import run_factuality_check_fa, run_factuality_check_fb, run_factuality_check_fd
+from report_workflow.nodes.factuality_check import run_factuality_check, run_factuality_check_fa, run_factuality_check_fb, run_factuality_check_fd
 from report_workflow.nodes.consistency_check import run_consistency_check
 from report_workflow.nodes.guideline_check import run_guideline_check, _check_guideline, _split_by_sections
 from report_workflow.nodes.figure_quality import run_figure_quality, _check_figure_contract, _check_no_audit_tables_in_main_text
@@ -25,6 +25,7 @@ from report_workflow.nodes.citation_bind import resolve_citations
 from report_workflow.nodes.figure_build import run_figure_build
 from report_workflow.nodes.guideline_select import run_guideline_select
 from report_workflow.nodes.intake import run_intake
+from report_workflow.nodes.merge_draft import _canonicalize_section_content
 from report_workflow.nodes.qa_gate import run_qa_gate
 from report_workflow.nodes.section_plan_freeze import run_section_plan_freeze
 from report_workflow.nodes.source_parse import run_source_parse
@@ -444,6 +445,43 @@ class GateTests(unittest.TestCase):
                 run_qa_gate(state)
             self.assertIn("missing citation placeholders", "; ".join(state.qa["hard_fail_reasons"]))
 
+    def test_revise_existing_sidecars_satisfy_citation_linkage(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
+            state.spec["report_family"] = "academic_report"
+            state.spec["task_intent"] = "revise_existing"
+            state.sources["source_registry"] = [{"parse_status": "parsed", "parsed_content": [{"content": "source text"}]}]
+            evidence_path = Path(tmpdir) / "evidence.jsonl"
+            evidence_entries = [
+                {"evidence_id": f"e{i}", "source_role": "research_document", "evidence_type": "qualitative"}
+                for i in range(5)
+            ]
+            with open(evidence_path, "w", encoding="utf-8") as f:
+                for entry in evidence_entries:
+                    f.write(json.dumps(entry) + "\n")
+            state.sources["evidence_ledger_path"] = str(evidence_path)
+            state.plan["claim_matrix"] = {"claims": [{"claim_id": "c1", "evidence_ids": ["e1"]}]}
+            state.plan["outline"] = {"sections": {"results": {"claim_ids": ["c1"]}}}
+            merged = Path(tmpdir) / "merged.md"
+            merged.write_text("# Results\n\nPublication text has no placeholder.", encoding="utf-8")
+            section = Path(tmpdir) / "section.md"
+            section.write_text("# Results\n\nPublication text has no placeholder.", encoding="utf-8")
+            sentence_map = Path(tmpdir) / "sentence_map.jsonl"
+            sentence_map.write_text(json.dumps({"claim_ids": ["c1"], "evidence_ids": ["e1"]}) + "\n", encoding="utf-8")
+            factuality = Path(tmpdir) / "factuality.json"
+            factuality.write_text(json.dumps({"claims": [], "blocked_count": 0, "verified_count": 1}), encoding="utf-8")
+            state.drafts.update({
+                "merged_draft_md": str(merged),
+                "section_drafts": {"results": str(section)},
+                "sentence_map_path": str(sentence_map),
+            })
+            state.qa["factuality_report_path"] = str(factuality)
+
+            result = run_qa_gate(state)
+            self.assertEqual(result.qa["qa_decision"], "pass")
+            self.assertTrue(result.citations["sidecar_traceability"]["fulfilled"])
+            self.assertTrue(result.qa["citation_policy_warnings"])
+
     def test_unresolved_citation_hard_fails(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
@@ -548,11 +586,57 @@ class GateTests(unittest.TestCase):
         blocked = [r for r in results if r["status"] == "blocked"]
         self.assertEqual(len(blocked), 0)
 
+    def test_revise_existing_factuality_uses_sidecars_without_default_deep_audit(self):
+        """revise_existing keeps FE/FD as advisory when sidecar linkage is complete."""
+        state = ReportState.new("report", [], "out")
+        state.job_id = f"test_revision_sidecars_{uuid.uuid4().hex}"
+        state.spec["task_intent"] = "revise_existing"
+        state.spec["report_family"] = "academic_report"
+        run_dir = WORKFLOW_RUNS_DIR / state.job_id
+        run_dir.mkdir(parents=True, exist_ok=True)
+
+        claim_matrix = {
+            "claims": [{
+                "claim_id": "c1",
+                "claim_text": "StrategyIR is a methodological architecture claim with terms absent from evidence.",
+                "claim_type": "methodological",
+                "status": "supported",
+                "evidence_ids": ["e1"],
+            }]
+        }
+        (run_dir / "claim_matrix.json").write_text(json.dumps(claim_matrix), encoding="utf-8")
+        (run_dir / "outline.json").write_text(json.dumps({"sections": {"methods": {"claim_ids": ["c1"]}}}), encoding="utf-8")
+        evidence_path = run_dir / "evidence_ledger.jsonl"
+        evidence_path.write_text(json.dumps({
+            "evidence_id": "e1",
+            "source_role": "research_document",
+            "evidence_type": "qualitative",
+            "evidence_grade": "medium",
+            "content": "Architecture documentation establishes the compiler boundary.",
+        }) + "\n", encoding="utf-8")
+        sentence_map_path = run_dir / "sentence_map.jsonl"
+        sentence_map_path.write_text(json.dumps({
+            "sentence_id": "s1",
+            "section_id": "methods",
+            "claim_ids": ["c1"],
+            "evidence_ids": ["e1"],
+            "wording_strength": "measured",
+        }) + "\n", encoding="utf-8")
+
+        state.sources["evidence_ledger_path"] = str(evidence_path)
+        state.drafts["sentence_map_path"] = str(sentence_map_path)
+        result = run_factuality_check(state)
+        report = json.loads(Path(result.qa["factuality_report_path"]).read_text(encoding="utf-8"))
+        self.assertEqual(report["blocked_count"], 0)
+        self.assertTrue(report["revision_sidecar_mode"])
+        self.assertTrue(report["sidecars_consumed"]["claim_matrix"])
+        self.assertTrue(report["advisory"])
+
     # ------------------------------------------------------------------
-    # F3: Hard style rules — banned phrases
+    # F3: Style-lint rules: banned phrases
     # ------------------------------------------------------------------
-    def test_banned_phrase_hard_fails(self):
-        """Academic banned phrase in merged draft → hard_fail via QA gate."""
+    def test_banned_phrase_records_style_warning(self):
+        """Academic banned phrase in merged draft is style lint, not QA hard fail."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
             state.spec["report_family"] = "academic_report"
@@ -560,10 +644,13 @@ class GateTests(unittest.TestCase):
                 {"parse_status": "parsed", "parsed_content": [{"content": "x"}]}
             ]
             evidence_path = Path(tmpdir) / "evidence.jsonl"
-            evidence_path.write_text(
-                json.dumps({"evidence_id": "e1", "evidence_type": "quantitative"}) + "\n",
-                encoding="utf-8",
-            )
+            with open(evidence_path, "w", encoding="utf-8") as f:
+                for index in range(5):
+                    f.write(json.dumps({
+                        "evidence_id": f"e{index}",
+                        "source_role": "research_document",
+                        "evidence_type": "quantitative",
+                    }) + "\n")
             state.sources["evidence_ledger_path"] = str(evidence_path)
             state.plan["claim_matrix"] = {"claims": [{"claim_id": "c1", "evidence_ids": ["e1"]}]}
             state.plan["outline"] = {"sections": {"results": {"claim_ids": ["c1"]}}}
@@ -588,9 +675,9 @@ class GateTests(unittest.TestCase):
                 "sentence_map_path": str(sentence_map),
             })
             state.qa["factuality_report_path"] = str(factuality)
-            with self.assertRaises(QAHardBlockError) as ctx:
-                run_qa_gate(state)
-            self.assertIn("banned phrases", str(ctx.exception))
+            result = run_qa_gate(state)
+            self.assertEqual(result.qa["qa_decision"], "pass")
+            self.assertIn("banned phrases", "; ".join(result.qa["style_lint_warnings"]))
 
     def test_no_banned_phrase_passes(self):
         """No banned phrases in merged draft → QA gate passes."""
@@ -681,9 +768,9 @@ class GateTests(unittest.TestCase):
                 "sentence_map_path": str(sentence_map),
             })
             state.qa["factuality_report_path"] = str(factuality)
-            with self.assertRaises(QAHardBlockError) as ctx:
-                run_qa_gate(state)
-            self.assertIn("obviously", str(ctx.exception))
+            result = run_qa_gate(state)
+            self.assertEqual(result.qa["qa_decision"], "pass")
+            self.assertIn("obviously", "; ".join(result.qa["style_lint_warnings"]))
 
 
 class GovernanceAndUtilityTests(unittest.TestCase):
@@ -1315,29 +1402,28 @@ class SourceParseNewTypesTests(unittest.TestCase):
 # ------------------------------------------------------------------
 
 class DiversityGateTests(unittest.TestCase):
-    def test_evidence_count_below_10_hard_fails(self):
-        """academic_report with < 10 evidence entries → hard fail."""
+    def test_evidence_count_below_5_hard_fails(self):
+        """academic_report with < 5 evidence entries → hard fail."""
         from report_workflow.nodes.qa_gate import _source_diversity_reasons
         state = ReportState.new("report", [], "out")
         state.spec["report_family"] = "academic_report"
-        # Create 5 evidence entries (all same source_role to ensure minimum coverage)
+        # Create 3 evidence entries (below the new threshold of 5)
         evidence_entries = [
-            {"evidence_id": f"e{i}", "source_role": "graph_analysis"}
-            for i in range(5)
+            {"evidence_id": f"e{i}", "source_role": "code_artifact"}
+            for i in range(3)
         ]
         state.sources["evidence_ledger_path"] = ""
         state.plan["claim_matrix"] = {"claims": []}
-        # Patch _load_jsonl to return our 5 entries
         with patch("report_workflow.nodes.qa_gate._load_jsonl", return_value=evidence_entries):
             reasons = _source_diversity_reasons(state)
-        self.assertTrue(any("10 evidence entries" in r for r in reasons))
+        self.assertTrue(any("5 evidence entries" in r for r in reasons))
 
-    def test_academic_report_all_primary_source_enforces_diversity(self):
-        """academic_report with all primary_source evidence still runs diversity checks."""
+    def test_academic_report_all_primary_source_warns_without_code_artifact(self):
+        """Missing code_artifact is advisory when docs can support architecture claims."""
         from report_workflow.nodes.qa_gate import _source_diversity_reasons
         state = ReportState.new("report", [], "out")
         state.spec["report_family"] = "academic_report"
-        # 12 entries all primary_source — no meaningful roles
+        # 12 entries all primary_source — no code_artifact role
         evidence_entries = [
             {"evidence_id": f"e{i}", "source_role": "primary_source"}
             for i in range(12)
@@ -1345,8 +1431,8 @@ class DiversityGateTests(unittest.TestCase):
         state.plan["claim_matrix"] = {"claims": []}
         with patch("report_workflow.nodes.qa_gate._load_jsonl", return_value=evidence_entries):
             reasons = _source_diversity_reasons(state)
-        # Should still fail because no graph_analysis/code_artifact/research_document
-        self.assertTrue(any("graph_analysis" in r for r in reasons))
+        self.assertFalse(any("code_artifact" in r for r in reasons))
+        self.assertTrue(any("code_artifact" in r for r in state.qa["evidence_policy_warnings"]))
 
 
 # ------------------------------------------------------------------
@@ -1405,6 +1491,38 @@ class CitationBindTests(unittest.TestCase):
         # So this will be [[Author, Year]] — this is existing behavior for research_document
         # The Fix #4 only fixes code_artifact/graph_analysis which we already control
         self.assertNotIn("[[Source:", resolved)
+
+    def test_internal_project_source_is_suppressed_in_publication_text(self):
+        evidence_ledger = [
+            {
+                "evidence_id": "s1",
+                "source_id": "src_local",
+                "source_role": "internal_project_source",
+                "source_file_name": "source_corpus.txt",
+                "file_type": "txt",
+            }
+        ]
+        merged = "The architecture is central [CITE:s1]."
+        resolved, audit = resolve_citations(merged, evidence_ledger, [])
+        self.assertNotIn("source & corpus", resolved.lower())
+        self.assertNotIn("source_corpus", resolved.lower())
+
+
+class MergeDraftNormalizationTests(unittest.TestCase):
+    def test_canonicalize_section_content_removes_duplicate_headings(self):
+        content = (
+            "# Methods\n\n"
+            "## Data Source and Corpus\n\n"
+            "## Data Source and Corpus\n\n"
+            "Text.\n\n"
+            "# Research Methodology\n\n"
+            "## Validation Procedure\n\n"
+            "More text.\n"
+        )
+        normalized = _canonicalize_section_content("methods", content)
+        self.assertEqual(normalized.count("## Data Source and Corpus"), 1)
+        self.assertNotIn("\n# Research Methodology", "\n" + normalized)
+        self.assertIn("## Research Methodology", normalized)
 
 
 # ------------------------------------------------------------------

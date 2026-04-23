@@ -1,6 +1,7 @@
 """Main workflow orchestrator."""
+import json
 import sys
-from .state import ReportState
+from .state import ReportState, WORKFLOW_RUNS_DIR
 from .errors import AgentWorkRequired, QAHardBlockError
 from .runtime_support import append_job_event
 from .preflight import run_preflight_checks
@@ -12,6 +13,7 @@ from .nodes.corpus_build import run_corpus_build
 from .nodes.source_parse import run_source_parse
 from .nodes.evidence_normalize import run_evidence_normalize
 from .nodes.evidence_store import run_evidence_store
+from .nodes.notebook_sync import run_notebook_sync
 from .nodes.agent_tasks import run_agent_task_briefs
 from .nodes.agent_artifact_intake import run_agent_artifact_intake
 from .nodes.plan_freeze import run_plan_freeze
@@ -20,17 +22,28 @@ from .nodes.figure_build import run_figure_build
 from .nodes.figure_quality import run_figure_quality
 from .nodes.methods_protocol_build import run_methods_protocol_build
 from .nodes.draft_assembly import run_draft_assembly
+from .nodes.project_identity_gate import run_project_identity_gate
+from .nodes.admissions_tone_gate import run_admissions_tone_gate
 from .nodes.section_role_check import run_section_role_check
 from .nodes.citation_layer import run_citation_layer
 from .nodes.factuality_check import run_factuality_check
+from .nodes.research_execute import run_research_execute
+from .nodes.claim_verify_execute import run_claim_verify_execute
 from .nodes.consistency_check import run_consistency_check  # kept for explicit quality command
 from .nodes.guideline_check import run_guideline_check      # kept for explicit quality command
 from .nodes.base_document_parse import run_base_document_parse
 from .nodes.qa_gate import run_qa_gate
 from .nodes.style_pass import run_style_pass
-from .nodes.section_role_check import run_section_role_check
+from .nodes.publication_naturalness_pass import run_publication_naturalness_pass
+from .nodes.admissions_monograph_polish import run_admissions_monograph_polish
+from .nodes.heading_contract_check import run_heading_contract_check
 from .nodes.source_appendix_render import run_source_appendix_render
 from .nodes.docx_render import run_docx_render
+from .nodes.post_render_repair import run_post_render_repair
+from .nodes.post_render_validate import run_post_render_validate
+from .nodes.visual_render_check import run_visual_render_check
+from .nodes.reference_reality_check import run_reference_reality_check
+from .nodes.reference_relevance_gate import run_reference_relevance_gate
 from .nodes.final_publish import run_final_publish
 from .nodes.supplementary_package_build import run_supplementary_package_build
 from .nodes.artifacts import run_artifacts
@@ -52,6 +65,7 @@ def prepare_nodes() -> list[tuple[str, object]]:
         ("BASE_DOCUMENT_PARSE", run_base_document_parse),
         ("EVIDENCE_NORMALIZE", run_evidence_normalize),
         ("EVIDENCE_STORE", run_evidence_store),
+        ("NOTEBOOK_SYNC", run_notebook_sync),
         ("AGENT_TASKS", run_agent_task_briefs),
     ]
 
@@ -77,9 +91,13 @@ def validate_nodes() -> list[tuple[str, object]]:
         ("METHODS_PROTOCOL_BUILD", run_methods_protocol_build),
         ("FIGURE_BUILD", run_figure_build),
         ("DRAFT_ASSEMBLY", run_draft_assembly),
+        ("PROJECT_IDENTITY_GATE", run_project_identity_gate),
+        ("ADMISSIONS_TONE_GATE", run_admissions_tone_gate),
         ("SECTION_ROLE_CHECK", run_section_role_check),
         ("CITATION_LAYER", run_citation_layer),
         ("FACTUALITY_CHECK", run_factuality_check),
+        ("RESEARCH_EXECUTE", run_research_execute),
+        ("CLAIM_VERIFY_EXECUTE", run_claim_verify_execute),
         ("FIGURE_QUALITY", run_figure_quality),
         ("QA_GATE", run_qa_gate),
     ]
@@ -89,7 +107,15 @@ def render_nodes() -> list[tuple[str, object]]:
     """Return nodes that render and package a validated workflow."""
     return [
         ("STYLE_PASS", run_style_pass),
+        ("PUBLICATION_NATURALNESS_PASS", run_publication_naturalness_pass),
+        ("ADMISSIONS_MONOGRAPH_POLISH", run_admissions_monograph_polish),
+        ("HEADING_CONTRACT_CHECK", run_heading_contract_check),
         ("DOCX_RENDER", run_docx_render),
+        ("POST_RENDER_REPAIR", run_post_render_repair),
+        ("POST_RENDER_VALIDATE", run_post_render_validate),
+        ("VISUAL_RENDER_CHECK", run_visual_render_check),
+        ("REFERENCE_REALITY_CHECK", run_reference_reality_check),
+        ("REFERENCE_RELEVANCE_GATE", run_reference_relevance_gate),
         ("SOURCE_APPENDIX_RENDER", run_source_appendix_render),
         ("FINAL_PUBLISH", run_final_publish),
         ("SUPPLEMENTARY_PACKAGE_BUILD", run_supplementary_package_build),
@@ -147,16 +173,17 @@ def _run_nodes(state: ReportState, nodes: list[tuple[str, object]]) -> ReportSta
             state.checkpoint("FAILED")
             raise
     return state
-
-
 def prepare_workflow(
     user_prompt: str,
     uploaded_files: list[str],
     output_dir: str,
     *,
     report_family: str | None = None,
+    report_family_detail: str | None = None,
     intent: str = "new_draft",
     artifact_role_map: dict[str, str] | None = None,
+    front_matter: dict | None = None,
+    project_identity: dict | None = None,
 ) -> ReportState:
     """Prepare deterministic artifacts and agent task briefs.
 
@@ -168,9 +195,17 @@ def prepare_workflow(
     state = ReportState.new(user_prompt, uploaded_files, output_dir)
     if report_family:
         state.spec["report_family_override"] = report_family
+    if report_family_detail:
+        state.spec["report_family_detail"] = report_family_detail
     state.spec["task_intent"] = intent
     if artifact_role_map:
         state.spec["artifact_role_map"] = artifact_role_map
+    if front_matter:
+        state.spec["front_matter"] = front_matter
+    if project_identity:
+        state.spec["project_identity"] = project_identity
+        identity_path = WORKFLOW_RUNS_DIR / state.job_id / "project_identity.json"
+        identity_path.write_text(json.dumps(project_identity, indent=2), encoding="utf-8")
     try:
         state = run_preflight_checks(state)
     except QAHardBlockError as e:
@@ -187,14 +222,58 @@ def prepare_workflow(
     state.checkpoint("AWAITING_AGENT_ARTIFACTS")
     return state
 
-
-def validate_workflow(job_id: str) -> ReportState:
+def validate_workflow(job_id: str, *, deep_audit: bool = False) -> ReportState:
     """Validate agent-authored artifacts for an existing prepared run."""
     state = ReportState.resume(job_id)
+    if deep_audit:
+        state.flags["deep_audit"] = True
     state = _run_nodes(state, validate_nodes())
     state.update_status("validated")
     state.checkpoint("VALIDATED")
     return state
+
+
+def validate_workflow_dry_run(job_id: str, *, deep_audit: bool = False) -> ReportState:
+    """Simulate validation without writing checkpoints.
+
+    Use this to pre-check if validate will pass before committing changes.
+    Raises QAHardBlockError with detailed diagnostics if validation would fail.
+    """
+    from copy import deepcopy
+
+    state = ReportState.resume(job_id)
+    if deep_audit:
+        state.flags["deep_audit"] = True
+    # Work on a copy to avoid modifying the real state
+    state_copy = deepcopy(state)
+
+    # Track which nodes would be run
+    nodes = validate_nodes()
+    print(f"[DRY-RUN] Simulating {len(nodes)} validate nodes for job {job_id} ...")
+
+    dry_run_errors = []
+
+    for node_name, node_fn in nodes:
+        try:
+            state_copy = node_fn(state_copy)
+            print(f"  [PASS] {node_name}")
+        except QAHardBlockError as e:
+            print(f"  [FAIL] {node_name} — {e}")
+            dry_run_errors.append(f"{node_name}: {e}")
+        except Exception as e:
+            print(f"  [ERROR] {node_name} — {type(e).__name__}: {e}")
+            dry_run_errors.append(f"{node_name}: {type(e).__name__}: {e}")
+
+    if dry_run_errors:
+        print(f"\n[DRY-RUN] Validation would fail with {len(dry_run_errors)} error(s)")
+        raise QAHardBlockError(
+            "Dry-run validation failed: " + "; ".join(dry_run_errors[:3]),
+            hint="Run 'report-workflow diagnose --job-id <id>' to see full diagnostics"
+        )
+
+    print(f"\n[DRY-RUN] All nodes would pass.")
+    print("  Note: This is a simulation - no checkpoint was written.")
+    return state_copy
 
 
 def render_workflow(job_id: str) -> ReportState:
@@ -233,3 +312,117 @@ def resume_workflow(job_id: str) -> ReportState:
     nodes = workflow_nodes()
     start_index = _start_index_for_resume(state, nodes)
     return _run_nodes(state, nodes[start_index:])
+
+
+# ------------------------------------------------------------------
+# Step-level validation for 4-step Agent workflow
+# ------------------------------------------------------------------
+# Instead of requiring the Agent to produce all artifacts in one shot
+# (claim_matrix + outline + section_drafts + sentence_map), these
+# functions allow the Agent to submit and validate one artifact at a
+# time, checkpointing after each step.
+#
+# Step 1: submit_claim_matrix  → validates claim_matrix.json
+# Step 2: submit_outline       → validates outline.json
+# Step 3: submit_drafts        → validates section_drafts/*.md + sentence_map.jsonl
+# Step 4: submit_and_publish   → runs full validate + render
+# ------------------------------------------------------------------
+
+
+def validate_step_claim_matrix(job_id: str) -> ReportState:
+    """Step 1: Validate only claim_matrix.json.
+
+    Runs CLAIM_PLAN validation and checkpoints.
+    Agent should create claim_matrix.json before calling this.
+    """
+    state = ReportState.resume(job_id)
+    state.checkpoint("STEP_CLAIM_MATRIX")
+    append_job_event(state, "STEP_CLAIM_MATRIX", "start", "running")
+
+    try:
+        from .nodes.claim_plan import run_claim_plan
+        state = run_claim_plan(state)
+        append_job_event(state, "STEP_CLAIM_MATRIX", "success", "step_1_complete")
+        state.update_status("step_1_complete")
+        state.checkpoint("STEP_CLAIM_MATRIX_DONE")
+    except (QAHardBlockError, AgentWorkRequired) as e:
+        state.runtime["error"] = f"STEP_CLAIM_MATRIX: {e}"
+        append_job_event(state, "STEP_CLAIM_MATRIX", "failure", "failed", {"error": str(e)})
+        state.checkpoint("STEP_CLAIM_MATRIX_FAILED")
+        raise
+
+    return state
+
+
+def validate_step_outline(job_id: str) -> ReportState:
+    """Step 2: Validate only outline.json.
+
+    Runs OUTLINE_PLAN validation and checkpoints.
+    Agent should create outline.json before calling this.
+    Requires Step 1 (claim_matrix) to be complete.
+    """
+    state = ReportState.resume(job_id)
+
+    # Check prerequisite
+    if not state.plan.get("claim_matrix", {}).get("claims"):
+        raise QAHardBlockError(
+            "Step 2 requires Step 1 (claim_matrix) to be complete. "
+            "Run submit_claim_matrix first."
+        )
+
+    state.checkpoint("STEP_OUTLINE")
+    append_job_event(state, "STEP_OUTLINE", "start", "running")
+
+    try:
+        from .nodes.outline_plan import run_outline_plan
+        state = run_outline_plan(state)
+        append_job_event(state, "STEP_OUTLINE", "success", "step_2_complete")
+        state.update_status("step_2_complete")
+        state.checkpoint("STEP_OUTLINE_DONE")
+    except (QAHardBlockError, AgentWorkRequired) as e:
+        state.runtime["error"] = f"STEP_OUTLINE: {e}"
+        append_job_event(state, "STEP_OUTLINE", "failure", "failed", {"error": str(e)})
+        state.checkpoint("STEP_OUTLINE_FAILED")
+        raise
+
+    return state
+
+
+def validate_step_drafts(job_id: str) -> ReportState:
+    """Step 3: Validate section_drafts/*.md and sentence_map.jsonl.
+
+    Runs SECTION_DRAFT validation and checkpoints.
+    Agent should create all section draft files and sentence_map.jsonl
+    before calling this.
+    Requires Steps 1+2 (claim_matrix + outline) to be complete.
+    """
+    state = ReportState.resume(job_id)
+
+    # Check prerequisites
+    if not state.plan.get("claim_matrix", {}).get("claims"):
+        raise QAHardBlockError(
+            "Step 3 requires Step 1 (claim_matrix) to be complete."
+        )
+    outline = state.plan.get("outline", {})
+    if not outline or not outline.get("sections"):
+        raise QAHardBlockError(
+            "Step 3 requires Step 2 (outline) to be complete. "
+            "Run submit_outline first."
+        )
+
+    state.checkpoint("STEP_DRAFTS")
+    append_job_event(state, "STEP_DRAFTS", "start", "running")
+
+    try:
+        from .nodes.section_draft import run_section_draft
+        state = run_section_draft(state)
+        append_job_event(state, "STEP_DRAFTS", "success", "step_3_complete")
+        state.update_status("step_3_complete")
+        state.checkpoint("STEP_DRAFTS_DONE")
+    except (QAHardBlockError, AgentWorkRequired) as e:
+        state.runtime["error"] = f"STEP_DRAFTS: {e}"
+        append_job_event(state, "STEP_DRAFTS", "failure", "failed", {"error": str(e)})
+        state.checkpoint("STEP_DRAFTS_FAILED")
+        raise
+
+    return state

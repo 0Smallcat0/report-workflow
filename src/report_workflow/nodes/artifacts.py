@@ -364,6 +364,8 @@ def run_artifacts(state: ReportState) -> ReportState:
         "qa_gate_status": state.qa.get("qa_decision", ""),
         "artifact_completeness_status": state.qa.get("artifact_completeness_status", ""),
         "hard_fail_reasons": state.qa.get("hard_fail_reasons", []),
+        "workflow_success": bool(state.output.get("workflow_success") and state.status == "completed"),
+        "published_report_path": state.output.get("published_report_path", ""),
         # Artifact inventory
         "file_count": len(artifacts_meta["files"]),
     }

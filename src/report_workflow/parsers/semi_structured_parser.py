@@ -462,11 +462,98 @@ def parse_markdown(file_path: str) -> dict:
 def parse_semi_structured(file_path: str, file_type: str) -> dict:
     """Parse semi-structured file and return content blocks."""
     if file_type == "pdf":
-        return parse_pdf(file_path)
+        result = parse_pdf(file_path)
     elif file_type == "docx":
-        return parse_docx(file_path)
+        result = parse_docx(file_path)
     elif file_type in ("txt", "md"):
         # md is handled by parse_markdown (same block structure as txt)
-        return parse_markdown(file_path)
+        result = parse_markdown(file_path)
     else:
         return {"blocks": [], "error": f"Unsupported file type: {file_type}", "success": False}
+
+    # Enrich blocks with Chinese heuristic annotations when CJK content detected
+    if result.get("success") and result.get("blocks"):
+        raw = result.get("raw_content", "")
+        if _has_cjk_content(raw):
+            annotate_chinese_heuristics(result["blocks"])
+
+    return result
+
+
+# ------------------------------------------------------------------
+# Chinese engineering document heuristics (ported from report-from-notebooklm)
+# ------------------------------------------------------------------
+
+import re as _re_module
+
+_CJK_RE = _re_module.compile(r"[\u4e00-\u9fff\u3400-\u4dbf]")
+_FORMULA_HINT_RE = _re_module.compile(r"(=|\b(?:Re|Cd|C_D|CL|C_L|Cp|C_p)\b|ρ|ν|μ|sqrt|√)")
+_QUESTION_RE = _re_module.compile(r"^\d+[.、)]")
+_SECTION_HEADING_RE = _re_module.compile(r"^(?:[一二三四五六七八九十]+[、.]|[IVX]+[.])")
+_NUMBER_RE = _re_module.compile(r"[-+]?\d+(?:\.\d+)?(?:[eE][-+]?\d+)?")
+_CONSTANT_KEYWORDS = (
+    "直徑", "弦長", "厚度", "密度", "黏度", "流速",
+    "壓力", "攻角", "面積", "雷諾數",
+    "Pa", "mm", "cm", "m/s", "kg", "gf", "Hz",
+)
+_TABLE_HINT_KEYWORDS = ("表", "Table", "data", "資料")
+
+
+def _has_cjk_content(text: str) -> bool:
+    """Return True if text contains significant CJK characters (>5%)."""
+    if not text:
+        return False
+    cjk_count = len(_CJK_RE.findall(text[:2000]))
+    return cjk_count > len(text[:2000]) * 0.05
+
+
+def annotate_chinese_heuristics(blocks: list[dict]) -> None:
+    """Enrich parsed blocks with Chinese engineering document annotations.
+
+    Adds optional hint fields to each block:
+      - chinese_hints.formula_hint: True if line contains formula patterns
+      - chinese_hints.constant_hint: True if line contains constant/unit keywords
+      - chinese_hints.question_hint: True if line looks like a numbered question
+      - chinese_hints.table_hint: True if line references a table
+      - chinese_hints.section_heading: True if line matches Chinese section heading pattern
+    """
+    for block in blocks:
+        content = block.get("content", "")
+        if not content:
+            continue
+
+        hints: dict = {}
+        lines = content.splitlines()
+
+        # Formula detection
+        if _FORMULA_HINT_RE.search(content):
+            hints["formula_hint"] = True
+
+        # Constant/unit detection
+        if any(kw in content for kw in _CONSTANT_KEYWORDS):
+            hints["constant_hint"] = True
+            # Also check if numbers are present alongside constants
+            if _NUMBER_RE.search(content):
+                hints["numeric_constant"] = True
+
+        # Question detection (numbered questions in discussion sections)
+        for line in lines:
+            stripped = line.strip()
+            if _QUESTION_RE.match(stripped):
+                hints["question_hint"] = True
+                break
+
+        # Table reference detection
+        if any(kw in content for kw in _TABLE_HINT_KEYWORDS):
+            hints["table_hint"] = True
+
+        # Chinese section heading detection
+        for line in lines:
+            stripped = line.strip()
+            if _SECTION_HEADING_RE.match(stripped):
+                hints["section_heading"] = True
+                break
+
+        if hints:
+            block["chinese_hints"] = hints
+

@@ -127,7 +127,14 @@ def run_source_parse(state: ReportState) -> ReportState:
         updated_registry.append(entry)
 
     if not any(entry.get("parsed_content") for entry in updated_registry):
-        raise QAHardBlockError("No source content was parsed")
+        # In revise_existing mode with only base_document entries, BASE_DOCUMENT_PARSE handles them downstream
+        task_intent = state.spec.get("task_intent", "new_draft")
+        only_base_docs = all(
+            entry.get("artifact_role") == "base_document"
+            for entry in updated_registry
+        )
+        if not (task_intent == "revise_existing" and only_base_docs):
+            raise QAHardBlockError("No source content was parsed")
 
     state.sources["source_registry"] = updated_registry
     state.sources["source_registry_path"] = write_json_artifact(state, "source_registry.json", updated_registry)

@@ -1,10 +1,10 @@
 """EVIDENCE_NORMALIZE node - deterministic evidence scoring."""
 import json
-import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
+from ..artifact_contract import stable_evidence_id
 
 
 STRUCTURED_TYPES = {"csv", "xlsx", "json"}
@@ -24,6 +24,7 @@ def _determine_source_role(entry: dict, block: dict) -> str:
     Rules:
     - graphify output (graph.json, GRAPH_REPORT.md)       → graph_analysis
     - source code files (.py, .js, .ts, etc.)             → code_artifact
+    - project-authored txt/md corpora and architecture docs → internal_project_source
     - research/literature documents (PDF, DOCX)           → research_document
     - derived_summary files (summary.txt, digest.md)      → derived_summary
     - structured data (csv, xlsx, json without graphify)  → primary_source
@@ -70,10 +71,10 @@ def _determine_source_role(entry: dict, block: dict) -> str:
     if any(pat in file_name.lower() for pat in summary_patterns):
         return "derived_summary"
 
-    # Markdown files — treat as research documents
-    # (GRAPH_REPORT.md is caught earlier by graphify check)
-    if file_type == "md":
-        return "research_document"
+    # Project-authored markdown/text artifacts should remain sidecar-grounded
+    # rather than appear as publication citations.
+    if file_type in {"md", "txt"}:
+        return "internal_project_source"
 
     # Structured data files without graph context
     if file_type in STRUCTURED_TYPES:
@@ -329,6 +330,20 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
     if not source_registry:
         raise QAHardBlockError("No sources available for evidence normalization")
 
+    # In revise_existing mode with only base_document entries, skip extraction.
+    # The evidence ledger is carried from the previous run's agent artifacts.
+    task_intent = state.spec.get("task_intent", "new_draft")
+    only_base_docs = all(
+        entry.get("artifact_role") == "base_document"
+        for entry in source_registry
+    )
+    if task_intent == "revise_existing" and only_base_docs:
+        run_dir = WORKFLOW_RUNS_DIR / state.job_id
+        run_dir.mkdir(parents=True, exist_ok=True)
+        evidence_ledger_path = run_dir / "evidence_ledger.jsonl"
+        state.sources["evidence_ledger_path"] = str(evidence_ledger_path)
+        return state
+
     for entry in source_registry:
         parsed_content = entry.get("parsed_content", [])
         if entry.get("artifact_role", "source_data") == "source_data" and not parsed_content:
@@ -362,7 +377,7 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
             else:
                 grade = "low"
 
-            evidence_id = str(uuid.uuid4())[:8]
+            evidence_id = stable_evidence_id(entry, block)
             topic_tags = determine_topic_tags(content)
 
             # Determine allowed claim types based on evidence type

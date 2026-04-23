@@ -124,6 +124,64 @@ def _check_author_plausibility(author_str: str) -> tuple[bool, str]:
     return True, ""
 
 
+def _check_reference_curation(raw_ref: str) -> tuple[bool, str]:
+    """Reject obviously internal, filename-derived, or placeholder references."""
+    text = raw_ref.strip()
+    lowered = text.lower()
+
+    blocked_patterns = [
+        (r"\bsource\s*&\s*corpus\b", "reference is derived from internal source_corpus placeholder"),
+        (r"\bsource_corpus\b", "reference cites internal source_corpus artifact"),
+        (r"\[text file\]|\[word document\]|\[data file\]|\[dataset\]", "reference is a local file artifact, not a publication"),
+        (r"\bgraph_report\b|\bgraphify\b", "reference cites internal graphify artifact"),
+        (r"\bmain_report\b", "reference cites internal workflow artifact"),
+        (r"https?://www\.backtrader\.com/?", "reference is a product website rather than a scholarly source"),
+    ]
+    for pattern, reason in blocked_patterns:
+        if re.search(pattern, lowered, re.IGNORECASE):
+            return False, reason
+
+    # Catch filename-like authors/titles that slipped through pseudo-APA formatting.
+    if re.search(r"\b[a-z0-9_]+\.(txt|md|json|csv|docx|pdf)\b", text, re.IGNORECASE):
+        return False, "reference contains a local filename"
+
+    return True, ""
+
+
+def _is_publication_reference_candidate(raw_ref: str) -> bool:
+    """Return True for references that are worth carrying into publication."""
+    text = raw_ref.strip()
+    if not text:
+        return False
+    lowered = text.lower()
+    if any(token in lowered for token in ("source_corpus", "source & corpus", "[text file]", "graphify", "graph_report")):
+        return False
+    # Keep durable scholarly/book references and DOI/arXiv references.
+    return bool(
+        re.search(r"doi[:\s]+10\.", text, re.IGNORECASE)
+        or re.search(r"arxiv[:\s]+|\d{4}\.\d{4,5}", text, re.IGNORECASE)
+        or re.search(r"\b(journal|proceedings|press|wiley|springer|elsevier|cambridge|oxford|mit press)\b", text, re.IGNORECASE)
+        or re.search(r"\*[^*]+\*", text)
+    )
+
+
+def _is_project_source_reference_candidate(raw_ref: str) -> bool:
+    text = raw_ref.strip()
+    if not text:
+        return False
+    lowered = text.lower()
+    return bool(
+        re.search(r"\(\d{4}\)", text)
+        and any(token in lowered for token in (
+            "architecture documentation",
+            "system manual",
+            "design note",
+            "internal project documentation",
+            "technical design",
+        ))
+    )
+
+
 def _load_refs_from_citation_bind(state: ReportState) -> list[dict]:
     """Extract reference metadata from citation_bind outputs."""
     refs = []
@@ -141,6 +199,20 @@ def _load_refs_from_citation_bind(state: ReportState) -> list[dict]:
                     "raw": ref_text,
                     "source": "publication_reference_list",
                 })
+
+    # Also inspect agent-authored references section because docx_render can use
+    # it when generated publication refs are absent.
+    references_path = (state.drafts.get("section_drafts") or {}).get("references", "")
+    if references_path and Path(references_path).exists():
+        content = Path(references_path).read_text(encoding="utf-8")
+        for line in content.split("\n"):
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            refs.append({
+                "raw": stripped.lstrip("-* ").strip(),
+                "source": "references_section",
+            })
 
     # Try to load internal_trace_map.json for source tracking
     trace_path = state.citations.get("internal_trace_path", "")
@@ -162,6 +234,33 @@ def _load_refs_from_citation_bind(state: ReportState) -> list[dict]:
     return refs
 
 
+def _write_curated_reference_list(state: ReportState, refs: list[dict]) -> None:
+    """Rewrite publication_reference_list.md using curation-passing references."""
+    ref_list_path = state.citations.get("publication_reference_list_path", "")
+    if not ref_list_path:
+        return
+    path = Path(ref_list_path)
+    curated: list[str] = []
+    seen: set[str] = set()
+    for ref in refs:
+        raw = ref.get("raw", "").strip()
+        if not raw or raw.lower() in seen:
+            continue
+        ok, _ = _check_reference_curation(raw)
+        if not ok or not _is_publication_reference_candidate(raw):
+            continue
+        curated.append(raw)
+        seen.add(raw.lower())
+
+    if curated:
+        content = "## References\n\n" + "\n\n".join(f"- {item}" for item in curated) + "\n"
+    else:
+        content = ""
+    path.write_text(content, encoding="utf-8")
+    state.citations["curated_reference_list_path"] = str(path)
+    state.citations["curated_reference_count"] = len(curated)
+
+
 def run_reference_verify(state: ReportState) -> ReportState:
     """REFERENCE_VERIFY - verify DOI, arXiv, and reference metadata plausibility.
 
@@ -177,10 +276,12 @@ def run_reference_verify(state: ReportState) -> ReportState:
       - Author name plausibility
     """
     report_family = state.spec.get("report_family", "")
-    policy = get_policy(report_family)
+    policy = get_policy(report_family, state.spec.get("report_family_detail") or None)
+    subtype = state.spec.get("report_family_detail") or ""
 
     # Get references from citation_bind output
     refs = _load_refs_from_citation_bind(state)
+    _write_curated_reference_list(state, refs)
 
     if not refs:
         # No references to verify
@@ -215,7 +316,42 @@ def run_reference_verify(state: ReportState) -> ReportState:
         doi_ok = False
         arxiv_ok = False
 
-        doi_match = re.search(r"doi[:\s]+(10\.\S+)", ref_id, re.IGNORECASE)
+        raw_reference = ref.get("raw", ref_id)
+        if not _is_publication_reference_candidate(raw_reference):
+            if subtype == "admissions_project_report" and _is_project_source_reference_candidate(raw_reference):
+                checks.append({"type": "project_source", "reason": "internal project source reference accepted for admissions project report"})
+                verified_refs.append({
+                    "ref_id": ref_id,
+                    "raw": raw_reference,
+                    "source": ref.get("source", ""),
+                    "checks": checks,
+                    "verified": True,
+                    "errors": [],
+                    "status": "project_source",
+                })
+                continue
+            checks.append({"type": "excluded", "reason": "not a publication-grade reference"})
+            verified_refs.append({
+                "ref_id": ref_id,
+                "raw": raw_reference,
+                "source": ref.get("source", ""),
+                "checks": checks,
+                "verified": True,
+                "errors": [],
+                "status": "excluded",
+            })
+            continue
+
+        curation_ok, curation_msg = _check_reference_curation(raw_reference)
+        checks.append({"type": "curation", "value": ref.get("raw", ref_id), "verified": curation_ok, "message": curation_msg})
+        if not curation_ok:
+            errors.append(f"Curation: {curation_msg}")
+
+        doi_match = re.search(
+            r"(?:doi[:\s]+|https?://(?:dx\.)?doi\.org/)(10\.\S+)",
+            ref_id,
+            re.IGNORECASE,
+        )
         if doi_match:
             doi = doi_match.group(1).strip()
             check_ok, msg = _verify_doi(doi)
@@ -226,7 +362,11 @@ def run_reference_verify(state: ReportState) -> ReportState:
                 errors.append(f"DOI: {msg}")
         else:
             # Check for arXiv
-            arxiv_match = re.search(r"(?:arxiv[:\s]+)?(\d{4}\.\d{4,5})", ref_id, re.IGNORECASE)
+            arxiv_match = re.search(
+                r"(?:arxiv[:\s]+|https?://arxiv\.org/(?:abs|pdf)/)(\d{4}\.\d{4,5})",
+                ref_id,
+                re.IGNORECASE,
+            )
             if arxiv_match:
                 arxiv_id = arxiv_match.group(1).strip()
                 check_ok, msg = _verify_arxiv(arxiv_id)
@@ -241,10 +381,12 @@ def run_reference_verify(state: ReportState) -> ReportState:
         if not has_doi_or_arxiv:
             # Can't verify, don't block
             checks.append({"type": "skipped", "reason": "no_doi_or_arxiv"})
-            verified_flag = True
-            ref_status = "skipped"
-            verified_refs.append({
+            verified_flag = curation_ok
+            ref_status = "skipped" if curation_ok else "failed"
+            target = verified_refs if curation_ok else failed_refs
+            target.append({
                 "ref_id": ref_id,
+                "raw": raw_reference,
                 "source": ref.get("source", ""),
                 "checks": checks,
                 "verified": verified_flag,
@@ -274,14 +416,15 @@ def run_reference_verify(state: ReportState) -> ReportState:
         # Determine overall verified status
         critical_checks = [c for c in checks if c["type"] in ("doi", "arxiv")]
         if critical_checks:
-            verified_flag = all(c["verified"] for c in critical_checks)
+            verified_flag = curation_ok and all(c["verified"] for c in critical_checks)
         else:
-            verified_flag = True
+            verified_flag = curation_ok
 
         if verified_flag:
             ref_status = "verified"
             verified_refs.append({
                 "ref_id": ref_id,
+                "raw": raw_reference,
                 "source": ref.get("source", ""),
                 "checks": checks,
                 "verified": verified_flag,
@@ -292,6 +435,7 @@ def run_reference_verify(state: ReportState) -> ReportState:
             ref_status = "failed"
             failed_refs.append({
                 "ref_id": ref_id,
+                "raw": raw_reference,
                 "source": ref.get("source", ""),
                 "checks": checks,
                 "verified": verified_flag,

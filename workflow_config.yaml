@@ -1,0 +1,30 @@
+# ============================================================
+# Report Workflow — Persistent Feature Configuration
+# ============================================================
+# This file controls which optional pipeline features are enabled
+# by default. Values here are loaded on every start_report_task()
+# call, but can be overridden by function parameters.
+#
+# Edit this file to change defaults without modifying code.
+# ============================================================
+
+features:
+  # Web research for claim verification
+  # When enabled, blocked/disputed/unverified claims are automatically
+  # researched via configured backends (Tavily, Serper, SerpAPI, etc.)
+  # Requires at least one API key in .env or environment.
+  enable_research: false
+
+  # NotebookLM knowledge synchronization
+  # When enabled, syncs context from Google NotebookLM after evidence store.
+  # Requires: pip install notebooklm-py + browser authentication.
+  enable_notebook_sync: false
+
+# Default NotebookLM settings (used when enable_notebook_sync is true)
+notebooklm:
+  notebook_id: null          # Specific notebook ID, or null for auto-select
+  storage_path: null         # Auth storage path, or null for auto-detect
+
+# Research backend preferences
+research:
+  preferred_backend: auto    # auto | tavily | serper | serpapi | browser_mcp

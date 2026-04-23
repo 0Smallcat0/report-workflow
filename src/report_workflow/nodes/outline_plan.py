@@ -5,6 +5,7 @@ from pathlib import Path
 from ..errors import AgentWorkRequired, QAHardBlockError
 from ..runtime_support import run_dir_for, write_json_artifact
 from ..state import ReportState
+from ..artifact_contract import make_artifact_contract, validate_artifact_contract, write_artifact_contract
 from .agent_tasks import write_agent_task_briefs
 from .section_contract import validate_required_outline_sections
 
@@ -34,6 +35,7 @@ def run_outline_plan(state: ReportState) -> ReportState:
         raise AgentWorkRequired(f"Agent artifact required: {path}", [str(path)])
 
     result = _load_outline(path)
+    validate_artifact_contract(state, path, allow_missing=True)
     sections = result.get("sections", {})
     if not isinstance(sections, dict) or not sections:
         raise QAHardBlockError("outline.json must contain a non-empty sections object")
@@ -65,4 +67,5 @@ def run_outline_plan(state: ReportState) -> ReportState:
 
     state.plan["outline"] = result
     state.plan["outline_path"] = write_json_artifact(state, "outline.json", result)
+    write_artifact_contract(state.plan["outline_path"], make_artifact_contract(state))
     return state

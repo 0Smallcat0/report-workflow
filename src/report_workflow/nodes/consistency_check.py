@@ -98,7 +98,68 @@ def _check_numeric_consistency(merged_text: str) -> list[dict]:
 
 
 # ------------------------------------------------------------------
-# Sub-check 2: Unit notation consistency
+# Sub-check 2: Graph metric canonical values
+# ------------------------------------------------------------------
+
+# Canonical graph metrics — all four must be used consistently throughout the document.
+# Stale values hard-fail regardless of context (they are unambiguous in a code/graph report).
+_CANONICAL_GRAPH_METRICS = {
+    "files":   388,
+    "nodes":   5171,
+    "edges":   9764,
+    "communities": 228,
+}
+
+# Stale values that must NOT appear anywhere in the merged draft
+_STALE_GRAPH_METRICS = {
+    "files":     (386,),
+    "nodes":     (5126,),
+    "edges":     (9696,),
+    "communities": (231,),
+}
+
+
+def _check_graph_metric_consistency(merged_text: str) -> list[dict]:
+    """Hard-block stale graph metrics (386/5126/9696/231) in merged draft.
+
+    The canonical set (388/5171/9764/228) must be used everywhere.
+    These values are unambiguous in a code/graph analysis context — any occurrence
+    of the stale values is a hard fail, regardless of whether they appear in
+    tables, figure captions, inline text, or section bodies.
+    """
+    issues = []
+    stale_patterns = [
+        (metric_key, stale_val, canonical_val)
+        for metric_key, stale_vals in _STALE_GRAPH_METRICS.items()
+        for stale_val, canonical_val in zip(stale_vals, [_CANONICAL_GRAPH_METRICS[k] for k in _CANONICAL_GRAPH_METRICS])
+    ]
+
+    for metric_key, stale_val, canonical_val in stale_patterns:
+        # Match the stale number as a whole word/standalone number (not embedded in other numbers)
+        pattern = re.compile(rf"(?<![\w\d])({stale_val})(?![.\d])", re.IGNORECASE)
+        for m in pattern.finditer(merged_text):
+            ctx_start = max(0, m.start() - 60)
+            ctx_end = min(len(merged_text), m.end() + 60)
+            context = merged_text[ctx_start:ctx_end].replace("\n", " ")
+            issues.append({
+                "check": "graph_metrics",
+                "severity": "high",
+                "type": "stale_metric_value",
+                "detail": (
+                    f"Stale {metric_key} value {stale_val} found; "
+                    f"canonical value is {canonical_val}. "
+                    f"Update all mentions to {canonical_val}."
+                ),
+                "context": context,
+                "stale_value": str(stale_val),
+                "canonical_value": str(canonical_val),
+            })
+
+    return issues
+
+
+# ------------------------------------------------------------------
+# Sub-check 3: Unit notation consistency
 # ------------------------------------------------------------------
 
 # Known unit groups that should be consistently written
@@ -178,6 +239,7 @@ def run_consistency_check(state: ReportState) -> ReportState:
     merged_text = Path(merged_path).read_text(encoding="utf-8")
 
     all_issues = []
+    all_issues.extend(_check_graph_metric_consistency(merged_text))
     all_issues.extend(_check_numeric_consistency(merged_text))
     all_issues.extend(_check_unit_notation(merged_text))
 

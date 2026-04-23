@@ -10,13 +10,14 @@ from dataclasses import dataclass
 
 @dataclass
 class HeadingOccurrence:
-    heading: str       # normalized heading text
-    line_number: int   # 1-based line where heading appears
-    level: int         # # = 1, ## = 2, ### = 3
+    heading: str       # normalized (lowercased) heading text for comparison
+    original: str     # original heading text as it appears in source
+    line_number: int  # 1-based line where heading appears
+    level: int        # # = 1, ## = 2, ### = 3
 
 
 def _normalize_heading(text: str) -> str:
-    """Normalize heading text for comparison."""
+    """Normalize heading text for comparison (case-insensitive)."""
     return text.strip().lower()
 
 
@@ -31,7 +32,8 @@ def _extract_headings(content: str) -> list[HeadingOccurrence]:
             level = len(re.match(r"^#+(?=\s)", stripped).group())
             heading_text = stripped.lstrip("#").strip()
             headings.append(HeadingOccurrence(
-                heading=_normalize_heading(heading_text),
+                heading=_normalize_heading(heading_text),   # normalized for comparison
+                original=heading_text,                      # original case preserved
                 line_number=i,
                 level=level,
             ))
@@ -180,6 +182,7 @@ def _deduplicate_by_rebuild(content: str) -> str:
     # --- Pass 2: Rebuild, skipping duplicate AND empty headings ----------------
     result_lines: list[str] = []
     seen: dict[tuple[int, str], int] = {}  # (level, text) -> first line index
+    seen_text: dict[str, int] = {}  # normalized text -> first line index (any level)
 
     i = 0
     while i < len(lines):
@@ -204,15 +207,48 @@ def _deduplicate_by_rebuild(content: str) -> str:
                     i += 1
                 continue
             seen[key] = i
+            seen_text[heading_text] = i
             result_lines.append(lines[i])
             i += 1
             continue
 
-        if key in seen:
-            # Duplicate heading — skip it; also consume any trailing blank lines
-            # so they don't become orphaned content between sections.
+        # Check cross-level duplicate: if this heading's text was already seen
+        # at a DIFFERENT level, skip it (e.g. level-2 "Research Questions And
+        # Contributions" when level-1 "Research Questions And Contributions" exists).
+        if heading_text in seen_text and seen_text[heading_text] != i:
+            # Already saw this text at a different level — skip this heading entirely
+            # and consume only one trailing blank to avoid double-spacing.
             i += 1
-            while i < len(lines) and not lines[i].strip():
+            if i < len(lines) and not lines[i].strip():
+                i += 1
+            continue
+
+        if key in seen:
+            # Duplicate heading at the same level found. If there is substantial
+            # content between the first and second occurrence, treat the second
+            # heading as a separate section (different content under same heading
+            # name = genuinely distinct sections). Only skip the duplicate if it
+            # is immediately adjacent to the first with no content in between.
+            prev_idx = seen[key]
+            first_block_end = prev_idx + 1
+            while first_block_end < len(lines) and not lines[first_block_end].strip():
+                first_block_end += 1
+            has_content_between = first_block_end < i
+
+            if has_content_between:
+                # Content exists between two same-level headings with identical text.
+                # These are logically distinct sections — keep the duplicate heading
+                # so all content is preserved. Just mark it as seen to prevent
+                # a third identical heading from being a true duplicate.
+                seen[key] = i
+                result_lines.append(lines[i])
+                i += 1
+                continue
+            # No content between occurrences — this is a pure duplicate (e.g. an
+            # accidental double heading). Skip it and consume only ONE trailing
+            # blank so sections don't double-space after merging.
+            i += 1
+            if i < len(lines) and not lines[i].strip():
                 i += 1
             continue
         elif i in empty_heading_indices:
@@ -223,6 +259,7 @@ def _deduplicate_by_rebuild(content: str) -> str:
             continue
         else:
             seen[key] = i
+            seen_text[heading_text] = i
             result_lines.append(lines[i])
             i += 1
             continue

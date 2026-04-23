@@ -62,7 +62,7 @@ COMPARATIVE_NO_COMPLETION = re.compile(
 
 WEASEL_WORDS = {
     "very": "", "really": "", "basically": "", "actually": "", "literally": "",
-    "simply": "", "just": "", "quite": "", "somewhat": "", "fairly": "", "pretty": "", "rather": "",
+    "simply": "", "just": "", "quite": "", "somewhat": "", "fairly": "", "pretty": "",
 }
 
 MARKETING_PATTERNS = [
@@ -127,7 +127,12 @@ def _check_language_sanity(text: str) -> tuple[list[dict], list[dict]]:
         ctx = text[max(0, m.start() - 40):m.end() + 40]
         issues.append({"type": "comparative_incomplete", "matched": m.group(0).strip(), "context": ctx})
 
-    hard_types = {"incomplete_comparative", "comparative_incomplete", "orphaned_heading", "broken_hyphenation"}
+    hard_types = {
+        "incomplete_comparative", "comparative_incomplete",
+        "orphaned_heading", "broken_hyphenation",
+        "duplicate_phrase",         # repeated consecutive phrases — hard fail
+        "orphan_than_clause",        # "more X than" fragments — hard fail
+    }
     hard_issues = [i for i in issues if i["type"] in hard_types]
     soft_issues = [i for i in issues if i["type"] not in hard_types]
     return hard_issues, soft_issues
@@ -141,6 +146,7 @@ def _fix_weasel_words(text: str) -> str:
     for word, replacement in WEASEL_WORDS.items():
         pattern = r'\b' + word + r'\b'
         text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+    text = re.sub(r"\s{2,}", " ", text)
     return text
 
 
@@ -170,6 +176,20 @@ def _improve_topic_sentence(sentence: str) -> str:
     return sentence
 
 
+def _apply_admissions_polish(text: str) -> str:
+    """Light rewrite pass for admissions-facing project reports."""
+    replacements = [
+        (r"\bThis study presents\b", "This project develops"),
+        (r"\bThis study\b", "This project"),
+        (r"\bThis paper\b", "This report"),
+        (r"\bThe remainder of this paper is organized as follows\.[^.]*\.", ""),
+        (r"\bFor graduate research purposes,\s*", ""),
+    ]
+    for pattern, replacement in replacements:
+        text = re.sub(pattern, replacement, text, flags=re.IGNORECASE)
+    return text
+
+
 def _process_paragraph(para: str) -> str:
     if not para.strip():
         return para
@@ -179,6 +199,82 @@ def _process_paragraph(para: str) -> str:
     sentences[0] = _improve_topic_sentence(sentences[0])
     sentences = [_compress_sentence(s) for s in sentences]
     return ' '.join(sentences)
+
+
+def _is_markdown_table(block: str) -> bool:
+    lines = [line.strip() for line in block.splitlines() if line.strip()]
+    if len(lines) < 2:
+        return False
+    if not all("|" in line for line in lines[:2]):
+        return False
+    return bool(re.match(r"^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?$", lines[1]))
+
+
+def _is_structural_markdown_block(block: str) -> bool:
+    stripped = block.strip()
+    if not stripped:
+        return True
+    lines = stripped.splitlines()
+    first = lines[0].strip()
+    if first.startswith(("```", "~~~")):
+        return True
+    if re.match(r"^#{1,6}\s+", first):
+        return True
+    if first.startswith("!["):
+        return True
+    if _is_markdown_table(stripped):
+        return True
+    if all(re.match(r"^\s*[-*+]\s+", line) for line in lines if line.strip()):
+        return True
+    if all(re.match(r"^\s*\d+\.\s+", line) for line in lines if line.strip()):
+        return True
+    return False
+
+
+def _split_markdown_blocks(text: str) -> list[str]:
+    """Split markdown into blocks without breaking fenced code or pipe tables."""
+    blocks: list[str] = []
+    current: list[str] = []
+    in_fence = False
+    fence_marker = ""
+
+    def flush() -> None:
+        nonlocal current
+        if current:
+            blocks.append("\n".join(current).strip("\n"))
+            current = []
+
+    for line in text.splitlines():
+        stripped = line.strip()
+        fence_match = re.match(r"^(```+|~~~+)", stripped)
+        if fence_match:
+            marker = fence_match.group(1)
+            if not in_fence:
+                flush()
+                in_fence = True
+                fence_marker = marker
+                current.append(line)
+            else:
+                current.append(line)
+                if marker == fence_marker:
+                    in_fence = False
+                    fence_marker = ""
+                    flush()
+            continue
+
+        if in_fence:
+            current.append(line)
+            continue
+
+        if not stripped:
+            flush()
+            continue
+
+        # Headings, images, and list/table starts become their own block shape.
+        current.append(line)
+
+    flush()
+    return blocks
 
 
 def _check_section_opener(section_name: str, text: str) -> list[str]:
@@ -200,33 +296,31 @@ def _check_section_opener(section_name: str, text: str) -> list[str]:
 
 def _apply_style_polish(text: str) -> tuple[str, list[str]]:
     """Apply publication style polish. Returns (polished_text, style_issues)."""
-    sections = re.split(r'(?=^#{1,3}\s+)', text, flags=re.MULTILINE)
-    styled_sections = []
+    blocks = _split_markdown_blocks(text)
+    styled_blocks = []
     all_style_issues = []
 
-    for section in sections:
-        if not section.strip():
+    previous_heading = ""
+    for block in blocks:
+        if not block.strip():
             continue
-        heading_match = re.match(r'^(#{1,3})\s+(.+)$', section.strip())
+        heading_match = re.match(r"^(#{1,6})\s+(.+)$", block.strip())
         if heading_match:
-            heading_level = len(heading_match.group(1))
-            heading_text = heading_match.group(2)
-            content = section[len(heading_match.group(0)):].strip()
-            processed_content = _process_paragraph(content)
-            if content.strip():
-                all_style_issues.extend(_check_section_opener(heading_text, content))
-            processed_content = _fix_weasel_words(processed_content)
-            processed_content = _fix_marketing_language(processed_content)
-            processed_content = _strengthen_weak_verbs(processed_content)
-            styled_sections.append(f"{'#' * heading_level} {heading_text}\n\n{processed_content}")
-        else:
-            processed = _process_paragraph(section)
-            processed = _fix_weasel_words(processed)
-            processed = _fix_marketing_language(processed)
-            processed = _strengthen_weak_verbs(processed)
-            styled_sections.append(processed)
+            previous_heading = heading_match.group(2).strip()
+            styled_blocks.append(block)
+            continue
+        if _is_structural_markdown_block(block):
+            styled_blocks.append(block)
+            continue
 
-    return "\n\n".join(styled_sections), all_style_issues
+        all_style_issues.extend(_check_section_opener(previous_heading, block))
+        processed = _process_paragraph(block)
+        processed = _fix_weasel_words(processed)
+        processed = _fix_marketing_language(processed)
+        processed = _strengthen_weak_verbs(processed)
+        styled_blocks.append(processed)
+
+    return "\n\n".join(styled_blocks), all_style_issues
 
 
 # ------------------------------------------------------------------
@@ -259,6 +353,8 @@ def run_style_pass(state: ReportState) -> ReportState:
 
     # Step 2: Apply publication style polish
     polished_text, style_issues = _apply_style_polish(original_text)
+    if state.spec.get("report_family_detail") == "admissions_report":
+        polished_text = _apply_admissions_polish(polished_text)
 
     # Write polished draft
     run_dir = WORKFLOW_RUNS_DIR / state.job_id
