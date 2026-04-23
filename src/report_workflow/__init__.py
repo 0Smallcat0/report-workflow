@@ -1,2 +1,2 @@
-# Report Workflow Phase 1 MVP
-__version__ = "1.0.0"
+# Report Workflow — deterministic source-to-report pipeline
+__version__ = "3.0.0"
