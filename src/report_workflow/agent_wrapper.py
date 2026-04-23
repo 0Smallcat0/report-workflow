@@ -39,9 +39,10 @@ def check_setup() -> dict:
     any source files.
 
     The agent MUST call this first, read the ``agent_should_ask_user``
-    list, and present each option to the user. Only after the user has
-    made their choices should the agent call ``start_report_task`` with
-    the appropriate flags.
+    list, and present each option to the user. Some features require
+    the user to provide additional information (API keys, notebook URLs).
+    The ``requires_user_input`` field in each prompt tells the agent
+    exactly what to collect from the user.
     """
     try:
         cfg = load_config()
@@ -78,15 +79,38 @@ def check_setup() -> dict:
         if ask_user:
             lines.append("━━━ 以下功能需要您向使用者確認 ━━━\n")
             for i, item in enumerate(ask_user, 1):
-                lines.append(f"  {i}. {item.get('question', item.get('question_en', ''))}")
+                # Question
+                lines.append(f"  {i}. {item['question']}")
+
+                # What additional info does the user need to provide?
+                user_inputs = item.get("requires_user_input", [])
+                if user_inputs:
+                    lines.append("     📝 需要使用者提供:")
+                    for inp in user_inputs:
+                        lines.append(f"        - {inp['hint']}")
+                        if "example" in inp:
+                            lines.append(f"          範例: {inp['example']}")
+                        if inp.get("save_to") == ".env":
+                            lines.append(
+                                f"          → Agent 收到後寫入 .env: "
+                                f"{inp['env_var']}=<使用者提供的值>"
+                            )
+
+                # Setup commands (for missing tools)
                 if "setup_commands" in item:
                     for cmd in item["setup_commands"]:
                         lines.append(f"     安裝: {cmd}")
+
+                # Is this asked every time?
+                if item.get("ask_every_time"):
+                    lines.append("     ⚡ 注意: 此項每次執行報告都需要確認（不同報告使用不同資源）")
+
                 lines.append(f"     動作: {item['action']}")
                 lines.append("")
+
             lines.append(
-                "👉 請向使用者詢問以上功能是否要啟用，"
-                "然後在 start_report_task 中帶入對應參數。"
+                "👉 請向使用者逐一詢問以上功能。"
+                "若使用者選擇啟用，需收集對應資訊後再呼叫 start_report_task。"
             )
         else:
             lines.append("✅ 無需額外確認，可直接呼叫 start_report_task")

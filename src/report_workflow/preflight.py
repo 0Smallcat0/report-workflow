@@ -178,26 +178,106 @@ class FeatureDiscovery:
     def agent_should_ask_user(self) -> list[dict]:
         """Features the agent MUST ask the user about.
 
-        These are features that are ready but not enabled, or features
-        that need simple setup the user might want.
+        Each prompt includes:
+          - question: what to ask
+          - requires_user_input: list of inputs needed from the user
+          - action: what to do with the user's response
+          - ask_every_time: True if this must be asked on every run (not just first use)
         """
         prompts = []
         for f in self.features:
-            if f.ready and not f.enabled:
-                prompts.append({
-                    "feature_id": f.feature_id,
-                    "question": f"要啟用「{f.name}」嗎？{f.description}",
-                    "question_en": f"Enable '{f.name}'? {f.description}",
-                    "action": f"Set {f.config_flag}=true in workflow_config.yaml or pass to start_report_task",
-                })
+            if f.feature_id == "web_research":
+                if f.ready and not f.enabled:
+                    # API key exists, just ask to enable
+                    prompts.append({
+                        "feature_id": f.feature_id,
+                        "question": (
+                            f"要啟用「{f.name}」嗎？{f.description}"
+                        ),
+                        "requires_user_input": [],
+                        "action": "pass enable_research=True to start_report_task",
+                        "ask_every_time": False,
+                    })
+                elif not f.ready:
+                    # No API key — need user to provide one
+                    prompts.append({
+                        "feature_id": f.feature_id,
+                        "question": (
+                            f"要啟用「{f.name}」嗎？{f.description}\n"
+                            f"   目前尚未設定任何搜尋 API key。"
+                        ),
+                        "requires_user_input": [
+                            {
+                                "field": "api_key",
+                                "hint": "請提供 Tavily API Key（推薦，至 tavily.com 註冊取得）",
+                                "hint_en": "Provide your Tavily API key (recommended, sign up at tavily.com)",
+                                "env_var": "TAVILY_API_KEY",
+                                "save_to": ".env",
+                                "example": "tvly-xxxxxxxxxx",
+                            }
+                        ],
+                        "action": (
+                            "Agent should write the API key to .env file, "
+                            "then pass enable_research=True to start_report_task"
+                        ),
+                        "ask_every_time": False,
+                    })
+
+            elif f.feature_id == "notebook_sync":
+                if f.ready:
+                    # notebooklm-py installed — ALWAYS ask for notebook URL
+                    prompts.append({
+                        "feature_id": f.feature_id,
+                        "question": (
+                            f"要啟用「{f.name}」嗎？{f.description}\n"
+                            f"   每次報告需要指定對應的 NotebookLM 筆記本網址。"
+                        ),
+                        "requires_user_input": [
+                            {
+                                "field": "notebooklm_notebook_url",
+                                "hint": (
+                                    "請提供此報告對應的 NotebookLM 筆記本網址或 ID\n"
+                                    "   例如: https://notebooklm.google.com/notebook/xxxxxxxx\n"
+                                    "   或直接提供 notebook ID: xxxxxxxx"
+                                ),
+                                "hint_en": (
+                                    "Provide the NotebookLM notebook URL or ID for this report"
+                                ),
+                                "param": "notebooklm_notebook_id",
+                                "save_to": "start_report_task parameter (changes per report)",
+                                "example": "https://notebooklm.google.com/notebook/abc123",
+                            }
+                        ],
+                        "action": (
+                            "Pass enable_notebook_sync=True and "
+                            "notebooklm_notebook_id=<user_provided_id> to start_report_task"
+                        ),
+                        "ask_every_time": True,  # Different notebook per report!
+                    })
+                elif not f.ready:
+                    # notebooklm-py not installed
+                    prompts.append({
+                        "feature_id": f.feature_id,
+                        "question": (
+                            f"要設定「{f.name}」嗎？需要先安裝: {', '.join(f.missing_setup)}"
+                        ),
+                        "requires_user_input": [],
+                        "setup_commands": f.install_commands,
+                        "action": f"After setup, set {f.config_flag}=true",
+                        "ask_every_time": False,
+                    })
+
             elif not f.ready and f.missing_setup:
+                # Generic missing tool (pandoc, mmdc)
                 prompts.append({
                     "feature_id": f.feature_id,
                     "question": f"要設定「{f.name}」嗎？需要: {', '.join(f.missing_setup)}",
-                    "question_en": f"Set up '{f.name}'? Requires: {', '.join(f.missing_setup)}",
+                    "requires_user_input": [],
                     "setup_commands": f.install_commands,
                     "action": f"After setup, set {f.config_flag}=true",
+                    "ask_every_time": False,
                 })
+
         return prompts
 
     def as_dict(self) -> dict:

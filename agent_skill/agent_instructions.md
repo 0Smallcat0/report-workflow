@@ -105,7 +105,7 @@ Configuration is loaded from multiple sources (highest priority wins):
 
 ## Feature Discovery (Critical for Agents)
 
-**On first use, call `check_setup()` BEFORE `start_report_task`.**
+**Call `check_setup()` BEFORE `start_report_task` — on EVERY run.**
 
 `check_setup` is a lightweight, zero-parameter tool that:
 - Checks all dependencies (Python packages, pandoc, mmdc)
@@ -115,33 +115,80 @@ Configuration is loaded from multiple sources (highest priority wins):
 - Returns `agent_should_ask_user` — a list of features to ask the user about
 
 **You MUST read and act on `agent_should_ask_user`:**
-- Present each option to the user and let them decide
-- Do NOT silently skip available features
-- Only proceed to `start_report_task` after the user has made their choices
 
-### Example Agent Flow
+1. Present each option to the user and let them decide
+2. **Check `requires_user_input`** — if non-empty, you need to collect specific
+   information from the user (API keys, notebook URLs, etc.)
+3. **Check `ask_every_time`** — some features (like NotebookLM) need fresh input
+   on every run because each report uses different resources
+4. Only proceed to `start_report_task` after collecting all required inputs
+
+### Example: First Use (No API Key Yet)
 
 ```
 Agent calls check_setup()
   ↓
-Return includes message:
-  "✅ 所有必要套件已安裝"
-  "━━━ 以下功能需要您向使用者確認 ━━━"
-  "1. 要啟用「外部網路研究」嗎？"
-  "2. 要啟用「NotebookLM 知識同步」嗎？"
+Return message includes:
+  "1. 要啟用「外部網路研究」嗎？
+      目前尚未設定任何搜尋 API key。
+      📝 需要使用者提供:
+         - 請提供 Tavily API Key（推薦，至 tavily.com 註冊取得）
+           範例: tvly-xxxxxxxxxx
+           → Agent 收到後寫入 .env: TAVILY_API_KEY=<使用者提供的值>
+   2. 要啟用「NotebookLM 知識同步」嗎？
+      📝 需要使用者提供:
+         - 請提供此報告對應的 NotebookLM 筆記本網址或 ID
+           範例: https://notebooklm.google.com/notebook/abc123
+      ⚡ 注意: 此項每次執行報告都需要確認"
   ↓
-Agent shows user the message and asks for their choices
+Agent asks user:
+  "這個工作流支援外部研究和 NotebookLM 整合功能：
+   1. 外部研究 — 需要提供 Tavily API Key，要啟用嗎？
+   2. NotebookLM — 需要提供筆記本網址，要啟用嗎？"
   ↓
-User says: "研究功能開啟，NotebookLM 不需要"
+User says: "兩個都要，Tavily key 是 tvly-abc123，
+           NotebookLM 網址是 https://notebooklm.google.com/notebook/xyz789"
   ↓
-Agent calls start_report_task(..., enable_research=True)
+Agent writes "TAVILY_API_KEY=tvly-abc123" to .env file
+Agent calls start_report_task(
+    ...,
+    enable_research=True,
+    enable_notebook_sync=True,
+    notebooklm_notebook_id="xyz789",
+)
   ↓
 Proceed with report authoring
 ```
 
-> **Key rule**: The whole point of `check_setup` is to surface user-facing choices
-> BEFORE the workflow starts. If `agent_should_ask_user` is non-empty, you MUST
-> ask the user before calling `start_report_task`.
+### Example: Repeat Use (API Key Already in .env)
+
+```
+Agent calls check_setup()
+  ↓
+Return message includes:
+  "1. 要啟用「外部網路研究」嗎？
+      目前後端狀態: Tavily=✓   ← API key already exists!
+   2. 要啟用「NotebookLM 知識同步」嗎？
+      📝 需要使用者提供:
+         - 請提供此報告對應的 NotebookLM 筆記本網址或 ID
+      ⚡ 注意: 此項每次執行報告都需要確認"
+  ↓
+Agent asks user:
+  "偵測到已有 Tavily API key，要啟用外部研究嗎？
+   另外，要使用 NotebookLM 嗎？需要提供此報告對應的筆記本網址。"
+  ↓
+User says: "研究開啟，NotebookLM 這次不用"
+  ↓
+Agent calls start_report_task(..., enable_research=True)
+  ↓
+Proceed with report authoring (no need to re-enter API key)
+```
+
+> **Key rules**:
+> 1. `requires_user_input` is empty → just ask "yes/no" to enable
+> 2. `requires_user_input` is non-empty → ask "yes/no" AND collect the required info
+> 3. `ask_every_time: true` → this feature needs fresh input on EVERY run
+> 4. API keys go into `.env` (persist across runs); notebook IDs go as `start_report_task` parameters (change per report)
 
 
 ## The Three-Phase Architecture
@@ -228,12 +275,15 @@ units from your source files and assigns each an `evidence_id` (e.g., `E001`, `E
 
 ## Step-by-Step Workflow
 
-### Step 0: Environment Check (First Use)
+### Step 0: Environment Check & Feature Setup (Every Run)
 
 1. Call `check_setup()` (no parameters).
 2. Read the `message` field — it contains a human-readable summary.
 3. If `agent_should_ask_user` is non-empty, present each option to the user.
-4. Note the user’s choices — you will pass them as flags to `start_report_task`.
+4. For each item with `requires_user_input`, collect the needed info from the user:
+   - **API keys** → write to `.env` file (persists, won't ask again next time)
+   - **NotebookLM URL** → pass as `notebooklm_notebook_id` parameter (changes per report)
+5. Note the user's choices — you will pass them as flags to `start_report_task`.
 
 ### Step 1: Start the Workflow
 

@@ -47,21 +47,23 @@ These are only needed if you enable the corresponding features. The pipeline **n
 
 ### Feature Discovery (Critical)
 
-**On first use, call `check_setup()` BEFORE `start_report_task`.** This returns:
+**Call `check_setup()` BEFORE `start_report_task` — on EVERY run.** This returns:
 - Environment status (missing packages, tools)
 - `agent_should_ask_user` — features the user should be asked about
-- Exact install commands for any missing dependencies
+- `requires_user_input` — what info to collect (API keys, notebook URLs)
+- `ask_every_time` — whether the feature needs fresh input per report
 
 **Do NOT silently skip available features.** If `agent_should_ask_user` is non-empty,
-present each option to the user and let them decide before starting the workflow.
-
+present each option to the user. If `requires_user_input` is non-empty, collect the
+needed info (API keys → write to `.env`; notebook URLs → pass as parameter).
 
 
 ## Start
 
-0. **First use only**: Call `check_setup()` — read the `agent_should_ask_user` list, ask the user about each feature, then proceed.
+0. **Every run**: Call `check_setup()` — read `agent_should_ask_user`, ask the user about each feature, and collect any required inputs (API keys, notebook URLs).
 1. Call `start_report_task` once with `prompt`, `source_files`, `output_dir`, and `report_family`.
-   Pass `enable_research=True` and/or `enable_notebook_sync=True` if the user confirmed.
+   Pass `enable_research=True` and/or `enable_notebook_sync=True` + `notebooklm_notebook_id` if the user confirmed.
+
 2. For academic/admissions reports, pass structured front matter whenever known: `title`, `author_block`, `affiliation_block`, `correspondence`, `keywords`.
 3. Pass `project_identity` when the report must preserve a known project. Use this shape:
 
