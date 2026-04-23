@@ -47,16 +47,21 @@ These are only needed if you enable the corresponding features. The pipeline **n
 
 ### Feature Discovery (Critical)
 
-When you call `start_report_task`, the return value includes:
-- **`feature_discovery`** — what optional features exist, which are ready, which need setup
-- **`agent_action_required`** — if present, you **MUST** ask the user about these features before continuing
+**On first use, call `check_setup()` BEFORE `start_report_task`.** This returns:
+- Environment status (missing packages, tools)
+- `agent_should_ask_user` — features the user should be asked about
+- Exact install commands for any missing dependencies
 
-**Do NOT silently skip available features.** If `agent_should_ask_user` is non-empty, present each option to the user and let them decide.
+**Do NOT silently skip available features.** If `agent_should_ask_user` is non-empty,
+present each option to the user and let them decide before starting the workflow.
+
 
 
 ## Start
 
+0. **First use only**: Call `check_setup()` — read the `agent_should_ask_user` list, ask the user about each feature, then proceed.
 1. Call `start_report_task` once with `prompt`, `source_files`, `output_dir`, and `report_family`.
+   Pass `enable_research=True` and/or `enable_notebook_sync=True` if the user confirmed.
 2. For academic/admissions reports, pass structured front matter whenever known: `title`, `author_block`, `affiliation_block`, `correspondence`, `keywords`.
 3. Pass `project_identity` when the report must preserve a known project. Use this shape:
 

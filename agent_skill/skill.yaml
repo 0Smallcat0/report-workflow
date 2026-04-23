@@ -59,12 +59,24 @@ prerequisites:
 entry_point: report_workflow.agent_wrapper
 
 tools:
+  # Step 0: Environment check (call FIRST on initial use)
+  - name: check_setup
+    description: >
+      Pre-flight environment check. Returns configuration state, feature
+      discovery (available optional features), and missing dependencies.
+      Does NOT start a workflow or parse source files.
+      Call this BEFORE start_report_task on first use. Read the
+      agent_should_ask_user list and present each option to the user.
+      Only after the user has decided should you call start_report_task.
+    parameters: []
+
   # Step 1: Prepare deterministic artifacts and task briefs
   - name: start_report_task
     description: >
       Start the report generation workflow. Parses source files, builds
       evidence ledger, generates blueprint and task briefs for the agent.
-      Optionally enables external research and NotebookLM integration.
+      Recommended: call check_setup first to verify the environment and
+      ask the user about optional features (research, NotebookLM, etc.).
     parameters:
       - name: prompt
         type: string

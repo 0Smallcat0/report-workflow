@@ -28,7 +28,79 @@ from report_workflow.state import WORKFLOW_RUNS_DIR
 from report_workflow.runtime_support import load_jsonl
 from report_workflow.artifact_contract import remap_evidence_ids
 from report_workflow.config import load_config, save_feature_flag
-from report_workflow.preflight import discover_features
+from report_workflow.preflight import discover_features, check_preflight
+
+
+def check_setup() -> dict:
+    """Pre-flight environment check — call BEFORE start_report_task.
+
+    Returns the current configuration state, feature discovery results,
+    and any missing dependencies. Does NOT start a workflow run or parse
+    any source files.
+
+    The agent MUST call this first, read the ``agent_should_ask_user``
+    list, and present each option to the user. Only after the user has
+    made their choices should the agent call ``start_report_task`` with
+    the appropriate flags.
+    """
+    try:
+        cfg = load_config()
+        preflight = check_preflight()
+        discovery = discover_features(
+            enable_research=cfg.enable_research,
+            enable_notebook_sync=cfg.enable_notebook_sync,
+        )
+
+        ask_user = discovery.agent_should_ask_user
+        features = discovery.as_dict()
+
+        # Build a human-readable setup message
+        lines = ["📋 Report Workflow — 環境檢查結果\n"]
+
+        # Prerequisites
+        if not preflight.ok:
+            lines.append("❌ 缺少必要套件: " + ", ".join(preflight.missing_packages))
+            lines.append("   修復: pip install -r requirements.txt\n")
+        else:
+            lines.append("✅ 所有必要套件已安裝")
+
+        # External tools
+        for tw in preflight.external_tool_warnings:
+            sev = "⚠️" if tw["severity"] == "critical" else "ℹ️"
+            lines.append(f"{sev} {tw['tool']} 未安裝 — {tw['description']}")
+            lines.append(f"   安裝指令: {tw['install_command']}")
+        if not preflight.external_tool_warnings:
+            lines.append("✅ 外部工具已就緒 (pandoc, mmdc)")
+
+        lines.append("")
+
+        # Feature discovery — what to ask the user
+        if ask_user:
+            lines.append("━━━ 以下功能需要您向使用者確認 ━━━\n")
+            for i, item in enumerate(ask_user, 1):
+                lines.append(f"  {i}. {item.get('question', item.get('question_en', ''))}")
+                if "setup_commands" in item:
+                    for cmd in item["setup_commands"]:
+                        lines.append(f"     安裝: {cmd}")
+                lines.append(f"     動作: {item['action']}")
+                lines.append("")
+            lines.append(
+                "👉 請向使用者詢問以上功能是否要啟用，"
+                "然後在 start_report_task 中帶入對應參數。"
+            )
+        else:
+            lines.append("✅ 無需額外確認，可直接呼叫 start_report_task")
+
+        return {
+            "status": "ready" if preflight.ok else "missing_dependencies",
+            "message": "\n".join(lines),
+            "feature_discovery": features,
+            "config_summary": cfg.as_env_summary(),
+            "agent_should_ask_user": ask_user,
+            "preflight": preflight.as_dict(),
+        }
+    except Exception as e:
+        return {"status": "failed", "error": str(e)}
 
 
 def start_report_task(
@@ -53,15 +125,15 @@ def start_report_task(
     Creates deterministic artifacts (evidence ledger, blueprint) and
     generates task briefs for the Agent to complete.
 
+    **Recommended**: Call ``check_setup()`` first to verify dependencies
+    and ask the user about optional features. Then call this function
+    with the user's chosen flags.
+
     Configuration is loaded from multiple sources (highest priority wins):
       1. Function parameters passed here
       2. Environment variables
       3. .env file in project root
       4. workflow_config.yaml in project root
-
-    The return value includes a ``feature_discovery`` section that lists
-    all optional features, their readiness status, and questions the agent
-    MUST ask the user before proceeding.
     """
     try:
         # ---- Load merged configuration ----
@@ -101,7 +173,7 @@ def start_report_task(
         if cfg.notebooklm_storage_path:
             state.spec["notebooklm_storage_path"] = cfg.notebooklm_storage_path
 
-        # ---- Feature discovery ----
+        # ---- Feature discovery (for info, not blocking) ----
         discovery = discover_features(
             enable_research=cfg.enable_research,
             enable_notebook_sync=cfg.enable_notebook_sync,
@@ -110,41 +182,40 @@ def start_report_task(
         warnings = state.runtime.get("warnings", [])
 
         if state.status == "awaiting_agent_artifacts":
+            # Build message — embed feature status directly so agent can't miss it
+            msg_lines = [
+                f"Agent work required. Read task briefs at: "
+                f"~/.hermes/workflow_runs/{state.job_id}/agent_tasks/",
+                "",
+                "Submit artifacts step-by-step:",
+                "  1. Create claim_matrix.json → call submit_claim_matrix",
+                "  2. Create outline.json → call submit_outline",
+                "  3. Create section_drafts/*.md + sentence_map.jsonl → call submit_drafts",
+                "  4. Call submit_and_publish_report to render the final DOCX",
+                "",
+            ]
+
+            # Embed active features in message
+            active = [f for f in discovery.features if f.enabled and f.ready]
+            inactive_ready = [f for f in discovery.features if not f.enabled and f.ready]
+
+            if active:
+                msg_lines.append("已啟用功能: " + ", ".join(f.name for f in active))
+            if inactive_ready:
+                msg_lines.append(
+                    "⚠️ 可用但未啟用的功能: " + ", ".join(f.name for f in inactive_ready)
+                    + "\n   建議先呼叫 check_setup() 確認使用者是否要啟用。"
+                )
+
             result = {
                 "status": "awaiting_agent_artifacts",
                 "job_id": state.job_id,
-                "message": (
-                    f"Agent work required. Please read the task briefs at "
-                    f"~/.hermes/workflow_runs/{state.job_id}/agent_tasks/\n\n"
-                    f"You can submit artifacts step-by-step:\n"
-                    f"  1. Create claim_matrix.json → call submit_claim_matrix\n"
-                    f"  2. Create outline.json → call submit_outline\n"
-                    f"  3. Create section_drafts/*.md + sentence_map.jsonl → call submit_drafts\n"
-                    f"  4. Call submit_and_publish_report to render the final DOCX\n\n"
-                    f"Or submit all artifacts at once and call submit_and_publish_report."
-                ),
+                "message": "\n".join(msg_lines),
                 "feature_discovery": discovery.as_dict(),
                 "config_summary": cfg.as_env_summary(),
             }
             if warnings:
                 result["warnings"] = warnings
-
-            # Build the agent instruction block for feature prompts
-            ask_user = discovery.agent_should_ask_user
-            if ask_user:
-                result["agent_action_required"] = (
-                    "⚠️ IMPORTANT: Before proceeding with report authoring, "
-                    "you MUST ask the user about the following optional features. "
-                    "Do NOT silently skip them — present each option and let the "
-                    "user decide.\n\n"
-                    + "\n".join(
-                        f"  • {item.get('question', item.get('question_en', ''))}"
-                        for item in ask_user
-                    )
-                    + "\n\nIf the user enables a feature, call start_report_task "
-                    "again with the corresponding flag, or edit workflow_config.yaml "
-                    "to persist the preference."
-                )
             return result
 
         result = {
@@ -159,6 +230,7 @@ def start_report_task(
         return result
     except Exception as e:
         return {"status": "failed", "error": str(e)}
+
 
 
 def submit_claim_matrix(job_id: str) -> dict:

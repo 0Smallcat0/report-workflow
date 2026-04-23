@@ -105,47 +105,43 @@ Configuration is loaded from multiple sources (highest priority wins):
 
 ## Feature Discovery (Critical for Agents)
 
-When you call `start_report_task`, the return value includes a `feature_discovery`
-section and (potentially) an `agent_action_required` field.
+**On first use, call `check_setup()` BEFORE `start_report_task`.**
 
-**You MUST read and act on these fields:**
+`check_setup` is a lightweight, zero-parameter tool that:
+- Checks all dependencies (Python packages, pandoc, mmdc)
+- Scans for API keys (`.env`, environment variables)
+- Discovers available optional features
+- Returns a `message` with human-readable setup results
+- Returns `agent_should_ask_user` — a list of features to ask the user about
 
-1. **`feature_discovery.agent_should_ask_user`** — a list of features the user
-   should be asked about. Do NOT silently skip these. Present each feature to
-   the user and let them decide whether to enable it.
-
-2. **`agent_action_required`** — if present, this is a direct instruction telling
-   you exactly what to ask the user. Follow it before proceeding with report
-   authoring.
-
-3. **`feature_discovery.features`** — full list of all optional features with:
-   - `ready`: whether dependencies are installed
-   - `enabled`: whether the feature is currently turned on
-   - `missing_setup`: what the user needs to install/configure
-   - `install_commands`: exact commands to run
+**You MUST read and act on `agent_should_ask_user`:**
+- Present each option to the user and let them decide
+- Do NOT silently skip available features
+- Only proceed to `start_report_task` after the user has made their choices
 
 ### Example Agent Flow
 
 ```
-Agent calls start_report_task(...)
+Agent calls check_setup()
   ↓
-Return includes agent_action_required:
-  "要啟用「外部網路研究」嗎？" (Web Research is ready but not enabled)
-  "要啟用「NotebookLM 知識同步」嗎？" (NotebookLM is ready but not enabled)
+Return includes message:
+  "✅ 所有必要套件已安裝"
+  "━━━ 以下功能需要您向使用者確認 ━━━"
+  "1. 要啟用「外部網路研究」嗎？"
+  "2. 要啟用「NotebookLM 知識同步」嗎？"
   ↓
-Agent asks user: "您的環境已安裝外部研究工具，要啟用嗎？"
+Agent shows user the message and asks for their choices
   ↓
 User says: "研究功能開啟，NotebookLM 不需要"
   ↓
-Agent calls start_report_task(..., enable_research=True, enable_notebook_sync=False)
-  — or edits workflow_config.yaml to persist the choice
+Agent calls start_report_task(..., enable_research=True)
   ↓
 Proceed with report authoring
 ```
 
-> **Key rule**: If `agent_should_ask_user` is non-empty, you MUST ask the user
-> before continuing. The whole point of these features is that they are user-facing
-> choices, not silent defaults.
+> **Key rule**: The whole point of `check_setup` is to surface user-facing choices
+> BEFORE the workflow starts. If `agent_should_ask_user` is non-empty, you MUST
+> ask the user before calling `start_report_task`.
 
 
 ## The Three-Phase Architecture
@@ -232,6 +228,13 @@ units from your source files and assigns each an `evidence_id` (e.g., `E001`, `E
 
 ## Step-by-Step Workflow
 
+### Step 0: Environment Check (First Use)
+
+1. Call `check_setup()` (no parameters).
+2. Read the `message` field — it contains a human-readable summary.
+3. If `agent_should_ask_user` is non-empty, present each option to the user.
+4. Note the user’s choices — you will pass them as flags to `start_report_task`.
+
 ### Step 1: Start the Workflow
 
 1. Call `start_report_task` with:
@@ -241,8 +244,8 @@ units from your source files and assigns each an `evidence_id` (e.g., `E001`, `E
    - `report_family`: `academic_report`, `work_report`, or `hybrid_report`
    - For `academic_report`, also pass structured front matter: `title`, `author_block`, `affiliation_block`, `correspondence`, `keywords`
    - If the report must preserve a known project identity, pass `project_identity`
-   - **Optional**: `enable_research=True` to enable web research for claim verification
-   - **Optional**: `enable_notebook_sync=True` (+ `notebooklm_notebook_id`) to enable NotebookLM sync
+   - Pass `enable_research=True` if the user confirmed in Step 0
+   - Pass `enable_notebook_sync=True` if the user confirmed in Step 0
 
 2. The tool returns `status: "awaiting_agent_artifacts"` along with a `job_id`.
    **Check the `warnings` field** — it will tell you about missing external tools.
@@ -284,9 +287,21 @@ Read the task briefs and create artifacts **one at a time**, validating after ea
 
 ## Tool Reference
 
-The `report_workflow` skill exposes 9 tools:
+The `report_workflow` skill exposes 10 tools:
 
-### `start_report_task`
+### `check_setup` (Step 0 — First Use)
+
+Pre-flight environment check. Call **before** `start_report_task` on first use.
+
+```python
+check_setup()
+```
+
+**Returns:** `status`, `message` (human-readable), `feature_discovery`, `agent_should_ask_user`, `config_summary`, `preflight`.
+
+The `message` field contains a formatted summary. Read it and present the `agent_should_ask_user` items to the user.
+
+### `start_report_task` (Step 1)
 
 Starts a new workflow run. Call this **once** per report request.
 
