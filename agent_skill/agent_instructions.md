@@ -339,17 +339,30 @@ Read the task briefs and create artifacts **one at a time**, validating after ea
 
 The `report_workflow` skill exposes 10 tools:
 
-### `check_setup` (Step 0 — First Use)
+### `check_setup` (Step 0 — Every Run)
 
-Pre-flight environment check. Call **before** `start_report_task` on first use.
+Pre-flight environment check. Call **before** `start_report_task` on **every run**.
 
 ```python
 check_setup()
 ```
 
-**Returns:** `status`, `message` (human-readable), `feature_discovery`, `agent_should_ask_user`, `config_summary`, `preflight`.
+**Returns:**
+- `status`: `"ready"`, `"needs_install"`, or `"failed"`
+- `message`: human-readable summary (show to user)
+- `pending_installs`: list of dependencies to install (with user consent)
+  - Each has: `name`, `description`, `command`, `severity`, `auto_installable`
+  - If `auto_installable=True`, the agent can run the command directly
+  - Severity: `"required"` (must install), `"critical"` (strongly recommended), `"optional"`
+- `agent_should_ask_user`: features to ask the user about
+  - Each has: `requires_user_input` (API keys, URLs to collect) and `ask_every_time`
+- `feature_discovery`, `config_summary`, `preflight`
 
-The `message` field contains a formatted summary. Read it and present the `agent_should_ask_user` items to the user.
+**Agent workflow:**
+1. If `pending_installs` is non-empty → ask user to install, run commands, **re-run `check_setup()`**
+2. If `agent_should_ask_user` is non-empty → ask user, collect inputs
+3. Proceed to `start_report_task` with the user's chosen flags
+
 
 ### `start_report_task` (Step 1)
 

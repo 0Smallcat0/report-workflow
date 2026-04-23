@@ -59,15 +59,15 @@ prerequisites:
 entry_point: report_workflow.agent_wrapper
 
 tools:
-  # Step 0: Environment check (call FIRST on initial use)
+  # Step 0: Environment check & dependency install (call on EVERY run)
   - name: check_setup
     description: >
-      Pre-flight environment check. Returns configuration state, feature
-      discovery (available optional features), and missing dependencies.
-      Does NOT start a workflow or parse source files.
-      Call this BEFORE start_report_task on first use. Read the
-      agent_should_ask_user list and present each option to the user.
-      Only after the user has decided should you call start_report_task.
+      Pre-flight environment check. Call BEFORE start_report_task on every run.
+      Returns pending_installs (missing dependencies the agent should install
+      with user consent), agent_should_ask_user (features to ask about, some
+      requiring user input like API keys or NotebookLM URLs), and a
+      human-readable message summarizing everything. After installing
+      dependencies, re-run check_setup to verify. Does NOT start a workflow.
     parameters: []
 
   # Step 1: Prepare deterministic artifacts and task briefs

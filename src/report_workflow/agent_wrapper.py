@@ -34,15 +34,20 @@ from report_workflow.preflight import discover_features, check_preflight
 def check_setup() -> dict:
     """Pre-flight environment check — call BEFORE start_report_task.
 
-    Returns the current configuration state, feature discovery results,
-    and any missing dependencies. Does NOT start a workflow run or parse
-    any source files.
+    Returns:
+      - ``pending_installs``: dependencies the agent should install (with user consent).
+        The agent MUST ask the user before running any install command.
+        After installing, re-run ``check_setup()`` to verify.
+      - ``agent_should_ask_user``: optional features to ask the user about.
+        Some require additional user input (API keys, notebook URLs).
+      - ``message``: human-readable summary of the entire setup state.
 
-    The agent MUST call this first, read the ``agent_should_ask_user``
-    list, and present each option to the user. Some features require
-    the user to provide additional information (API keys, notebook URLs).
-    The ``requires_user_input`` field in each prompt tells the agent
-    exactly what to collect from the user.
+    Workflow:
+      1. Agent calls check_setup()
+      2. If pending_installs is non-empty → show user, ask to install, run commands
+      3. Re-run check_setup() to verify installs succeeded
+      4. Read agent_should_ask_user → ask user about features, collect inputs
+      5. Call start_report_task with the user's chosen flags
     """
     try:
         cfg = load_config()
@@ -53,36 +58,102 @@ def check_setup() -> dict:
         )
 
         ask_user = discovery.agent_should_ask_user
-        features = discovery.as_dict()
+        features_dict = discovery.as_dict()
 
-        # Build a human-readable setup message
+        # ---- Build pending_installs list ----
+        # These are things the agent can install with user's permission
+        pending_installs = []
+
+        # Core packages
+        if not preflight.ok:
+            pending_installs.append({
+                "name": "Python 核心套件",
+                "description": "報告工作流必要的 Python 套件",
+                "command": "pip install -r requirements.txt",
+                "severity": "required",  # Cannot proceed without this
+                "auto_installable": True,
+            })
+
+        # External tools from preflight
+        seen_commands = set()
+        for tw in preflight.external_tool_warnings:
+            pending_installs.append({
+                "name": tw["tool"],
+                "description": tw["description"],
+                "command": tw["install_command"],
+                "severity": tw["severity"],  # "critical" or "optional"
+                "auto_installable": tw["tool"] != "pandoc",  # pandoc needs system install
+            })
+            seen_commands.add(tw["install_command"])
+
+        # Optional packages from feature discovery (skip already-added tools)
+        for f in discovery.features:
+            if not f.ready and f.install_commands:
+                for cmd in f.install_commands:
+                    if cmd in seen_commands:
+                        continue  # Already added from preflight
+                    if cmd.startswith("pip ") or cmd.startswith("npm "):
+                        pending_installs.append({
+                            "name": f.name,
+                            "description": f.description,
+                            "command": cmd,
+                            "severity": "optional",
+                            "auto_installable": True,
+                            "feature_id": f.feature_id,
+                        })
+                        seen_commands.add(cmd)
+
+        # ---- Build message ----
         lines = ["📋 Report Workflow — 環境檢查結果\n"]
 
-        # Prerequisites
+        # Section 1: Core status
         if not preflight.ok:
             lines.append("❌ 缺少必要套件: " + ", ".join(preflight.missing_packages))
-            lines.append("   修復: pip install -r requirements.txt\n")
         else:
             lines.append("✅ 所有必要套件已安裝")
 
-        # External tools
-        for tw in preflight.external_tool_warnings:
-            sev = "⚠️" if tw["severity"] == "critical" else "ℹ️"
-            lines.append(f"{sev} {tw['tool']} 未安裝 — {tw['description']}")
-            lines.append(f"   安裝指令: {tw['install_command']}")
-        if not preflight.external_tool_warnings:
-            lines.append("✅ 外部工具已就緒 (pandoc, mmdc)")
+        # Section 2: Pending installs (MOST IMPORTANT — do this first)
+        installable = [p for p in pending_installs if p["auto_installable"]]
+        manual_only = [p for p in pending_installs if not p["auto_installable"]]
 
+        if installable or manual_only:
+            lines.append("")
+            lines.append("━━━ 需要安裝的外部依賴 ━━━\n")
+
+            if installable:
+                lines.append("以下依賴可由 Agent 自動安裝（需使用者同意）：\n")
+                for i, inst in enumerate(installable, 1):
+                    sev = "🔴 必要" if inst["severity"] == "required" else (
+                        "🟡 建議" if inst["severity"] == "critical" else "🔵 可選"
+                    )
+                    lines.append(f"  {i}. [{sev}] {inst['name']}")
+                    lines.append(f"     {inst['description']}")
+                    lines.append(f"     指令: {inst['command']}")
+                    lines.append("")
+
+                lines.append(
+                    "👉 請詢問使用者：「是否要安裝以上依賴？」\n"
+                    "   使用者同意後，Agent 直接執行上述指令。\n"
+                    "   安裝完成後，請再次呼叫 check_setup() 確認安裝成功。"
+                )
+                lines.append("")
+
+            if manual_only:
+                lines.append("以下依賴需要使用者手動安裝：\n")
+                for inst in manual_only:
+                    lines.append(f"  ⚠️ {inst['name']} — {inst['description']}")
+                    lines.append(f"     安裝指令: {inst['command']}")
+                    lines.append("")
+        else:
+            lines.append("✅ 所有外部工具已就緒")
+
+        # Section 3: Feature questions
         lines.append("")
-
-        # Feature discovery — what to ask the user
         if ask_user:
             lines.append("━━━ 以下功能需要您向使用者確認 ━━━\n")
             for i, item in enumerate(ask_user, 1):
-                # Question
                 lines.append(f"  {i}. {item['question']}")
 
-                # What additional info does the user need to provide?
                 user_inputs = item.get("requires_user_input", [])
                 if user_inputs:
                     lines.append("     📝 需要使用者提供:")
@@ -96,12 +167,10 @@ def check_setup() -> dict:
                                 f"{inp['env_var']}=<使用者提供的值>"
                             )
 
-                # Setup commands (for missing tools)
                 if "setup_commands" in item:
                     for cmd in item["setup_commands"]:
                         lines.append(f"     安裝: {cmd}")
 
-                # Is this asked every time?
                 if item.get("ask_every_time"):
                     lines.append("     ⚡ 注意: 此項每次執行報告都需要確認（不同報告使用不同資源）")
 
@@ -116,9 +185,12 @@ def check_setup() -> dict:
             lines.append("✅ 無需額外確認，可直接呼叫 start_report_task")
 
         return {
-            "status": "ready" if preflight.ok else "missing_dependencies",
+            "status": "ready" if preflight.ok and not manual_only else (
+                "needs_install" if pending_installs else "ready"
+            ),
             "message": "\n".join(lines),
-            "feature_discovery": features,
+            "pending_installs": pending_installs,
+            "feature_discovery": features_dict,
             "config_summary": cfg.as_env_summary(),
             "agent_should_ask_user": ask_user,
             "preflight": preflight.as_dict(),

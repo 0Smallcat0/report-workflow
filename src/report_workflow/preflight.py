@@ -268,7 +268,10 @@ class FeatureDiscovery:
                     })
 
             elif not f.ready and f.missing_setup:
-                # Generic missing tool (pandoc, mmdc)
+                # Generic missing tool — but skip pandoc/mmdc since they're
+                # handled by pending_installs (auto-detected external tools)
+                if f.feature_id in ("pandoc_render", "mermaid_diagrams"):
+                    continue
                 prompts.append({
                     "feature_id": f.feature_id,
                     "question": f"要設定「{f.name}」嗎？需要: {', '.join(f.missing_setup)}",
