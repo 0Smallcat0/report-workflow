@@ -1,370 +1,167 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-> **For agents:** See **`AGENT_ONBOARDING.md`** at the repo root for the agent-facing entry point document — explains the workflow concept, three-phase architecture, tool usage, and common failure modes. Start there if you are a newly onboarded agent.
+This file gives agent-facing development guidance for this repository. Start
+with `AGENT_ONBOARDING.md` for the conceptual overview.
 
 ## Project Overview
 
-`report-workflow` is a **deterministic source-to-report pipeline** designed to run inside an agent environment (Claude Code, Codex, Hermes, etc.). The Python package does **not** call any LLM and does not require an API key — it owns parsing, evidence normalization, artifact contracts, validation gates, and DOCX rendering. The external agent owns judgment and drafting by reading generated task briefs and producing required artifacts.
+`report-workflow` is a deterministic source-to-report pipeline. The installed
+package lives under `src/report_workflow/`; `pyproject.toml` uses
+`package-dir = {"" = "src"}`.
 
-## Canonical Package Location
-
-**The installed package lives at [src/report_workflow/](src/report_workflow/).** `pyproject.toml` sets `package-dir = {"" = "src"}`, so `import report_workflow` resolves there. A staged-for-deletion set of root-level legacy directories (`nodes/`, `parsers/`, `validators/`, `connectors/`, plus `state.py`, `run_workflow.py`) may still appear in `git status` — those files are already removed from disk and are NOT the workflow; all edits belong under `src/report_workflow/`.
+The package does not call an LLM. It parses sources, normalizes evidence,
+validates agent-authored artifacts, renders DOCX, and packages outputs. The
+external agent writes claims, outlines, section drafts, and sentence maps.
 
 ## Commands
 
 ```powershell
-# Install (editable)
 pip install -r requirements.txt
 pip install -e .
 
-# Or via setup helper
-./setup_skill.ps1
-
-# Run tests (unittest)
+python -m compileall -q src tests
 python -m unittest discover -s tests -v
 
-# Run a single test
-python -m unittest tests.test_mvp_workflow.StageWorkflowTests.test_full_staged_agent_artifact_workflow
-
-# CLI (exposed by entry point `report-workflow = report_workflow.cli:main`)
-report-workflow prepare  --prompt "..." --source path\to\src.txt [--source base.docx:base_document] --output out\dir \
-                         [--family academic_report|work_report|hybrid_report] [--intent new_draft|revise_existing]
+report-workflow prepare --prompt "..." --source path\to\src.txt --output out\dir --profile engineering_lab_report
 report-workflow validate --job-id <job_id> [--verbose] [--dry-run] [--deep-audit]
-report-workflow render   --job-id <job_id>
-report-workflow status   --job-id <job_id>
-report-workflow run      --job-id <job_id> [--verbose]        # validate + render an already-prepared run
-report-workflow diff     --job-id <a> --against <b>           # compare two checkpoints
-report-workflow export   --job-id <id> [--checkpoint <name>] [--output <file>]   # dump checkpoint JSON
+report-workflow render --job-id <job_id>
+report-workflow status --job-id <job_id>
+report-workflow run --job-id <job_id> [--verbose]
+report-workflow diff --job-id <a> --against <b>
+report-workflow export --job-id <id> [--checkpoint <name>] [--output <file>]
 ```
 
-**Source role syntax**: `--source PATH:ROLE` tags a file as `source_data` (default) or `base_document`; `--source` is repeatable. The role suffix is only parsed when the trailing token exactly matches a valid role — bare Windows paths like `C:\path\to.txt` are safe.
+CLI exit codes: `0` success, `1` crash, `2` hard-block failure, `3` waiting for
+agent artifacts.
 
-**CLI exit codes**: `0` success · `1` crash · `2` hard-block failure · `3` waiting on agent artifacts (stderr lists missing paths).
+## Profile Contract
 
-## High-Level Architecture
+`report_profile` is the only public report-shape selector. Do not add new
+`report_family`, `--family`, `--detail`, subtype, or variant paths.
 
-### Three-stage orchestration with mandatory agent handoff
+Profile registry: `src/report_workflow/profiles.py`
 
-The workflow is split so the deterministic Python work and the agent's authoring work are strictly separate. [src/report_workflow/run_workflow.py](src/report_workflow/run_workflow.py) defines three node lists; when editing, **keep these in sync with this doc** — drift here breaks debugging.
+Built-in profile IDs:
 
-1. **`prepare_nodes()`** (sync, runs from `prepare` CLI):
-   `INTAKE → GUIDELINE_SELECT → BLUEPRINT_PLAN → CORPUS_BUILD → SOURCE_PARSE → BASE_DOCUMENT_PARSE → EVIDENCE_NORMALIZE → EVIDENCE_STORE → NOTEBOOK_SYNC* → AGENT_TASKS`
-   (*NOTEBOOK_SYNC is optional; runs only when `enable_notebook_sync=True`)
-   Ends in status `awaiting_agent_artifacts`. Writes task briefs to `~/.hermes/workflow_runs/<job_id>/agent_tasks/01_claim_plan.md`, `02_outline_plan.md`, `03_section_draft.md`.
+- `engineering_lab_report`
+- `academic_paper`
+- `business_report`
+- `proposal`
+- `admissions_report`
+- `admissions_project_report`
+- `custom`
 
-2. **Agent authoring (external)** — agent reads the briefs and writes into `~/.hermes/workflow_runs/<job_id>/`:
-   - `claim_matrix.json`
-   - `outline.json`
-   - `section_drafts/*.md` (one per blueprint section; must embed `[CITE:<evidence_id>]`)
-   - `sentence_map.jsonl`
+Profiles control blueprint, policy, aliases, strictness, and reference-template
+behavior. The workflow DAG should remain stable; nodes read profile policy.
 
-3. **`validate_nodes()`** (14 nodes — runs from `validate` CLI):
-   `AGENT_ARTIFACT_INTAKE → PLAN_FREEZE → DOC_METADATA_GATE → METHODS_PROTOCOL_BUILD → FIGURE_BUILD → DRAFT_ASSEMBLY → SECTION_ROLE_CHECK → CITATION_LAYER → FACTUALITY_CHECK → RESEARCH_EXECUTE* → CLAIM_VERIFY_EXECUTE* → FIGURE_QUALITY → QA_GATE`
-   (*RESEARCH_EXECUTE runs only when `enable_research=True`; *CLAIM_VERIFY_EXECUTE runs only when `enable_claim_verification=True`)
-   Ends in status `validated` with `state.qa.qa_decision` set. Any `QAHardBlockError` here triggers a remediation plan and a `FAILED` checkpoint.
+## Node Lists
 
-   **Consolidated nodes** (17 → 11 per §6.2 retrospective):
-   - `AGENT_ARTIFACT_INTAKE`: CLAIM_PLAN + OUTLINE_PLAN + SECTION_DRAFT
-   - `PLAN_FREEZE`: PAPER_SCOPE_FREEZE + SECTION_PLAN_FREEZE
-   - `DOC_METADATA_GATE`: FRONT_MATTER_BUILD + ABSTRACT_CHECK
-   - `DRAFT_ASSEMBLY`: REVISION_APPLY + MERGE_DRAFT (MERGE_DRAFT absorbs results_sanity_pass + main_text_artifact_filter)
-   - `CITATION_LAYER`: CITATION_BIND + REFERENCE_VERIFY
-   - `FIGURE_QUALITY`: absorbs caption_interpreter + figure_contract_check
+`src/report_workflow/run_workflow.py` owns the canonical node sequence.
 
-   **Explicit quality commands** (NOT in validate path; run separately):
-   - `report-workflow check-quality --job-id <id>` runs: CONSISTENCY_CHECK, GUIDELINE_CHECK
+Prepare:
 
-4. **`render_nodes()`** (6 nodes, runs from `render` CLI, requires `qa_decision == "pass"`):
-   `STYLE_PASS → DOCX_RENDER → SOURCE_APPENDIX_RENDER → FINAL_PUBLISH → SUPPLEMENTARY_PACKAGE_BUILD → ARTIFACTS`
+```text
+INTAKE -> GUIDELINE_SELECT -> BLUEPRINT_PLAN -> CORPUS_BUILD ->
+SOURCE_PARSE -> BASE_DOCUMENT_PARSE -> EVIDENCE_NORMALIZE ->
+EVIDENCE_STORE -> NOTEBOOK_SYNC -> AGENT_TASKS
+```
 
-`run_workflow()` (convenience) runs prepare, then validate+render only if agent artifacts already exist; otherwise it raises `AgentWorkRequired`. `resume_workflow()` picks up from the last checkpoint: `awaiting_agent_artifacts` resumes at `validate_nodes() + render_nodes()`, `validated` resumes at `render_nodes()`, anything else resumes mid-list at `runtime["current_node"]`.
+Validate:
 
-### State & persistence
+```text
+AGENT_ARTIFACT_INTAKE -> PLAN_FREEZE -> DOC_METADATA_GATE ->
+METHODS_PROTOCOL_BUILD -> FIGURE_BUILD -> DRAFT_ASSEMBLY ->
+PROJECT_IDENTITY_GATE -> ADMISSIONS_TONE_GATE -> SECTION_ROLE_CHECK ->
+CITATION_LAYER -> FACTUALITY_CHECK -> RESEARCH_EXECUTE ->
+CLAIM_VERIFY_EXECUTE -> FIGURE_QUALITY -> QA_GATE
+```
 
-`ReportState` ([src/report_workflow/state.py](src/report_workflow/state.py)) is the single source of truth — a pydantic model carrying `spec`, `plan`, `sources`, `drafts`, `citations`, `qa`, `output`, `runtime`, `flags`, `knowledge_sync`, `research`. After every node, `state.checkpoint(node_name)` writes `checkpoint_<NODE>.json` and `checkpoint_latest.json` under `~/.hermes/workflow_runs/<job_id>/`. `ReportState.resume(job_id)` reloads from `checkpoint_latest.json`. Final packaged artifacts are copied to `~/.hermes/published/<job_id>/` by [nodes/artifacts.py](src/report_workflow/nodes/artifacts.py).
+Render:
 
-### Connectors
+```text
+STYLE_PASS -> PUBLICATION_NATURALNESS_PASS ->
+ADMISSIONS_MONOGRAPH_POLISH -> HEADING_CONTRACT_CHECK -> DOCX_RENDER ->
+POST_RENDER_REPAIR -> POST_RENDER_VALIDATE -> VISUAL_RENDER_CHECK ->
+REFERENCE_REALITY_CHECK -> REFERENCE_RELEVANCE_GATE ->
+SOURCE_APPENDIX_RENDER -> FINAL_PUBLISH ->
+SUPPLEMENTARY_PACKAGE_BUILD -> ARTIFACTS
+```
 
-Pluggable external integrations live under [src/report_workflow/connectors/](src/report_workflow/connectors/):
+Keep documentation synchronized when changing these lists.
 
-- **`research_backends.py`** — 5 web research backends (Tavily, Serper, SerpAPI, BrowserMCP, ManualAgent) with a `select_backend(mode)` fallback chain. Uses stdlib `urllib` only.
-- **`notebooklm_connector.py`** — Optional NotebookLM integration via `notebooklm-py`. Gracefully degrades when the library is not installed.
-- **`arxiv_adapter.py`**, **`pubmed_adapter.py`**, **`openalex_adapter.py`** — Academic metadata lookup connectors.
+## State and Persistence
 
-### Error contract
+`ReportState` is the source of truth. It carries `spec`, `plan`, `sources`,
+`drafts`, `citations`, `qa`, `output`, `runtime`, `flags`, `knowledge_sync`, and
+`research`.
 
-All control flow uses two exception types from [src/report_workflow/errors.py](src/report_workflow/errors.py):
+Each node writes `checkpoint_<NODE>.json` and `checkpoint_latest.json` under:
 
-- `AgentWorkRequired(missing_artifacts=[...])` — subclass of `QAHardBlockError`. Signals the workflow is paused; CLI exits 3 and prints the missing artifact paths.
-- `QAHardBlockError` — a hard gate failure. `_run_nodes` catches it, writes a remediation plan via `nodes.remediation_router.write_remediation_plan`, appends a `FAILED` checkpoint, and re-raises.
+```text
+output/<slug>--<job_id>/
+```
 
-### Agent skill entry points
+## Blueprints and Policies
 
-The repo is also packaged as an agent skill. [agent_skill/skill.yaml](agent_skill/skill.yaml) declares nine tools:
+`BLUEPRINT_PLAN` loads the YAML file declared by the frozen profile contract.
+`section_order` is authoritative for required `outline.json` and
+`section_drafts/*.md` coverage.
 
-- `start_report_task` → `src/report_workflow/agent_wrapper.py:start_report_task` (wraps `prepare_workflow`; accepts `enable_research`, `enable_notebook_sync`, `notebooklm_notebook_id`, `notebooklm_storage_path`)
-- `submit_and_publish_report` → `agent_wrapper.py:submit_and_publish_report` (wraps `validate_workflow` + `render_workflow`)
-- `submit_claim_matrix`, `submit_outline`, `submit_drafts` → incremental validation tools
-- `query_evidence` → paginated evidence ledger lookup
-- `remap_agent_artifacts` → evidence ID remapping for cross-run reuse
-- `submit_revision_plan`, `preview_revision_diff` → revision workflow tools
-
-[agent_skill/agent_instructions.md](agent_skill/agent_instructions.md) is the canonical agent-side procedure: call start, read the three task briefs, write the four artifacts, call submit.
-
-## MVP Hard Rules (enforced by gates)
-
-From [nodes/factuality_check.py](src/report_workflow/nodes/factuality_check.py), [nodes/qa_gate.py](src/report_workflow/nodes/qa_gate.py), and [nodes/intake.py](src/report_workflow/nodes/intake.py):
-
-- Delivery mode is **only `fresh_doc`**. `tracked_review` / `preserve_format` hints in the prompt hard-fail at `INTAKE`.
-- Every claim must have ≥1 `evidence_id` that exists in `evidence_ledger.jsonl`.
-- Claim `status` ∈ {`blocked`, `unverified`, `disputed`} is non-publishable and blocks.
-- `claim_type` must be in the evidence's `allowed_claim_types` (e.g. statistical claim requires quantitative evidence).
-- Every evidence-backed sentence in section drafts must contain `[CITE:<evidence_id>]` matching `sentence_map.citation_ids` — missing placeholders hard-fail at `QA_GATE`.
-- `citation_audit` entries with `resolved=False` hard-fail at `QA_GATE`.
-- `DOCX_RENDER` refuses to run unless `qa_decision == "pass"` and refuses placeholder text `"This section is under development"`.
-
-## Report Families & Blueprints
-
-`state.spec.report_family` drives which YAML blueprint in [src/report_workflow/blueprints/](src/report_workflow/blueprints/) is loaded at `BLUEPRINT_PLAN`. Inference logic is in `nodes/intake.py:infer_report_family` (override with `--family`). Supported: `academic_report` (IMRAD), `work_report` (executive summary / findings / recommendations), `hybrid_report`. The blueprint's `section_order` is the authoritative list of required section IDs — `outline.json` and `section_drafts/` must cover every required section (references and appendix are optional in specific families).
-
-## Policy Packs
-
-Family-specific behavior is centralized in [src/report_workflow/policies/](src/report_workflow/policies/policy_pack.py). Instead of `if report_family == "academic_report":` scattered across nodes, use `get_policy(family)`.
-
-### Usage in nodes
+Use profile policy instead of string-branching:
 
 ```python
 from ..policies import get_policy
 
-policy = get_policy(state.spec.get("report_family", "academic_report"))
-if policy.abstract.structure_required:
-    # validate abstract structure
-if policy.figure.audit_table_hard_block:
-    # check audit tables
+policy = get_policy(state.spec.get("report_profile", "academic_paper"))
 ```
 
-### Policy fields
+## Engineering Lab Profile
 
-| Policy class | Key fields |
-|-------------|-----------|
-| `FrontMatterPolicy` | `required`, `placeholder_blocked`, `author_block_required`, `auto_populate_missing_fields` |
-| `AbstractPolicy` | `word_count_min`, `word_count_max`, `structure_required` |
-| `CitationPolicy` | `style` ("APA"/"none"), `source_marker_hard_block`, `draft_prefer_marker_stripped` |
-| `ReferencePolicy` | `doi_verification_required`, `arxiv_verification_required` |
-| `FigurePolicy` | `audit_table_hard_block`, `figure_contract_required` |
-| `ResultsPolicy` | `empirical_strict`, `architectural_allowed` |
-| `ClaimPolicy` | `primary_source_required`, `role_validation_required`, `thesis_required`, `rqs_required` |
-| `GuidelinePolicy` | `hard_guideline_ids`, `auto_select_allowed` |
+`engineering_lab_report` is the built-in engineering experiment profile. It
+requires source-grounded claims and supports:
 
-### Family values
+- Requirement matrices.
+- Formula, parameter, symbol, and unit audit expectations.
+- Calculation audit expectations.
+- Figure/table contracts.
+- Chinese engineering report headings and unit/symbol consistency.
+- Render QA for table compression, images, cover/template drift, and layout.
 
-| Field | academic_report | work_report | hybrid_report |
-|-------|---------------|-------------|--------------|
-| `abstract.structure_required` | true | false | false |
-| `abstract.word_count_min/max` | 180/220 | 100/200 | 150/250 |
-| `citation.style` | APA | none | APA |
-| `citation.source_marker_hard_block` | true | false | true |
-| `figure.audit_table_hard_block` | true | false | false |
-| `reference.doi_verification_required` | true | false | true |
-| `claim.role_validation_required` | true | false | false |
-| `claim.thesis_required` | true | false | false |
-| `guideline.auto_select_allowed` | false | true | true |
+Reference DOCX behavior:
 
-## Important: revise_existing vs new_draft Behavior
+- Default: `style_reference`.
+- Prompt asks exact format/cover: `fixed_template`.
+- Explicit user mode wins.
+- Profile semantics remain highest priority.
 
-**This is a common source of confusion:**
+## Agent Skill Tools
 
-| Mode | How merged_draft.md is built |
-|------|----------------------------|
-| `new_draft` | MERGE_DRAFT concatenates section_drafts/*.md in blueprint order |
-| `revise_existing` | REVISION_APPLY reads `base_document_sections` + `revision_plan.json` → writes merged_draft.md. **section_drafts are ignored!** |
+`agent_skill/skill.yaml` exposes:
 
-### revise_existing mode details
+- `check_setup`
+- `start_report_task`
+- `submit_claim_matrix`
+- `submit_outline`
+- `submit_drafts`
+- `submit_and_publish_report`
+- `query_evidence`
+- `remap_agent_artifacts`
+- `submit_revision_plan`
+- `preview_revision_diff`
 
-When `task_intent=revise_existing`:
-1. `BASE_DOCUMENT_PARSE` extracts sections from the base_document into `base_document_sections.json` (stored in `state.sources.base_document_sections`)
-2. `REVISION_APPLY` reads `base_document_sections` + `revision_plan.json` → applies string replacements → writes `merged_draft_md`
-3. `MERGE_DRAFT` finds `merged_draft_md` already exists → skips rebuild, only runs artifact stripping
-4. **section_drafts/*.md files are never merged into the final document in revise_existing mode**
+## Hard Rules
 
-### If you need to modify the document in revise_existing mode
+- Delivery mode is `fresh_doc`.
+- Every claim must cite valid evidence.
+- `blocked`, `unverified`, and `disputed` claims are non-publishable.
+- Evidence-backed draft sentences must include matching `[CITE:<id>]` markers.
+- Citation audits must resolve.
+- Placeholder prose, fake metadata, and internal workflow artifacts must not leak
+  into publication text.
+- `DOCX_RENDER` requires `qa_decision=pass`.
 
-**Edit `base_document_sections.json` directly**, then invalidate the checkpoint cache:
-```powershell
-# Option 1: Edit the file on disk, then invalidate cache
-report-workflow invalidate-cache --job-id <id> --sources --drafts
-report-workflow validate --job-id <id>
+## Git Hygiene
 
-# Option 2: Use revision_plan.json changes (safer but requires exact string matching)
-# Add new replace/insert changes to revision_plan.json
-# Then run validate (revision_plan is re-read every time)
-```
-
-## Checkpoint Cache Invalidation
-
-**CRITICAL**: The checkpoint (`checkpoint_latest.json`) caches source and draft state. Editing files on disk does NOT automatically update the checkpoint.
-
-If you edit these files directly, you MUST invalidate the cache:
-- `base_document_sections.json` — cached in `state.sources.base_document_sections`
-- `merged_draft.md`, `publication_draft.md` — cached paths in `state.drafts`
-
-```powershell
-# Invalidate specific caches
-report-workflow invalidate-cache --job-id <id> --sources   # Force reload of base_document_sections
-report-workflow invalidate-cache --job-id <id> --drafts     # Force MERGE_DRAFT to rebuild from sources
-
-# Invalidate both
-report-workflow invalidate-cache --job-id <id> --sources --drafts
-```
-
-**New commands:**
-```powershell
-# Diagnose workflow issues
-report-workflow diagnose --job-id <id>           # Quick check for common issues
-report-workflow diagnose --job-id <id> --verbose  # Full diff
-
-# Dry-run validation (no checkpoint written)
-report-workflow validate --job-id <id> --dry-run  # Simulate validate before committing
-
-# Deep-audit citation substantiveness (verifies evidence content supports claim content)
-report-workflow validate --job-id <id> --deep-audit  # Enable FE content-overlap checking
-
-# Force reload from disk
-report-workflow invalidate-cache --job-id <id> --sources --drafts
-```
-
-## Debugging QA Gate Failures
-
-When `report-workflow validate` fails at `QA_GATE` with "factuality blocked claims: N", use this checklist:
-
-### Step 1: Read the fresh factuality report
-
-```powershell
-# ALWAYS delete the stale factuality report before inspecting
-Remove-Item "$env:USERPROFILE\.hermes\workflow_runs\<job_id>\factuality_report.json" -Force
-# Then re-run validate to get a FRESH report
-report-workflow validate --job-id <job_id>
-# Now read the new factuality_report.json
-python -c "import json; print(json.load(open('...\\factuality_report.json',encoding='utf-8'))['claims'])"
-```
-
-**Why delete first**: `factuality_report.json` is written fresh on each run, but the `hard_fail_reasons` stored in `checkpoint_latest.json` reflect the LAST run's reasons — not the current state of your edits.
-
-### Step 2: Identify the canonical source files
-
-**The factuality checker reads from these files on disk — NOT from checkpoint files:**
-
-| What | File | Notes |
-|------|------|-------|
-| Claim matrix | `~/.hermes/workflow_runs/<job_id>/claim_matrix.json` | **Canonical source** — loaded by `AGENT_ARTIFACT_INTAKE` node; `factuality_check` reads from this, NOT from checkpoint-embedded `claim_matrix` |
-| Evidence content | `~/.hermes/workflow_runs/<job_id>/evidence_ledger.jsonl` | **Canonical source** — loaded via `state.sources["evidence_ledger_path"]` on every run |
-| Checkpoint state | `~/.hermes/workflow_runs/<job_id>/checkpoint_*.json` | Checkpoint files embed a snapshot of claim_matrix but are NOT what the factuality checker reads |
-| Factuality report | `~/.hermes/workflow_runs/<job_id>/factuality_report.json` | Written fresh each validate run; READ THIS to see current failures |
-
-**Editing checkpoint files has NO EFFECT on factuality checks.** Edit `claim_matrix.json` and `evidence_ledger.jsonl` directly.
-
-### Step 3: Understand factuality failure types
-
-**3a. Term overlap failures** (e.g., "Claim key terms not in evidence (29% coverage): deterministic, compilation, ..."):
-- The FE checker extracts key terms (≥5-letter words, excluding stopwords) from the claim text
-- It requires ≥40% of those terms to appear as substrings in the evidence content
-- Fix: Either (a) add more evidence content with those terms, or (b) rewrite the claim text to use terms that exist in your evidence
-
-**3b. Numeric overlap failures** (e.g., "Claim number '226'edges not found in evidence content"):
-- The numeric extractor requires the `"number + space + unit"` pattern (e.g., `226 edges`, NOT `226edges`)
-- Example: `'226edges'` (no space) will NOT match — the evidence must contain `'226 edges'` (with a space)
-- The regex pattern is `\d+ +[a-zA-Z]` (minimum 1 space between number and unit)
-- Fix: Ensure evidence contains `"226 edges"` with a space, not `"226edges"`
-
-**3c. Quote failures** (e.g., 'Quoted phrase "..." not found verbatim in evidence'):
-- Claims with `"quoted text"` require that exact phrase to appear in evidence
-- Fix: Remove the quote from the claim, or add the quoted phrase to the evidence content
-
-### Step 4: Fix evidence, not just claim texts
-
-- Augment `evidence_ledger.jsonl` directly (add new sentences to `content` field)
-- After editing, delete `factuality_report.json` and re-run validate
-- The `source_role` and `source_type` fields don't affect FE checks — only `content` matters
-
-### Step 5: Verify before re-running
-
-After editing `claim_matrix.json` or `evidence_ledger.jsonl`, verify:
-1. The claim's `evidence_ids` list actually points to evidence that covers the claim's key terms
-2. For numeric claims, the evidence contains `"<number> <unit>"` (with space) matching the claim
-3. Evidence content is ASCII/Latin-readable (FE check skips term overlap for >30% non-ASCII text)
-
-## Debugging Abstract Validation Failures
-
-`ABSTRACT_CHECK` (part of `DOC_METADATA_GATE` in validate_nodes) raises `QAHardBlockError` for any of these issues:
-
-| Check | Failure message example | Root cause | Fix |
-|-------|------------------------|------------|-----|
-| Trailing ellipses | `Line 1: trailing ellipsis: '# Abstract This report presents...'` | Abstract ends mid-sentence with `that.....` dots | Agent must rewrite abstract with complete sentences |
-| Incomplete sentence | `Missing ending punctuation: 'The results demonstrate that'` | No `.` `!` `?` at end of last sentence | Rewrite to end with proper punctuation |
-| Incomplete comparative | `Incomplete comparative: 'more X than enforceable'` | Malformed `more X than Y` pattern | Rewrite the comparative phrase |
-| Internal marker | `Internal marker残留: [CITE:E001]` | `[CITE:]`, `[Source:]`, `[graphify:]` left in abstract | Agent must remove these before submitting |
-| Placeholder text | `Placeholder text found: This section is under development` | Abstract was not written | Agent must write a real abstract |
-| Abstract too short | `Abstract too short: 23 words (minimum 150)` | Abstract has too few words OR compression destroyed content | See below |
-
-### "Abstract too short" failure — the most common case
-
-**Symptom**: `Abstract too short: N words (minimum 150)` where N is very small (e.g., 22 words).
-
-**Root cause A — the abstract genuinely has <150 words of real content:**
-The agent wrote a short abstract (e.g., 170 words) that ends mid-sentence with trailing dots (`that.....`). When `ABSTRACT_CHECK` validates word count, a fragment with trailing dots will fail the minimum word count gate.
-
-**Fix**: The agent must write a new abstract that:
-- Has 180–220 words
-- Uses structured headings: **Background:** **Objective:** **Methods:** **Principal Findings:** **Significance:**
-- Each section is a self-contained paragraph (15–30 words each)
-- NO trailing dots, NO incomplete sentences, NO mid-thought truncation
-- NO `[CITE:]`, `[Source:]`, or `[graphify:]` markers
-
-**Root cause B — `_detect_abstract_structure` failed to split sections:**
-If the abstract has `# Abstract` as a markdown heading but no `##` section headings, the entire text is treated as one sentence-less blob. The heading `# Abstract` itself has no period, so the sentence-splitting in the word-count routine treats it as part of the first "sentence", causing massive over-truncation.
-
-**Fix**: Add `##`-level section headings in the abstract draft:
-```markdown
-# Abstract
-**Background:** This report presents...
-**Objective:** The study investigates...
-**Methods:** Using graph-based analysis...
-**Principal Findings:** Results demonstrate...
-**Significance:** This work contributes...
-```
-
-**Root cause C — word count counting the heading token:**
-If the abstract starts with `# Abstract` (no period) as a heading, the word counter includes "Abstract" in the first sentence's word count. For short abstracts this can cause the 180-word minimum to appear to fail when the content is actually sufficient. Fix: ensure the abstract body (after `# Abstract`) starts with a complete sentence.
-
-### Verifying abstract quality before running validate
-
-Before calling `report-workflow validate`, manually check the abstract draft:
-
-```powershell
-# Count words (should be 180-220)
-python -c "import re; t=open('section_drafts\\abstract.md',encoding='utf-8').read(); print(len(re.findall(r'\b\w+\b',t)), 'words')"
-
-# Check for trailing dots / incomplete endings
-python -c "t=open('section_drafts\\abstract.md',encoding='utf-8').read(); import re; \
-  if re.search(r'\.{3,}$', t.rstrip()): print('FAIL: trailing dots at end'); \
-  elif re.search(r'\b(that|which|because)\s*$', t, re.MULTILINE): print('FAIL: incomplete ending'); \
-  else: print('PASS: no trailing ellipses')"
-
-# Check section headings exist
-python -c "t=open('section_drafts\\abstract.md',encoding='utf-8').read(); \
-  import re; headings=re.findall(r'^##\s+\w+', t, re.MULTILINE); \
-  print('Section headings found:', headings if headings else 'NONE - abstract needs ## headings')"
-```
-
-## Testing Notes
-
-Tests live in [tests/test_mvp_workflow.py](tests/test_mvp_workflow.py) and patch `report_workflow.preflight.importlib.util.find_spec` to simulate installed packages. They use `tempfile.TemporaryDirectory` for outputs but still write run data under the real `~/.hermes/workflow_runs/<job_id>/`. When adding tests that touch workflow runs, use the `_prepare` + `_write_agent_artifacts` helpers to stage a realistic agent handoff before calling `validate_workflow`.
-
-## Adding a new node
-
-1. Create `src/report_workflow/nodes/<name>.py` exposing a `run_<name>(state: ReportState) -> ReportState` function. It must return the mutated state — never mutate and return `None`.
-2. Import it at the top of [run_workflow.py](src/report_workflow/run_workflow.py) and insert `("<UPPER_NAME>", run_<name>)` into the correct tuple list (`prepare_nodes`, `validate_nodes`, or `render_nodes`). The string name is also the checkpoint filename suffix (`checkpoint_<NAME>.json`).
-3. Raise `QAHardBlockError` from [errors.py](src/report_workflow/errors.py) for hard-fail conditions — this triggers the remediation-plan write and `FAILED` checkpoint. Any other exception bubbles up as a crash.
-4. Update the node list in this file so the sequence stays authoritative.
+This repo may start dirty. Do not revert changes you did not make. Before
+committing, verify that the diff boundary is clean and that unrelated dirty files
+or generated output are not included.
