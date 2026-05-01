@@ -26,12 +26,20 @@ from report_workflow.nodes.figure_build import run_figure_build
 from report_workflow.nodes.guideline_select import run_guideline_select
 from report_workflow.nodes.intake import run_intake
 from report_workflow.nodes.merge_draft import _canonicalize_section_content
+from report_workflow.nodes.methods_protocol_build import run_methods_protocol_build
 from report_workflow.nodes.qa_gate import run_qa_gate
 from report_workflow.nodes.section_plan_freeze import run_section_plan_freeze
 from report_workflow.nodes.source_parse import run_source_parse
 from report_workflow.preflight import check_preflight, run_preflight_checks
 from report_workflow.run_workflow import prepare_workflow, render_workflow, run_workflow, status_workflow, validate_workflow
-from report_workflow.state import ReportState, WORKFLOW_RUNS_DIR
+from report_workflow.config import PROJECT_ROOT
+from report_workflow.state import (
+    ReportState,
+    WORKFLOW_RUNS_DIR,
+    clear_job_run_hints,
+    default_workspace_root,
+    register_job_run,
+)
 
 
 def _read_jsonl(path: str) -> list[dict]:
@@ -51,7 +59,7 @@ def _state_with_output(tmpdir: str, files: list[str]) -> ReportState:
     return ReportState.new("write an academic report", files, str(Path(tmpdir) / "out"))
 
 
-def _prepare(tmpdir: str, family: str = "academic_report") -> ReportState:
+def _prepare(tmpdir: str, family: str = "academic_paper") -> ReportState:
     src = Path(tmpdir) / "source.txt"
     src.write_text(
         "The pilot program enrolled 42 participants and the data show a 20 percent processing-time reduction.",
@@ -62,7 +70,7 @@ def _prepare(tmpdir: str, family: str = "academic_report") -> ReportState:
             f"write a {family}",
             [str(src)],
             str(Path(tmpdir) / "out"),
-            report_family=family,
+            report_profile=family,
         )
 
 
@@ -164,6 +172,21 @@ class SourcePipelineTests(unittest.TestCase):
             self.assertTrue(evidence)
             self.assertEqual(evidence[0]["source_file_name"], "data.csv")
 
+    def test_toml_source_is_parsed(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "pyproject.toml"
+            src.write_text(
+                "[project]\nname = \"demo\"\nversion = \"0.1.0\"\n",
+                encoding="utf-8",
+            )
+            state = _state_with_output(tmpdir, [str(src)])
+            state = run_corpus_build(state)
+            state = run_source_parse(state)
+
+            entry = state.sources["source_registry"][0]
+            self.assertEqual(entry["parse_status"], "parsed")
+            self.assertTrue(entry["parsed_content"])
+
     def test_docx_source_is_parsed(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             src = Path(tmpdir) / "source.docx"
@@ -187,6 +210,62 @@ class SourcePipelineTests(unittest.TestCase):
             with self.assertRaises(QAHardBlockError) as ctx:
                 run_source_parse(state)
         self.assertIn("agent fallback parser is not implemented", str(ctx.exception))
+
+    def test_methods_protocol_preserves_non_graph_project_methods(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new(
+                "Write a graduate admissions project introduction.",
+                [],
+                str(Path(tmpdir) / "out"),
+            )
+            state.spec["report_profile"] = "admissions_project_report"
+            run_dir = Path(state.output["run_dir"])
+            methods_path = run_dir / "section_drafts" / "methods.md"
+            methods_path.parent.mkdir(exist_ok=True)
+            original = (
+                "# Methods\n\n"
+                "## Overall System Architecture\n\n"
+                "I built a shared decision core for Taiwan equities validation.\n\n"
+                "## Historical Replay and Evidence Artifacts\n\n"
+                "I implemented day-by-day replay outputs.\n"
+            )
+            methods_path.write_text(original, encoding="utf-8")
+            state.drafts["section_drafts"] = {"methods": str(methods_path)}
+
+            result = run_methods_protocol_build(state)
+
+            self.assertEqual(methods_path.read_text(encoding="utf-8"), original)
+            protocol = Path(result.drafts["methods_protocol"]).read_text(encoding="utf-8")
+            self.assertIn("Overall System Architecture", protocol)
+            self.assertNotIn("Graph Construction", protocol)
+
+    def test_methods_protocol_is_idempotent_for_existing_protocol_headings(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new(
+                "Write a knowledge graph analysis report.",
+                [],
+                str(Path(tmpdir) / "out"),
+            )
+            run_dir = Path(state.output["run_dir"])
+            methods_path = run_dir / "section_drafts" / "methods.md"
+            methods_path.parent.mkdir(exist_ok=True)
+            original = (
+                "# Methods\n\n"
+                "## Graph Construction\n\n"
+                "We built graph nodes and edges from source documents.\n\n"
+                "## Validation Procedure\n\n"
+                "We checked graph consistency.\n"
+            )
+            methods_path.write_text(original, encoding="utf-8")
+            state.drafts["section_drafts"] = {"methods": str(methods_path)}
+
+            run_methods_protocol_build(state)
+            first = methods_path.read_text(encoding="utf-8")
+            run_methods_protocol_build(state)
+            second = methods_path.read_text(encoding="utf-8")
+
+            self.assertEqual(first, second)
+            self.assertEqual(second.count("## Graph Construction"), 1)
 
 
 class StageWorkflowTests(unittest.TestCase):
@@ -226,7 +305,7 @@ class StageWorkflowTests(unittest.TestCase):
 
     def test_full_staged_agent_artifact_workflow(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            state = _prepare(tmpdir, "work_report")
+            state = _prepare(tmpdir, "business_report")
             _write_agent_artifacts(state)
 
             validated = validate_workflow(state.job_id)
@@ -235,7 +314,7 @@ class StageWorkflowTests(unittest.TestCase):
 
             rendered = render_workflow(state.job_id)
             self.assertEqual(rendered.status, "completed")
-            self.assertTrue((Path(tmpdir) / "out" / "final.docx").exists())
+            self.assertTrue((Path(rendered.output["run_dir"]) / "final.docx").exists())
             roles = {
                 item["role"]
                 for item in json.loads(Path(rendered.output["artifacts_manifest_path"]).read_text(encoding="utf-8"))["files"]
@@ -254,7 +333,7 @@ class StageWorkflowTests(unittest.TestCase):
 
     def test_outline_requires_required_blueprint_sections(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            state = _prepare(tmpdir, "academic_report")
+            state = _prepare(tmpdir, "academic_paper")
             run_dir = WORKFLOW_RUNS_DIR / state.job_id
             evidence_id = _read_jsonl(state.sources["evidence_ledger_path"])[0]["evidence_id"]
             (run_dir / "claim_matrix.json").write_text(json.dumps({
@@ -285,7 +364,7 @@ class StageWorkflowTests(unittest.TestCase):
 
     def test_sentence_map_rejects_unknown_section_id(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            state = _prepare(tmpdir, "academic_report")
+            state = _prepare(tmpdir, "academic_paper")
             _write_agent_artifacts(state)
             run_dir = WORKFLOW_RUNS_DIR / state.job_id
             evidence_id = _read_jsonl(state.sources["evidence_ledger_path"])[0]["evidence_id"]
@@ -303,7 +382,7 @@ class StageWorkflowTests(unittest.TestCase):
 
     def test_optional_appendix_is_not_required_when_omitted(self):
         with tempfile.TemporaryDirectory() as tmpdir:
-            state = _prepare(tmpdir, "work_report")
+            state = _prepare(tmpdir, "business_report")
             run_dir = WORKFLOW_RUNS_DIR / state.job_id
             evidence_id = _read_jsonl(state.sources["evidence_ledger_path"])[0]["evidence_id"]
             (run_dir / "claim_matrix.json").write_text(json.dumps({
@@ -363,7 +442,7 @@ class CLITests(unittest.TestCase):
                     "--prompt", "write a work report",
                     "--source", str(src),
                     "--output", str(Path(tmpdir) / "out"),
-                    "--family", "work_report",
+                    "--profile", "business_report",
                 ])
             self.assertEqual(code, 0)
             job_id = next(line.split(": ", 1)[1] for line in stdout.getvalue().splitlines() if line.startswith("job_id:"))
@@ -382,6 +461,62 @@ class CLITests(unittest.TestCase):
             with patch("sys.stdout", io.StringIO()) as status_out:
                 self.assertEqual(cli_main(["status", "--job-id", job_id]), 0)
                 self.assertIn("final_docx_path:", status_out.getvalue())
+
+    def test_default_workspace_root_is_project_local_even_if_cwd_changes(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "source.txt"
+            src.write_text("The data show 42 participants and a 20 percent reduction.", encoding="utf-8")
+            original_cwd = Path.cwd()
+            try:
+                import os
+                os.chdir(tmpdir)
+                with patch("report_workflow.preflight.importlib.util.find_spec", side_effect=_all_packages_present):
+                    state = prepare_workflow(
+                        "write a work report",
+                        [str(src)],
+                        None,
+                        report_profile="business_report",
+                    )
+                self.assertEqual(default_workspace_root(), PROJECT_ROOT / "output")
+                self.assertTrue(Path(state.output["run_dir"]).is_relative_to(PROJECT_ROOT / "output"))
+            finally:
+                os.chdir(original_cwd)
+
+    def test_relative_workspace_override_is_resolved_from_project_root(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "source.txt"
+            src.write_text("The data show 42 participants and a 20 percent reduction.", encoding="utf-8")
+            original_cwd = Path.cwd()
+            try:
+                import os
+                os.chdir(tmpdir)
+                with patch("report_workflow.preflight.importlib.util.find_spec", side_effect=_all_packages_present):
+                    state = prepare_workflow(
+                        "write a work report",
+                        [str(src)],
+                        "custom-out",
+                        report_profile="business_report",
+                    )
+                self.assertTrue(Path(state.output["run_dir"]).is_relative_to(PROJECT_ROOT / "custom-out"))
+            finally:
+                os.chdir(original_cwd)
+
+    def test_custom_workspace_run_can_resume_without_shared_index_when_root_is_provided(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            workspace_root = Path(tmpdir) / "isolated-workspace"
+            src = Path(tmpdir) / "source.txt"
+            src.write_text("The data show 42 participants and a 20 percent reduction.", encoding="utf-8")
+            with patch("report_workflow.preflight.importlib.util.find_spec", side_effect=_all_packages_present):
+                state = prepare_workflow(
+                    "write a work report",
+                    [str(src)],
+                    str(workspace_root),
+                    report_profile="business_report",
+                )
+            clear_job_run_hints()
+            resumed = status_workflow(state.job_id, workspace_root=str(workspace_root))
+            self.assertEqual(Path(resumed.output["workspace_root"]), workspace_root.resolve())
+            self.assertEqual(Path(resumed.output["run_dir"]), Path(state.output["run_dir"]).resolve())
 
 
 class GateTests(unittest.TestCase):
@@ -448,7 +583,7 @@ class GateTests(unittest.TestCase):
     def test_revise_existing_sidecars_satisfy_citation_linkage(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
-            state.spec["report_family"] = "academic_report"
+            state.spec["report_profile"] = "academic_paper"
             state.spec["task_intent"] = "revise_existing"
             state.sources["source_registry"] = [{"parse_status": "parsed", "parsed_content": [{"content": "source text"}]}]
             evidence_path = Path(tmpdir) / "evidence.jsonl"
@@ -513,7 +648,7 @@ class GateTests(unittest.TestCase):
     # F2: Provenance-driven wording strength (FD checker)
     # ------------------------------------------------------------------
     def test_fd_low_grade_blocks_measured_wording(self):
-        """low-grade evidence + wording_strength=measured → blocked."""
+        """low-grade evidence + wording_strength=measured ??blocked."""
         sentence_map = [
             {
                 "sentence_id": "s1",
@@ -533,7 +668,7 @@ class GateTests(unittest.TestCase):
         self.assertIn("low", results[0]["reason"])
 
     def test_fd_medium_grade_allows_hedged(self):
-        """medium-grade evidence + wording_strength=hedged → ok (not blocked)."""
+        """medium-grade evidence + wording_strength=hedged ??ok (not blocked)."""
         sentence_map = [
             {
                 "sentence_id": "s1",
@@ -551,7 +686,7 @@ class GateTests(unittest.TestCase):
         self.assertEqual(len(blocked), 0)
 
     def test_fd_high_grade_allows_measured(self):
-        """high-grade evidence + wording_strength=measured → ok."""
+        """high-grade evidence + wording_strength=measured ??ok."""
         sentence_map = [
             {
                 "sentence_id": "s1",
@@ -569,7 +704,7 @@ class GateTests(unittest.TestCase):
         self.assertEqual(len(blocked), 0)
 
     def test_fd_unknown_wording_not_penalised(self):
-        """wording_strength value not in {measured,hedged,weak} → not blocked."""
+        """wording_strength value not in {measured,hedged,weak} ??not blocked."""
         sentence_map = [
             {
                 "sentence_id": "s1",
@@ -590,8 +725,9 @@ class GateTests(unittest.TestCase):
         """revise_existing keeps FE/FD as advisory when sidecar linkage is complete."""
         state = ReportState.new("report", [], "out")
         state.job_id = f"test_revision_sidecars_{uuid.uuid4().hex}"
+        register_job_run(state.job_id, state.output["run_dir"])
         state.spec["task_intent"] = "revise_existing"
-        state.spec["report_family"] = "academic_report"
+        state.spec["report_profile"] = "academic_paper"
         run_dir = WORKFLOW_RUNS_DIR / state.job_id
         run_dir.mkdir(parents=True, exist_ok=True)
 
@@ -639,7 +775,7 @@ class GateTests(unittest.TestCase):
         """Academic banned phrase in merged draft is style lint, not QA hard fail."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
-            state.spec["report_family"] = "academic_report"
+            state.spec["report_profile"] = "academic_paper"
             state.sources["source_registry"] = [
                 {"parse_status": "parsed", "parsed_content": [{"content": "x"}]}
             ]
@@ -680,15 +816,15 @@ class GateTests(unittest.TestCase):
             self.assertIn("banned phrases", "; ".join(result.qa["style_lint_warnings"]))
 
     def test_no_banned_phrase_passes(self):
-        """No banned phrases in merged draft → QA gate passes."""
+        """No banned phrases in merged draft ??QA gate passes."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], "out")
-            state.spec["report_family"] = "academic_report"
+            state.spec["report_profile"] = "academic_paper"
             state.sources["source_registry"] = [
                 {"parse_status": "parsed", "parsed_content": [{"content": "x"}]}
             ]
             evidence_path = Path(tmpdir) / "evidence.jsonl"
-            # Fix #2: academic_report requires >=10 evidence entries across 3 source roles
+            # Fix #2: academic_paper requires >=10 evidence entries across 3 source roles
             ev_entries = (
                 [  # 7 graph_analysis entries
                     {"evidence_id": f"g{i}", "source_role": "graph_analysis", "evidence_type": "qualitative"}
@@ -735,7 +871,7 @@ class GateTests(unittest.TestCase):
         """Work report bans different phrases; 'obviously' is work-banned."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
-            state.spec["report_family"] = "work_report"
+            state.spec["report_profile"] = "business_report"
             state.sources["source_registry"] = [
                 {"parse_status": "parsed", "parsed_content": [{"content": "x"}]}
             ]
@@ -801,7 +937,7 @@ class GovernanceAndUtilityTests(unittest.TestCase):
     def test_guideline_select_uses_keywords_and_family_defaults(self):
         state = ReportState.new("report", [], "out")
         state.spec["keywords"] = ["cross-sectional"]
-        state.spec["report_family"] = "academic_report"
+        state.spec["report_profile"] = "academic_paper"
         state = run_guideline_select(state)
         self.assertEqual(state.spec["selected_guidelines"], ["STROBE"])
 
@@ -828,7 +964,7 @@ class GovernanceAndUtilityTests(unittest.TestCase):
 
 class ConsistencyCheckTests(unittest.TestCase):
     def test_numeric_contradiction_hard_fails(self):
-        """Same unit (%%) appears with same value but different notation → hard_fail (notation_inconsistency).
+        """Same unit (%%) appears with same value but different notation ??hard_fail (notation_inconsistency).
 
         Note: The consistency checker flags SAME value written with different notation
         (e.g. "20%" vs "20 percent") as notation_inconsistency, because the semantic
@@ -837,7 +973,7 @@ class ConsistencyCheckTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
             merged = Path(tmpdir) / "merged.md"
-            # "20%" and "20 percent" = SAME value, DIFFERENT notation → notation_inconsistency
+            # "20%" and "20 percent" = SAME value, DIFFERENT notation ??notation_inconsistency
             merged.write_text(
                 "# Results\n\nThe response rate was 20%.\n"
                 "# Discussion\n\nA 20 percent response rate was observed.\n",
@@ -859,7 +995,7 @@ class ConsistencyCheckTests(unittest.TestCase):
             self.assertIn("[numeric]", str(ctx.exception))
 
     def test_numeric_no_contradiction_passes(self):
-        """Same number appears consistently → no numeric issue."""
+        """Same number appears consistently ??no numeric issue."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
             merged = Path(tmpdir) / "merged.md"
@@ -885,7 +1021,7 @@ class ConsistencyCheckTests(unittest.TestCase):
             self.assertEqual(len(numeric_high), 0)
 
     def test_unit_notation_inconsistency_hard_fails(self):
-        """Same unit written as '%' and 'percent' → high severity."""
+        """Same unit written as '%' and 'percent' ??high severity."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
             merged = Path(tmpdir) / "merged.md"
@@ -907,7 +1043,7 @@ class ConsistencyCheckTests(unittest.TestCase):
             self.assertIn("written multiple ways", str(ctx.exception))
 
     def test_unit_notation_consistent_passes(self):
-        """'%' used consistently throughout → no unit issue."""
+        """'%' used consistently throughout ??no unit issue."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
             merged = Path(tmpdir) / "merged.md"
@@ -930,7 +1066,7 @@ class ConsistencyCheckTests(unittest.TestCase):
             self.assertEqual(len(high), 0)
 
     def test_missing_merged_draft_skips_gracefully(self):
-        """No merged draft path → skips, doesn't crash."""
+        """No merged draft path ??skips, doesn't crash."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
             state.drafts["merged_draft_md"] = ""
@@ -940,11 +1076,11 @@ class ConsistencyCheckTests(unittest.TestCase):
             self.assertEqual(result.qa.get("consistency_report_path"), "")
 
     def test_numeric_20_vs_20point0_no_false_positive(self):
-        """'20' and '20.0' are the same number → no contradiction."""
+        """'20' and '20.0' are the same number ??no contradiction."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
             merged = Path(tmpdir) / "merged.md"
-            # Same unit (%) with "20" and "20.0" — these are the same value
+            # Same unit (%) with "20" and "20.0" ??these are the same value
             merged.write_text(
                 "# Results\n\nThe yield was 20%.\n"
                 "# Methods\n\nThe yield was 20.0%.\n",
@@ -960,7 +1096,7 @@ class ConsistencyCheckTests(unittest.TestCase):
             state.plan["claim_matrix"] = {
                 "claims": [{"claim_id": "c1", "claim_text": "yield", "evidence_ids": ["e1"]}]
             }
-            # Should NOT raise — float("20") == float("20.0")
+            # Should NOT raise ??float("20") == float("20.0")
             result = run_consistency_check(state)
             report = json.loads(Path(result.qa["consistency_report_path"]).read_text(encoding="utf-8"))
             self.assertEqual(report["high_severity"], 0)
@@ -987,7 +1123,7 @@ class ConsistencyCheckTests(unittest.TestCase):
             self.assertEqual(report["job_id"], state.job_id)
 
     def test_consistency_high_severity_raises_hard_block(self):
-        """Any high-severity consistency issue → QAHardBlockError."""
+        """Any high-severity consistency issue ??QAHardBlockError."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
             merged = Path(tmpdir) / "merged.md"
@@ -1007,7 +1143,7 @@ class ConsistencyCheckTests(unittest.TestCase):
                 run_consistency_check(state)
 
     def test_consistency_low_severity_passes(self):
-        """No high-severity issues → no hard block."""
+        """No high-severity issues ??no hard block."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
             merged = Path(tmpdir) / "merged.md"
@@ -1032,7 +1168,7 @@ class ConsistencyCheckTests(unittest.TestCase):
 
 class GuidelineCheckTests(unittest.TestCase):
     def test_prisma_hard_violation_hard_fails(self):
-        """PRISMA hard item not found in draft → QAHardBlockError."""
+        """PRISMA hard item not found in draft ??QAHardBlockError."""
         state = ReportState.new("report", [], "out")
         with tempfile.TemporaryDirectory() as tmpdir:
             merged = Path(tmpdir) / "merged.md"
@@ -1046,7 +1182,7 @@ class GuidelineCheckTests(unittest.TestCase):
             self.assertIn("PRISMA_1a", str(ctx.exception))
 
     def test_prisma_hard_item_found_passes(self):
-        """PRISMA hard item with matching keywords found → no hard fail.
+        """PRISMA hard item with matching keywords found ??no hard fail.
 
         Uses _check_guideline directly (no full node) to avoid needing
         all PRISMA hard items satisfied simultaneously.
@@ -1067,10 +1203,10 @@ class GuidelineCheckTests(unittest.TestCase):
         }
         sections = {"intro": "This methodology section explains the approach."}
         hard, soft, warn = _check_guideline(guideline, sections)
-        self.assertEqual(len(hard), 0)  # found → no hard violation
+        self.assertEqual(len(hard), 0)  # found ??no hard violation
 
     def test_no_selected_guidelines_skips(self):
-        """No selected guidelines → passthrough."""
+        """No selected guidelines ??passthrough."""
         state = ReportState.new("report", [], "out")
         state.spec["selected_guidelines"] = []
         result = run_guideline_check(state)
@@ -1097,11 +1233,11 @@ class GuidelineCheckTests(unittest.TestCase):
             state.drafts["merged_draft_md"] = str(merged)
             state.spec["selected_guidelines"] = ["PRISMA"]
             state.plan["outline"] = {"sections": {"title": {}}}
-            # Expect hard violation → but report should still be written first
+            # Expect hard violation ??but report should still be written first
             with self.assertRaises(QAHardBlockError):
                 run_guideline_check(state)
             # Check report was written despite the exception
-            run_dir = Path.home() / ".hermes" / "workflow_runs" / state.job_id
+            run_dir = WORKFLOW_RUNS_DIR / state.job_id
             self.assertTrue((run_dir / "guideline_report.json").exists())
 
 
@@ -1111,14 +1247,14 @@ class GuidelineCheckTests(unittest.TestCase):
 
 class FigureContractCheckTests(unittest.TestCase):
     def test_figure_with_placeholder_prose_and_caption_passes(self):
-        """All three contract elements present → no issues."""
+        """All three contract elements present ??no issues."""
         text = "# Results\n\n[FIGURE:1]\n\nFigure 1: This is a chart.\n\nThe results are shown (see Figure 1).\n"
         issues = _check_figure_contract(text, ["1"])
         all_issues = [i for i in issues if i.get("issues")]
         self.assertEqual(len(all_issues), 0)
 
     def test_missing_caption_reported(self):
-        """Figure placeholder but no caption → soft issue."""
+        """Figure placeholder but no caption ??soft issue."""
         text = "# Results\n\n[FIGURE:1]\n\nThe results are shown (see Figure 1).\n"
         issues = _check_figure_contract(text, ["1"])
         caption_issues = [
@@ -1129,7 +1265,7 @@ class FigureContractCheckTests(unittest.TestCase):
         self.assertEqual(len(caption_issues), 1)
 
     def test_missing_prose_reference_reported(self):
-        """Figure placeholder but no prose reference → soft issue."""
+        """Figure placeholder but no prose reference ??soft issue."""
         text = "# Results\n\n[FIGURE:1]\n\nFigure 1: This is a chart.\n"
         issues = _check_figure_contract(text, ["1"])
         prose_issues = [
@@ -1142,7 +1278,7 @@ class FigureContractCheckTests(unittest.TestCase):
     def test_figure_contract_node_writes_report(self):
         """Figure contract node writes figure_contract_report.json."""
         state = ReportState.new("report", [], "out")
-        state.spec["report_family"] = "work_report"  # avoid academic hard table requirements
+        state.spec["report_profile"] = "business_report"  # avoid academic hard table requirements
         with tempfile.TemporaryDirectory() as tmpdir:
             merged = Path(tmpdir) / "merged.md"
             merged.write_text("# Results\n\n[FIGURE:1]\n", encoding="utf-8")
@@ -1154,10 +1290,10 @@ class FigureContractCheckTests(unittest.TestCase):
             self.assertNotEqual(result.qa.get("figure_quality_report_path", ""), "")
 
     # ------------------------------------------------------------------
-    # Fix #3: academic_report flat hard issues must enter hard_issues
+    # Fix #3: academic_paper flat hard issues must enter hard_issues
     # ------------------------------------------------------------------
     def test_no_audit_tables_in_academic_main_text_passes(self):
-        """academic_report with no forbidden markdown audit tables → no issue raised."""
+        """academic_paper with no forbidden markdown audit tables ??no issue raised."""
         state = ReportState.new("report", [], "out")
         with tempfile.TemporaryDirectory() as tmpdir:
             merged = Path(tmpdir) / "merged.md"
@@ -1165,18 +1301,18 @@ class FigureContractCheckTests(unittest.TestCase):
             merged.write_text("# Results\n\nSome results without tables.\n", encoding="utf-8")
             state.drafts["merged_draft_md"] = str(merged)
             state.plan["outline"] = {"sections": {"results": {}}}
-            state.spec["report_family"] = "academic_report"
+            state.spec["report_profile"] = "academic_paper"
             # _check_no_audit_tables_in_main_text returns [] when no forbidden tables found
             issues = _check_no_audit_tables_in_main_text(
-                merged.read_text(encoding="utf-8"), "academic_report"
+                merged.read_text(encoding="utf-8"), "academic_paper"
             )
             self.assertEqual(len(issues), 0)
             # run_figure_quality should not raise for plain text
             result = run_figure_quality(state)
             self.assertNotEqual(result.qa.get("figure_quality_report_path", ""), "")
 
-    def test_academic_report_table_found_passes(self):
-        """academic_report with all three required tables → no hard issue."""
+    def test_academic_paper_table_found_passes(self):
+        """academic_paper with all three required tables ??no hard issue."""
         state = ReportState.new("report", [], "out")
         with tempfile.TemporaryDirectory() as tmpdir:
             merged = Path(tmpdir) / "merged.md"
@@ -1194,7 +1330,7 @@ class FigureContractCheckTests(unittest.TestCase):
             )
             state.drafts["merged_draft_md"] = str(merged)
             state.plan["outline"] = {"sections": {"results": {}}}
-            state.spec["report_family"] = "academic_report"
+            state.spec["report_profile"] = "academic_paper"
             result = run_figure_quality(state)
             # Should not raise
             self.assertNotEqual(result.qa.get("figure_quality_report_path", ""), "")
@@ -1206,39 +1342,39 @@ class FigureContractCheckTests(unittest.TestCase):
 
 class FigureBuildTests(unittest.TestCase):
     def test_missing_figure_plan_skips(self):
-        """No figure_plan.json → skips gracefully, no crash."""
+        """No figure_plan.json ??skips gracefully, no crash."""
         state = ReportState.new("report", [], "out")
         with tempfile.TemporaryDirectory() as tmpdir:
             section_drafts_dir = Path(tmpdir) / "section_drafts"
             section_drafts_dir.mkdir()
-            run_dir = Path.home() / ".hermes" / "workflow_runs" / state.job_id
+            run_dir = WORKFLOW_RUNS_DIR / state.job_id
             run_dir.mkdir(parents=True, exist_ok=True)
             # No figure_plan.json written
             result = run_figure_build(state)
             self.assertEqual(result.output.get("figure_manifest_path", ""), "")
 
     def test_malformed_figure_plan_skips(self):
-        """Malformed figure_plan.json → skips gracefully."""
+        """Malformed figure_plan.json ??skips gracefully."""
         state = ReportState.new("report", [], "out")
         with tempfile.TemporaryDirectory() as tmpdir:
             section_drafts_dir = Path(tmpdir) / "section_drafts"
             section_drafts_dir.mkdir()
             plan_path = section_drafts_dir / "figure_plan.json"
             plan_path.write_text("not valid json{", encoding="utf-8")
-            run_dir = Path.home() / ".hermes" / "workflow_runs" / state.job_id
+            run_dir = WORKFLOW_RUNS_DIR / state.job_id
             run_dir.mkdir(parents=True, exist_ok=True)
             result = run_figure_build(state)
             self.assertEqual(result.output.get("figure_manifest_path", ""), "")
 
     def test_empty_figures_list_skips(self):
-        """figure_plan.json with empty figures list → skips gracefully."""
+        """figure_plan.json with empty figures list ??skips gracefully."""
         state = ReportState.new("report", [], "out")
         with tempfile.TemporaryDirectory() as tmpdir:
             section_drafts_dir = Path(tmpdir) / "section_drafts"
             section_drafts_dir.mkdir()
             plan_path = section_drafts_dir / "figure_plan.json"
             plan_path.write_text(json.dumps({"figures": []}), encoding="utf-8")
-            run_dir = Path.home() / ".hermes" / "workflow_runs" / state.job_id
+            run_dir = WORKFLOW_RUNS_DIR / state.job_id
             run_dir.mkdir(parents=True, exist_ok=True)
             result = run_figure_build(state)
             self.assertEqual(result.output.get("figure_manifest_path", ""), "")
@@ -1269,13 +1405,13 @@ class EvidenceNormalizeNewFieldsTests(unittest.TestCase):
         self.assertIn("comparative", tags)
 
     def test_topic_tags_no_match(self):
-        """No keyword match → empty list."""
+        """No keyword match ??empty list."""
         from report_workflow.nodes.evidence_normalize import determine_topic_tags
         tags = determine_topic_tags("The document was uploaded on 2024-01-01.")
         self.assertEqual(tags, [])
 
     def test_topic_tags_deduplicated(self):
-        """Same tag matched by multiple keywords → deduplicated."""
+        """Same tag matched by multiple keywords ??deduplicated."""
         from report_workflow.nodes.evidence_normalize import determine_topic_tags
         tags = determine_topic_tags(
             "The method methodology procedure protocol was used in this study."
@@ -1403,10 +1539,10 @@ class SourceParseNewTypesTests(unittest.TestCase):
 
 class DiversityGateTests(unittest.TestCase):
     def test_evidence_count_below_5_hard_fails(self):
-        """academic_report with < 5 evidence entries → hard fail."""
+        """academic_paper with < 5 evidence entries ??hard fail."""
         from report_workflow.nodes.qa_gate import _source_diversity_reasons
         state = ReportState.new("report", [], "out")
-        state.spec["report_family"] = "academic_report"
+        state.spec["report_profile"] = "academic_paper"
         # Create 3 evidence entries (below the new threshold of 5)
         evidence_entries = [
             {"evidence_id": f"e{i}", "source_role": "code_artifact"}
@@ -1418,12 +1554,12 @@ class DiversityGateTests(unittest.TestCase):
             reasons = _source_diversity_reasons(state)
         self.assertTrue(any("5 evidence entries" in r for r in reasons))
 
-    def test_academic_report_all_primary_source_warns_without_code_artifact(self):
+    def test_academic_paper_all_primary_source_warns_without_code_artifact(self):
         """Missing code_artifact is advisory when docs can support architecture claims."""
         from report_workflow.nodes.qa_gate import _source_diversity_reasons
         state = ReportState.new("report", [], "out")
-        state.spec["report_family"] = "academic_report"
-        # 12 entries all primary_source — no code_artifact role
+        state.spec["report_profile"] = "academic_paper"
+        # 12 entries all primary_source ??no code_artifact role
         evidence_entries = [
             {"evidence_id": f"e{i}", "source_role": "primary_source"}
             for i in range(12)
@@ -1441,7 +1577,7 @@ class DiversityGateTests(unittest.TestCase):
 
 class CitationBindTests(unittest.TestCase):
     def test_resolve_citations_no_double_brackets(self):
-        """graph_analysis citation resolved → single brackets, not double."""
+        """graph_analysis citation resolved ??single brackets, not double."""
         evidence_ledger = [
             {
                 "evidence_id": "g1",
@@ -1459,7 +1595,7 @@ class CitationBindTests(unittest.TestCase):
         self.assertIn("[Source: graphify:GRAPH_REPORT.md]", resolved)
 
     def test_resolve_citations_code_artifact_no_double_brackets(self):
-        """code_artifact citation resolved → single brackets."""
+        """code_artifact citation resolved ??single brackets."""
         evidence_ledger = [
             {
                 "evidence_id": "c1",
@@ -1475,7 +1611,7 @@ class CitationBindTests(unittest.TestCase):
         self.assertIn("[Source: model.py]", resolved)
 
     def test_resolve_citations_research_document_apa(self):
-        """research_document citation → APA in brackets (already correct)."""
+        """research_document citation ??APA in brackets (already correct)."""
         evidence_ledger = [
             {
                 "evidence_id": "r1",
@@ -1488,7 +1624,7 @@ class CitationBindTests(unittest.TestCase):
         merged = "Previous work [CITE:r1] shows..."
         resolved, audit = resolve_citations(merged, evidence_ledger, [])
         # APA citation is wrapped in [] by format_apa_citation; resolve wraps in [] again
-        # So this will be [[Author, Year]] — this is existing behavior for research_document
+        # So this will be [[Author, Year]] ??this is existing behavior for research_document
         # The Fix #4 only fixes code_artifact/graph_analysis which we already control
         self.assertNotIn("[[Source:", resolved)
 
@@ -1534,7 +1670,7 @@ class ResultsModeTests(unittest.TestCase):
         """results_mode from outline takes priority over blueprint."""
         from report_workflow.nodes.qa_gate import _results_section_reasons
         state = ReportState.new("report", [], "out")
-        state.spec["report_family"] = "academic_report"
+        state.spec["report_profile"] = "academic_paper"
         # Blueprint says empirical, but outline says architectural_characterization
         state.plan["blueprint"] = {
             "sections": {"results": {"results_mode": "empirical"}}
@@ -1560,7 +1696,7 @@ class ResultsModeTests(unittest.TestCase):
         """When outline has no results_mode, blueprint is used."""
         from report_workflow.nodes.qa_gate import _results_section_reasons
         state = ReportState.new("report", [], "out")
-        state.spec["report_family"] = "academic_report"
+        state.spec["report_profile"] = "academic_paper"
         state.plan["blueprint"] = {
             "sections": {"results": {"results_mode": "architectural_characterization"}}
         }

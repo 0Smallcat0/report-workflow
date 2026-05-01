@@ -1,6 +1,5 @@
 """Tests for base_document_diff and revision_apply enhancements."""
 import json
-import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -15,6 +14,7 @@ from report_workflow.agent_wrapper import (
     submit_revision_plan,
     preview_revision_diff,
 )
+from report_workflow.state import register_job_run
 
 
 class ComputeRevisionDiffTests(unittest.TestCase):
@@ -172,8 +172,9 @@ class WriteDiffReportTests(unittest.TestCase):
 
     def test_writes_json(self):
         job_id = "test_diff_report"
-        run_dir = Path(os.path.expanduser("~")) / ".hermes" / "workflow_runs" / job_id
+        run_dir = Path(tempfile.mkdtemp()) / f"diff-report--{job_id}"
         run_dir.mkdir(parents=True, exist_ok=True)
+        register_job_run(job_id, run_dir)
 
         try:
             path = write_diff_report(job_id, {"test": True})
@@ -191,8 +192,10 @@ class AgentToolRevisionTests(unittest.TestCase):
 
     def setUp(self):
         self.job_id = "test_revision_tools"
-        self.run_dir = Path(os.path.expanduser("~")) / ".hermes" / "workflow_runs" / self.job_id
+        self.tmpdir = tempfile.mkdtemp()
+        self.run_dir = Path(self.tmpdir) / f"revision-tools--{self.job_id}"
         self.run_dir.mkdir(parents=True, exist_ok=True)
+        register_job_run(self.job_id, self.run_dir)
 
         # Write base_document_sections
         base = {"results": "We found 388 files with 5,171 nodes."}
@@ -202,7 +205,7 @@ class AgentToolRevisionTests(unittest.TestCase):
 
     def tearDown(self):
         import shutil
-        shutil.rmtree(self.run_dir, ignore_errors=True)
+        shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def test_submit_validates_valid_plan(self):
         plan = {"changes": [

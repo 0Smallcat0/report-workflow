@@ -1,21 +1,219 @@
 """Tests for workflow improvements: sanity gate, table styling, facts freeze, query evidence."""
 import json
-import os
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
+from types import SimpleNamespace
+
+from report_workflow.state import ReportState, register_job_run
 
 # Test pre-render sanity gate
 from report_workflow.nodes.docx_render import _pre_render_sanity_check
-from report_workflow.nodes.intake import infer_report_family_detail
+from report_workflow.nodes.guideline_select import run_guideline_select
+from report_workflow.profiles import infer_report_profile, select_reference_template_mode
+from report_workflow.prompts.intake_prompt import INTAKE_SYSTEM_PROMPT
 from report_workflow.nodes.reference_verify import _is_publication_reference_candidate
 
-# Test query_evidence
-from report_workflow.agent_wrapper import query_evidence
+# Test agent wrapper entrypoints
+from report_workflow.agent_wrapper import query_evidence, start_report_task
+from report_workflow.preflight import FeatureDiscovery, FeatureInfo, PreflightResult
 
-# Test policy subtype
+# Test profile policy overrides
 from report_workflow.policies.policy_pack import get_policy, _POLICY_CACHE
+
+
+class AgentWrapperPreflightGateTests(unittest.TestCase):
+    def _skip_optional_decisions(self):
+        return {
+            "confirmed_by_user": True,
+            "install_decisions": {},
+            "feature_decisions": {
+                "web_research": "skip",
+                "notebook_sync": "skip",
+            },
+        }
+
+    def _config(self, *, research=False, notebook=False, notebook_id=None):
+        return SimpleNamespace(
+            enable_research=research,
+            enable_notebook_sync=notebook,
+            notebooklm_notebook_id=notebook_id,
+            notebooklm_storage_path=None,
+            as_env_summary=lambda: {
+                "enable_research": research,
+                "enable_notebook_sync": notebook,
+                "notebooklm_notebook_id": notebook_id,
+            },
+        )
+
+    def _discovery(self, *, research_enabled=False, notebook_enabled=False):
+        return FeatureDiscovery(features=[
+            FeatureInfo(
+                feature_id="web_research",
+                name="Web Research",
+                description="Ready research backend",
+                enabled=research_enabled,
+                ready=True,
+                missing_setup=[],
+                install_commands=[],
+                config_flag="enable_research",
+            ),
+            FeatureInfo(
+                feature_id="notebook_sync",
+                name="NotebookLM Sync",
+                description="Ready notebook integration",
+                enabled=notebook_enabled,
+                ready=True,
+                missing_setup=[],
+                install_commands=[],
+                config_flag="enable_notebook_sync",
+            ),
+        ])
+
+    @patch("report_workflow.agent_wrapper.prepare_workflow")
+    @patch("report_workflow.agent_wrapper.check_preflight")
+    @patch("report_workflow.agent_wrapper.discover_features")
+    @patch("report_workflow.agent_wrapper.load_config")
+    def test_start_report_task_requires_preflight_confirmation(
+        self, mock_config, mock_discovery, mock_preflight, mock_prepare
+    ):
+        mock_config.return_value = self._config()
+        mock_preflight.return_value = PreflightResult(ok=True, missing_packages=[])
+        mock_discovery.return_value = self._discovery()
+
+        result = start_report_task("Draft report", [], output_dir="out")
+
+        self.assertEqual(result["status"], "needs_user_decision")
+        self.assertTrue(result["agent_should_ask_user"])
+        mock_prepare.assert_not_called()
+
+    @patch("report_workflow.agent_wrapper.prepare_workflow")
+    @patch("report_workflow.agent_wrapper.check_preflight")
+    @patch("report_workflow.agent_wrapper.discover_features")
+    @patch("report_workflow.agent_wrapper.load_config")
+    def test_start_report_task_allows_explicit_skip_after_confirmation(
+        self, mock_config, mock_discovery, mock_preflight, mock_prepare
+    ):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("Draft report", [], tmpdir)
+            state.status = "completed"
+            mock_prepare.return_value = state
+            mock_config.return_value = self._config()
+            mock_preflight.return_value = PreflightResult(ok=True, missing_packages=[])
+            mock_discovery.return_value = self._discovery()
+
+            result = start_report_task(
+                "Draft report",
+                [],
+                output_dir=tmpdir,
+                enable_research=False,
+                enable_notebook_sync=False,
+                preflight_confirmed=True,
+                preflight_decisions=self._skip_optional_decisions(),
+            )
+
+        self.assertEqual(result["status"], "completed")
+        mock_prepare.assert_called_once()
+
+    @patch("report_workflow.agent_wrapper.prepare_workflow")
+    @patch("report_workflow.agent_wrapper.check_preflight")
+    @patch("report_workflow.agent_wrapper.discover_features")
+    @patch("report_workflow.agent_wrapper.load_config")
+    def test_start_report_task_blocks_notebook_without_notebook_id(
+        self, mock_config, mock_discovery, mock_preflight, mock_prepare
+    ):
+        mock_config.return_value = self._config(notebook=True, notebook_id=None)
+        mock_preflight.return_value = PreflightResult(ok=True, missing_packages=[])
+        mock_discovery.return_value = self._discovery(notebook_enabled=True)
+
+        result = start_report_task(
+            "Draft report",
+            [],
+            output_dir="out",
+            enable_notebook_sync=True,
+            preflight_confirmed=True,
+            preflight_decisions={
+                "confirmed_by_user": True,
+                "install_decisions": {},
+                "feature_decisions": {
+                    "web_research": "skip",
+                    "notebook_sync": "enable",
+                },
+            },
+        )
+
+        self.assertEqual(result["status"], "needs_user_decision")
+        self.assertIn("notebooklm_notebook_id", result["message"])
+        mock_prepare.assert_not_called()
+
+    @patch("report_workflow.agent_wrapper.prepare_workflow")
+    @patch("report_workflow.agent_wrapper.check_preflight")
+    @patch("report_workflow.agent_wrapper.discover_features")
+    @patch("report_workflow.agent_wrapper.load_config")
+    def test_start_report_task_blocks_missing_critical_render_dependency(
+        self, mock_config, mock_discovery, mock_preflight, mock_prepare
+    ):
+        mock_config.return_value = self._config()
+        mock_preflight.return_value = PreflightResult(
+            ok=True,
+            missing_packages=[],
+            external_tool_warnings=[{
+                "tool": "pandoc",
+                "severity": "critical",
+                "installed": False,
+                "install_command": "winget install JohnMacFarlane.Pandoc",
+                "description": "Required for high-quality DOCX rendering.",
+            }],
+        )
+        mock_discovery.return_value = self._discovery()
+
+        result = start_report_task(
+            "Draft report",
+            [],
+            output_dir="out",
+            enable_research=False,
+            enable_notebook_sync=False,
+            preflight_confirmed=True,
+            preflight_decisions={
+                "confirmed_by_user": True,
+                "install_decisions": {
+                    "pandoc": "install",
+                },
+                "feature_decisions": {
+                    "web_research": "skip",
+                    "notebook_sync": "skip",
+                },
+            },
+        )
+
+        self.assertEqual(result["status"], "needs_user_decision")
+        self.assertIn("Critical render dependencies", result["message"])
+        mock_prepare.assert_not_called()
+
+    @patch("report_workflow.agent_wrapper.prepare_workflow")
+    @patch("report_workflow.agent_wrapper.check_preflight")
+    @patch("report_workflow.agent_wrapper.discover_features")
+    @patch("report_workflow.agent_wrapper.load_config")
+    def test_start_report_task_rejects_boolean_confirmation_without_decision_record(
+        self, mock_config, mock_discovery, mock_preflight, mock_prepare
+    ):
+        mock_config.return_value = self._config()
+        mock_preflight.return_value = PreflightResult(ok=True, missing_packages=[])
+        mock_discovery.return_value = self._discovery()
+
+        result = start_report_task(
+            "Draft report",
+            [],
+            output_dir="out",
+            enable_research=False,
+            enable_notebook_sync=False,
+            preflight_confirmed=True,
+        )
+
+        self.assertEqual(result["status"], "needs_user_decision")
+        self.assertIn("preflight_decisions", result["decision_issues"][0])
+        mock_prepare.assert_not_called()
 
 
 class PreRenderSanityGateTests(unittest.TestCase):
@@ -99,7 +297,7 @@ class PreRenderSanityGateTests(unittest.TestCase):
         self.assertTrue(any("Facts freeze violation" in i for i in issues))
 
     def test_ascii_art_detected(self):
-        md = "```\n┌──────┐\n│ Box  │\n└──────┘\n```\n"
+        md = "```\n????????n??Box  ?n????????n```\n"
         issues = _pre_render_sanity_check(md)
         self.assertTrue(any("ASCII art" in i for i in issues))
 
@@ -115,8 +313,9 @@ class QueryEvidenceTests(unittest.TestCase):
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
         self.job_id = "test_query_job"
-        self.run_dir = Path(os.path.expanduser("~")) / ".hermes" / "workflow_runs" / self.job_id
+        self.run_dir = Path(self.tmpdir) / f"query-evidence--{self.job_id}"
         self.run_dir.mkdir(parents=True, exist_ok=True)
+        register_job_run(self.job_id, self.run_dir)
 
         # Write test evidence ledger
         entries = []
@@ -169,42 +368,75 @@ class QueryEvidenceTests(unittest.TestCase):
         self.assertEqual(result["status"], "error")
 
 
-class PolicySubtypeTests(unittest.TestCase):
-    """Test policy subtype overrides."""
+class PolicyProfileTests(unittest.TestCase):
+    """Test profile policy overrides."""
 
     def setUp(self):
         _POLICY_CACHE.clear()
 
     def test_default_academic_requires_structure(self):
-        policy = get_policy("academic_report")
+        policy = get_policy("academic_paper")
         self.assertTrue(policy.abstract.structure_required)
         self.assertEqual(policy.abstract.word_count_min, 180)
 
-    def test_admissions_subtype_relaxes_abstract(self):
-        policy = get_policy("academic_report", subtype="admissions_report")
+    def test_admissions_profile_relaxes_abstract(self):
+        policy = get_policy("admissions_report")
         self.assertFalse(policy.abstract.structure_required)
         self.assertTrue(policy.abstract.allow_plain_paragraph)
         self.assertEqual(policy.abstract.word_count_min, 150)
         self.assertEqual(policy.abstract.word_count_max, 250)
 
-    def test_subtype_preserves_other_policies(self):
-        policy = get_policy("academic_report", subtype="admissions_report")
+    def test_admissions_profile_preserves_other_policies(self):
+        policy = get_policy("admissions_report")
         # Other policies should remain unchanged
         self.assertTrue(policy.front_matter.required)
         self.assertTrue(policy.claim.thesis_required)
         self.assertEqual(policy.citation.style, "APA")
 
-    def test_unknown_subtype_returns_base(self):
-        policy = get_policy("academic_report", subtype="unknown_type")
-        # Should fall back to base academic policy
-        self.assertTrue(policy.abstract.structure_required)
-
-    def test_intake_infers_admissions_detail(self):
-        detail = infer_report_family_detail(
-            "Write an admissions-facing academic project report for graduate school admissions.",
-            "academic_report",
+    def test_intake_infers_admissions_profile(self):
+        profile = infer_report_profile(
+            "Write an admissions-facing academic project report for graduate school admissions."
         )
-        self.assertEqual(detail, "admissions_project_report")
+        self.assertEqual(profile, "admissions_project_report")
+
+    def test_custom_profile_defaults_are_lenient(self):
+        policy = get_policy("custom")
+        self.assertEqual(policy.abstract.word_count_min, 0)
+        self.assertFalse(policy.reference.doi_verification_required)
+        self.assertFalse(policy.reference.reality_report_required)
+        self.assertFalse(policy.citation.source_marker_hard_block)
+        self.assertTrue(policy.claim.role_validation_required)
+
+    def test_custom_profile_has_no_default_clinical_guideline(self):
+        state = ReportState.new("plain custom report", [], "out")
+        state.spec["report_profile"] = "custom"
+        state.spec["keywords"] = []
+        state = run_guideline_select(state)
+        self.assertEqual(state.spec["selected_guidelines"], [])
+
+    def test_reference_template_fixed_markers_are_case_insensitive(self):
+        self.assertEqual(
+            select_reference_template_mode("academic_paper", "Use the Exact Format from the base document."),
+            "fixed_template",
+        )
+        self.assertEqual(
+            select_reference_template_mode("academic_paper", "\u5b8c\u5168\u7167\u683c\u5f0f"),
+            "fixed_template",
+        )
+
+    def test_intake_prompt_lists_current_profiles(self):
+        for profile in (
+            "engineering_lab_report",
+            "academic_paper",
+            "business_report",
+            "proposal",
+            "admissions_report",
+            "admissions_project_report",
+            "custom",
+        ):
+            self.assertIn(profile, INTAKE_SYSTEM_PROMPT)
+        self.assertIn("report_profile_description", INTAKE_SYSTEM_PROMPT)
+        self.assertNotIn('"report_profile": "string description"', INTAKE_SYSTEM_PROMPT)
 
 
 class ReferenceCurationTests(unittest.TestCase):

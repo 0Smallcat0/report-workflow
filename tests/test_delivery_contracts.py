@@ -2,6 +2,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import patch
 
 from docx import Document
 
@@ -13,13 +14,14 @@ from report_workflow.nodes.reference_reality_check import _classify_reference
 from report_workflow.nodes.front_matter_build import _build_front_matter
 from report_workflow.nodes.front_matter_build import run_front_matter_build
 from report_workflow.nodes.final_publish import run_final_publish
-from report_workflow.nodes.intake import infer_report_family_detail
+from report_workflow.profiles import infer_report_profile, normalize_profile_id
 from report_workflow.nodes.reference_verify import _is_publication_reference_candidate
 from report_workflow.nodes.project_identity_gate import run_project_identity_gate
 from report_workflow.nodes.figure_quality import run_figure_quality
 from report_workflow.nodes.admissions_tone_gate import run_admissions_tone_gate
 from report_workflow.nodes.reference_relevance_gate import run_reference_relevance_gate
 from report_workflow.nodes.claim_plan import run_claim_plan
+from report_workflow.nodes.evidence_normalize import run_evidence_normalize
 from report_workflow.nodes.revision_apply import run_revision_apply
 from report_workflow.agent_wrapper import submit_and_publish_report
 from report_workflow.artifact_contract import (
@@ -202,8 +204,8 @@ class ReferenceRealityClassificationTests(unittest.TestCase):
 class FrontMatterPrecedenceTests(unittest.TestCase):
     def test_structured_title_wins_over_base_preamble_title(self):
         state = ReportState.new("revise report", ["base.md"], "out")
-        state.spec["report_family"] = "academic_report"
-        state.spec["report_family_detail"] = "admissions_report"
+        state.spec["report_profile"] = "academic_paper"
+        state.spec["report_profile"] = "admissions_report"
         state.spec["task_intent"] = "revise_existing"
         state.spec["front_matter"] = {
             "title": "Short Explicit Title",
@@ -223,8 +225,8 @@ class FrontMatterPrecedenceTests(unittest.TestCase):
 
     def test_markdown_bold_front_matter_is_cleaned(self):
         state = ReportState.new("revise report", ["base.md"], "out")
-        state.spec["report_family"] = "academic_report"
-        state.spec["report_family_detail"] = "admissions_report"
+        state.spec["report_profile"] = "academic_paper"
+        state.spec["report_profile"] = "admissions_report"
         state.spec["task_intent"] = "revise_existing"
         state.plan["blueprint"] = {"front_matter": {}}
         state.sources["base_document_sections"] = {
@@ -249,8 +251,8 @@ class FrontMatterPrecedenceTests(unittest.TestCase):
 
     def test_generic_research_metadata_hard_fails(self):
         state = ReportState.new("write report", ["source.md"], "out")
-        state.spec["report_family"] = "academic_report"
-        state.spec["report_family_detail"] = "admissions_report"
+        state.spec["report_profile"] = "academic_paper"
+        state.spec["report_profile"] = "admissions_report"
         state.spec["front_matter"] = {
             "title": "Deterministic Compilation Architecture",
             "author_block": "Research Author",
@@ -262,6 +264,21 @@ class FrontMatterPrecedenceTests(unittest.TestCase):
 
         with self.assertRaises(QAHardBlockError):
             run_front_matter_build(state)
+
+    def test_admissions_project_report_allows_missing_publication_metadata(self):
+        state = ReportState.new("write admissions project report", ["source.md"], "out")
+        state.spec["report_profile"] = "academic_paper"
+        state.spec["report_profile"] = "admissions_project_report"
+        state.plan["blueprint"] = {
+            "front_matter": {
+                "title": "Quant Strategy Validation Platform",
+                "keywords": ["Taiwan equities", "validation"],
+            }
+        }
+
+        result = run_front_matter_build(state)
+
+        self.assertEqual(result.plan["front_matter"]["title"], "Quant Strategy Validation Platform")
 
 
 class QualityGateContractTests(unittest.TestCase):
@@ -473,6 +490,30 @@ class QualityGateContractTests(unittest.TestCase):
             with self.assertRaises(QAHardBlockError):
                 validate_evidence_ledger_provenance(ledger)
 
+    def test_evidence_normalize_adds_missing_content_hash(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("normalize parser blocks", [], tmpdir)
+            state.sources["source_registry"] = [{
+                "source_id": "S001",
+                "file_name": "sample.pdf",
+                "file_path": __file__,
+                "file_type": "pdf",
+                "file_size": 100,
+                "artifact_role": "source_data",
+                "parsed_content": [{
+                    "block_id": "B001",
+                    "block_type": "paragraph",
+                    "content": "This method paragraph has enough source content to become evidence.",
+                }],
+            }]
+
+            run_evidence_normalize(state)
+
+            ledger = Path(state.sources["evidence_ledger_path"])
+            row = json.loads(ledger.read_text(encoding="utf-8").strip())
+            self.assertEqual(len(row["content_hash"]), 16)
+            validate_evidence_ledger_provenance(ledger)
+
     def test_repo_hygiene_detects_orphan_repair_script(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir)
@@ -492,25 +533,23 @@ class QualityGateContractTests(unittest.TestCase):
             (root / "strip_figures.py").write_text("print('temp')", encoding="utf-8")
             state.output["final_docx_path"] = str(docx)
             state.output["output_dir"] = str(root / "out")
-            cwd = Path.cwd()
-            try:
-                import os
-                os.chdir(root)
+            with patch("report_workflow.nodes.final_publish.find_repo_hygiene_issues", return_value=[str(root / "strip_figures.py")]):
                 with self.assertRaises(QAHardBlockError):
                     run_final_publish(state)
-            finally:
-                os.chdir(cwd)
 
     def test_admissions_project_report_inference_and_reference_policy(self):
-        detail = infer_report_family_detail(
-            "Write an admissions-facing academic project report from internal architecture docs.",
-            "academic_report",
+        profile = infer_report_profile(
+            "Write an admissions-facing academic project report from internal architecture docs."
         )
-        self.assertEqual(detail, "admissions_project_report")
+        self.assertEqual(profile, "admissions_project_report")
+
+    def test_report_profile_alias_normalizes_to_admissions_project(self):
+        profile = normalize_profile_id("admissions project report")
+        self.assertEqual(profile, "admissions_project_report")
 
     def test_reference_relevance_allows_internal_only_for_admissions_project_report(self):
         state = ReportState.new("report", [], "out")
-        state.spec["report_family_detail"] = "admissions_project_report"
+        state.spec["report_profile"] = "admissions_project_report"
         state.spec["task_intent"] = "new_draft"
         with tempfile.TemporaryDirectory() as tmpdir:
             report = Path(tmpdir) / "reference_verify_report.json"
@@ -539,8 +578,8 @@ class QualityGateContractTests(unittest.TestCase):
 
     def test_project_identity_gate_blocks_topic_drift(self):
         state = ReportState.new("write admissions report", [], "out")
-        state.spec["report_family"] = "academic_report"
-        state.spec["report_family_detail"] = "admissions_report"
+        state.spec["report_profile"] = "academic_paper"
+        state.spec["report_profile"] = "admissions_report"
         state.spec["task_intent"] = "new_draft"
         state.plan["front_matter"] = {
             "title": "A Trustworthy Verification Framework for LLM-Assisted Quantitative Strategy Generation in U.S. Equity Markets"
@@ -559,8 +598,8 @@ class QualityGateContractTests(unittest.TestCase):
 
     def test_project_identity_gate_passes_project_spine(self):
         state = ReportState.new("write admissions report", [], "out")
-        state.spec["report_family"] = "academic_report"
-        state.spec["report_family_detail"] = "admissions_report"
+        state.spec["report_profile"] = "academic_paper"
+        state.spec["report_profile"] = "admissions_report"
         state.spec["task_intent"] = "new_draft"
         state.plan["front_matter"] = {
             "title": "Deterministic Compilation Architecture for StrategyIR Trading Systems"
@@ -580,9 +619,42 @@ class QualityGateContractTests(unittest.TestCase):
             result = run_project_identity_gate(state)
         self.assertTrue(result.runtime["project_identity_report_path"])
 
+    def test_project_identity_gate_accepts_distributed_domain_context(self):
+        state = ReportState.new("write admissions report", [], "out")
+        state.spec["report_profile"] = "academic_paper"
+        state.spec["report_profile"] = "admissions_project_report"
+        state.plan["front_matter"] = {
+            "title": "Quant: Taiwan Equity Strategy Validation"
+        }
+        state.plan["thesis_statement"] = (
+            "Quant supports Taiwan equities, LLM validation, and historical replay "
+            "for a graduate admissions project."
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = WORKFLOW_RUNS_DIR / state.job_id
+            identity_path = run_dir / "project_identity.json"
+            identity_path.write_text(json.dumps({
+                "required_terms": ["Quant", "Taiwan equities", "historical replay"],
+                "required_context_terms": ["validation"],
+                "forbidden_terms": [],
+                "canonical_title_terms": ["Quant"],
+                "domain_context": "Taiwan equities and graduate admissions project introduction",
+                "author_metadata": {},
+            }), encoding="utf-8")
+            draft = Path(tmpdir) / "draft.md"
+            draft.write_text(
+                "# Abstract\n\nQuant is a validation platform for Taiwan equities and historical replay.\n\n"
+                "# Introduction\n\nThe project introduces a graduate admissions report about Taiwan equities, "
+                "validation, and historical replay.\n",
+                encoding="utf-8",
+            )
+            state.drafts["merged_draft_md"] = str(draft)
+            result = run_project_identity_gate(state)
+        self.assertTrue(result.runtime["project_identity_report_path"])
+
     def test_figure_quality_blocks_undeclared_prose_reference(self):
         state = ReportState.new("report", [], "out")
-        state.spec["report_family"] = "academic_report"
+        state.spec["report_profile"] = "academic_paper"
         state.plan["outline"] = {"sections": {"results": {"figure_ids": []}}}
         with tempfile.TemporaryDirectory() as tmpdir:
             merged = Path(tmpdir) / "merged.md"
@@ -593,7 +665,7 @@ class QualityGateContractTests(unittest.TestCase):
 
     def test_admissions_tone_gate_blocks_meta_reader_phrase(self):
         state = ReportState.new("report", [], "out")
-        state.spec["report_family_detail"] = "admissions_report"
+        state.spec["report_profile"] = "admissions_report"
         with tempfile.TemporaryDirectory() as tmpdir:
             draft = Path(tmpdir) / "draft.md"
             draft.write_text(
@@ -606,7 +678,7 @@ class QualityGateContractTests(unittest.TestCase):
 
     def test_reference_relevance_gate_blocks_generic_reference(self):
         state = ReportState.new("report", [], "out")
-        state.spec["report_family_detail"] = "admissions_report"
+        state.spec["report_profile"] = "admissions_report"
         state.plan["project_identity"] = {
             "required_terms": ["deterministic compilation", "StrategyIR"],
             "required_context_terms": ["compiler architecture"],
@@ -637,7 +709,7 @@ class QualityGateContractTests(unittest.TestCase):
 
     def test_reference_relevance_gate_accepts_role_supported_reference(self):
         state = ReportState.new("report", [], "out")
-        state.spec["report_family_detail"] = "admissions_report"
+        state.spec["report_profile"] = "admissions_report"
         with tempfile.TemporaryDirectory() as tmpdir:
             report = Path(tmpdir) / "reference_verify_report.json"
             report.write_text(json.dumps({

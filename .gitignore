@@ -20,6 +20,8 @@ venv/
 
 # Workflow run data (generated at runtime)
 output/
+out/
+custom-out/
 reports/
 tmp/
 
