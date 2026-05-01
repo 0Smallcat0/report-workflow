@@ -1,0 +1,28 @@
+# Changelog
+
+## 4.0.0 - 2026-05-01
+
+### Breaking Changes
+
+- Replaced the public `report_family` / detail / subtype model with the single `report_profile` selector.
+- Replaced `--family` with `--profile` in the CLI.
+- Removed legacy report family blueprint IDs: `academic_report`, `work_report`, and `hybrid_report`.
+
+### Added
+
+- Added built-in profiles: `engineering_lab_report`, `academic_paper`, `business_report`, `proposal`, `admissions_report`, `admissions_project_report`, and `custom`.
+- Added a profile registry and profile contract artifact (`report_profile.json`).
+- Added Chinese engineering lab report guidance and the `engineering_lab_report` blueprint.
+- Added custom profile defaults for user-defined structures with evidence-backed claims and section contracts, while keeping citation, word count, and figure requirements lenient.
+
+### Changed
+
+- Updated policy lookup, blueprint loading, CLI arguments, agent wrapper inputs, artifact metadata, and render/QA gates to use `report_profile`.
+- Updated agent-facing docs and skill metadata to describe the generalized report workflow.
+- Updated reference-template handling so exact-format/cover prompts select `fixed_template`; otherwise the default is `style_reference`.
+
+### Verification
+
+- `python -m compileall -q src tests`
+- `python -m unittest discover -s tests -v`
+- `git diff --check`

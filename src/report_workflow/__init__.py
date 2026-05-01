@@ -1,2 +1,2 @@
-# Report Workflow — deterministic source-to-report pipeline
-__version__ = "3.0.0"
+# Report Workflow: deterministic source-to-report pipeline
+__version__ = "4.0.0"
