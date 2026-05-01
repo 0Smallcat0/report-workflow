@@ -15,12 +15,12 @@ def available_guidelines() -> set[str]:
 
 
 def run_guideline_select(state: ReportState) -> ReportState:
-    """T3: GUIDELINE_SELECT - select guidelines based on keywords and report family."""
-    with open(GUIDELINE_RULES_PATH) as f:
+    """T3: GUIDELINE_SELECT - select guidelines based on keywords and report profile."""
+    with open(GUIDELINE_RULES_PATH, encoding="utf-8-sig") as f:
         config = json.load(f)
 
     user_prompt = state.spec.get("user_prompt", "").lower()
-    report_family = state.spec.get("report_family", "academic_report")
+    report_profile = state.spec.get("report_profile", "academic_paper")
     keywords = [str(keyword).lower() for keyword in state.spec.get("keywords", [])]
     search_text = " ".join([user_prompt, *keywords])
     available = available_guidelines()
@@ -46,13 +46,13 @@ def run_guideline_select(state: ReportState) -> ReportState:
         # This prevents false-positive hard blocks from medical checklist
         # rules applied to non-clinical project reports.
         # ------------------------------------------------------------------
-        policy = get_policy(report_family)
+        policy = get_policy(report_profile)
         if policy.guideline.auto_select_allowed:
-            candidates = config.get("defaults", {}).get(report_family, [])
+            candidates = config.get("defaults", {}).get(report_profile, [])
         else:
             candidates = []
         matched_rule = {
-            "id": f"default:{report_family}",
+            "id": f"default:{report_profile}",
             "matched_keywords": [],
         }
 

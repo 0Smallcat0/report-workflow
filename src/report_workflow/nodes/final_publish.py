@@ -2,13 +2,16 @@
 import shutil
 import time
 from pathlib import Path
-from ..state import ReportState, WORKFLOW_RUNS_DIR
+from ..state import ReportState, run_dir_for
 from ..errors import QAHardBlockError
 from ..artifact_contract import find_repo_hygiene_issues
 
 
 def _copy_with_retry(src: Path, dst: Path, max_retries: int = 3) -> None:
     """Copy file with retry on PermissionError (Windows file locking)."""
+    if src.resolve() == dst.resolve():
+        return
+
     last_error = None
     for attempt in range(max_retries):
         try:
@@ -49,7 +52,7 @@ def run_final_publish(state: ReportState) -> ReportState:
     if not final_docx or not Path(final_docx).exists():
         raise QAHardBlockError("Final DOCX is missing")
 
-    output_dir = Path(state.output.get("output_dir") or (WORKFLOW_RUNS_DIR / state.job_id))
+    output_dir = Path(state.output.get("output_dir") or run_dir_for(state))
     output_dir.mkdir(parents=True, exist_ok=True)
     final_path = output_dir / "final.docx"
 
@@ -67,7 +70,7 @@ def run_final_publish(state: ReportState) -> ReportState:
 
     state.update_status("completed")
 
-    run_dir = WORKFLOW_RUNS_DIR / state.job_id
+    run_dir = run_dir_for(state)
     state.checkpoint("FINAL_PUBLISH")
 
     return state

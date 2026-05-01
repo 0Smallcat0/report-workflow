@@ -1,4 +1,5 @@
 """EVIDENCE_NORMALIZE node - deterministic evidence scoring."""
+import hashlib
 import json
 from datetime import datetime, timezone
 from pathlib import Path
@@ -397,6 +398,10 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
             elif line_start is not None:
                 source_span = f"line {line_start}"
 
+            content_hash = block.get("content_hash")
+            if not content_hash:
+                content_hash = hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
+
             unit: dict = {
                 "evidence_id": evidence_id,
                 "source_id": entry.get("source_id", ""),
@@ -415,7 +420,7 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
                 "source_span": source_span,
                 "line_start": line_start,
                 "line_end": line_end,
-                "content_hash": block.get("content_hash"),
+                "content_hash": content_hash,
                 "provenance_score": provenance_score,
                 "evidence_grade": grade,
                 "allowed_claim_types": allowed_claim_types.get(evidence_type, ["factual"]),

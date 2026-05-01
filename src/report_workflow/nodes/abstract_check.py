@@ -3,7 +3,7 @@
 MERGES: abstract_compress + abstract_sanity_check (Week 1 consolidation).
 
 Design philosophy (from academic-report-simplify-retrospective):
-  If the abstract is malformed, the agent should fix it — not the pipeline.
+  If the abstract is malformed, the agent should fix it, not the pipeline.
   This node validates and, if needed, performs minimal cleanup only.
   Complex structural reconstruction has been removed.
 
@@ -12,11 +12,11 @@ Position: After SECTION_DRAFT, replaces ABSTRACT_COMPRESS + ABSTRACT_SANITY_CHEC
 Responsibilities:
   1. Strip [CITE:...], [Source:...], and reference citation patterns
   2. Verify 5-section structure (## Background, ## Objective, ## Methods,
-     ## Principal Findings, ## Significance) for academic_report
-  3. Word count gate: 180–220 words for academic_report
+     ## Principal Findings, ## Significance) for academic_paper
+  3. Word count gate: 180-220 words for academic_paper
   4. Sanity checks: trailing ellipses, unfinished sentences,
      incomplete comparatives, internal markers, placeholder text
-  5. Hard fail → agent must rewrite; do NOT auto-repair
+  5. Hard fail: agent must rewrite; do NOT auto-repair
 
 Reads:
   - state.drafts.section_drafts["abstract"]
@@ -139,7 +139,7 @@ def _sanity_checks(text: str) -> list[str]:
 
     # Internal markers
     for m in _INTERNAL_MARKER.finditer(text):
-        errors.append(f"Internal marker残留: {m.group(0)!r}")
+        errors.append(f"Internal marker residue: {m.group(0)!r}")
 
     # Placeholder text
     if _PLACEHOLDER_PAT.search(text):
@@ -148,11 +148,11 @@ def _sanity_checks(text: str) -> list[str]:
     return errors
 
 
-def _word_count_check(text: str, family: str, subtype: str | None = None) -> list[str]:
+def _word_count_check(text: str, family: str) -> list[str]:
     """Check word count is in range per policy."""
     errors = []
     words = _count_words(text)
-    policy = get_policy(family, subtype)
+    policy = get_policy(family)
     if words < policy.abstract.word_count_min:
         errors.append(
             f"Abstract too short: {words} words "
@@ -177,20 +177,20 @@ def run_abstract_check(state: ReportState) -> ReportState:
     Writes state.drafts["abstract_final"] (cleaned publication-ready abstract).
 
     Hard blocks:
-      - Missing required section headings for academic_report
+      - Missing required section headings for academic_paper
       - Word count out of range (180-220 for academic)
       - Trailing ellipses, incomplete sentences, internal markers
       - Placeholder text
 
     Does NOT attempt complex structural reconstruction.
-    If validation fails, raises QAHardBlockError — agent must fix the draft.
+    If validation fails, raises QAHardBlockError; agent must fix the draft.
     """
     section_drafts = state.drafts.get("section_drafts", {})
     abstract_path = section_drafts.get("abstract", "")
-    family = state.spec.get("report_family", "academic_report")
+    family = state.spec.get("report_profile", "academic_paper")
 
     if not abstract_path or not Path(abstract_path).exists():
-        # No abstract — let QA_GATE catch it
+        # No abstract; let QA_GATE catch it
         return state
 
     try:
@@ -207,7 +207,7 @@ def run_abstract_check(state: ReportState) -> ReportState:
     cleaned = _strip_markers(raw_text)
 
     # Step 2: Structure check per policy
-    policy = get_policy(family, state.spec.get("report_family_detail") or None)
+    policy = get_policy(family)
     if policy.abstract.structure_required:
         all_errors.extend(_check_structure(cleaned))
 
@@ -215,11 +215,11 @@ def run_abstract_check(state: ReportState) -> ReportState:
     all_errors.extend(_sanity_checks(cleaned))
 
     # Step 4: Word count check
-    all_errors.extend(_word_count_check(cleaned, family, state.spec.get("report_family_detail") or None))
+    all_errors.extend(_word_count_check(cleaned, family))
 
     if all_errors:
         raise QAHardBlockError(
-            f"ABSTRACT_CHECK failed — {len(all_errors)} issue(s):\n"
+            f"ABSTRACT_CHECK failed: {len(all_errors)} issue(s):\n"
             + "\n".join(f"  - {e}" for e in all_errors)
         )
 

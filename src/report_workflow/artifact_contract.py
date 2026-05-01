@@ -12,8 +12,9 @@ import re
 from pathlib import Path
 from typing import Any
 
+from .config import PROJECT_ROOT
 from .errors import QAHardBlockError
-from .state import ReportState, WORKFLOW_RUNS_DIR
+from .state import ReportState, WORKFLOW_RUNS_DIR, run_dir_for
 
 
 CONTRACT_KEY = "_contract"
@@ -227,7 +228,7 @@ def validate_evidence_ledger_provenance(path: str | Path | None) -> None:
 
 
 def find_repo_hygiene_issues(root: str | Path | None = None) -> list[str]:
-    root_path = Path(root or Path.cwd())
+    root_path = Path(root or PROJECT_ROOT)
     patterns = [
         "fix_*.py",
         "strip_figures*.py",
@@ -274,8 +275,8 @@ def _evidence_signature(item: dict) -> tuple:
     )
 
 
-def _ledger_by_signature(job_id: str) -> dict[tuple, dict]:
-    ledger = WORKFLOW_RUNS_DIR / job_id / "evidence_ledger.jsonl"
+def _ledger_by_signature(job_id: str, *, workspace_root: str | Path | None = None) -> dict[tuple, dict]:
+    ledger = run_dir_for(job_id, workspace_root=workspace_root) / "evidence_ledger.jsonl"
     return {_evidence_signature(item): item for item in load_jsonl_without_contract(ledger)}
 
 
@@ -294,10 +295,17 @@ def _rewrite_citations(text: str, mapping: dict[str, str]) -> str:
     return re.sub(r"\[CITE:([^\]]+)\]", repl, text)
 
 
-def remap_evidence_ids(job_id: str, previous_job_id: str, *, write: bool = False) -> dict:
-    run_dir = WORKFLOW_RUNS_DIR / job_id
-    previous_by_sig = _ledger_by_signature(previous_job_id)
-    current_by_sig = _ledger_by_signature(job_id)
+def remap_evidence_ids(
+    job_id: str,
+    previous_job_id: str,
+    *,
+    write: bool = False,
+    workspace_root: str | Path | None = None,
+    previous_workspace_root: str | Path | None = None,
+) -> dict:
+    run_dir = run_dir_for(job_id, workspace_root=workspace_root)
+    previous_by_sig = _ledger_by_signature(previous_job_id, workspace_root=previous_workspace_root)
+    current_by_sig = _ledger_by_signature(job_id, workspace_root=workspace_root)
     mapping: dict[str, str] = {}
     unmapped: list[str] = []
 

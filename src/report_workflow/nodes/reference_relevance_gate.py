@@ -79,8 +79,8 @@ def _has_relevance(ref_text: str, terms: set[str]) -> bool:
 
 def run_reference_relevance_gate(state: ReportState) -> ReportState:
     """Hard-block generic or non-bearing references for admissions reports."""
-    detail = state.spec.get("report_family_detail")
-    if detail not in {"admissions_report", "admissions_project_report"}:
+    profile = state.spec.get("report_profile")
+    if profile not in {"admissions_report", "admissions_project_report"}:
         state.runtime["reference_relevance_report_path"] = ""
         return state
 

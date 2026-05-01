@@ -82,10 +82,7 @@ def _load_project_identity(state: ReportState) -> dict | None:
         identity = _normalize_identity(merged)
     elif file_identity:
         identity = _normalize_identity(file_identity)
-    elif (
-        state.spec.get("report_family") == "academic_report"
-        and state.spec.get("report_family_detail") == "admissions_report"
-    ):
+    elif state.spec.get("report_profile") == "admissions_report":
         identity = _normalize_identity(DEFAULT_ADMISSIONS_PROJECT_IDENTITY)
     else:
         return None
@@ -120,6 +117,30 @@ def _section_content(markdown: str, wanted: str) -> str:
 
 def _identity_hits(text: str, terms: list[str]) -> list[str]:
     return [term for term in terms if _term_present(text, term)]
+
+
+def _domain_context_present(text: str, domain_context: str) -> bool:
+    """Accept exact context or distributed key-term coverage.
+
+    Admissions project identities often use descriptive context phrases such as
+    "Taiwan equities and graduate admissions project introduction". Requiring
+    that exact phrase forces awkward meta prose into the final document, even
+    when all meaningful context terms are already present.
+    """
+    if not domain_context:
+        return True
+    if _term_present(text, domain_context):
+        return True
+
+    tokens = [
+        token
+        for token in re.findall(r"[A-Za-z0-9_]+", domain_context.lower())
+        if token not in {"and", "or", "the", "a", "an", "for", "of", "to"}
+    ]
+    if not tokens:
+        return False
+    hits = sum(1 for token in tokens if _term_present(text, token))
+    return hits >= max(2, len(tokens) - 1)
 
 
 def _validate_author_metadata(front_matter: dict, author_metadata: dict) -> list[str]:
@@ -159,7 +180,7 @@ def run_project_identity_gate(state: ReportState) -> ReportState:
         issues.append("required project identity terms missing: " + ", ".join(missing_required))
 
     domain_context = identity.get("domain_context", "")
-    if domain_context and not _term_present(full_text, domain_context):
+    if domain_context and not _domain_context_present(full_text, domain_context):
         issues.append(f"domain context missing: {domain_context}")
 
     forbidden_found = [term for term in identity["forbidden_terms"] if _term_present(full_text, term)]

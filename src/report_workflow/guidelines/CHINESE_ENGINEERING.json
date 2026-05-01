@@ -2,17 +2,18 @@
   "guideline_id": "chinese_engineering_report",
   "name": "Chinese Engineering Lab Report",
   "name_zh": "中文工程實驗報告",
-  "description": "Quality checklist for Chinese-language engineering laboratory reports, ported from report-from-notebooklm constants and QA rules.",
-  "applicable_families": ["academic_report"],
-  "applicable_details": ["chinese_engineering", "lab_report"],
+  "description": "Quality checklist for Chinese-language engineering laboratory reports. Focuses on section coverage, units, formulas, calculation traceability, figure/table references, and report-tone cleanup.",
+  "applicable_profiles": ["engineering_lab_report"],
   "language": "zh-TW",
 
   "required_sections": [
-    {"heading": "實驗簡介", "role": "introduction", "required": true},
-    {"heading": "實驗結果(圖、表)與分析", "role": "results", "required": true},
-    {"heading": "問題與討論", "role": "discussion", "required": true},
-    {"heading": "心得與建議", "role": "reflection", "required": true},
-    {"heading": "參考文獻", "role": "references", "required": true}
+    {"heading": "實驗目的", "role": "introduction", "required": true},
+    {"heading": "實驗原理", "role": "methods", "required": true},
+    {"heading": "實驗步驟", "role": "methods", "required": true},
+    {"heading": "結果與討論", "role": "results", "required": true},
+    {"heading": "問題與討論", "role": "discussion", "required": false},
+    {"heading": "結論與心得", "role": "reflection", "required": true},
+    {"heading": "參考資料", "role": "references", "required": true}
   ],
 
   "typography": {
@@ -36,35 +37,49 @@
       "agent"
     ],
     "subjective_terms": [
-      "非常完美",
       "非常成功",
-      "極佳",
-      "優秀",
-      "相當不錯",
-      "很棒"
+      "十分準確",
+      "顯著改善",
+      "明顯優於",
+      "完美",
+      "極佳"
     ],
     "first_person_terms": [
-      "我們",
       "我",
-      "本組認為",
-      "我認為"
+      "我們",
+      "本人",
+      "筆者"
     ],
     "first_person_policy": "warn",
     "subjective_policy": "warn"
   },
 
   "heading_detection": {
-    "section_heading_regex": "^(?:[一二三四五六七八九十]+[、.]|[IVX]+[.])",
+    "section_heading_regex": "^(?:[一二三四五六七八九十]+[、.]|[0-9]+[.)、]|[IVX]+[.])",
     "discussion_keywords": ["問題與討論", "討論"]
   },
 
   "extraction_heuristics": {
-    "formula_hint_regex": "(=|\\b(?:Re|Cd|C_D|CL|C_L|Cp|C_p)\\b|ρ|ν|μ|sqrt|√)",
-    "question_regex": "^\\d+[.、)]",
+    "formula_hint_regex": "(=|\\b(?:Re|Cd|C_D|CL|C_L|Cp|C_p)\\b|Δ|Σ|sqrt|\\^|/)",
+    "question_regex": "^\\d+[.)、]",
     "constant_keywords": [
-      "直徑", "弦長", "厚度", "密度", "黏度", "流速",
-      "壓力", "攻角", "面積", "雷諾數",
-      "Pa", "mm", "cm", "m/s", "kg", "gf", "Hz"
+      "電壓",
+      "電流",
+      "壓力",
+      "流量",
+      "溫度",
+      "頻率",
+      "面積",
+      "速度",
+      "密度",
+      "黏度",
+      "Pa",
+      "mm",
+      "cm",
+      "m/s",
+      "kg",
+      "gf",
+      "Hz"
     ]
   },
 
@@ -95,19 +110,19 @@
     },
     {
       "item_id": "CE05",
-      "check": "Subjective/exaggerated terms are flagged for review",
+      "check": "Subjective or exaggerated terms are flagged for review",
       "severity": "should",
       "automated": true
     },
     {
       "item_id": "CE06",
-      "check": "First-person pronouns follow the declared policy (warn or block)",
+      "check": "First-person pronouns follow the declared policy",
       "severity": "should",
       "automated": true
     },
     {
       "item_id": "CE07",
-      "check": "Discussion section contains numbered questions with answers",
+      "check": "Discussion section contains numbered questions with answers when questions are present in the source handout",
       "severity": "should",
       "automated": true
     },

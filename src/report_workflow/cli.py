@@ -16,9 +16,10 @@ from .run_workflow import (
     validate_nodes,
 )
 from .state import ReportState
+from .profiles import PROFILE_IDS
 
 
-REPORT_FAMILIES = ("academic_report", "work_report", "hybrid_report")
+REPORT_PROFILES = PROFILE_IDS
 VALID_ARTIFACT_ROLES = ("source_data", "base_document")
 
 
@@ -49,9 +50,11 @@ def build_parser() -> argparse.ArgumentParser:
              "Format 'PATH:ROLE' to set artifact role (source_data or base_document). "
              "Example: --source data.csv:source_data --source base.docx:base_document",
     )
-    prepare.add_argument("--output", required=True, help="Directory for final.docx")
-    prepare.add_argument("--family", choices=REPORT_FAMILIES, help="Override inferred report family")
-    prepare.add_argument("--detail", help="Optional report family detail/subtype, e.g. admissions_report")
+    prepare.add_argument(
+        "--output",
+        help="Optional workspace root override. Defaults to repo-local output/",
+    )
+    prepare.add_argument("--profile", choices=REPORT_PROFILES, help="Override inferred report profile")
     prepare.add_argument(
         "--intent",
         choices=("new_draft", "revise_existing"),
@@ -75,6 +78,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     validate = subcommands.add_parser("validate", help="Validate agent-authored artifacts")
     validate.add_argument("--job-id", required=True, help="Workflow job id from prepare")
+    validate.add_argument("--workspace-root", help="Optional workspace root for locating this run")
     validate.add_argument(
         "--verbose",
         action="store_true",
@@ -89,12 +93,15 @@ def build_parser() -> argparse.ArgumentParser:
 
     render = subcommands.add_parser("render", help="Render and package a validated workflow")
     render.add_argument("--job-id", required=True, help="Workflow job id")
+    render.add_argument("--workspace-root", help="Optional workspace root for locating this run")
 
     status = subcommands.add_parser("status", help="Show current workflow status")
     status.add_argument("--job-id", required=True, help="Workflow job id")
+    status.add_argument("--workspace-root", help="Optional workspace root for locating this run")
 
     run = subcommands.add_parser("run", help="Validate and render an existing prepared run")
     run.add_argument("--job-id", required=True, help="Workflow job id with agent artifacts already present")
+    run.add_argument("--workspace-root", help="Optional workspace root for locating this run")
     run.add_argument(
         "--verbose",
         action="store_true",
@@ -105,10 +112,12 @@ def build_parser() -> argparse.ArgumentParser:
     diff = subcommands.add_parser("diff", help="Compare two workflow checkpoints")
     diff.add_argument("--job-id", required=True, help="Base workflow job id")
     diff.add_argument("--against", required=True, help="Workflow job id or checkpoint file to compare against")
+    diff.add_argument("--workspace-root", help="Optional workspace root for locating both runs")
 
     # Item 7: export subcommand
     exp = subcommands.add_parser("export", help="Export full workflow state as JSON")
     exp.add_argument("--job-id", required=True, help="Workflow job id")
+    exp.add_argument("--workspace-root", help="Optional workspace root for locating this run")
     exp.add_argument(
         "--checkpoint",
         help="Checkpoint name to export (default: latest)",
@@ -125,6 +134,7 @@ def build_parser() -> argparse.ArgumentParser:
              "Use when you've edited workflow files directly and need to refresh state."
     )
     inv.add_argument("--job-id", required=True, help="Workflow job id")
+    inv.add_argument("--workspace-root", help="Optional workspace root for locating this run")
     inv.add_argument(
         "--sources",
         action="store_true",
@@ -143,6 +153,7 @@ def build_parser() -> argparse.ArgumentParser:
              "and report revision_plan application status"
     )
     diag.add_argument("--job-id", required=True, help="Workflow job id")
+    diag.add_argument("--workspace-root", help="Optional workspace root for locating this run")
     diag.add_argument(
         "--verbose",
         action="store_true",
@@ -155,6 +166,8 @@ def build_parser() -> argparse.ArgumentParser:
     )
     remap.add_argument("--from-job", required=True, dest="from_job", help="Previous workflow job id")
     remap.add_argument("--to-job", required=True, dest="to_job", help="Current workflow job id")
+    remap.add_argument("--workspace-root", help="Optional workspace root for locating the current run")
+    remap.add_argument("--from-workspace-root", help="Optional workspace root for locating the previous run")
     remap.add_argument("--write", action="store_true", help="Apply changes instead of dry-run")
 
     # Item 10: validate with --dry-run option
@@ -175,13 +188,15 @@ def _print_state(state) -> None:
     print(f"qa_decision: {state.qa.get('qa_decision', '')}")
     print(f"agent_tasks_dir: {state.runtime.get('agent_tasks_dir', '')}")
     print(f"required_agent_artifacts: {state.runtime.get('required_agent_artifacts', [])}")
+    print(f"workspace_root: {state.output.get('workspace_root', '')}")
+    print(f"run_dir: {state.output.get('run_dir', '')}")
     print(f"final_docx_path: {state.output.get('final_docx_path', '')}")
     print(f"published_dir: {state.output.get('published_dir', '')}")
 
 
-def _verbose_validate(job_id: str, deep_audit: bool = False) -> ReportState:
+def _verbose_validate(job_id: str, deep_audit: bool = False, workspace_root: str | None = None) -> ReportState:
     """Run validate with per-node progress printed."""
-    state = ReportState.resume(job_id)
+    state = ReportState.resume(job_id, workspace_root=workspace_root)
     if deep_audit:
         state.flags["deep_audit"] = True
     nodes = validate_nodes()
@@ -192,18 +207,18 @@ def _verbose_validate(job_id: str, deep_audit: bool = False) -> ReportState:
             state = node_fn(state)
             print(f"  [PASS] {node_name}")
         except AgentWorkRequired as exc:
-            print(f"  [BLOCK] {node_name} — agent artifacts required: {exc}", file=sys.stderr)
+            print(f"  [BLOCK] {node_name}: agent artifacts required: {exc}", file=sys.stderr)
             state.runtime["error"] = f"{node_name}: {exc}"
             state.runtime["required_agent_artifacts"] = exc.missing_artifacts
             state.status = "awaiting_agent_artifacts"
             raise
         except QAHardBlockError as exc:
-            print(f"  [FAIL] {node_name} — {exc}", file=sys.stderr)
+            print(f"  [FAIL] {node_name}: {exc}", file=sys.stderr)
             state.runtime["error"] = f"{node_name}: {exc}"
             state.status = "failed"
             raise
         except Exception as exc:
-            print(f"  [ERROR] {node_name} — {type(exc).__name__}: {exc}", file=sys.stderr)
+            print(f"  [ERROR] {node_name}: {type(exc).__name__}: {exc}", file=sys.stderr)
             state.runtime["error"] = f"{node_name}: {type(exc).__name__}: {exc}"
             state.status = "failed"
             raise
@@ -214,15 +229,15 @@ def _verbose_validate(job_id: str, deep_audit: bool = False) -> ReportState:
     return state
 
 
-def _run_diff(base_id: str, against_arg: str) -> int:
+def _run_diff(base_id: str, against_arg: str, workspace_root: str | None = None) -> int:
     """Compare two checkpoints and print differences."""
-    from .state import ReportState, WORKFLOW_RUNS_DIR
+    from .state import run_dir_for
 
     def load_checkpoint(job_id: str) -> dict:
         job_id_clean = job_id.replace(".json", "")
-        cp_path = WORKFLOW_RUNS_DIR / job_id_clean / "checkpoint_latest.json"
+        cp_path = run_dir_for(job_id_clean, workspace_root=workspace_root) / "checkpoint_latest.json"
         if not cp_path.exists():
-            cp_path = WORKFLOW_RUNS_DIR / job_id_clean / f"checkpoint_{job_id_clean}.json"
+            cp_path = cp_path.parent / f"checkpoint_{job_id_clean}.json"
         if not cp_path.exists():
             raise FileNotFoundError(f"No checkpoint found for {job_id}")
         with open(cp_path, encoding="utf-8") as f:
@@ -261,11 +276,11 @@ def _compute_diff(a: dict, b: dict, path: str = "") -> list[tuple[str, str, str]
     return diffs
 
 
-def _run_invalidate_cache(job_id: str, invalidate_sources: bool, invalidate_drafts: bool) -> int:
+def _run_invalidate_cache(job_id: str, invalidate_sources: bool, invalidate_drafts: bool, workspace_root: str | None = None) -> int:
     """Clear cached state in checkpoint and optionally force reload from disk."""
-    from .state import WORKFLOW_RUNS_DIR
+    from .state import run_dir_for
 
-    run_dir = WORKFLOW_RUNS_DIR / job_id
+    run_dir = run_dir_for(job_id, workspace_root=workspace_root)
     latest = run_dir / "checkpoint_latest.json"
     if not latest.exists():
         print(f"No checkpoint found for job {job_id}", file=sys.stderr)
@@ -310,11 +325,11 @@ def _run_invalidate_cache(job_id: str, invalidate_sources: bool, invalidate_draf
     return 0
 
 
-def _run_diagnose(job_id: str, verbose: bool) -> int:
+def _run_diagnose(job_id: str, verbose: bool, workspace_root: str | None = None) -> int:
     """Inspect workflow state and find discrepancies between checkpoint and disk."""
-    from .state import WORKFLOW_RUNS_DIR
+    from .state import run_dir_for
 
-    run_dir = WORKFLOW_RUNS_DIR / job_id
+    run_dir = run_dir_for(job_id, workspace_root=workspace_root)
     latest = run_dir / "checkpoint_latest.json"
     if not latest.exists():
         print(f"No checkpoint found for job {job_id}", file=sys.stderr)
@@ -340,7 +355,7 @@ def _run_diagnose(job_id: str, verbose: bool) -> int:
     for key, path in drafts.items():
         if path and isinstance(path, str):
             exists = Path(path).exists()
-            status = "✓" if exists else "✗ MISSING"
+            status = "OK" if exists else "MISSING"
             print(f"  drafts.{key}: {status} ({path})")
             if not exists:
                 issues.append(f"drafts.{key} points to missing file: {path}")
@@ -349,7 +364,7 @@ def _run_diagnose(job_id: str, verbose: bool) -> int:
         path = sources.get(key)
         if path and isinstance(path, str):
             exists = Path(path).exists()
-            status = "✓" if exists else "✗ MISSING"
+            status = "OK" if exists else "MISSING"
             print(f"  sources.{key}: {status} ({path})")
             if not exists:
                 issues.append(f"sources.{key} points to missing file: {path}")
@@ -363,13 +378,13 @@ def _run_diagnose(job_id: str, verbose: bool) -> int:
         with open(disk_base_path, encoding="utf-8") as f:
             disk_base = json.load(f)
         if cached_base != disk_base:
-            print("  ⚠ WARNING: base_document_sections in checkpoint differs from disk file!")
+            print("  WARNING: base_document_sections in checkpoint differs from disk file!")
             print(f"    Disk file: {disk_base_path}")
             print(f"    Cache size: {len(str(cached_base))} chars")
             print(f"    Disk size: {len(str(disk_base))} chars")
             issues.append("base_document_sections cache is stale - use 'invalidate-cache --job-id <id> --sources' to refresh")
         else:
-            print("  ✓ base_document_sections matches disk file")
+            print("  OK: base_document_sections matches disk file")
     print()
 
     # 4. Check revision_plan application status
@@ -382,7 +397,7 @@ def _run_diagnose(job_id: str, verbose: bool) -> int:
         print()
     else:
         print("--- Revision Plan ---")
-        print("  ✓ All changes applied successfully")
+        print("  OK: all changes applied successfully")
         print()
 
     # 5. Check banned phrases in current merged_draft
@@ -425,17 +440,17 @@ def _run_diagnose(job_id: str, verbose: bool) -> int:
                 print()
             else:
                 print("--- Citation Coverage ---")
-                print(f"  ✓ All {len(expected_cites)} expected citations present")
+                print(f"  OK: all {len(expected_cites)} expected citations present")
                 print()
 
     # 7. Summary
     print("=== Summary ===")
     if issues:
         for issue in issues:
-            print(f"  ✗ {issue}")
+            print(f"  - {issue}")
         print(f"\n{len(issues)} issue(s) found. Run with --verbose for full diff.")
     else:
-        print("  ✓ No issues found")
+        print("  OK: no issues found")
 
     return 0
 
@@ -460,8 +475,7 @@ def main(argv: list[str] | None = None) -> int:
                 args.prompt,
                 source_files,
                 args.output,
-                report_family=args.family,
-                report_family_detail=args.detail,
+                report_profile=args.profile,
                 intent=args.intent,
                 artifact_role_map=artifact_role_map,
                 front_matter={
@@ -481,57 +495,63 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "validate":
             if args.dry_run:
-                state = validate_workflow_dry_run(args.job_id, deep_audit=args.deep_audit)
+                state = validate_workflow_dry_run(args.job_id, deep_audit=args.deep_audit, workspace_root=args.workspace_root)
                 _print_state(state)
             elif args.verbose:
-                state = _verbose_validate(args.job_id, deep_audit=args.deep_audit)
+                state = _verbose_validate(args.job_id, deep_audit=args.deep_audit, workspace_root=args.workspace_root)
             else:
-                state = validate_workflow(args.job_id, deep_audit=args.deep_audit)
+                state = validate_workflow(args.job_id, deep_audit=args.deep_audit, workspace_root=args.workspace_root)
             _print_state(state)
             return 0
 
         if args.command == "render":
-            state = render_workflow(args.job_id)
+            state = render_workflow(args.job_id, workspace_root=args.workspace_root)
             _print_state(state)
             return 0
 
         if args.command == "status":
-            state = status_workflow(args.job_id)
+            state = status_workflow(args.job_id, workspace_root=args.workspace_root)
             _print_state(state)
             return 0
 
         if args.command == "run":
             if args.verbose:
-                state = _verbose_validate(args.job_id)
+                state = _verbose_validate(args.job_id, workspace_root=args.workspace_root)
             else:
-                state = validate_workflow(args.job_id)
-            state = render_workflow(state.job_id)
+                state = validate_workflow(args.job_id, workspace_root=args.workspace_root)
+            state = render_workflow(state.job_id, workspace_root=args.workspace_root)
             _print_state(state)
             return 0
 
         if args.command == "diff":
-            return _run_diff(args.job_id, args.against)
+            return _run_diff(args.job_id, args.against, workspace_root=args.workspace_root)
 
         if args.command == "invalidate-cache":
-            return _run_invalidate_cache(args.job_id, args.sources, args.drafts)
+            return _run_invalidate_cache(args.job_id, args.sources, args.drafts, workspace_root=args.workspace_root)
 
         if args.command == "diagnose":
-            return _run_diagnose(args.job_id, args.verbose)
+            return _run_diagnose(args.job_id, args.verbose, workspace_root=args.workspace_root)
 
         if args.command == "remap-evidence":
             from .artifact_contract import remap_evidence_ids
-            result = remap_evidence_ids(args.to_job, args.from_job, write=args.write)
+            result = remap_evidence_ids(
+                args.to_job,
+                args.from_job,
+                write=args.write,
+                workspace_root=args.workspace_root,
+                previous_workspace_root=args.from_workspace_root,
+            )
             print(json.dumps(result, indent=2, default=str))
             return 0 if result.get("status") == "ok" else 2
 
         if args.command == "export":
-            from .state import WORKFLOW_RUNS_DIR
+            from .state import run_dir_for
             job_id = args.job_id
             cp_name = args.checkpoint or "checkpoint_latest.json"
-            cp_path = WORKFLOW_RUNS_DIR / job_id / cp_name
+            cp_path = run_dir_for(job_id, workspace_root=args.workspace_root) / cp_name
             if not cp_path.exists():
                 # Try as full checkpoint name
-                cp_path = WORKFLOW_RUNS_DIR / job_id / f"checkpoint_{args.checkpoint}.json"
+                cp_path = run_dir_for(job_id, workspace_root=args.workspace_root) / f"checkpoint_{args.checkpoint}.json"
             if not cp_path.exists():
                 print(f"Checkpoint not found: {cp_path}", file=sys.stderr)
                 return 1

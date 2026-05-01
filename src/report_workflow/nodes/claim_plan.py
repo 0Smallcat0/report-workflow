@@ -4,7 +4,7 @@ IMPORTANT: claim_matrix.json on disk is the CANONICAL source read by factuality_
 The CLAIM_PLAN node loads it here, validates it, and embeds it in state.plan.claim_matrix.
 But factuality_check.py reads claim_matrix.json DIRECTLY from disk (not from state.plan).
 Therefore: editing checkpoint files to change claim evidence_ids or claim_texts has NO EFFECT.
-Always edit ~/.hermes/workflow_runs/<job_id>/claim_matrix.json directly.
+Always edit the current run directory's claim_matrix.json directly.
 """
 import json
 from pathlib import Path
@@ -33,7 +33,7 @@ def _load_claim_matrix(path: Path) -> dict:
     return payload
 
 
-def _validate_claim_matrix(payload: dict, report_family: str = "") -> list[dict]:
+def _validate_claim_matrix(payload: dict, report_profile: str = "") -> list[dict]:
     claims = payload.get("claims", [])
     if not isinstance(claims, list) or not claims:
         raise QAHardBlockError("claim_matrix.json must contain a non-empty claims list")
@@ -62,7 +62,7 @@ def _validate_claim_matrix(payload: dict, report_family: str = "") -> list[dict]
     # Max 3 primary claims. All primary claims must directly support the
     # primary contribution (enforced by PAPER_SCOPE_FREEZE later).
     # ------------------------------------------------------------------
-    policy = get_policy(report_family)
+    policy = get_policy(report_profile)
     if policy.claim.role_validation_required:
         VALID_ROLES = {"primary", "supporting", "background"}
         role_counts = {"primary": 0, "supporting": 0, "background": 0}
@@ -82,12 +82,12 @@ def _validate_claim_matrix(payload: dict, report_family: str = "") -> list[dict]
 
         if role_counts.get("primary", 0) == 0:
             raise QAHardBlockError(
-                "At least 1 primary claim is required for academic_report. "
+                "At least 1 primary claim is required for academic_paper. "
                 "No primary claims found in claim_matrix."
             )
         if role_counts.get("primary", 0) > 3:
             raise QAHardBlockError(
-                f"Maximum 3 primary claims allowed for academic_report, "
+                f"Maximum 3 primary claims allowed for academic_paper, "
                 f"found {role_counts['primary']}. Move extra claims to supporting or background."
             )
 
@@ -105,8 +105,8 @@ def run_claim_plan(state: ReportState) -> ReportState:
 
     claim_matrix = _load_claim_matrix(path)
     validate_artifact_contract(state, path, allow_missing=True)
-    report_family = state.spec.get("report_family", "")
-    claims = _validate_claim_matrix(claim_matrix, report_family=report_family)
+    report_profile = state.spec.get("report_profile", "")
+    claims = _validate_claim_matrix(claim_matrix, report_profile=report_profile)
     evidence_path = state.sources.get("evidence_ledger_path")
     known_evidence = {
         item.get("evidence_id")

@@ -23,8 +23,12 @@
     }
   ],
   "defaults": {
-    "academic_report": [],
-    "work_report": [],
-    "hybrid_report": ["STROBE"]
+    "engineering_lab_report": ["CHINESE_ENGINEERING"],
+    "academic_paper": [],
+    "business_report": [],
+    "proposal": [],
+    "admissions_report": [],
+    "admissions_project_report": [],
+    "custom": []
   }
 }

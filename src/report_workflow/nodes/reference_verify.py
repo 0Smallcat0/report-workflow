@@ -2,14 +2,14 @@
 
 Position: After CITATION_BIND, before QA_GATE.
 
-For academic_report mode, verifies:
+For academic_paper mode, verifies:
   - DOIs resolve (HTTP GET to doi.org)
   - arXiv IDs exist (via arXiv API or HTTP)
   - Year plausibility (not in the future, not before 1900)
   - Author names look plausible (not "Unknown" or just filenames)
 
 References that cannot be verified are logged but do not hard-block
-unless the report_family is academic_report and the reference is marked
+unless the report_profile is academic_paper and the reference is marked
 as requiring_verification=true.
 
 This addresses the retrospective failure: "Reference layer started in
@@ -266,7 +266,7 @@ def run_reference_verify(state: ReportState) -> ReportState:
 
     Position: After CITATION_BIND, before QA_GATE.
 
-    For academic_report: hard blocks if unverifiable references are found.
+    For academic_paper: hard blocks if unverifiable references are found.
     For other families: logs warnings but does not block.
 
     References are checked against:
@@ -275,9 +275,8 @@ def run_reference_verify(state: ReportState) -> ReportState:
       - Year plausibility (1900-2030)
       - Author name plausibility
     """
-    report_family = state.spec.get("report_family", "")
-    policy = get_policy(report_family, state.spec.get("report_family_detail") or None)
-    subtype = state.spec.get("report_family_detail") or ""
+    report_profile = state.spec.get("report_profile", "")
+    policy = get_policy(report_profile)
 
     # Get references from citation_bind output
     refs = _load_refs_from_citation_bind(state)
@@ -318,7 +317,7 @@ def run_reference_verify(state: ReportState) -> ReportState:
 
         raw_reference = ref.get("raw", ref_id)
         if not _is_publication_reference_candidate(raw_reference):
-            if subtype == "admissions_project_report" and _is_project_source_reference_candidate(raw_reference):
+            if report_profile == "admissions_project_report" and _is_project_source_reference_candidate(raw_reference):
                 checks.append({"type": "project_source", "reason": "internal project source reference accepted for admissions project report"})
                 verified_refs.append({
                     "ref_id": ref_id,

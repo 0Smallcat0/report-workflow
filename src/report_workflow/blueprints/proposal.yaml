@@ -1,0 +1,84 @@
+name: proposal
+description: Proposal report format
+
+front_matter:
+  title: ""
+  short_title: ""
+  author_block: ""
+  affiliation_block: ""
+  correspondence: ""
+  keywords: []
+
+section_order:
+  - executive_summary
+  - problem_statement
+  - objectives
+  - proposed_approach
+  - scope_deliverables
+  - timeline
+  - budget_resources
+  - risks
+  - evaluation
+  - appendix
+
+sections:
+  executive_summary:
+    section_id: executive_summary
+    title: Executive Summary
+    required: true
+    section_type: exec_summary
+    order: 1
+  problem_statement:
+    section_id: problem_statement
+    title: Problem Statement
+    required: true
+    section_type: problem
+    order: 2
+  objectives:
+    section_id: objectives
+    title: Objectives
+    required: true
+    section_type: objectives
+    order: 3
+  proposed_approach:
+    section_id: proposed_approach
+    title: Proposed Approach
+    required: true
+    section_type: approach
+    order: 4
+  scope_deliverables:
+    section_id: scope_deliverables
+    title: Scope and Deliverables
+    required: true
+    section_type: deliverables
+    order: 5
+  timeline:
+    section_id: timeline
+    title: Timeline
+    required: false
+    section_type: timeline
+    order: 6
+  budget_resources:
+    section_id: budget_resources
+    title: Budget and Resources
+    required: false
+    section_type: budget
+    order: 7
+  risks:
+    section_id: risks
+    title: Risks and Mitigations
+    required: false
+    section_type: risks
+    order: 8
+  evaluation:
+    section_id: evaluation
+    title: Evaluation Plan
+    required: false
+    section_type: evaluation
+    order: 9
+  appendix:
+    section_id: appendix
+    title: Appendix
+    required: false
+    section_type: appendix
+    order: 10

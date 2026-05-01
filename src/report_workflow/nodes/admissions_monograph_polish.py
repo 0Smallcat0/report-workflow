@@ -67,7 +67,7 @@ def polish_admissions_monograph(markdown: str) -> tuple[str, list[str]]:
             blocks.append(block)
             continue
         updated = block
-        # Phrase strippers first (case-sensitive so the IN/In variants drop
+        # Phrase strippers first (case-sensitive so the IN/In forms drop
         # correctly without double-processing leftover fragments).
         for pattern, replacement in _PHRASE_STRIPPERS:
             new_updated = re.sub(pattern, replacement, updated)
@@ -104,7 +104,7 @@ def polish_admissions_monograph(markdown: str) -> tuple[str, list[str]]:
 
 def run_admissions_monograph_polish(state: ReportState) -> ReportState:
     """Polish admissions-facing academic reports into a project monograph tone."""
-    if state.spec.get("report_family_detail") != "admissions_report":
+    if state.spec.get("report_profile") != "admissions_report":
         state.runtime["admissions_monograph_report_path"] = ""
         return state
 

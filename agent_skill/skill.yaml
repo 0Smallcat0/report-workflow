@@ -1,10 +1,10 @@
 name: report-workflow
 description: >
   Generate publication-ready DOCX reports from source data using a
-  deterministic prepare → agent author → validate → render pipeline.
+  deterministic prepare -> agent author -> validate -> render pipeline.
   Supports 4-step incremental authoring, optional external research
   via web backends (Tavily/Serper/SerpAPI), optional NotebookLM
-  knowledge sync, and Chinese engineering report guidelines.
+  knowledge sync, report profiles, and Chinese engineering report guidelines.
 
 version: "3.0"
 
@@ -75,8 +75,10 @@ tools:
     description: >
       Start the report generation workflow. Parses source files, builds
       evidence ledger, generates blueprint and task briefs for the agent.
-      Recommended: call check_setup first to verify the environment and
-      ask the user about optional features (research, NotebookLM, etc.).
+      Requires check_setup first. The caller must ask the user about every
+      pending install and optional feature, then pass preflight_confirmed=true
+      and a complete preflight_decisions record. preflight_confirmed=true alone
+      is rejected.
     parameters:
       - name: prompt
         type: string
@@ -90,16 +92,18 @@ tools:
         type: string
         required: true
         description: Directory to write final output files
-      - name: report_family
+      - name: report_profile
         type: string
         required: false
         description: >
-          Report type: academic_report, work_report, or hybrid_report.
-          Defaults to academic_report.
+          Report profile ID. Built-ins: engineering_lab_report,
+          academic_paper, business_report, proposal, admissions_report,
+          admissions_project_report, and custom. Defaults to profile inference
+          from the prompt, then academic_paper.
       - name: title
         type: string
         required: false
-        description: Structured front matter title. Strongly recommended for academic_report.
+        description: Structured front matter title. Strongly recommended for academic_paper.
       - name: author_block
         type: string
         required: false
@@ -150,6 +154,26 @@ tools:
         description: >
           Path to NotebookLM authentication storage state file. Auto-detected
           if not provided (searches ~/.notebooklm/ and LOCALAPPDATA).
+      - name: preflight_confirmed
+        type: boolean
+        required: false
+        description: >
+          Must be true only after the user has explicitly answered every
+          pending install and optional feature question returned by check_setup.
+      - name: preflight_decisions
+        type: object
+        required: false
+        description: >
+          Structured record of the user's preflight choices. Required shape:
+          confirmed_by_user=true, install_decisions keyed by pending install,
+          and feature_decisions keyed by feature_id. Use the
+          required_preflight_decisions value from check_setup as the template.
+      - name: allow_degraded_render
+        type: boolean
+        required: false
+        description: >
+          Set true only after the user explicitly accepts degraded DOCX
+          rendering when a critical render dependency such as pandoc is missing.
 
 
   # Step 2: Validate claim_matrix.json (incremental)

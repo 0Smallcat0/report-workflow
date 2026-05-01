@@ -60,17 +60,17 @@ def get_writer_user_prompt(
     outline: dict,
     claim_matrix: dict,
     evidence_ledger: list[dict],
-    report_family_detail: str = "",
+    report_profile: str = "",
 ) -> str:
     evidence_str = json.dumps(evidence_ledger, indent=2)
     if len(evidence_str) > 5000:
-        evidence_str = evidence_str[:5000] + "\n... [EVIDENCE TRUNCATED — may exceed context limit]"
+        evidence_str = evidence_str[:5000] + "\n... [EVIDENCE TRUNCATED; may exceed context limit]"
     prompt = WRITER_USER_PROMPT_TEMPLATE.format(
         outline_json=json.dumps(outline, indent=2),
         claim_matrix_json=json.dumps(claim_matrix, indent=2),
         evidence_summary=evidence_str
     )
-    if report_family_detail == "admissions_report":
+    if report_profile == "admissions_report":
         prompt += (
             "\n\n## Admissions-facing narrative guidance\n"
             "- Write for reviewers evaluating research ability and project judgment.\n"

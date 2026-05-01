@@ -1,13 +1,13 @@
 """FRONT_MATTER_BUILD node - assemble title page, author block, keywords for academic reports.
 
 ACADEMIC MODE OVERRIDE (2026-04-19):
-  For report_family == "academic_report", placeholder values in author_block,
+  For report_profile == "academic_paper", placeholder values in author_block,
   affiliation_block, or correspondence field raise QAHardBlockError.
   Placeholder patterns: [Author Name], [email@...], [Department of...], etc.
   Previously this node only emitted warnings. Now it hard-blocks for academic mode.
 
 Sits between SECTION_PLAN_FREEZE and SECTION_DRAFT in the validate phase.
-For academic_report family, front matter is REQUIRED.
+For academic_paper family, front matter is REQUIRED.
 For other families, front matter is optional.
 
 Outputs:
@@ -78,7 +78,7 @@ def _parse_title_from_user_prompt(user_prompt: str) -> str:
         # Lines that look like titles (may have subtitle separator)
         if len(line) > 15 and len(line) < 200:
             # Title-like: starts capitalized or has em-dash/subtitle separator
-            if line[0].isupper() or '—' in line or ':' in line[:50]:
+            if line[0].isupper() or ":" in line[:50]:
                 # Clean up any prefix markers
                 cleaned = re.sub(r'^(?:title[:\-\s]+|"#?\s*)', '', line, flags=re.IGNORECASE).strip()
                 if cleaned and len(cleaned) > 10:
@@ -148,7 +148,7 @@ _KEYWORD_STOPWORDS = {
     "Need", "Needs", "Want", "Wants", "Seem", "Seems", "Appear", "Appears",
 }
 
-# Regex patterns for INVALID keywords — hard-block these during extraction
+# Regex patterns for INVALID keywords; hard-block these during extraction.
 _INVALID_KEYWORD_PATTERNS = [
     # Bare section/figure numbering: "Figure 1", "Table 2", "Section 3", "Chapter 4"
     re.compile(r"^\s*(Figure|Table|Section|Chapter|Algorithm|Equation|Listing)\s+\d+", re.IGNORECASE),
@@ -184,7 +184,7 @@ def _extract_keywords_from_evidence(evidence_ledger_path: str | None) -> list[st
     """Extract potential keywords from evidence ledger.
 
     Post-processing: only keeps phrases that are either in the research pool,
-    successfully mapped by the implementation→research map, or appear as
+    successfully mapped by the implementation?esearch map, or appear as
     claim topic_tags. This prevents generic noun phrases like "Summary",
     "God Nodes", "Reduce", "Input" from polluting front matter keywords.
     """
@@ -227,7 +227,7 @@ def _extract_keywords_from_evidence(evidence_ledger_path: str | None) -> list[st
                         if not _is_valid_keyword(phrase):
                             continue
                         # Only accept if phrase is in research pool, maps to research term,
-                        # or is an implementation key — prevents generic noun phrases
+                        # or is an implementation key; prevents generic noun phrases.
                         if phrase_lower not in research_lower and \
                            phrase_lower not in impl_map_lower and \
                            phrase_lower not in impl_values_lower:
@@ -408,7 +408,7 @@ def _build_front_matter(state: ReportState) -> dict:
     """Build the front matter from blueprint, spec, and evidence."""
     blueprint = state.plan.get("blueprint", {})
     spec = state.spec
-    report_family = spec.get("report_family", "academic_report")
+    report_profile = spec.get("report_profile", "academic_paper")
     user_prompt = spec.get("user_prompt", "")
 
     # Get blueprint front_matter template (may be empty/dict)
@@ -429,8 +429,8 @@ def _build_front_matter(state: ReportState) -> dict:
     structured_front_matter = _structured_front_matter_from_spec(spec)
     front_matter.update(structured_front_matter)
 
-    # For academic_report: ensure required fields
-    policy = get_policy(report_family, spec.get("report_family_detail") or None)
+    # For academic_paper: ensure required fields
+    policy = get_policy(report_profile)
     if policy.front_matter.auto_populate_missing_fields:
         # In revise_existing mode: try to extract front matter from the preamble
         # in base_document_sections before falling back to user_prompt parsing.
@@ -501,7 +501,7 @@ def _build_front_matter(state: ReportState) -> dict:
 
         # Extract keywords from evidence if not provided
         if not front_matter["keywords"]:
-            if task_intent == "new_draft" and report_family == "academic_report":
+            if task_intent == "new_draft" and report_profile == "academic_paper":
                 front_matter["keywords"] = _select_thesis_aligned_keywords(user_prompt)
             else:
                 raw_keywords = _extract_keywords_from_evidence(state.sources.get("evidence_ledger_path"))
@@ -522,11 +522,11 @@ def _build_front_matter(state: ReportState) -> dict:
     return front_matter
 
 
-def _validate_front_matter(front_matter: dict, report_family: str) -> list[str]:
+def _validate_front_matter(front_matter: dict, report_profile: str) -> list[str]:
     """Validate front matter completeness. Returns list of warnings (not hard errors)."""
     warnings = []
 
-    policy = get_policy(report_family)
+    policy = get_policy(report_profile)
     if not policy.front_matter.required:
         return warnings
 
@@ -565,7 +565,7 @@ def _validate_front_matter(front_matter: dict, report_family: str) -> list[str]:
     # Title length check (Nature style: concise, verb-first)
     title = front_matter.get("title", "")
     if len(title) > 150:
-        warnings.append(f"title is {len(title)} chars - Nature recommends ≤120 characters")
+        warnings.append(f"title is {len(title)} chars - Nature recommends 20 characters or fewer")
 
     return warnings
 
@@ -621,7 +621,7 @@ def run_front_matter_build(state: ReportState) -> ReportState:
 
     Reads:
       - state.plan["blueprint"] (for front_matter template)
-      - state.spec (for user_prompt, report_family)
+      - state.spec (for user_prompt, report_profile)
       - state.sources["evidence_ledger_path"] (for keyword extraction)
 
     Writes:
@@ -631,13 +631,13 @@ def run_front_matter_build(state: ReportState) -> ReportState:
 
     ACADEMIC MODE: Hard block on placeholder values. See placeholder regex below.
     """
-    report_family = state.spec.get("report_family", "academic_report")
+    report_profile = state.spec.get("report_profile", "academic_paper")
 
     # Build front matter
     front_matter = _build_front_matter(state)
 
     # Validate and collect warnings
-    warnings = _validate_front_matter(front_matter, report_family)
+    warnings = _validate_front_matter(front_matter, report_profile)
     if warnings:
         state.runtime["warnings"] = state.runtime.get("warnings", []) + [
             f"FRONT_MATTER_BUILD: {w}" for w in warnings
@@ -648,7 +648,7 @@ def run_front_matter_build(state: ReportState) -> ReportState:
     # but missing/generic metadata must be supplied as structured fields rather
     # than fabricated from prompt text or generic defaults.
     # ------------------------------------------------------------------
-    policy = get_policy(report_family, state.spec.get("report_family_detail") or None)
+    policy = get_policy(report_profile)
     import re as _re
     _BRACKET_PLACEHOLDER_RE = _re.compile(r"\[[^\]]+\]")
 
@@ -659,7 +659,7 @@ def run_front_matter_build(state: ReportState) -> ReportState:
             front_matter[field_key] = _BRACKET_PLACEHOLDER_RE.sub("", val).strip()
 
     if policy.front_matter.required:
-        strict_warnings = _validate_front_matter(front_matter, report_family)
+        strict_warnings = _validate_front_matter(front_matter, report_profile)
         if strict_warnings:
             raise QAHardBlockError(
                 "FRONT_MATTER_BUILD failed strict metadata policy: "

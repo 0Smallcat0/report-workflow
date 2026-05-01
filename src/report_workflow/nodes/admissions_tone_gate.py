@@ -38,7 +38,7 @@ def _section_content(markdown: str, wanted: str) -> str:
 
 def run_admissions_tone_gate(state: ReportState) -> ReportState:
     """Hard-block meta admissions prose and generic conclusions."""
-    if state.spec.get("report_family_detail") != "admissions_report":
+    if state.spec.get("report_profile") != "admissions_report":
         state.runtime["admissions_tone_report_path"] = ""
         return state
 

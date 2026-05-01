@@ -1,7 +1,7 @@
 """Main workflow orchestrator."""
 import json
 import sys
-from .state import ReportState, WORKFLOW_RUNS_DIR
+from .state import ReportState, run_dir_for
 from .errors import AgentWorkRequired, QAHardBlockError
 from .runtime_support import append_job_event
 from .preflight import run_preflight_checks
@@ -73,7 +73,7 @@ def prepare_nodes() -> list[tuple[str, object]]:
 def validate_nodes() -> list[tuple[str, object]]:
     """Return nodes that validate external agent-produced artifacts.
 
-    Simplified pipeline (17 → 11 nodes, post-retrospective refactor):
+    Simplified pipeline (17 -> 11 nodes, post-retrospective refactor):
     - AGENT_ARTIFACT_INTAKE: CLAIM_PLAN + OUTLINE_PLAN + SECTION_DRAFT combined
     - PLAN_FREEZE: PAPER_SCOPE_FREEZE + SECTION_PLAN_FREEZE combined
     - DOC_METADATA_GATE: FRONT_MATTER_BUILD + ABSTRACT_CHECK combined
@@ -176,10 +176,9 @@ def _run_nodes(state: ReportState, nodes: list[tuple[str, object]]) -> ReportSta
 def prepare_workflow(
     user_prompt: str,
     uploaded_files: list[str],
-    output_dir: str,
+    output_dir: str | None,
     *,
-    report_family: str | None = None,
-    report_family_detail: str | None = None,
+    report_profile: str | None = None,
     intent: str = "new_draft",
     artifact_role_map: dict[str, str] | None = None,
     front_matter: dict | None = None,
@@ -192,11 +191,9 @@ def prepare_workflow(
         artifact_role_map: mapping from file name to artifact role
             ('source_data' or 'base_document').
     """
-    state = ReportState.new(user_prompt, uploaded_files, output_dir)
-    if report_family:
-        state.spec["report_family_override"] = report_family
-    if report_family_detail:
-        state.spec["report_family_detail"] = report_family_detail
+    state = ReportState.new(user_prompt, uploaded_files, output_dir, front_matter=front_matter)
+    if report_profile:
+        state.spec["report_profile_override"] = report_profile
     state.spec["task_intent"] = intent
     if artifact_role_map:
         state.spec["artifact_role_map"] = artifact_role_map
@@ -204,7 +201,7 @@ def prepare_workflow(
         state.spec["front_matter"] = front_matter
     if project_identity:
         state.spec["project_identity"] = project_identity
-        identity_path = WORKFLOW_RUNS_DIR / state.job_id / "project_identity.json"
+        identity_path = run_dir_for(state) / "project_identity.json"
         identity_path.write_text(json.dumps(project_identity, indent=2), encoding="utf-8")
     try:
         state = run_preflight_checks(state)
@@ -222,9 +219,9 @@ def prepare_workflow(
     state.checkpoint("AWAITING_AGENT_ARTIFACTS")
     return state
 
-def validate_workflow(job_id: str, *, deep_audit: bool = False) -> ReportState:
+def validate_workflow(job_id: str, *, deep_audit: bool = False, workspace_root: str | None = None) -> ReportState:
     """Validate agent-authored artifacts for an existing prepared run."""
-    state = ReportState.resume(job_id)
+    state = ReportState.resume(job_id, workspace_root=workspace_root)
     if deep_audit:
         state.flags["deep_audit"] = True
     state = _run_nodes(state, validate_nodes())
@@ -233,7 +230,7 @@ def validate_workflow(job_id: str, *, deep_audit: bool = False) -> ReportState:
     return state
 
 
-def validate_workflow_dry_run(job_id: str, *, deep_audit: bool = False) -> ReportState:
+def validate_workflow_dry_run(job_id: str, *, deep_audit: bool = False, workspace_root: str | None = None) -> ReportState:
     """Simulate validation without writing checkpoints.
 
     Use this to pre-check if validate will pass before committing changes.
@@ -241,7 +238,7 @@ def validate_workflow_dry_run(job_id: str, *, deep_audit: bool = False) -> Repor
     """
     from copy import deepcopy
 
-    state = ReportState.resume(job_id)
+    state = ReportState.resume(job_id, workspace_root=workspace_root)
     if deep_audit:
         state.flags["deep_audit"] = True
     # Work on a copy to avoid modifying the real state
@@ -258,10 +255,10 @@ def validate_workflow_dry_run(job_id: str, *, deep_audit: bool = False) -> Repor
             state_copy = node_fn(state_copy)
             print(f"  [PASS] {node_name}")
         except QAHardBlockError as e:
-            print(f"  [FAIL] {node_name} — {e}")
+            print(f"  [FAIL] {node_name}: {e}")
             dry_run_errors.append(f"{node_name}: {e}")
         except Exception as e:
-            print(f"  [ERROR] {node_name} — {type(e).__name__}: {e}")
+            print(f"  [ERROR] {node_name}: {type(e).__name__}: {e}")
             dry_run_errors.append(f"{node_name}: {type(e).__name__}: {e}")
 
     if dry_run_errors:
@@ -276,35 +273,35 @@ def validate_workflow_dry_run(job_id: str, *, deep_audit: bool = False) -> Repor
     return state_copy
 
 
-def render_workflow(job_id: str) -> ReportState:
+def render_workflow(job_id: str, *, workspace_root: str | None = None) -> ReportState:
     """Render and package a validated report workflow."""
-    state = ReportState.resume(job_id)
+    state = ReportState.resume(job_id, workspace_root=workspace_root)
     if state.qa.get("qa_decision") != "pass":
         raise QAHardBlockError("Cannot render before validate produces qa_decision=pass")
     return _run_nodes(state, render_nodes())
 
 
-def status_workflow(job_id: str) -> ReportState:
+def status_workflow(job_id: str, *, workspace_root: str | None = None) -> ReportState:
     """Load the current workflow state."""
-    return ReportState.resume(job_id)
+    return ReportState.resume(job_id, workspace_root=workspace_root)
 
 
 def run_workflow(
     user_prompt: str,
     uploaded_files: list[str],
-    output_dir: str,
+    output_dir: str | None = None,
     *,
-    report_family: str | None = None,
+    report_profile: str | None = None,
 ) -> ReportState:
     """Convenience run: prepare, then validate/render only if agent artifacts already exist."""
-    state = prepare_workflow(user_prompt, uploaded_files, output_dir, report_family=report_family)
+    state = prepare_workflow(user_prompt, uploaded_files, output_dir, report_profile=report_profile)
     state = validate_workflow(state.job_id)
     return render_workflow(state.job_id)
 
 
-def resume_workflow(job_id: str) -> ReportState:
+def resume_workflow(job_id: str, *, workspace_root: str | None = None) -> ReportState:
     """Resume a workflow from the latest checkpoint."""
-    state = ReportState.resume(job_id)
+    state = ReportState.resume(job_id, workspace_root=workspace_root)
     if state.status == "awaiting_agent_artifacts":
         return _run_nodes(state, validate_nodes() + render_nodes())
     if state.status == "validated":
@@ -322,20 +319,20 @@ def resume_workflow(job_id: str) -> ReportState:
 # functions allow the Agent to submit and validate one artifact at a
 # time, checkpointing after each step.
 #
-# Step 1: submit_claim_matrix  → validates claim_matrix.json
-# Step 2: submit_outline       → validates outline.json
-# Step 3: submit_drafts        → validates section_drafts/*.md + sentence_map.jsonl
-# Step 4: submit_and_publish   → runs full validate + render
+# Step 1: submit_claim_matrix  -> validates claim_matrix.json
+# Step 2: submit_outline       -> validates outline.json
+# Step 3: submit_drafts        -> validates section_drafts/*.md + sentence_map.jsonl
+# Step 4: submit_and_publish   -> runs full validate + render
 # ------------------------------------------------------------------
 
 
-def validate_step_claim_matrix(job_id: str) -> ReportState:
+def validate_step_claim_matrix(job_id: str, *, workspace_root: str | None = None) -> ReportState:
     """Step 1: Validate only claim_matrix.json.
 
     Runs CLAIM_PLAN validation and checkpoints.
     Agent should create claim_matrix.json before calling this.
     """
-    state = ReportState.resume(job_id)
+    state = ReportState.resume(job_id, workspace_root=workspace_root)
     state.checkpoint("STEP_CLAIM_MATRIX")
     append_job_event(state, "STEP_CLAIM_MATRIX", "start", "running")
 
@@ -354,14 +351,14 @@ def validate_step_claim_matrix(job_id: str) -> ReportState:
     return state
 
 
-def validate_step_outline(job_id: str) -> ReportState:
+def validate_step_outline(job_id: str, *, workspace_root: str | None = None) -> ReportState:
     """Step 2: Validate only outline.json.
 
     Runs OUTLINE_PLAN validation and checkpoints.
     Agent should create outline.json before calling this.
     Requires Step 1 (claim_matrix) to be complete.
     """
-    state = ReportState.resume(job_id)
+    state = ReportState.resume(job_id, workspace_root=workspace_root)
 
     # Check prerequisite
     if not state.plan.get("claim_matrix", {}).get("claims"):
@@ -388,7 +385,7 @@ def validate_step_outline(job_id: str) -> ReportState:
     return state
 
 
-def validate_step_drafts(job_id: str) -> ReportState:
+def validate_step_drafts(job_id: str, *, workspace_root: str | None = None) -> ReportState:
     """Step 3: Validate section_drafts/*.md and sentence_map.jsonl.
 
     Runs SECTION_DRAFT validation and checkpoints.
@@ -396,7 +393,7 @@ def validate_step_drafts(job_id: str) -> ReportState:
     before calling this.
     Requires Steps 1+2 (claim_matrix + outline) to be complete.
     """
-    state = ReportState.resume(job_id)
+    state = ReportState.resume(job_id, workspace_root=workspace_root)
 
     # Check prerequisites
     if not state.plan.get("claim_matrix", {}).get("claims"):

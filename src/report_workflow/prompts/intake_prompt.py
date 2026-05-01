@@ -8,7 +8,7 @@ Given a user's prompt and any uploaded files, classify the task intent and selec
 Return a JSON object with these fields:
 {
   "task_intent": "new_draft" | "revise_existing" | "qa_fix" | "reviewer_response",
-  "report_family": "academic_report" | "work_report" | "hybrid_report",
+  "report_profile": "engineering_lab_report" | "academic_paper" | "business_report" | "proposal" | "admissions_report" | "admissions_project_report" | "custom",
   "delivery_mode": "fresh_doc" | "tracked_review" | "response_to_reviewers",
   "audience": "expert" | "general" | "regulatory",
   "citation_style": "apa" | "mla" | "chicago" | "ieee",
@@ -16,7 +16,7 @@ Return a JSON object with these fields:
     "filename1.ext": "source_data" | "existing_draft" | "guidelines" | "supplementary",
     ...
   },
-  "report_family_detail": "string description",
+  "report_profile_description": "string description",
   "keywords": ["keyword1", "keyword2", ...]
 }
 
@@ -26,10 +26,14 @@ Return a JSON object with these fields:
   - "revise_existing" if asking to revise/review an existing document
   - "qa_fix" if asking to fix issues in a draft
   - "reviewer_response" if responding to reviewer comments
-- report_family: infer from keywords and context
-  - "academic_report" for research papers, studies, scientific topics
-  - "work_report" for business, industry, operational topics
-  - "hybrid_report" for mixed academic-business contexts
+- report_profile: infer from keywords and context
+  - "engineering_lab_report" for engineering or experiment reports, especially Chinese lab handout requirements
+  - "academic_paper" for research papers, studies, scientific topics
+  - "business_report" for business, industry, operational topics
+  - "proposal" for proposed work, project plans, bids, or grant-style requests
+  - "admissions_report" for admissions-facing narrative reports
+  - "admissions_project_report" for admissions reports centered on a project or internal architecture
+  - "custom" for mixed or user-defined structures
 - delivery_mode: "fresh_doc" by default unless explicit revision request
 - audience: infer from content and request phrasing
 - citation_style: "apa" by default for academic, adjust per request

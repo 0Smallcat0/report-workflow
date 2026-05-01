@@ -130,8 +130,8 @@ def _check_language_sanity(text: str) -> tuple[list[dict], list[dict]]:
     hard_types = {
         "incomplete_comparative", "comparative_incomplete",
         "orphaned_heading", "broken_hyphenation",
-        "duplicate_phrase",         # repeated consecutive phrases — hard fail
-        "orphan_than_clause",        # "more X than" fragments — hard fail
+        "duplicate_phrase",         # repeated consecutive phrases; hard fail
+        "orphan_than_clause",        # "more X than" fragments; hard fail
     }
     hard_issues = [i for i in issues if i["type"] in hard_types]
     soft_issues = [i for i in issues if i["type"] not in hard_types]
@@ -353,7 +353,7 @@ def run_style_pass(state: ReportState) -> ReportState:
 
     # Step 2: Apply publication style polish
     polished_text, style_issues = _apply_style_polish(original_text)
-    if state.spec.get("report_family_detail") == "admissions_report":
+    if state.spec.get("report_profile") == "admissions_report":
         polished_text = _apply_admissions_polish(polished_text)
 
     # Write polished draft

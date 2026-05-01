@@ -1,6 +1,6 @@
 """MERGE_DRAFT node - concatenate sections + strip internal artifacts.
 
-ABSORBS (per §6.2 of academic-report-simplify-retrospective):
+ABSORBS (per 禮6.2 of academic-report-simplify-retrospective):
   - results_sanity_pass: removes audit tables from results section
   - main_text_artifact_filter: strips [Source:], [CITE:], [graphify:] markers,
     scans for structural artifacts (.py filenames, internal paths, evidence IDs)
@@ -337,7 +337,7 @@ def run_merge_draft(state: ReportState) -> ReportState:
     merged_text, removed_tables = _remove_audit_tables(merged_text)
 
     # Step 3: Strip [Source:] and [graphify:] markers only.
-    # NOTE: [CITE:...] markers are preserved — CITATION_BIND needs them in merged_draft_md
+    # NOTE: [CITE:...] markers are preserved because CITATION_BIND needs them in merged_draft_md.
     # to resolve and audit citations. Stripping [CITE:] here breaks the citation audit chain
     # (cite_id not found in merged_md at citation_bind).
     before = len(merged_text)
@@ -351,7 +351,7 @@ def run_merge_draft(state: ReportState) -> ReportState:
     structural_violations = [v for v in violations if v["type"] not in ("source_marker", "cite_marker", "graphify_marker")]
 
     # Step 5: Hard block on structural violations per policy
-    family = state.spec.get("report_family", "academic_report")
+    family = state.spec.get("report_profile", "academic_paper")
     policy = get_policy(family)
     if policy.figure.audit_table_hard_block and structural_violations:
         sample = structural_violations[:3]

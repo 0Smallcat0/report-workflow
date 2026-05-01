@@ -1,6 +1,6 @@
 """DOCX_RENDER node - convert markdown to .docx.
 
-Primary path: pandoc (robust, industry-standard Markdown→DOCX converter).
+Primary path: pandoc (robust, industry-standard Markdown?OCX converter).
 Fallback path: python-docx regex-based converter (legacy).
 
 The pandoc path uses a reference.docx template for consistent academic styling
@@ -99,7 +99,7 @@ def _convert_mermaid_blocks(md_content: str, output_dir: Path) -> tuple[str, int
         count = len(_MERMAID_BLOCK_RE.findall(md_content))
         if count > 0:
             logger.warning(
-                f"[DOCX_RENDER] Found {count} mermaid block(s) but mmdc not installed — "
+                f"[DOCX_RENDER] Found {count} mermaid block(s) but mmdc not installed; "
                 f"diagrams will not be rendered. Install: npm install -g @mermaid-js/mermaid-cli"
             )
         return md_content, 0
@@ -141,7 +141,7 @@ def _convert_mermaid_blocks(md_content: str, output_dir: Path) -> tuple[str, int
             if result.returncode == 0 and png_path.exists():
                 converted += 1
                 logger.info(
-                    f"[DOCX_RENDER] Mermaid block {figure_counter} → {png_path.name}"
+                    f"[DOCX_RENDER] Mermaid block {figure_counter} -> {png_path.name}"
                 )
                 return f"![Figure {figure_counter}]({png_path})"
             else:
@@ -208,7 +208,7 @@ def _render_via_pandoc(
     """
     pandoc = _find_pandoc()
     if not pandoc:
-        logger.warning("[DOCX_RENDER] pandoc not found on PATH — falling back to python-docx")
+        logger.warning("[DOCX_RENDER] pandoc not found on PATH; falling back to python-docx")
         return False
 
     cmd = [pandoc, str(md_path), "-o", str(output_path)]
@@ -282,17 +282,17 @@ def _validate_docx(docx_path: str) -> list[str]:
         doc = Document(str(path))
         # Check for content
         if len(doc.paragraphs) < 3:
-            issues.append(f"DOCX has only {len(doc.paragraphs)} paragraphs — likely incomplete")
+            issues.append(f"DOCX has only {len(doc.paragraphs)} paragraphs; likely incomplete")
 
         # Check heading structure
         headings = [p for p in doc.paragraphs if p.style.name.startswith("Heading")]
         if len(headings) == 0:
-            issues.append("DOCX has no headings — structure may be broken")
+            issues.append("DOCX has no headings; structure may be broken")
 
         # Check total text length
         total_text = sum(len(p.text) for p in doc.paragraphs)
         if total_text < 500:
-            issues.append(f"DOCX total text is only {total_text} chars — likely incomplete")
+            issues.append(f"DOCX total text is only {total_text} chars; likely incomplete")
 
     except Exception as exc:
         issues.append(f"Cannot open DOCX for validation: {exc}")
@@ -304,12 +304,13 @@ def _validate_docx(docx_path: str) -> list[str]:
 # Legacy python-docx fallback converter
 # ------------------------------------------------------------------
 
-# Box-drawing and block characters (U+2500–U+257F and related)
+# Box-drawing and block characters (U+2500-U+257F and related)
 _ASCII_ART_CHARS_RE = re.compile(
     r"[\u2500-\u257f\u2501\u2574-\u257f\u2503\u250f\u2513\u251b\u2517\u2533\u253b\u2523\u252b"
     r"\u251b\u252b\u253b\u2523\u2502\u250c\u2510\u2518\u2514\u251c\u2525\u2528\u2534\u2538"
     r"\u2520\u252f\u253c\u2530\u253f\u2521\u2529\u2531\u2539\u2542\u254b]"
 )
+_GARBLED_BOX_ART_RE = re.compile(r"[\x80-\x9f\ue000-\uf8ff]")
 _ASCII_ART_LANG_TAGS = {"ascii", "art", "figure", "diagram", "box", "graph", "text", ""}
 
 
@@ -317,7 +318,7 @@ def _is_ascii_art(fence_body: str) -> bool:
     """Return True if fence body looks like ASCII art."""
     if not fence_body:
         return False
-    if _ASCII_ART_CHARS_RE.search(fence_body):
+    if _ASCII_ART_CHARS_RE.search(fence_body) or _GARBLED_BOX_ART_RE.search(fence_body):
         return True
     lines = fence_body.splitlines()
     if len(lines) >= 3:
@@ -640,11 +641,11 @@ def _pre_render_sanity_check(
     code_fences = re.findall(r'```[\s\S]*?```', md_content)
     ascii_art_fences = [
         f for f in code_fences
-        if any(c in f for c in '┌┐└┘├┤┬┴┼│─═║╔╗╚╝╠╣╦╩╬▼▲►◄●')
+        if _is_ascii_art(f)
     ]
     if ascii_art_fences:
         issues.append(
-            f"ASCII art code fences ({len(ascii_art_fences)}) will render poorly in DOCX — "
+            f"ASCII art code fences ({len(ascii_art_fences)}) will render poorly in DOCX; "
             f"replace with mermaid diagrams or remove"
         )
 
@@ -812,8 +813,8 @@ def run_docx_render(state: ReportState) -> ReportState:
         raise QAHardBlockError(f"QA gate failed: {qa_decision}")
 
     # Select draft path per policy
-    family = state.spec.get("report_family", "academic_report")
-    policy = get_policy(family, state.spec.get("report_family_detail") or None)
+    family = state.spec.get("report_profile", "academic_paper")
+    policy = get_policy(family)
 
     if policy.citation.draft_prefer_marker_stripped:
         cited_md_path = state.drafts.get("publication_style_draft")
@@ -976,12 +977,12 @@ def run_docx_render(state: ReportState) -> ReportState:
         logger.warning(
             f"[DOCX_RENDER] Post-render validation issues: {'; '.join(validation_issues)}"
         )
-        # Store issues but don't hard-block — the file may still be usable
+        # Store issues but do not hard-block; the file may still be usable.
         state.runtime["docx_validation_issues"] = validation_issues
 
     renderer_used = "pandoc" if used_pandoc else "python-docx (fallback)"
     logger.info(
-        f"[DOCX_RENDER] Done — renderer={renderer_used}, "
+        f"[DOCX_RENDER] Done: renderer={renderer_used}, "
         f"output={final_docx_path}, "
         f"size={final_docx_path.stat().st_size if final_docx_path.exists() else 0} bytes"
     )
@@ -989,7 +990,7 @@ def run_docx_render(state: ReportState) -> ReportState:
     # Surface renderer fallback as a warning the agent can see
     if not used_pandoc:
         state.runtime.setdefault("warnings", []).append(
-            "⚠️ DOCX was rendered using the python-docx fallback converter instead of pandoc. "
+            "?? DOCX was rendered using the python-docx fallback converter instead of pandoc. "
             "Output quality is degraded: tables may be broken, no table of contents, "
             "and complex formatting may be lost. Install pandoc for production-quality output: "
             "winget install JohnMacFarlane.Pandoc (Windows) / apt install pandoc (Linux)"

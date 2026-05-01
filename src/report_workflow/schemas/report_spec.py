@@ -18,10 +18,14 @@ class ArtifactRole(str, Enum):
     SUPPLEMENTARY = "supplementary"
 
 
-class ReportFamily(str, Enum):
-    ACADEMIC_REPORT = "academic_report"
-    WORK_REPORT = "work_report"
-    HYBRID_REPORT = "hybrid_report"
+class ReportProfile(str, Enum):
+    ENGINEERING_LAB_REPORT = "engineering_lab_report"
+    ACADEMIC_PAPER = "academic_paper"
+    BUSINESS_REPORT = "business_report"
+    PROPOSAL = "proposal"
+    ADMISSIONS_REPORT = "admissions_report"
+    ADMISSIONS_PROJECT_REPORT = "admissions_project_report"
+    CUSTOM = "custom"
 
 
 class DeliveryMode(str, Enum):
@@ -45,12 +49,11 @@ class CitationStyle(str, Enum):
 
 class ReportSpec(BaseModel):
     task_intent: TaskIntent = Field(default=TaskIntent.NEW_DRAFT)
-    report_family: ReportFamily = Field(default=ReportFamily.ACADEMIC_REPORT)
+    report_profile: ReportProfile = Field(default=ReportProfile.ACADEMIC_PAPER)
     delivery_mode: DeliveryMode = Field(default=DeliveryMode.FRESH_DOC)
     audience: Audience = Field(default=Audience.EXPERT)
     citation_style: CitationStyle = Field(default=CitationStyle.APA)
     artifact_role_map: dict[str, ArtifactRole] = Field(default_factory=dict)
-    report_family_detail: str = Field(default="")
     keywords: list[str] = Field(default_factory=list)
     revision_base_path: Optional[str] = None
     selected_guidelines: list[str] = Field(default_factory=list)

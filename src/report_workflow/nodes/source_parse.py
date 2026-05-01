@@ -3,6 +3,7 @@ from pathlib import Path
 
 from ..errors import QAHardBlockError
 from ..state import ReportState, SourceContentBlock
+from ..config import PROJECT_ROOT
 from ..runtime_support import write_json_artifact
 from ..parsers.structured_parser import parse_structured
 from ..parsers.semi_structured_parser import parse_semi_structured
@@ -10,7 +11,7 @@ from ..parsers.code_parser import parse_code
 from ..parsers.agent_fallback import parse_agent_fallback
 from ..validators.parse_validator import validate_parsed_output
 
-STRUCTURED_TYPES = {"csv", "xlsx", "json"}
+STRUCTURED_TYPES = {"csv", "xlsx", "json", "toml"}
 SEMI_STRUCTURED_TYPES = {"pdf", "docx", "txt", "md"}
 CODE_TYPES = {"py", "js", "ts", "jsx", "tsx", "java", "cpp", "c", "h", "cs", "go", "rs", "rb", "php", "swift", "kt", "scala"}
 
@@ -22,7 +23,7 @@ def parse_single_source(entry: dict) -> dict:
 
     path = Path(file_path)
     if not path.exists():
-        path = Path.cwd() / file_path
+        path = PROJECT_ROOT / file_path
     if not path.exists():
         return {"blocks": [], "error": f"File not found: {file_path}", "success": False}
 

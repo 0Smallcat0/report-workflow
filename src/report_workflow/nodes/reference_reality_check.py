@@ -47,9 +47,8 @@ def _classify_reference(ref: dict) -> tuple[str, str]:
 
 def run_reference_reality_check(state: ReportState) -> ReportState:
     """Create a publication-facing reference verification status report."""
-    family = state.spec.get("report_family", "academic_report")
-    subtype = state.spec.get("report_family_detail") or None
-    policy = get_policy(family, subtype)
+    family = state.spec.get("report_profile", "academic_paper")
+    policy = get_policy(family)
 
     report_path = state.runtime.get("reference_verify_report_path", "")
     if not report_path or not Path(report_path).exists():

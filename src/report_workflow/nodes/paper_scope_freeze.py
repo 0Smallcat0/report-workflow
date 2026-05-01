@@ -5,7 +5,7 @@ Position: After OUTLINE_PLAN, before SECTION_DRAFT. (Comes after CLAIM_PLAN has 
 This node addresses the most expensive failure mode from the retrospective:
 "Scope was too broad at the start of this run."
 
-For academic_report, it enforces:
+For academic_paper, it enforces:
   - A thesis statement exists in the outline's introduction section
   - Research questions (RQs) are defined if the blueprint requires them
   - Primary claims (1-3 max) are ranked and allocated to main text
@@ -30,13 +30,13 @@ def _stable_hash(payload: dict) -> str:
     return hashlib.sha256(encoded).hexdigest()[:16]
 
 
-def _require_thesis(outline: dict, report_family: str) -> tuple[str, str]:
+def _require_thesis(outline: dict, report_profile: str) -> tuple[str, str]:
     """Extract and validate thesis statement from outline.
 
     Returns (thesis_text, thesis_location).
     Raises QAHardBlockError if thesis is required but missing per policy.
     """
-    policy = get_policy(report_family)
+    policy = get_policy(report_profile)
     if not policy.claim.thesis_required:
         return "", ""
 
@@ -71,13 +71,13 @@ def _require_thesis(outline: dict, report_family: str) -> tuple[str, str]:
     )
 
 
-def _require_rqs(outline: dict, blueprint: dict, report_family: str) -> list[str]:
+def _require_rqs(outline: dict, blueprint: dict, report_profile: str) -> list[str]:
     """Extract research questions if the policy and blueprint require them.
 
     Returns list of RQ strings (may be empty if not required).
     Raises QAHardBlockError if RQs are required but missing.
     """
-    policy = get_policy(report_family)
+    policy = get_policy(report_profile)
     if not policy.claim.rqs_required:
         return outline.get("research_questions", [])
 
@@ -154,12 +154,12 @@ def _rank_claims(claim_matrix: dict) -> dict:
     return result
 
 
-def _validate_claim_allocation(ranking: dict, report_family: str) -> None:
+def _validate_claim_allocation(ranking: dict, report_profile: str) -> None:
     """Validate that claim allocation makes sense per policy.
 
     Raises QAHardBlockError if allocation rules are violated.
     """
-    policy = get_policy(report_family)
+    policy = get_policy(report_profile)
     if not policy.claim.thesis_required:
         return
 
@@ -200,22 +200,22 @@ def run_paper_scope_freeze(state: ReportState) -> ReportState:
     Position: After OUTLINE_PLAN, before SECTION_DRAFT.
     Prerequisite: CLAIM_PLAN has already validated claim_matrix.
 
-    For academic_report: hard blocks if thesis is missing or claims are poorly allocated.
+    For academic_paper: hard blocks if thesis is missing or claims are poorly allocated.
     """
-    report_family = state.spec.get("report_family", "")
+    report_profile = state.spec.get("report_profile", "")
     blueprint = state.plan.get("blueprint", {})
     outline = state.plan.get("outline", {})
     claim_matrix = state.plan.get("claim_matrix", {})
 
     # Extract thesis (required for academic)
-    thesis_text, thesis_location = _require_thesis(outline, report_family)
+    thesis_text, thesis_location = _require_thesis(outline, report_profile)
 
     # Extract RQs (optional for academic unless blueprint requires)
-    research_questions = _require_rqs(outline, blueprint, report_family)
+    research_questions = _require_rqs(outline, blueprint, report_profile)
 
     # Rank and allocate claims
     ranking = _rank_claims(claim_matrix)
-    _validate_claim_allocation(ranking, report_family)
+    _validate_claim_allocation(ranking, report_profile)
 
     # Build freeze payload
     payload = {
@@ -244,7 +244,7 @@ def run_paper_scope_freeze(state: ReportState) -> ReportState:
         "job_id": state.job_id,
         "status": "frozen",
         "plan_hash": plan_hash,
-        "report_family": report_family,
+        "report_profile": report_profile,
         "thesis_statement": thesis_text,
         "thesis_location": thesis_location,
         "research_questions": research_questions,

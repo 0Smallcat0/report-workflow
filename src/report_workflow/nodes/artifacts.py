@@ -1,8 +1,8 @@
 """ARTIFACTS node - package MVP workflow outputs into a structured deliverable.
 
 Collect and package the validated report, evidence, QA, source, and traceability
-artifacts into the output directory:
-  ~/.hermes/published/{job_id}/
+artifacts into the run-local published directory:
+  output/<slug>--{job_id}/published/
 
 Deliverable layout:
   {job_id}/
@@ -24,7 +24,7 @@ import shutil
 from pathlib import Path
 from datetime import datetime
 
-from ..state import ReportState, WORKFLOW_RUNS_DIR, PUBLISHED_DIR
+from ..state import ReportState, published_dir_for, run_dir_for
 from ..runtime_support import write_artifact_lineage
 
 
@@ -250,21 +250,21 @@ def _build_traceability_artifacts(state: ReportState, run_dir: Path) -> dict[str
 def run_artifacts(state: ReportState) -> ReportState:
     """T25: ARTIFACTS - package all outputs into published directory."""
     run_id = state.job_id
-    published_dir = PUBLISHED_DIR / run_id
+    published_dir = published_dir_for(state)
     published_dir.mkdir(parents=True, exist_ok=True)
 
     qa_dir = published_dir / "qa"
     evidence_dir = published_dir / "evidence"
     sources_dir = published_dir / "sources"
     traceability_dir = published_dir / "traceability"
-    run_dir = Path.home() / ".hermes" / "workflow_runs" / run_id
+    run_dir = run_dir_for(state)
     traceability_paths = _build_traceability_artifacts(state, run_dir)
 
     artifacts_meta: dict = {
         "job_id": run_id,
         "created_at": datetime.now().isoformat(),
         "status": state.status,
-        "report_family": state.spec.get("report_family", ""),
+        "report_profile": state.spec.get("report_profile", ""),
         "files": [],
     }
 
@@ -304,10 +304,10 @@ def run_artifacts(state: ReportState) -> ReportState:
 
     # --- Evidence artifacts ---
     evidence_files = {
-        "claim_matrix.json": _collect_paths(Path.home() / ".hermes" / "workflow_runs" / run_id, "claim_matrix.json"),
+        "claim_matrix.json": _collect_paths(run_dir, "claim_matrix.json"),
         "outline.json": [state.plan.get("outline_path")] if state.plan.get("outline_path") else [],
         "sentence_map.jsonl": [state.drafts.get("sentence_map_path")] if state.drafts.get("sentence_map_path") else [],
-        "evidence_ledger.jsonl": _collect_paths(Path.home() / ".hermes" / "workflow_runs" / run_id, "evidence_ledger.jsonl"),
+        "evidence_ledger.jsonl": _collect_paths(run_dir, "evidence_ledger.jsonl"),
         "evidence_store_manifest.json": [state.sources.get("evidence_store_manifest_path")] if state.sources.get("evidence_store_manifest_path") else [],
         "section_plan_freeze.json": [state.plan.get("section_plan_freeze_path")] if state.plan.get("section_plan_freeze_path") else [],
     }
@@ -352,8 +352,7 @@ def run_artifacts(state: ReportState) -> ReportState:
         "job_id": run_id,
         "created_at": datetime.now().isoformat(),
         "status": state.status,
-        "report_family": state.spec.get("report_family", ""),
-        "report_family_detail": state.spec.get("report_family_detail", ""),
+        "report_profile": state.spec.get("report_profile", ""),
         "delivery_mode": state.spec.get("delivery_mode", "fresh_doc"),
         "audience": state.spec.get("audience", "expert"),
         "citation_style": state.spec.get("citation_style", "apa"),

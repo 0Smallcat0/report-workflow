@@ -73,7 +73,7 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
 
     if (
         task_intent == "new_draft"
-        and state.spec.get("report_family") == "academic_report"
+        and state.spec.get("report_profile") == "academic_paper"
         and not state.spec.get("project_identity")
     ):
         candidate_path = run_dir / "project_identity_candidate.json"
@@ -136,6 +136,10 @@ For `new_draft`, the editable artifacts are `claim_matrix.json`, `outline.json`,
 - Use only evidence IDs from `evidence_ledger.jsonl`.
 - Do not use `blocked`, `unverified`, or `disputed` for publishable claims.
 - Statistical claims require quantitative evidence.
+- For internal project documents, use `factual`, `methodological`, or `qualitative`
+  claims unless the evidence explicitly allows `statistical`.
+- Mark medium-grade or qualitative source wording as hedged in `sentence_map.jsonl`;
+  reserve `measured` wording for high-grade or quantitative evidence.
 - **Academic reports**: Every claim MUST have a `claim_role` field with value `primary`, `supporting`, or `background`.
   - `primary`: Core contribution claims (max 3). Must directly support the thesis/contribution.
   - `supporting`: Evidence that backs a primary claim.
@@ -143,7 +147,7 @@ For `new_draft`, the editable artifacts are `claim_matrix.json`, `outline.json`,
   - At least 1 primary claim required. No more than 3 primary claims.
 
 ## Evidence Summary
-(Full ledger at `{evidence_path}` — read individual entries as needed)
+(Full ledger at `{evidence_path}`; read individual entries as needed)
 ```
 {evidence_summary}
 ```
@@ -194,7 +198,7 @@ Do not edit `merged_draft.md` directly. It is generated and will be overwritten.
 - Assign every claim to at least one non-reference/non-appendix section.
 - Use only section IDs defined by the blueprint.
 - Use only claim IDs from `claim_matrix.json`.
-- `results_mode` must be set — choose empirical or architectural_characterization.
+- `results_mode` must be set; choose empirical or architectural_characterization.
 """
 
     section_task = f"""# 03 Section Draft
@@ -234,16 +238,17 @@ Do not edit `merged_draft.md` directly. For `new_draft`, fix section files under
 - Every evidence-backed sentence must include `[CITE:<evidence_id>]` in the Markdown.
 - Do not invent claims not present in `claim_matrix.json`.
 - Do not write placeholder text such as "This section is under development".
+- Use `wording_strength="hedged"` unless the linked evidence is high-grade or quantitative.
 - Write one Markdown file for each required blueprint section, plus any optional section included in `outline.json`.
-- **Academic reports — forbidden patterns** (hard blocks in the pipeline):
+- **Publication text forbidden patterns** (hard blocks in the pipeline):
   - `[Source:]`, `[graphify:]`, `[Note:]`, or any internal workflow marker.
-  - Evidence IDs, `.py` filenames, or internal paths (e.g. `~/.hermes/...`) in body text.
-  - Any table containing "audit", "evidence", or "claim" in the header — these are internal artifacts.
+  - Evidence IDs, `.py` filenames, or internal workspace paths (e.g. `output/...`) in body text.
+  - Any table containing "audit", "evidence", or "claim" in the header; these are internal artifacts.
   - **Write real content; do not use placeholder names** like `[Author Name]`, `[University]`, `[email@domain.com]`.
 
-## Academic Reports — Abstract Template
+## Profile-Specific Abstract Template
 
-**Two accepted formats** (choose one based on your report_subtype):
+**Two accepted formats** (choose one based on your report_profile):
 
 ### Option A: Structured Abstract (for journal submissions)
 
@@ -254,9 +259,9 @@ Do not edit `merged_draft.md` directly. For `new_draft`, fix section files under
 
 **Objective:** [1-2 sentences on the specific aim]
 
-**Methods:** [3-5 sentences on what was done — past tense]
+**Methods:** [3-5 sentences on what was done, past tense]
 
-**Principal Findings:** [3-5 sentences on key results — can include numbers]
+**Principal Findings:** [3-5 sentences on key results, including numbers when supported]
 
 **Significance:** [1-2 sentences on why this matters]
 
@@ -272,18 +277,29 @@ Covers background, objective, methods, key findings, and significance
 in a flowing narrative.]
 ```
 
-**Word count: 150–250 words total.** Count words after removing `[CITE:]` markers.
+**Word count: 150-250 words total unless the profile contract says otherwise.**
+Count words after removing `[CITE:]` markers.
 **No trailing ellipses (`.....`), no incomplete sentences.**
 **No `[CITE:]`, `[Source:]`, or `[graphify:]` markers in the abstract.**
 
 ## Admissions-facing academic reports
 
-If `report_family_detail=admissions_report`, prefer:
+If `report_profile=admissions_report` or `admissions_project_report`, prefer:
 - Option B plain-paragraph abstract by default
 - project-monograph tone rather than journal-template tone
 - research narrative that foregrounds contribution, design choices, and research potential
 - deterministic compilation / StrategyIR / AST / orthogonal quality gates as the spine
 - LLM components as constrained supporting modules, not co-equal contributions
+
+## Engineering lab reports
+
+If `report_profile=engineering_lab_report`, preserve the lab handout contract:
+- cover experiment purpose, theory, apparatus, procedure, results, discussion,
+  conclusion/reflection, and references
+- keep formulas, variables, parameters, units, and calculation assumptions traceable
+- answer required discussion questions from the source handout
+- reference figures and tables near the relevant result text
+- avoid workflow, agent, or tool jargon in the report body
 
 ## Evidence Lookup
 
@@ -310,7 +326,7 @@ Example `facts_freeze.json`:
 }}
 ```
 
-## Academic Reports — Methods Protocol Guidance
+## Academic-Style Methods Protocol Guidance
 
 Methods section describes **procedure** (what was done), NOT findings. Use past tense.
 
@@ -323,13 +339,13 @@ Methods section describes **procedure** (what was done), NOT findings. Use past 
 - "The parser extracted 226 edges from 30 source files showing a modular structure..."
 - "NetworkX computed centrality metrics demonstrating the hub-like nature of..."
 
-## Academic Reports — Results Mode
+## Academic-Style Results Mode
 
 If `results_mode` in `outline.json` is `empirical`: Present measured data, statistics, comparisons with numbers.
 
-If `results_mode` is `architectural_characterization`: Describe structural properties, module relationships, dependency patterns — do NOT make empirical performance claims without evidence.
+If `results_mode` is `architectural_characterization`: Describe structural properties, module relationships, and dependency patterns. Do NOT make empirical performance claims without evidence.
 
-## Academic Reports — Figures
+## Figure Guidance
 
 Reference figures by their number in the body text at the natural point of discussion (e.g. "as shown in Figure 2"). Do NOT dump all figures at the end of the document. The rendering pipeline will embed each figure after its first reference.
 
@@ -356,7 +372,7 @@ sequenceDiagram
 ```
 ````
 
-**FORBIDDEN:** Do NOT use ASCII art / box-drawing character diagrams (┌─┐ └─┘).
+**FORBIDDEN:** Do NOT use ASCII art or box-drawing character diagrams.
 These render poorly in DOCX and will be **hard-blocked** by the pre-render sanity gate.
 
 ## Project Identity
@@ -391,7 +407,7 @@ The base document has been parsed into sections. You must produce a change manif
 ## Inputs
 - Revision goal: `{user_prompt_value}`
 - Base document sections: `{base_sections_path}`
-  (section_id → markdown content)
+  (section_id -> markdown content)
 - Evidence ledger: `{evidence_path}`
 - Claim matrix: `{run_dir / "claim_matrix.json"}`
 
@@ -422,7 +438,7 @@ Write `{run_dir / "revision_plan.json"}` with this shape:
 - Every change must link to at least one `claim_id` and `evidence_id`.
 - `claim_ids` must exist in `claim_matrix.json`.
 - `evidence_ids` must exist in `evidence_ledger.jsonl`.
-- Provide enough `original_text` for unambiguous matching (≥20 characters).
+- Provide enough `original_text` for unambiguous matching (usually at least 40 characters).
 - Do not repeat changes for the same text.
 - **Two changes must NOT overlap**: if change A modifies "hello world" and
   change B modifies "world foo" in the same section, this is a conflict
@@ -445,7 +461,7 @@ artifacts directly. For `revise_existing`, the only supported authoring surface 
 
 ## Best Practices
 - Modify 1-3 sections per revision plan. Large plans risk conflicts.
-- Copy `original_text` exactly from the base document — even whitespace matters.
+- Copy `original_text` exactly from the base document; even whitespace matters.
 - If you need to rewrite an entire section (>70% change), consider `new_draft` mode instead.
 """
         files["04_revision_plan.md"] = revision_task
@@ -501,7 +517,7 @@ def _generate_section_skeletons(state: ReportState, run_dir: Path) -> None:
             ),
             "results": (
                 "Present findings: data, measurements, observations. "
-                "Do NOT interpret results here — save that for Discussion."
+                "Do NOT interpret results here; save that for Discussion."
             ),
             "discussion": (
                 "Interpret results, compare with related work. "

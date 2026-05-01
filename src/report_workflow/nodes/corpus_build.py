@@ -3,7 +3,8 @@ import os
 import uuid
 from pathlib import Path
 from datetime import datetime
-from ..state import ReportState
+from ..state import ReportState, run_dir_for
+from ..config import PROJECT_ROOT
 from ..errors import QAHardBlockError
 from ..runtime_support import write_json_artifact
 
@@ -12,14 +13,11 @@ try:
 except ImportError:  # pragma: no cover - depends on local environment
     filetype = None
 
-WORKFLOW_RUNS_DIR = Path.home() / ".hermes" / "workflow_runs"
-
-
 def detect_file_type(file_path: str) -> str:
     """Detect file type from extension and content."""
     ext = Path(file_path).suffix.lower().lstrip(".")
     if ext in (
-        "csv", "xlsx", "json", "txt", "md",
+        "csv", "xlsx", "json", "toml", "txt", "md",
         "pdf", "docx", "url",
         # Fix #1: code file types routed to code_parser
         "py", "js", "ts", "jsx", "tsx", "java", "cpp", "c", "h",
@@ -52,15 +50,15 @@ def run_corpus_build(state: ReportState) -> ReportState:
     corpus_manifest = []
     source_registry = []
     
-    run_dir = WORKFLOW_RUNS_DIR / state.job_id
+    run_dir = run_dir_for(state)
     run_dir.mkdir(parents=True, exist_ok=True)
     
     for file_path in uploaded_files:
         try:
             path = Path(file_path)
             if not path.exists():
-                # Try relative to current dir
-                path = Path.cwd() / file_path
+                # Try relative to project root for stable repo-local behavior.
+                path = PROJECT_ROOT / file_path
             
             if not path.exists():
                 raise QAHardBlockError(f"Uploaded source not found: {file_path}")

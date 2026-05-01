@@ -1,12 +1,12 @@
-"""PolicyPack — unified family-specific policy interface for report_workflow.
+"""PolicyPack: unified profile-specific policy interface for report_workflow.
 
 Design: Config Wrapper approach. Each policy class loads its data from existing
 config files (no duplication of data). Nodes call policy.xxx instead of
-if report_family == "...".
+if report_profile == "...".
 
 Usage in nodes:
     from ..policies import get_policy
-    policy = get_policy(state.spec.get("report_family", "academic_report"))
+    policy = get_policy(state.spec.get("report_profile", "academic_paper"))
     if policy.front_matter.required:
         ...
 """
@@ -79,9 +79,9 @@ class GuidelinePolicy:
 
 @dataclass
 class ReportPolicy:
-    """Base class for report family policies.
+    """Base class for report profile policies.
 
-    Each concrete subclass hard-codes the family-specific values.
+    Each concrete subclass hard-codes the profile-specific values.
     Config data is loaded from existing config files at __init__ time.
     """
     front_matter: FrontMatterPolicy
@@ -98,7 +98,7 @@ class ReportPolicy:
         """Load banned phrases for the given family alias from configs/banned_phrases.json.
 
         Args:
-            family: "academic", "work", or "hybrid" (not the full "academic_report" name)
+            family: "academic", "work", or "hybrid" (not the full "academic_paper" name)
         """
         try:
             with importlib.resources.as_file(
@@ -225,10 +225,10 @@ class WorkReportPolicy(ReportPolicy):
         )
 
 
-class HybridReportPolicy(ReportPolicy):
+class CustomReportPolicy(ReportPolicy):
     def __init__(self):
         phrases = self.load_banned_phrases("hybrid")
-        hard_ids = self.load_hard_guidelines("hybrid")
+        hard_ids: list[str] = []
 
         super().__init__(
             front_matter=FrontMatterPolicy(
@@ -238,19 +238,20 @@ class HybridReportPolicy(ReportPolicy):
                 auto_populate_missing_fields=False,
             ),
             abstract=AbstractPolicy(
-                word_count_min=150,
-                word_count_max=250,
+                word_count_min=0,
+                word_count_max=500,
                 structure_required=False,
+                allow_plain_paragraph=True,
             ),
             citation=CitationPolicy(
                 style="APA",
-                source_marker_hard_block=True,
+                source_marker_hard_block=False,
                 draft_prefer_marker_stripped=False,
             ),
             reference=ReferencePolicy(
-                doi_verification_required=True,
+                doi_verification_required=False,
                 arxiv_verification_required=False,
-                reality_report_required=True,
+                reality_report_required=False,
                 human_review_hard_block=False,
             ),
             figure=FigurePolicy(
@@ -263,7 +264,7 @@ class HybridReportPolicy(ReportPolicy):
             ),
             claim=ClaimPolicy(
                 primary_source_required=False,
-                role_validation_required=False,
+                role_validation_required=True,
                 thesis_required=False,
                 rqs_required=False,
             ),
@@ -273,35 +274,30 @@ class HybridReportPolicy(ReportPolicy):
 
 
 # ------------------------------------------------------------------
-# Factory
+# Additional profile policies
 # ------------------------------------------------------------------
 
 _POLICY_REGISTRY: dict[str, type[ReportPolicy]] = {
-    "academic_report": AcademicReportPolicy,
-    "work_report": WorkReportPolicy,
-    "hybrid_report": HybridReportPolicy,
+    "academic_paper": AcademicReportPolicy,
+    "business_report": WorkReportPolicy,
+    "custom": CustomReportPolicy,
+    "proposal": WorkReportPolicy,
+    "engineering_lab_report": AcademicReportPolicy,
+    "admissions_report": AcademicReportPolicy,
+    "admissions_project_report": WorkReportPolicy,
 }
 
-# Subtype overrides: key = "family::subtype", value = dict of policy field overrides
-_SUBTYPE_OVERRIDES: dict[str, dict] = {
-    "academic_report::admissions_report": {
-        "abstract": AbstractPolicy(
-            word_count_min=150,
-            word_count_max=250,
-            structure_required=False,
-            allow_plain_paragraph=True,
+_PROFILE_OVERRIDES: dict[str, dict] = {
+    "engineering_lab_report": {
+        "front_matter": FrontMatterPolicy(
+            required=False,
+            placeholder_blocked=True,
+            author_block_required=False,
+            auto_populate_missing_fields=False,
         ),
-        "reference": ReferencePolicy(
-            doi_verification_required=True,
-            arxiv_verification_required=True,
-            reality_report_required=True,
-            human_review_hard_block=False,
-        ),
-    },
-    "academic_report::admissions_project_report": {
         "abstract": AbstractPolicy(
-            word_count_min=150,
-            word_count_max=250,
+            word_count_min=0,
+            word_count_max=300,
             structure_required=False,
             allow_plain_paragraph=True,
         ),
@@ -311,48 +307,65 @@ _SUBTYPE_OVERRIDES: dict[str, dict] = {
             reality_report_required=False,
             human_review_hard_block=False,
         ),
+        "figure": FigurePolicy(audit_table_hard_block=False, figure_contract_required=True),
+        "claim": ClaimPolicy(
+            primary_source_required=True,
+            role_validation_required=True,
+            thesis_required=False,
+            rqs_required=False,
+        ),
+        "guideline": GuidelinePolicy(hard_guideline_ids=[], auto_select_allowed=True),
+    },
+    "admissions_report": {
+        "abstract": AbstractPolicy(
+            word_count_min=150,
+            word_count_max=250,
+            structure_required=False,
+            allow_plain_paragraph=True,
+        ),
+    },
+    "admissions_project_report": {
+        "abstract": AbstractPolicy(
+            word_count_min=150,
+            word_count_max=250,
+            structure_required=False,
+            allow_plain_paragraph=True,
+        ),
     },
 }
 
 _POLICY_CACHE: dict[str, ReportPolicy] = {}
 
 
-def get_policy(family: Optional[str] = None, subtype: Optional[str] = None) -> ReportPolicy:
-    """Return the ReportPolicy singleton for the given family.
+def get_policy(profile: Optional[str] = None) -> ReportPolicy:
+    """Return the ReportPolicy singleton for the given profile.
 
     Args:
-        family: "academic_report", "work_report", or "hybrid_report".
-                 Defaults to "academic_report" if None.
-        subtype: Optional subtype like "admissions_report" that adjusts
-                 specific policy fields (e.g., relaxed abstract rules).
-
+        profile: Profile ID such as "academic_paper" or "engineering_lab_report".
+                 Defaults to "academic_paper" if None.
     Returns:
         The corresponding ReportPolicy singleton.
 
     Raises:
-        ValueError: If family is not a known report family.
+        ValueError: If profile is not a known report profile.
     """
-    if family is None:
-        family = "academic_report"
+    if profile is None:
+        profile = "academic_paper"
 
-    if family not in _POLICY_REGISTRY:
+    if profile not in _POLICY_REGISTRY:
         raise ValueError(
-            f"Unknown report_family={family!r}. "
-            f"Known families: {list(_POLICY_REGISTRY.keys())}"
+            f"Unknown report_profile={profile!r}. "
+            f"Known profiles: {list(_POLICY_REGISTRY.keys())}"
         )
 
-    cache_key = f"{family}::{subtype}" if subtype else family
+    cache_key = profile
 
     if cache_key not in _POLICY_CACHE:
-        base = _POLICY_REGISTRY[family]()
+        base = _POLICY_REGISTRY[profile]()
 
-        # Apply subtype overrides if any
-        if subtype:
-            override_key = f"{family}::{subtype}"
-            overrides = _SUBTYPE_OVERRIDES.get(override_key, {})
-            for field_name, value in overrides.items():
-                if hasattr(base, field_name):
-                    setattr(base, field_name, value)
+        for field_name, value in _PROFILE_OVERRIDES.get(profile, {}).items():
+            if hasattr(base, field_name):
+                setattr(base, field_name, value)
 
         _POLICY_CACHE[cache_key] = base
 

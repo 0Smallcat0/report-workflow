@@ -1,6 +1,7 @@
 """Structured parser for CSV, XLSX, JSON files."""
-import json
 import csv
+import json
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -29,6 +30,15 @@ def parse_json(file_path: str) -> list[dict]:
     return []
 
 
+def parse_toml(file_path: str) -> list[dict]:
+    """Parse TOML files such as pyproject.toml."""
+    with open(file_path, "rb") as f:
+        data = tomllib.load(f)
+    if isinstance(data, dict):
+        return [data]
+    return []
+
+
 def parse_structured(file_path: str, file_type: str) -> dict:
     """Parse structured file and return content blocks."""
     try:
@@ -38,6 +48,8 @@ def parse_structured(file_path: str, file_type: str) -> dict:
             records = parse_xlsx(file_path)
         elif file_type == "json":
             records = parse_json(file_path)
+        elif file_type == "toml":
+            records = parse_toml(file_path)
         else:
             return {"blocks": [], "error": f"Unsupported file type: {file_type}"}
 

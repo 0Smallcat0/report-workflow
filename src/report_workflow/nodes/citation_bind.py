@@ -3,7 +3,7 @@
 Implements three separate layers:
 
 1. INTERNAL TRACE LAYER (audit/appendix only):
-   - Maps claim_id → evidence_ids → source_ids
+   - Maps claim_id -> evidence_ids -> source_ids
    - Preserves internal file references for traceability
    - NEVER appears in publication output
    - Output: internal_trace_map.json
@@ -18,13 +18,13 @@ Implements three separate layers:
    - Formal APA 7th edition citations
    - In-text: (Author, Year) format for research documents
    - Reference list entries only for external sources (research_document, primary_source)
-   - Graph analysis figures → "[Source: Figure N]" format in-text
+   - Graph analysis figures -> "[Source: Figure N]" format in-text
    - Internal filenames NEVER appear in final publication body
 
 Key rules:
-   - code_artifact / graph_analysis / derived_summary → in-text only, NO reference entry
-   - research_document / primary_source → APA 7th author-year format (in-text + reference entry)
-   - [Source: filename] markers → STRIPPED from body prose, moved to Source Appendix
+   - code_artifact / graph_analysis / derived_summary -> in-text only, NO reference entry
+   - research_document / primary_source -> APA 7th author-year format (in-text + reference entry)
+   - [Source: filename] markers -> STRIPPED from body prose, moved to Source Appendix
    - Internal filenames NEVER appear in final publication body
 
 Position: After MERGE_DRAFT, before FACTUALITY_CHECK in validate phase.
@@ -44,7 +44,7 @@ from ..policies import get_policy
 # Citation style configurations
 # ------------------------------------------------------------------
 
-# Source role → citation behavior
+# Source role -> citation behavior
 # - "in_text_only": citation appears in-text only, no reference entry
 # - "reference_entry": both in-text and reference list entry
 SOURCE_ROLE_CITATION_TYPE = {
@@ -66,7 +66,7 @@ def _build_internal_trace_map(
     claim_matrix: dict,
     sentence_map: list[dict],
 ) -> dict:
-    """Build the internal trace map: claim → evidence → source mapping.
+    """Build the internal trace map: claim -> evidence -> source mapping.
 
     This map is for audit/traceability purposes only.
     It preserves internal references like [Source: graphify:GRAPH_REPORT.md]
@@ -80,7 +80,7 @@ def _build_internal_trace_map(
         "source_roles": {},
     }
 
-    # Build evidence_id → evidence lookup
+    # Build evidence_id -> evidence lookup
     evidence_by_id = {e["evidence_id"]: e for e in evidence_ledger}
 
     # Process each claim
@@ -195,7 +195,7 @@ def _format_in_text_citation(evidence: dict) -> str:
     Returns the appropriate citation format for in-text use:
     - code_artifact: [Source: filename.py]
     - graph_analysis: [Source: Figure N] or [Source: graphify:filename]
-    - derived_summary: [Source: Summary — filename]
+    - derived_summary: [Source: Summary -> filename]
     - internal_project_source: omitted from publication text; tracked in sidecars
     - research_document: (Author, Year)
     - primary_source: (Author, Year)
@@ -213,7 +213,7 @@ def _format_in_text_citation(evidence: dict) -> str:
             return f"[Source: {figure_ref}]"
         return f"[Source: graphify:{file_name}]"
     elif source_role == "derived_summary":
-        return f"[Source: Summary — {file_name}]"
+        return f"[Source: Summary - {file_name}]"
     elif source_role == "internal_project_source":
         return ""
     elif source_role in ("research_document", "primary_source"):
@@ -248,7 +248,7 @@ def _format_reference_entry(evidence: dict) -> Optional[str]:
 
     if source_role in ("research_document", "primary_source"):
         file_name = evidence.get("source_file_name", evidence.get("source_id", "unknown"))
-        # Skip internal workflow artifacts — these are not external publications
+        # Skip internal workflow artifacts; these are not external publications.
         internal_artifacts = (
             "main_report.md",
             "GRAPH_REPORT.md",
@@ -314,7 +314,7 @@ def _strip_source_markers(
 
 
 def _build_source_to_evidence_map(evidence_ledger: list[dict]) -> dict[str, list[str]]:
-    """Build source_name → list of evidence_ids mapping."""
+    """Build source_name -> list of evidence_ids mapping."""
     source_map: dict[str, list[str]] = {}
     for ev in evidence_ledger:
         src = ev.get("source_file_name", "")
@@ -336,7 +336,7 @@ def _build_source_appendix(source_entries: list[dict]) -> str:
     if not source_entries:
         return ""
 
-    # Strict binary control characters only — NOT box-drawing or underscores
+    # Strict binary control characters only; do not treat box-drawing chars or underscores as binary.
     _CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]+")
     _REPLACEMENT_CHARS_RE = re.compile(r"\uFFFD")
 
@@ -346,14 +346,14 @@ def _build_source_appendix(source_entries: list[dict]) -> str:
             return None
         # Remove control chars
         text = _CONTROL_RE.sub(" ", text)
-        # Reject if it contains replacement characters (�)
+        # Reject if it contains Unicode replacement characters.
         if _REPLACEMENT_CHARS_RE.search(text):
             return None
         # Check ratio of printable to total chars
         printable = sum(1 for c in text if c.isprintable() or c in " \t\n")
         if printable / max(len(text), 1) < 0.65:
             return None
-        # Truncate at a word boundary near 300 chars to preserve snippet完整性
+        # Truncate at a word boundary near 300 chars to preserve snippet context.
         if len(text) > 300:
             cut = text[:300]
             last_space = cut.rfind(" ")
@@ -625,14 +625,14 @@ def run_citation_bind(state: ReportState) -> ReportState:
     This node performs two functions:
 
     1. INTERNAL TRACE LAYER (for audit/appendix):
-       - Builds claim → evidence → source mapping
+       - Builds claim -> evidence -> source mapping
        - Writes internal_trace_map.json
        - NEVER appears in publication
 
     2. PUBLICATION LAYER (for document):
        - Resolves [CITE:...] to publication-ready citations
-       - code_artifact / graph_analysis / derived_summary → [Source: ...] in-text only
-       - research_document / primary_source → APA (Author, Year) in-text + reference list
+       - code_artifact / graph_analysis / derived_summary -> [Source: ...] in-text only
+       - research_document / primary_source -> APA (Author, Year) in-text + reference list
        - Writes publication_reference_list.md and publication_references.bib
        - In-text citations only reference the publication reference list
 
@@ -672,7 +672,7 @@ def run_citation_bind(state: ReportState) -> ReportState:
     )
 
     # ------------------------------------------------------------------
-    # Layer 2b: Strip [Source: ...] from body prose → Source Appendix
+    # Layer 2b: Strip [Source: ...] from body prose and move it to Source Appendix.
     # All [Source: filename] markers are internal traceability markers.
     # They must NEVER appear in publication body prose.
     # Strip them and move to a human-readable Source Appendix.
@@ -701,7 +701,7 @@ def run_citation_bind(state: ReportState) -> ReportState:
     # Hard block per policy if any [Source:] remains after stripping.
     # This is the last line of defense before render.
     # ----------------------------------------------------------------------
-    family = state.spec.get("report_family", "academic_report")
+    family = state.spec.get("report_profile", "academic_paper")
     if get_policy(family).citation.source_marker_hard_block:
         remaining_source = re.findall(r'\[Source:', stripped_md)
         if remaining_source:
@@ -736,7 +736,7 @@ def run_citation_bind(state: ReportState) -> ReportState:
     # publication_draft_md is the canonical publication input for academic mode.
     # RESULTS_SANITY_PASS already set this; CITATION_BIND confirms the stripped
     # version is the final publication draft. This key is read by DOCX_RENDER
-    # as the preferred input for academic_report mode.
+    # as the preferred input for academic_paper mode.
     state.drafts["publication_draft_md"] = str(cited_md_path)
     state.citations["citation_audit"] = new_audit
     state.citations["publication_reference_list_path"] = str(ref_list_path)

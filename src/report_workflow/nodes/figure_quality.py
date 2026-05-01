@@ -12,7 +12,7 @@ not as an afterthought. This node validates the figure quality after drafting.
 
 Academic report-specific rules:
   - Internal audit tables (Claim-Evidence Matrix, Community-to-Contribution) should
-    NOT appear in the main publication text — they belong in supplementary materials.
+    NOT appear in the main publication text; they belong in supplementary materials.
     This node CHECKS that these tables are NOT in the main text.
   - Figure captions and in-text references are validated.
 """
@@ -37,13 +37,13 @@ logger = logging.getLogger(__name__)
 # Pattern: [FIGURE:id] or [FIGURE:id caption text]
 _FIGURE_PLACEHOLDER_RE = re.compile(r"\[FIGURE:([^\]]+)\]", re.IGNORECASE)
 
-# Pattern: prose reference to a figure — "see figure 1", "figure 2 shows", etc.
+# Pattern: prose reference to a figure, e.g. "see figure 1", "figure 2 shows".
 _FIGURE_PROSE_RE = re.compile(
     r"\b(?:see\s+figure\s+|figure\s+)(\d+|[a-z])\b(?!\s*:)",
     re.IGNORECASE,
 )
 
-# Pattern: caption start — "Figure 1:" or "[Figure 1]" at start of line/sentence
+# Pattern: caption start, e.g. "Figure 1:" or "[Figure 1]" at start of line/sentence.
 _FIGURE_CAPTION_RE = re.compile(
     r"(?:^|(?<=\n))(\[?Figure\s+(\d+|[a-z])\]?:?\s+)",
     re.IGNORECASE | re.MULTILINE,
@@ -77,14 +77,14 @@ _AUDIT_TABLE_PATTERNS = [
 ]
 
 
-def _check_no_audit_tables_in_main_text(merged_text: str, report_family: str) -> list[dict]:
+def _check_no_audit_tables_in_main_text(merged_text: str, report_profile: str) -> list[dict]:
     """Check that internal audit tables are NOT in main text.
 
     Returns hard issues if audit tables are FOUND in main text.
     """
     issues = []
 
-    policy = get_policy(report_family)
+    policy = get_policy(report_profile)
     if not policy.figure.audit_table_hard_block:
         return issues
 
@@ -191,8 +191,8 @@ def run_figure_quality(state: ReportState) -> ReportState:
         return state
 
     merged_text = Path(merged_path).read_text(encoding="utf-8")
-    report_family = state.spec.get("report_family", "")
-    policy = get_policy(report_family)
+    report_profile = state.spec.get("report_profile", "")
+    policy = get_policy(report_profile)
 
     # Collect figure_ids from outline
     outline = state.plan.get("outline", {})
@@ -205,7 +205,7 @@ def run_figure_quality(state: ReportState) -> ReportState:
     all_issues = []
 
     # 1. Check that internal audit tables are NOT in main text (academic mode)
-    audit_issues = _check_no_audit_tables_in_main_text(merged_text, report_family)
+    audit_issues = _check_no_audit_tables_in_main_text(merged_text, report_profile)
     if audit_issues:
         all_issues.extend(audit_issues)
 
@@ -220,7 +220,7 @@ def run_figure_quality(state: ReportState) -> ReportState:
 
     # 3. Figure manifest reality check: outline declared figures but no manifest
     # means figure_plan.json was missing/malformed or matplotlib skipped them.
-    # For academic_report (where figures are load-bearing), this is a hard fail
+    # For academic_paper (where figures are load-bearing), this is a hard fail
     # per the user's directive: never ship a silently-missing-figure doc.
     if outline_figure_ids and policy.figure.audit_table_hard_block:
         manifest_path = state.output.get("figure_manifest_path", "")

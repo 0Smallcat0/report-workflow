@@ -41,8 +41,42 @@ def _load_jsonl(path: str | None) -> list[dict]:
     return rows
 
 
+GRAPH_METHOD_HINTS = (
+    "knowledge graph",
+    "graph analysis",
+    "graph construction",
+    "node and edge",
+    "nodes and edges",
+    "centrality",
+    "community detection",
+)
+
+
+def _looks_like_graph_methods(state: ReportState, methods_content: str) -> bool:
+    """Return True only for reports that intentionally use graph-analysis methods.
+
+    The original protocol splitter is graph-specific. Applying it to general
+    project/admissions reports rewrites valid method headings into misleading
+    "Graph Construction" / "Validation Procedure" sections.
+    """
+    haystack = "\n".join([
+        state.spec.get("user_prompt", ""),
+        state.spec.get("report_profile", ""),
+        state.plan.get("thesis_statement", ""),
+        methods_content,
+    ]).lower()
+    return any(hint in haystack for hint in GRAPH_METHOD_HINTS)
+
+
 def _build_methods_protocol(methods_content: str, evidence_ledger: list[dict]) -> str:
     """Extract publication-ready methods from draft."""
+    if re.search(
+        r"^##\s+(Data Source and Corpus|Graph Construction|Node and Edge Extraction|Analysis Methods|Validation Procedure|Additional Methods)\s*$",
+        methods_content,
+        re.MULTILINE,
+    ):
+        return methods_content.strip() + "\n"
+
     # Split methods section into paragraphs
     paragraphs = [p.strip() for p in methods_content.split('\n\n') if p.strip()]
 
@@ -178,9 +212,20 @@ def run_methods_protocol_build(state: ReportState) -> ReportState:
     with open(methods_path, encoding="utf-8") as f:
         methods_content = f.read()
 
+    if not _looks_like_graph_methods(state, methods_content):
+        # Preserve author-provided method structure for project reports,
+        # admissions monographs, and other non-graph report families.
+        run_dir = WORKFLOW_RUNS_DIR / state.job_id
+        methods_protocol_path = run_dir / "methods_protocol.md"
+        with open(methods_protocol_path, "w", encoding="utf-8") as f:
+            f.write(methods_content)
+        state.drafts["methods_protocol"] = str(methods_protocol_path)
+        state.drafts["supplementary_methods"] = None
+        return state
+
     # Load supporting data
     evidence_ledger = _load_jsonl(state.sources.get("evidence_ledger_path"))
-    claim_matrix = state.plan.get("claim_matrix", {})
+    claim_matrix = state.plan.get("claim_matrix") or {}
     sentence_map = _load_jsonl(state.drafts.get("sentence_map_path"))
 
     # Build publication methods

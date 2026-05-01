@@ -1,4 +1,4 @@
-name: hybrid_report
+name: custom
 description: Hybrid academic/work report format
 
 # Front matter for hybrid reports (follows academic standards when abstract/references present)

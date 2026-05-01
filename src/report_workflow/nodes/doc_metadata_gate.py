@@ -16,7 +16,7 @@ from .abstract_check import run_abstract_check
 def run_doc_metadata_gate(state: ReportState) -> ReportState:
     """Build front matter then validate abstract.
 
-    For academic_report: FRONT_MATTER_BUILD hard-blocks on placeholder values.
+    For academic_paper: FRONT_MATTER_BUILD hard-blocks on placeholder values.
     ABSTRACT_CHECK hard-blocks on malformed abstract (trailing ellipses,
     incomplete sentences, wrong word count, internal markers).
     """

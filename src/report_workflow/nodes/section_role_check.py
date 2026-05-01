@@ -6,7 +6,7 @@ Validates that IMRaD sections maintain proper role boundaries:
   - Results: only presents findings (no interpretation)
   - Discussion: interprets results (no raw result restatement)
   - Methods: describes procedure (no conclusions)
-  - Abstract: claims backed by正文
+  - Abstract: claims backed by evidence
   - Introduction: no results
 
 Output: section_role_report.json
@@ -47,7 +47,7 @@ INTRODUCTION_INTRUSION_PATTERNS = [
 ]
 
 
-# Thesis-spine tokens that must appear in Introduction for academic_report /
+# Thesis-spine tokens that must appear in Introduction for academic_paper /
 # admissions_report. This is the `_THESIS_ALIGNED_KEYWORDS` contract mirrored
 # at the prose level: if Introduction fails to mention the deterministic-
 # compilation / IR / AST / orthogonal-gates / constrained-LLM story, the draft
@@ -65,7 +65,7 @@ _THESIS_SPINE_TOKENS = [
     r"strategy verification",
 ]
 
-# Paper-roadmap sentence (only required for non-admissions academic_report).
+# Paper-roadmap sentence (only required for non-admissions academic_paper).
 # Admissions mode intentionally strips the roadmap to keep the project-
 # monograph tone.
 _PAPER_ROADMAP_PATTERNS = [
@@ -89,7 +89,7 @@ def _load_jsonl(path: str | None) -> list[dict]:
 
 
 def _split_by_sections(merged_text: str) -> dict[str, str]:
-    """Split merged markdown into section_id → content mapping."""
+    """Split merged markdown into section_id -> content mapping."""
     sections = {}
     lines_by_section = []
     current_section = "preamble"
@@ -135,21 +135,18 @@ def _check_section(section_name: str, content: str, patterns: list) -> list[dict
 def _check_thesis_spine(state: ReportState, intro_content: str) -> list[dict]:
     """Flag Introductions that drift away from the thesis spine.
 
-    For academic_report + admissions_report + new_draft we require the
+    For academic_paper + admissions_report + new_draft we require the
     Introduction to name at least two thesis-spine concepts (deterministic
     compilation, StrategyIR/IR, AST, orthogonal gates, constrained LLM).
     revise_existing preserves the base document, so this guard is skipped.
     """
     issues: list[dict] = []
-    family = state.spec.get("report_family", "")
-    detail = state.spec.get("report_family_detail", "")
+    profile = state.spec.get("report_profile", "")
     intent = state.spec.get("task_intent", "new_draft")
 
-    if family != "academic_report":
+    if profile != "admissions_report":
         return issues
     if intent != "new_draft":
-        return issues
-    if detail != "admissions_report":
         return issues
 
     lowered = intro_content.lower()
@@ -177,15 +174,12 @@ def _check_paper_roadmap(state: ReportState, intro_content: str) -> list[dict]:
     """Soft-flag missing paper-roadmap sentence for non-admissions academic reports.
 
     Skipped for admissions_report (that mode intentionally strips academic
-    boilerplate) and for non-academic families. Soft severity — this is a
+    boilerplate) and for non-academic profiles. Soft severity; this is a
     quality signal, not a hard gate.
     """
     issues: list[dict] = []
-    family = state.spec.get("report_family", "")
-    detail = state.spec.get("report_family_detail", "")
-    if family != "academic_report":
-        return issues
-    if detail == "admissions_report":
+    profile = state.spec.get("report_profile", "")
+    if profile != "academic_paper":
         return issues
     if any(re.search(p, intro_content, re.IGNORECASE) for p in _PAPER_ROADMAP_PATTERNS):
         return issues
@@ -202,7 +196,7 @@ def _check_paper_roadmap(state: ReportState, intro_content: str) -> list[dict]:
 
 
 def _check_abstract_claims(state: ReportState, abstract_content: str) -> list[dict]:
-    """Verify abstract claims are backed by正文."""
+    """Verify abstract claims are backed by evidence."""
     issues = []
 
     # Extract claims from abstract (simplified - look for claim-like sentences)
@@ -288,7 +282,7 @@ def run_section_role_check(state: ReportState) -> ReportState:
     state.qa["section_role_report_path"] = str(report_path)
 
     # Hard block per policy if role validation is required
-    family = state.spec.get("report_family", "academic_report")
+    family = state.spec.get("report_profile", "academic_paper")
     if get_policy(family).claim.role_validation_required and hard_issues:
         from ..errors import QAHardBlockError
         reasons = [f"{i['section']}: {i['intrusion_type']}" for i in hard_issues[:5]]

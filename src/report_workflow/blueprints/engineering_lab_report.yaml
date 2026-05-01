@@ -1,0 +1,124 @@
+name: engineering_lab_report
+description: Engineering laboratory report with Chinese engineering-document QA contracts
+
+front_matter:
+  title: ""
+  course: ""
+  experiment_name: ""
+  author_block: ""
+  affiliation_block: ""
+  instructor: ""
+  date: ""
+  keywords: []
+
+section_order:
+  - cover
+  - abstract
+  - objectives
+  - requirements
+  - theory
+  - apparatus
+  - procedure
+  - data
+  - calculations
+  - results_discussion
+  - conclusion
+  - references
+  - appendix
+
+sections:
+  cover:
+    section_id: cover
+    title: 封面
+    required: true
+    section_type: front_matter
+    order: 1
+  abstract:
+    section_id: abstract
+    title: 摘要
+    required: false
+    section_type: abstract
+    order: 2
+    word_count_min: 0
+    word_count_max: 300
+  objectives:
+    section_id: objectives
+    title: 實驗目的
+    required: true
+    section_type: objectives
+    order: 3
+  requirements:
+    section_id: requirements
+    title: 需求與規格矩陣
+    required: true
+    section_type: requirement_matrix
+    order: 4
+  theory:
+    section_id: theory
+    title: 原理與公式
+    required: true
+    section_type: theory
+    order: 5
+  apparatus:
+    section_id: apparatus
+    title: 儀器與材料
+    required: true
+    section_type: apparatus
+    order: 6
+  procedure:
+    section_id: procedure
+    title: 實驗步驟
+    required: true
+    section_type: procedure
+    order: 7
+  data:
+    section_id: data
+    title: 原始資料與圖表
+    required: true
+    section_type: data
+    order: 8
+  calculations:
+    section_id: calculations
+    title: 計算與單位檢核
+    required: true
+    section_type: calculations
+    order: 9
+  results_discussion:
+    section_id: results_discussion
+    title: 結果與討論
+    required: true
+    section_type: discussion
+    order: 10
+  conclusion:
+    section_id: conclusion
+    title: 結論
+    required: true
+    section_type: conclusion
+    order: 11
+  references:
+    section_id: references
+    title: 參考資料
+    required: false
+    section_type: references
+    order: 12
+  appendix:
+    section_id: appendix
+    title: 附錄
+    required: false
+    section_type: appendix
+    order: 13
+
+quality_contracts:
+  evidence_backed_claims: true
+  requirement_matrix_required: true
+  formula_parameter_unit_audit_required: true
+  calculation_audit_required: true
+  figure_table_contract_required: true
+  chinese_document_rules:
+    chapter_titles_required: true
+    avoid_mojibake: true
+    units_symbols_consistent: true
+  render_qa:
+    check_table_compression: true
+    check_image_presence: true
+    check_cover_template_drift: true

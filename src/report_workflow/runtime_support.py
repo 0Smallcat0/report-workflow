@@ -4,7 +4,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-from .state import ReportState, WORKFLOW_RUNS_DIR
+from .state import ReportState, run_dir_for as resolve_run_dir
 
 # Shared constants
 PLACEHOLDER_TEXT = "This section is under development"
@@ -26,7 +26,7 @@ def load_jsonl(path: Optional[str]) -> list[dict]:
 
 
 def run_dir_for(state: ReportState) -> Path:
-    run_dir = WORKFLOW_RUNS_DIR / state.job_id
+    run_dir = resolve_run_dir(state)
     run_dir.mkdir(parents=True, exist_ok=True)
     return run_dir
 

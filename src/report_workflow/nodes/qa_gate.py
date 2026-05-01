@@ -26,7 +26,7 @@ def _banned_phrase_warnings(state: ReportState) -> list[str]:
     hard_reasons = _banned_phrase_reasons(state)
     warnings = []
     for reason in hard_reasons:
-        if reason.lstrip().startswith(("??", "→")):
+        if reason.lstrip().startswith(("WARN", "SOFT")):
             continue
         warnings.append(reason.replace("banned phrases found", "style lint: banned phrases found"))
     return warnings
@@ -41,7 +41,7 @@ def _banned_phrase_reasons(state: ReportState) -> list[str]:
 
     merged_text = Path(merged_path).read_text(encoding="utf-8")
     merged_lower = merged_text.lower()
-    family = state.spec.get("report_family", "academic_report")
+    family = state.spec.get("report_profile", "academic_paper")
     policy = get_policy(family)
     banned = policy.banned_phrases
 
@@ -56,35 +56,35 @@ def _banned_phrase_reasons(state: ReportState) -> list[str]:
         hint = (
             "To fix: Search for each phrase in base_document_sections.json or merged_draft.md "
             "and replace with acceptable alternatives. "
-            "Examples: 'justified' → 'warranted'/'necessary', "
-            "'justification' → 'reasoning'/'documented basis'. "
+            "Examples: replace 'justified' with 'warranted' or 'necessary'; "
+            "replace 'justification' with 'reasoning' or 'documented basis'. "
             "Then run: report-workflow invalidate-cache --job-id <id> --sources --drafts"
         )
-        reasons.append(f"  → {hint}")
+        reasons.append(f"  Hint: {hint}")
     return reasons
 
 
 # ------------------------------------------------------------------
-# Fix #8: Results section — empirical vs architectural_characterization
+# Fix #8: Results section mode, empirical vs architectural_characterization
 # ------------------------------------------------------------------
 
 
 def _results_section_reasons(state: ReportState) -> list[str]:
     """Verify results section correctness.
 
-    For academic_report (empirical_strict=True):
+    For academic_paper (empirical_strict=True):
       - Claims of "improves / reduces / superior / better / faster"
-        without empirical performance data → hard fail.
+        without empirical performance data; hard fail.
     """
     import re
 
     reasons = []
-    family = state.spec.get("report_family", "academic_report")
+    family = state.spec.get("report_profile", "academic_paper")
     policy = get_policy(family)
     if not policy.results.empirical_strict:
         return reasons
 
-    # Load results_mode — outline takes priority over blueprint
+    # Load results_mode; outline takes priority over blueprint.
     # Fix #5: outline.sections.results.results_mode first, then blueprint fallback
     outline = state.plan.get("outline") or {}
     blueprint = state.plan.get("blueprint") or {}
@@ -109,7 +109,7 @@ def _results_section_reasons(state: ReportState) -> list[str]:
     merged_text = Path(merged_path).read_text(encoding="utf-8")
 
     # Find the Results section content
-    # Split by headings — find # Results or ## Results
+    # Split by headings; find # Results or ## Results.
     section_pattern = re.compile(
         r"^#{1,2}\s+Results\s*$",
         re.MULTILINE | re.IGNORECASE
@@ -130,7 +130,7 @@ def _results_section_reasons(state: ReportState) -> list[str]:
     else:
         results_content = merged_text[results_start:]
 
-    # Performance claim patterns — phrases that imply empirical results
+    # Performance claim patterns: phrases that imply empirical results.
     performance_claim_re = re.compile(
         r"\b(improves?|reduces?|better|worse|faster|slower|"
         r"superior|inferior|increase|decrease|"
@@ -140,9 +140,9 @@ def _results_section_reasons(state: ReportState) -> list[str]:
     )
     performance_claims = performance_claim_re.findall(results_content)
 
-    # Numeric result patterns — actual measured data
+    # Numeric result patterns: actual measured data.
     numeric_result_re = re.compile(
-        r"\b\d+(?:\.\d+)?\s*(?:%|ms|μs|ns|s|Hz|MHz|GHz|"
+        r"\b\d+(?:\.\d+)?\s*(?:%|ms|弮s|ns|s|Hz|MHz|GHz|"
         r"acc|precis|recall|f1|score|ratio|times|fold)\b",
         re.IGNORECASE
     )
@@ -185,18 +185,18 @@ def _claim_prefers_code_artifact(claim: dict) -> bool:
 
 
 def _source_diversity_reasons(state: ReportState) -> list[str]:
-    """For academic_report: require graph + code + research evidence diversity.
+    """For academic_paper: require graph + code + research evidence diversity.
 
-    academic_report hard-fail if:
+    academic_paper hard-fail if:
     1. No graph_analysis evidence (graphify output)
     2. No code_artifact evidence (source code)
     3. No research_document evidence (literature)
 
-    Also: any claim backed ONLY by derived_summary evidence → hard fail
+    Also: any claim backed ONLY by derived_summary evidence is a hard fail.
     (derived_summary cannot stand alone for publishable claims).
     """
     reasons = []
-    family = state.spec.get("report_family", "academic_report")
+    family = state.spec.get("report_profile", "academic_paper")
     policy = get_policy(family)
     if not policy.claim.primary_source_required:
         return reasons
@@ -205,10 +205,10 @@ def _source_diversity_reasons(state: ReportState) -> list[str]:
     if not evidence_ledger:
         return reasons  # Empty ledger handled by other checks; skip diversity check here
 
-    # Lowered from 10 → 5 to be practical for code-only projects
+    # Lowered from 10 to 5 to be practical for code-only projects.
     if len(evidence_ledger) < 5:
         reasons.append(
-            f"academic_report requires at least 5 evidence entries "
+            f"academic_paper requires at least 5 evidence entries "
             f"but found {len(evidence_ledger)}"
         )
 
@@ -219,7 +219,7 @@ def _source_diversity_reasons(state: ReportState) -> list[str]:
     claim_matrix = state.plan.get("claim_matrix", {})
     claims = claim_matrix.get("claims", [])
 
-    # Build evidence_id → source_role lookup
+    # Build evidence_id -> source_role lookup.
     evidence_roles: dict[str, str] = {}
     for ev in evidence_ledger:
         eid = ev.get("evidence_id", "")
@@ -242,15 +242,15 @@ def _source_diversity_reasons(state: ReportState) -> list[str]:
         if roles_for_claim == {"derived_summary"}:
             derived_only_claims.append(claim_id)
 
-        # For academic_report: if all evidence is derived_summary, that's a hard fail
+        # For academic_paper: if all evidence is derived_summary, that's a hard fail
         # (we allow mixed derived_summary + primary, but not ONLY derived_summary)
 
-    # Check 1: graph_analysis — downgraded to warning (not hard block)
+    # Check 1: graph_analysis; downgraded to warning (not hard block).
     # Code-only projects won't have graphify output
     if "graph_analysis" not in source_roles:
         import logging
         logging.getLogger(__name__).warning(
-            "academic_report: no graph_analysis evidence found — "
+            "academic_paper: no graph_analysis evidence found; "
             "consider running graphify for richer analysis"
         )
 
@@ -273,12 +273,12 @@ def _source_diversity_reasons(state: ReportState) -> list[str]:
             f"accepted for architecture/system claims{detail}",
         )
 
-    # Check 3: research_document — downgraded to warning (not hard block)
+    # Check 3: research_document; downgraded to warning (not hard block).
     # Code-only projects won't have literature PDFs
     if "research_document" not in source_roles:
         import logging
         logging.getLogger(__name__).warning(
-            "academic_report: no research_document evidence found — "
+            "academic_paper: no research_document evidence found; "
             "consider adding literature references for stronger claims"
         )
 
@@ -300,8 +300,8 @@ def _source_diversity_reasons(state: ReportState) -> list[str]:
         most_common_id, most_common_count = evidence_counts.most_common(1)[0]
         if most_common_count == len(claims) and len(claims) > 1:
             reasons.append(
-                f"single evidence ID {most_common_id!r} supports ALL claims — "
-                "evidence diversity required for academic_report"
+                f"single evidence ID {most_common_id!r} supports ALL claims; "
+                "evidence diversity required for academic_paper"
             )
 
     return reasons
@@ -472,7 +472,7 @@ def _citation_linkage_reasons(state: ReportState) -> list[str]:
             f"Tip: In revise_existing mode, edit base_document_sections.json and run "
             f"'report-workflow invalidate-cache --job-id <id> --sources --drafts' before re-validate."
         )
-        reasons.append(f"{reason}\n  → {hint}")
+        reasons.append(f"{reason}\n  Hint: {hint}")
     return reasons
 
 
@@ -506,7 +506,7 @@ def run_qa_gate(state: ReportState) -> ReportState:
     known and accepted (e.g., parser limitations on factuality checks).
     """
     if state.flags.get("bypass_qa_gate"):
-        logger.info("[QA_GATE] Bypassed via state.flags['bypass_qa_gate'] — skipping all checks")
+        logger.info("[QA_GATE] Bypassed via state.flags['bypass_qa_gate']; skipping all checks")
         state.qa["qa_decision"] = "pass"
         state.qa["artifact_completeness_status"] = "pass"
         state.qa["hard_fail_reasons"] = []
@@ -523,7 +523,7 @@ def run_qa_gate(state: ReportState) -> ReportState:
     hard_fail_reasons.extend(_source_diversity_reasons(state))
     hard_fail_reasons.extend(_results_section_reasons(state))
 
-    # Load facts_freeze.json if present — store in state for pre-render gate
+    # Load facts_freeze.json if present and store it for the pre-render gate.
     facts_freeze_path = WORKFLOW_RUNS_DIR / state.job_id / "facts_freeze.json"
     if facts_freeze_path.exists():
         try:
@@ -559,9 +559,9 @@ def run_qa_gate(state: ReportState) -> ReportState:
             ]
             blocked_ids_str = ", ".join(blocked_claims)
             hint = (
-                f"factuality blocked claims: {blocked_count} — "
+                f"factuality blocked claims: {blocked_count} "
                 f"({blocked_ids_str}). "
-                f"Edit claim_matrix.json and evidence_ledger.jsonl directly — "
+                f"Edit claim_matrix.json and evidence_ledger.jsonl directly; "
                 f"checkpoint files are NOT read by factuality_check. "
                 f"Delete factuality_report.json before re-running validate."
             )
