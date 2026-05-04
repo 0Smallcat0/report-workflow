@@ -171,6 +171,73 @@ def _convert_mermaid_blocks(md_content: str, output_dir: Path) -> tuple[str, int
 
 
 _IMAGE_LINK_RE = re.compile(r"!\[([^\]]*)\]\(([^)]+)\)")
+_FIGURE_PLACEHOLDER_RE = re.compile(r"\[FIGURE:\s*([^\]\s]+)(?:\s+([^\]]+))?\]", re.IGNORECASE)
+
+
+def _load_figure_manifest(manifest_path: str) -> dict | None:
+    """Load the generated figure manifest if present."""
+    if not manifest_path or not Path(manifest_path).exists():
+        return None
+    try:
+        with open(manifest_path, encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as exc:
+        logger.warning(f"[DOCX_RENDER] Could not load figure manifest: {exc}")
+        return None
+
+
+def _figure_alt_text(entry: dict, fallback_id: str, inline_caption: str = "") -> str:
+    title = str(entry.get("title") or inline_caption or "").strip()
+    figure_id = str(entry.get("figure_id") or fallback_id).strip()
+    if title and figure_id and title.casefold() != figure_id.casefold():
+        alt = f"Figure {figure_id}. {title}"
+    elif figure_id:
+        alt = f"Figure {figure_id}"
+    else:
+        alt = title or "Figure"
+    return " ".join(alt.replace("[", "(").replace("]", ")").split())
+
+
+def _replace_figure_placeholders(md_content: str, figure_manifest: dict | None) -> tuple[str, int, list[str]]:
+    """Replace [FIGURE:id] placeholders with markdown image links.
+
+    FIGURE_BUILD already writes real image files and a manifest. The DOCX
+    renderer's reliable image path is markdown image syntax, so normalize the
+    generated placeholders into that existing path before pandoc sees the draft.
+    """
+    if not figure_manifest:
+        return md_content, 0, []
+
+    entries_by_id: dict[str, dict] = {}
+    for entry in figure_manifest.get("figures", []) or []:
+        if not isinstance(entry, dict):
+            continue
+        figure_id = str(entry.get("figure_id") or "").strip()
+        if figure_id:
+            entries_by_id[figure_id.casefold()] = entry
+
+    replaced = 0
+    unresolved: list[str] = []
+
+    def replace(match: re.Match) -> str:
+        nonlocal replaced
+        figure_id = match.group(1).strip()
+        inline_caption = (match.group(2) or "").strip()
+        entry = entries_by_id.get(figure_id.casefold())
+        if not entry:
+            unresolved.append(figure_id)
+            return match.group(0)
+
+        image_path = Path(str(entry.get("path") or "").strip())
+        if not image_path.exists():
+            unresolved.append(figure_id)
+            return match.group(0)
+
+        replaced += 1
+        alt = _figure_alt_text(entry, figure_id, inline_caption)
+        return f"![{alt}]({image_path.resolve().as_posix()})"
+
+    return _FIGURE_PLACEHOLDER_RE.sub(replace, md_content), replaced, unresolved
 
 
 def _absolutize_image_paths(md_content: str, base_dir: Path) -> str:
@@ -854,6 +921,15 @@ def run_docx_render(state: ReportState) -> ReportState:
     if mermaid_count > 0:
         state.output["mermaid_figures_converted"] = mermaid_count
 
+    figure_manifest = _load_figure_manifest(state.output.get("figure_manifest_path", ""))
+    md_content, resolved_figures, unresolved_figures = _replace_figure_placeholders(md_content, figure_manifest)
+    if resolved_figures:
+        state.output["figure_placeholders_resolved"] = resolved_figures
+    if unresolved_figures:
+        state.runtime.setdefault("warnings", []).append(
+            "Unresolved figure placeholder(s): " + ", ".join(sorted(set(unresolved_figures)))
+        )
+
     # --- Pre-render sanity gate ---
     facts_freeze = state.plan.get("facts_freeze")
     user_prompt = state.spec.get("user_prompt", "")
@@ -916,16 +992,6 @@ def run_docx_render(state: ReportState) -> ReportState:
     pandoc_input_md = run_dir / "pandoc_input.md"
     with open(pandoc_input_md, "w", encoding="utf-8") as f:
         f.write(md_content)
-
-    # Load figure manifest for [FIGURE:id] resolution (legacy fallback only)
-    figure_manifest: dict | None = None
-    fig_manifest_path = state.output.get("figure_manifest_path", "")
-    if fig_manifest_path and Path(fig_manifest_path).exists():
-        try:
-            with open(fig_manifest_path, encoding="utf-8") as f:
-                figure_manifest = json.load(f)
-        except Exception as exc:
-            logger.warning(f"[DOCX_RENDER] Could not load figure manifest: {exc}")
 
     # --- Primary path: pandoc ---
     used_pandoc = False

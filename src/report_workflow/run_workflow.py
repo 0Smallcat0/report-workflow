@@ -14,6 +14,7 @@ from .nodes.corpus_build import run_corpus_build
 from .nodes.source_parse import run_source_parse
 from .nodes.evidence_normalize import run_evidence_normalize
 from .nodes.evidence_store import run_evidence_store
+from .nodes.figure_recommend import run_figure_plan_audit, run_figure_recommend
 from .nodes.notebook_sync import run_notebook_sync
 from .nodes.agent_tasks import run_agent_task_briefs
 from .nodes.agent_artifact_intake import run_agent_artifact_intake
@@ -66,6 +67,7 @@ def prepare_nodes() -> list[tuple[str, object]]:
         ("BASE_DOCUMENT_PARSE", run_base_document_parse),
         ("EVIDENCE_NORMALIZE", run_evidence_normalize),
         ("EVIDENCE_STORE", run_evidence_store),
+        ("FIGURE_RECOMMEND", run_figure_recommend),
         ("NOTEBOOK_SYNC", run_notebook_sync),
         ("AGENT_TASKS", run_agent_task_briefs),
     ]
@@ -74,10 +76,11 @@ def prepare_nodes() -> list[tuple[str, object]]:
 def validate_nodes() -> list[tuple[str, object]]:
     """Return nodes that validate external agent-produced artifacts.
 
-    Simplified pipeline (17 -> 11 nodes, post-retrospective refactor):
+    Simplified pipeline (post-retrospective refactor):
     - AGENT_ARTIFACT_INTAKE: CLAIM_PLAN + OUTLINE_PLAN + SECTION_DRAFT combined
     - PLAN_FREEZE: PAPER_SCOPE_FREEZE + SECTION_PLAN_FREEZE combined
     - DOC_METADATA_GATE: FRONT_MATTER_BUILD + ABSTRACT_CHECK combined
+    - FIGURE_PLAN_AUDIT: audits chart-type choices before FIGURE_BUILD
     - DRAFT_ASSEMBLY: REVISION_APPLY + MERGE_DRAFT combined
       (MERGE_DRAFT absorbs: results_sanity_pass + main_text_artifact_filter)
     - CITATION_LAYER: CITATION_BIND + REFERENCE_VERIFY combined
@@ -90,6 +93,7 @@ def validate_nodes() -> list[tuple[str, object]]:
         ("PLAN_FREEZE", run_plan_freeze),
         ("DOC_METADATA_GATE", run_doc_metadata_gate),
         ("METHODS_PROTOCOL_BUILD", run_methods_protocol_build),
+        ("FIGURE_PLAN_AUDIT", run_figure_plan_audit),
         ("FIGURE_BUILD", run_figure_build),
         ("DRAFT_ASSEMBLY", run_draft_assembly),
         ("PROJECT_IDENTITY_GATE", run_project_identity_gate),

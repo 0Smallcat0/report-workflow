@@ -58,6 +58,36 @@ def _read_jsonl_compact_summary(path: str | None, limit: int = 20) -> str:
     return header + "\n".join(rows)
 
 
+def _read_figure_recommendation_summary(path: str | None, limit: int = 8) -> str:
+    if not path or not Path(path).exists():
+        return "(no figure recommendations generated)"
+    try:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    except Exception as exc:
+        return f"(figure recommendation report could not be read: {exc})"
+    recommendations = payload.get("recommendations", []) if isinstance(payload, dict) else []
+    if not recommendations:
+        return "(no table-shaped evidence required chart recommendations)"
+    rows = []
+    for rec in recommendations[:limit]:
+        if not isinstance(rec, dict):
+            continue
+        rows.append(
+            "  {rid} | {rtype} | acceptable:{acceptable} | confidence:{confidence} | evidence:{evidence} | {reason}".format(
+                rid=rec.get("recommendation_id", "?"),
+                rtype=rec.get("recommended_figure_type", "?"),
+                acceptable=",".join(rec.get("acceptable_figure_types", []) or []),
+                confidence=rec.get("confidence", "?"),
+                evidence=",".join(rec.get("evidence_ids", []) or []),
+                reason=(rec.get("reason", "") or "")[:120],
+            )
+        )
+    header = f"Total figure recommendations: {len(recommendations)} (showing first {min(len(recommendations), limit)})\n"
+    header += "  recommendation_id | recommended_type | acceptable_types | confidence | evidence_ids | reason\n"
+    header += "  " + "-" * 100 + "\n"
+    return header + "\n".join(rows)
+
+
 def write_agent_task_briefs(state: ReportState) -> ReportState:
     """Write all task briefs required for the external agent authoring phase.
 
@@ -67,6 +97,8 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
     run_dir = run_dir_for(state)
     evidence_path = state.sources.get("evidence_ledger_path", "")
     evidence_summary = _read_jsonl_compact_summary(evidence_path)
+    figure_recommendations_path = state.output.get("figure_recommendations_path", "")
+    figure_recommendation_summary = _read_figure_recommendation_summary(figure_recommendations_path)
     task_intent = state.spec.get("task_intent", "new_draft")
     contract = make_artifact_contract(state)
     contract_json = json.dumps(contract, indent=2)
@@ -158,6 +190,7 @@ For `new_draft`, the editable artifacts are `claim_matrix.json`, `outline.json`,
 ## Inputs
 - Blueprint: `{run_dir / "blueprint.json"}`
 - Claim matrix: `{run_dir / "claim_matrix.json"}`
+- Figure recommendations: `{figure_recommendations_path}`
 
 ## Required Output
 Write `{run_dir / "outline.json"}` with this shape:
@@ -194,6 +227,13 @@ Do not edit `merged_draft.md` directly. It is generated and will be overwritten.
 
 **Do NOT mix modes**: If your evidence has both quantitative data AND architectural descriptions, pick the dominant mode based on what your claims actually argue.
 
+## Figure Recommendation Summary
+Use this deterministic chart-selection guidance when deciding `figure_ids` and figure plans:
+
+```
+{figure_recommendation_summary}
+```
+
 ## Hard Rules
 - Assign every claim to at least one non-reference/non-appendix section.
 - Use only section IDs defined by the blueprint.
@@ -208,6 +248,7 @@ Do not edit `merged_draft.md` directly. It is generated and will be overwritten.
 - Claim matrix: `{run_dir / "claim_matrix.json"}`
 - Outline: `{run_dir / "outline.json"}`
 - Evidence ledger: `{evidence_path}`
+- Figure recommendations: `{figure_recommendations_path}`
 
 ## Required Outputs
 - Markdown section files under `{run_dir / "section_drafts"}`
@@ -348,6 +389,30 @@ If `results_mode` is `architectural_characterization`: Describe structural prope
 ## Figure Guidance
 
 Reference figures by their number in the body text at the natural point of discussion (e.g. "as shown in Figure 2"). Do NOT dump all figures at the end of the document. The rendering pipeline will embed each figure after its first reference.
+
+If `{figure_recommendations_path}` contains recommendations, use them to avoid one-size-fits-all chart choices:
+- Use the recommendation's `recommended_figure_type` unless you have a specific reason to choose an acceptable alternative.
+- Do not default all numeric data to line charts. Line charts are for ordered time/step trends.
+- Composition/share data should normally use `pie` (or `bar` when comparison is clearer).
+- Category/value comparisons should use `bar`.
+- Two numeric variables should use `scatter`.
+- Exact measurement/calculation values should stay as a table.
+
+When you create `{run_dir / "section_drafts" / "figure_plan.json"}`, each generated chart should include:
+
+```json
+{{
+  "figure_id": "1",
+  "figure_type": "bar|line|scatter|pie|table",
+  "recommendation_id": "figrec_1",
+  "source_evidence_ids": ["evidence id(s) used for the chart"],
+  "chart_selection_reason": "Why this chart type fits the evidence.",
+  "title": "Publication-safe chart title",
+  "section_id": "results"
+}}
+```
+
+`FIGURE_PLAN_AUDIT` checks these fields. A high-confidence recommendation that is replaced with a mismatched chart type without `chart_selection_reason` can hard-block validation for strict figure-contract profiles.
 
 **Use `mermaid` code fences for diagrams.** The pipeline auto-converts them to PNG images
 if `mmdc` is installed. Examples:

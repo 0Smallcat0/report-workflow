@@ -1,14 +1,20 @@
 """Tests for Mermaid diagram auto-conversion in docx_render."""
+import json
 import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
+from docx import Document
+
 from report_workflow.nodes.docx_render import (
     _find_mmdc,
     _convert_mermaid_blocks,
     _MERMAID_BLOCK_RE,
+    _replace_figure_placeholders,
+    run_docx_render,
 )
+from report_workflow.state import ReportState, WORKFLOW_RUNS_DIR
 
 
 class MermaidBlockRegexTests(unittest.TestCase):
@@ -39,8 +45,9 @@ class MermaidBlockRegexTests(unittest.TestCase):
 class FindMmdcTests(unittest.TestCase):
     """Test _find_mmdc discovery."""
 
+    @patch("report_workflow.nodes.docx_render.Path.exists", return_value=False)
     @patch("shutil.which", return_value=None)
-    def test_returns_none_when_not_installed(self, mock_which):
+    def test_returns_none_when_not_installed(self, mock_which, mock_exists):
         result = _find_mmdc()
         self.assertIsNone(result)
 
@@ -127,6 +134,102 @@ class ConvertMermaidBlocksTests(unittest.TestCase):
         result, count = _convert_mermaid_blocks(md, self.tmpdir)
         self.assertEqual(count, 0)
         self.assertIn("```mermaid", result)
+
+
+class FigurePlaceholderReplacementTests(unittest.TestCase):
+    """Test figure manifest placeholder conversion for DOCX rendering."""
+
+    def setUp(self):
+        self.tmpdir = Path(tempfile.mkdtemp())
+
+    def test_replaces_known_placeholder_with_markdown_image(self):
+        image_path = self.tmpdir / "figure_1.png"
+        image_path.write_bytes(b"fake png")
+        manifest = {
+            "figures": [
+                {
+                    "figure_id": "1",
+                    "title": "Voltage trend",
+                    "path": str(image_path),
+                }
+            ]
+        }
+        md = "# Results\n\n[FIGURE:1]\n\nFigure 1: Voltage trend.\n"
+
+        result, replaced, unresolved = _replace_figure_placeholders(md, manifest)
+
+        self.assertEqual(replaced, 1)
+        self.assertEqual(unresolved, [])
+        self.assertNotIn("[FIGURE:1]", result)
+        self.assertIn("![Figure 1. Voltage trend]", result)
+        self.assertIn(image_path.resolve().as_posix(), result)
+
+    def test_unknown_placeholder_is_preserved_for_validation(self):
+        result, replaced, unresolved = _replace_figure_placeholders("[FIGURE:2]", {"figures": []})
+
+        self.assertEqual(replaced, 0)
+        self.assertEqual(unresolved, ["2"])
+        self.assertEqual(result, "[FIGURE:2]")
+
+    @patch("report_workflow.nodes.docx_render._validate_docx", return_value=[])
+    @patch("report_workflow.nodes.docx_render._style_tables_post_render", return_value=None)
+    @patch("report_workflow.nodes.docx_render._repair_missing_figures", return_value=0)
+    def test_run_docx_render_writes_resolved_placeholder_to_pandoc_input(
+        self,
+        mock_repair,
+        mock_style,
+        mock_validate,
+    ):
+        state = ReportState.new("report", [], "out")
+        state.qa["qa_decision"] = "pass"
+        state.spec["report_profile"] = "business_report"
+        run_dir = WORKFLOW_RUNS_DIR / state.job_id
+        run_dir.mkdir(parents=True, exist_ok=True)
+
+        draft_path = run_dir / "publication.md"
+        draft_path.write_text(
+            "# Results\n\n[FIGURE:1]\n\nFigure 1: Voltage trend.\n\n"
+            "The measurement is shown in Figure 1.\n",
+            encoding="utf-8",
+        )
+        state.drafts["publication_style_draft"] = str(draft_path)
+
+        image_path = run_dir / "figures" / "figure_1.png"
+        image_path.parent.mkdir(parents=True, exist_ok=True)
+        image_path.write_bytes(b"fake png")
+        manifest_path = run_dir / "figure_manifest.json"
+        manifest_path.write_text(
+            json.dumps(
+                {
+                    "generated_count": 1,
+                    "figures": [
+                        {
+                            "figure_id": "1",
+                            "title": "Voltage trend",
+                            "path": str(image_path),
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        state.output["figure_manifest_path"] = str(manifest_path)
+
+        def fake_pandoc(md_path, output_path, toc=True, number_sections=False):
+            doc = Document()
+            doc.add_heading("Results", level=1)
+            doc.add_paragraph("Rendered body.")
+            doc.add_paragraph("Figure 1: Voltage trend.")
+            doc.save(output_path)
+            return True
+
+        with patch("report_workflow.nodes.docx_render._render_via_pandoc", side_effect=fake_pandoc):
+            result = run_docx_render(state)
+
+        pandoc_input = (run_dir / "pandoc_input.md").read_text(encoding="utf-8")
+        self.assertIn("![Figure 1. Voltage trend]", pandoc_input)
+        self.assertNotIn("[FIGURE:1]", pandoc_input)
+        self.assertEqual(result.output.get("figure_placeholders_resolved"), 1)
 
 
 if __name__ == "__main__":
