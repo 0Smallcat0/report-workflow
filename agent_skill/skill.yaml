@@ -78,16 +78,22 @@ tools:
       Requires check_setup first. The caller must ask the user about every
       pending install and optional feature, then pass preflight_confirmed=true
       and a complete preflight_decisions record. preflight_confirmed=true alone
-      is rejected.
+      is rejected. Required dependencies must actually pass preflight after
+      installation; a decision string does not override a still-missing
+      dependency.
     parameters:
       - name: prompt
         type: string
         required: true
         description: User prompt describing the desired report
       - name: source_files
-        type: list[string]
+        type: list[object]
         required: true
-        description: List of file paths to use as source data
+        description: >
+          Source files to use. Legacy strings are accepted. Prefer structured
+          entries when roles matter: {"path": "source.pdf", "role": "source_data"}
+          or {"path": "base.docx", "role": "base_document"}. Valid roles are
+          source_data and base_document.
       - name: output_dir
         type: string
         required: true
@@ -100,6 +106,12 @@ tools:
           academic_paper, business_report, proposal, admissions_report,
           admissions_project_report, and custom. Defaults to profile inference
           from the prompt, then academic_paper.
+      - name: task_intent
+        type: string
+        required: false
+        description: >
+          new_draft or revise_existing. Use revise_existing when one structured
+          source entry has role=base_document.
       - name: title
         type: string
         required: false
@@ -120,6 +132,14 @@ tools:
         type: list[string]
         required: false
         description: Structured front matter keywords. Use thesis-aligned academic terms.
+      - name: template_fields
+        type: object
+        required: false
+        description: >
+          Optional fixed-template/front-matter fields such as course_name,
+          student_id, instructor, lab_section, date, or department. These are
+          rendered into the front matter and audited in
+          template_field_fill_report.json.
       - name: project_identity
         type: object
         required: false
@@ -202,8 +222,10 @@ tools:
   # Step 4: Validate section drafts (incremental)
   - name: submit_drafts
     description: >
-      Validate section_drafts/*.md and sentence_map.jsonl. Requires
-      Steps 2+3 to be complete. Checkpoints on success.
+      Validate draft artifacts. Accepts either canonical section_drafts/*.md
+      plus sentence_map.jsonl, or structured_drafts.json which the pipeline
+      compiles into those canonical artifacts. Requires Steps 2+3 to be
+      complete. Checkpoints on success.
     parameters:
       - name: job_id
         type: string
@@ -211,11 +233,44 @@ tools:
         description: The job ID returned by start_report_task
 
   # Step 5: Full validate + render (can be used after steps 2-4, or directly)
+  - name: lint_agent_artifacts
+    description: >
+      Read-only lint for agent-authored artifacts before full validation.
+      Writes artifact_lint_report.json with artifact names, JSON paths,
+      severity, messages, and repair hints. Use after creating or changing
+      claim_matrix.json, outline.json, structured_drafts.json,
+      section_drafts/*.md, sentence_map.jsonl, or revision_plan.json.
+    parameters:
+      - name: job_id
+        type: string
+        required: true
+        description: The job ID returned by start_report_task
+
+  - name: run_engineering_audit
+    description: >
+      Read-only engineering lab audit for units, measurements, and simple
+      arithmetic. Writes engineering_audit_report.json with recognized
+      measurements, claim/evidence unit-support warnings, unit notation
+      warnings, table-value support checks, mixed-dimension unit notes,
+      missing-unit notes, and simple calculation result warnings.
+      Recommended for engineering_lab_report.
+    parameters:
+      - name: job_id
+        type: string
+        required: true
+        description: The job ID returned by start_report_task
+
   - name: submit_and_publish_report
     description: >
       Run full validation pipeline and render the final DOCX.
       Can be called after steps 2-4, or directly after step 1 if
       all artifacts were created in one shot (legacy 2-step mode).
+      On success, returns post_render_layout_manifest_path for render
+      structure audit evidence plus final_qa_summary_path and
+      final_qa_summary_md_path for delivery readiness review. Also returns
+      template_style_map_path/template_style_map_md_path and
+      template_field_fill_report_path/template_field_fill_report_md_path when
+      published packaging runs.
     parameters:
       - name: job_id
         type: string
@@ -239,6 +294,13 @@ tools:
         description: >
           Optional list of specific evidence_id values to retrieve.
           If provided, offset/limit are ignored.
+      - name: query
+        type: string
+        required: false
+        description: >
+          Optional text query for relevance-ranked evidence browsing. Supports
+          English terms and CJK bigram matching. Ignored when evidence_ids is
+          provided.
       - name: offset
         type: integer
         required: false

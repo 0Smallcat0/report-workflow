@@ -3,13 +3,21 @@ from __future__ import annotations
 
 import json
 import re
+from collections import Counter
 from pathlib import Path
+from typing import Any
 
 from docx import Document
 
 from ..errors import QAHardBlockError
 from ..runtime_support import write_json_artifact
 from ..state import ReportState
+
+
+MAX_FRONT_MATTER_PARAGRAPHS = 8
+MAX_HEADING_ENTRIES = 40
+MAX_TABLE_ENTRIES = 25
+MAX_TABLE_ROW_PREVIEW_CELLS = 8
 
 
 def _docx_text_with_tables(doc: Document) -> str:
@@ -62,6 +70,125 @@ def _expected_table_count(state: ReportState) -> int:
         return 0
     markdown = Path(draft_path).read_text(encoding="utf-8")
     return len(re.findall(r"^\|.+\|\s*$\n^\|?\s*:?-{3,}", markdown, re.MULTILINE))
+
+
+def _clean_preview(text: str, limit: int = 160) -> str:
+    cleaned = " ".join(str(text or "").split())
+    if len(cleaned) <= limit:
+        return cleaned
+    return cleaned[: limit - 3].rstrip() + "..."
+
+
+def _style_name(paragraph: Any) -> str:
+    try:
+        return paragraph.style.name or "unknown"
+    except Exception:
+        return "unknown"
+
+
+def _paragraph_style_counts(doc: Document) -> dict[str, int]:
+    counts = Counter(_style_name(para) for para in doc.paragraphs)
+    return dict(sorted(counts.items()))
+
+
+def _heading_summary(doc: Document) -> list[dict[str, Any]]:
+    headings: list[dict[str, Any]] = []
+    for index, para in enumerate(doc.paragraphs):
+        style_name = _style_name(para)
+        if not style_name.startswith("Heading"):
+            continue
+        text = _clean_preview(para.text)
+        if not text:
+            continue
+        headings.append({
+            "paragraph_index": index,
+            "style": style_name,
+            "text": text,
+        })
+        if len(headings) >= MAX_HEADING_ENTRIES:
+            break
+    return headings
+
+
+def _table_summaries(doc: Document) -> list[dict[str, Any]]:
+    summaries: list[dict[str, Any]] = []
+    for index, table in enumerate(doc.tables):
+        row_count = len(table.rows)
+        column_count = max((len(row.cells) for row in table.rows), default=0)
+        non_empty_cells = 0
+        for row in table.rows:
+            for cell in row.cells:
+                if cell.text.strip():
+                    non_empty_cells += 1
+
+        first_row_preview: list[str] = []
+        if row_count:
+            first_row_preview = [
+                _clean_preview(cell.text, 80)
+                for cell in table.rows[0].cells[:MAX_TABLE_ROW_PREVIEW_CELLS]
+            ]
+
+        summaries.append({
+            "table_index": index,
+            "rows": row_count,
+            "columns": column_count,
+            "non_empty_cells": non_empty_cells,
+            "first_row_preview": first_row_preview,
+        })
+        if len(summaries) >= MAX_TABLE_ENTRIES:
+            break
+    return summaries
+
+
+def _existing_report_path(state: ReportState, key: str) -> str:
+    path = state.runtime.get(key) or state.output.get(key) or state.qa.get(key)
+    if path and Path(path).exists():
+        return str(path)
+    return ""
+
+
+def _build_layout_manifest(
+    state: ReportState,
+    doc: Document,
+    docx_path: str,
+    issues: list[str],
+    expected_tables: int,
+    expected_figures: int,
+) -> dict[str, Any]:
+    path = Path(docx_path)
+    front_matter = [
+        _clean_preview(para.text)
+        for para in doc.paragraphs
+        if para.text.strip()
+    ][:MAX_FRONT_MATTER_PARAGRAPHS]
+
+    return {
+        "job_id": state.job_id,
+        "status": "passed" if not issues else "failed",
+        "report_profile": state.spec.get("report_profile", ""),
+        "renderer_used": state.output.get("renderer_used", "unknown"),
+        "docx": {
+            "path": str(path),
+            "file_size_bytes": path.stat().st_size if path.exists() else 0,
+        },
+        "counts": {
+            "paragraphs": len(doc.paragraphs),
+            "tables": len(doc.tables),
+            "inline_shapes": len(doc.inline_shapes),
+            "expected_tables": expected_tables,
+            "expected_figures": expected_figures,
+        },
+        "paragraph_style_counts": _paragraph_style_counts(doc),
+        "front_matter_preview": front_matter,
+        "headings": _heading_summary(doc),
+        "tables": _table_summaries(doc),
+        "related_reports": {
+            "post_render_repair_report": _existing_report_path(state, "post_render_repair_report_path"),
+            "post_render_validate_report": _existing_report_path(state, "post_render_validate_report_path"),
+            "visual_render_check_report": _existing_report_path(state, "visual_render_check_report_path"),
+        },
+        "issues": list(issues),
+    }
 
 
 def run_post_render_validate(state: ReportState) -> ReportState:
@@ -155,6 +282,18 @@ def run_post_render_validate(state: ReportState) -> ReportState:
     state.runtime["post_render_validate_report_path"] = write_json_artifact(
         state, "post_render_validate_report.json", report
     )
+    layout_manifest = _build_layout_manifest(
+        state,
+        doc,
+        docx_path,
+        issues,
+        expected_tables,
+        expected_figures,
+    )
+    state.runtime["post_render_layout_manifest_path"] = write_json_artifact(
+        state, "post_render_layout_manifest.json", layout_manifest
+    )
+    state.output["post_render_layout_manifest_path"] = state.runtime["post_render_layout_manifest_path"]
     if issues:
         raise QAHardBlockError("POST_RENDER_VALIDATE: " + "; ".join(issues))
     return state

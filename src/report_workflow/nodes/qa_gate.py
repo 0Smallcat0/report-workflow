@@ -500,17 +500,12 @@ def _write_qa_summary(state: ReportState) -> None:
 
 def run_qa_gate(state: ReportState) -> ReportState:
     """T14: QA_GATE - make pass/fail decision based on reports.
-
-    Bypass mode: If state.flags.get("bypass_qa_gate") is True, skip all checks
-    and return state as-is. This allows render to proceed when QA failures are
-    known and accepted (e.g., parser limitations on factuality checks).
     """
     if state.flags.get("bypass_qa_gate"):
-        logger.info("[QA_GATE] Bypassed via state.flags['bypass_qa_gate']; skipping all checks")
-        state.qa["qa_decision"] = "pass"
-        state.qa["artifact_completeness_status"] = "pass"
-        state.qa["hard_fail_reasons"] = []
-        return state
+        raise QAHardBlockError(
+            "bypass_qa_gate is not allowed in the publish workflow; "
+            "fix the validation inputs instead of bypassing QA."
+        )
 
     factuality_path = state.qa.get("factuality_report_path")
 

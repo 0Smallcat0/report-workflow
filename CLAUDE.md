@@ -89,6 +89,16 @@ SUPPLEMENTARY_PACKAGE_BUILD -> ARTIFACTS
 
 Keep documentation synchronized when changing these lists.
 
+`ARTIFACTS` packages delivery QA files under `published/qa/`, including
+`final_qa_summary.json` and `final_qa_summary.md`. These summarize QA gate,
+factuality, artifact lint, engineering audit, and render-layout evidence without
+adding a hard gate.
+`template_style_map.json` and `template_style_map.md` explain reference-DOCX
+mode, renderer choice, applied-reference status, key style definitions, rendered
+style usage, and template-fidelity warnings.
+`template_field_fill_report.json` and `template_field_fill_report.md` audit
+fixed-template/front-matter field values in the final DOCX.
+
 ## State and Persistence
 
 `ReportState` is the source of truth. It carries `spec`, `plan`, `sources`,

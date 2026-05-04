@@ -436,6 +436,8 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
                 "created_at": created_at,
                 "last_used": None,
             }
+            if block.get("table_data"):
+                unit["table_data"] = block.get("table_data")
 
             # Fix #9: attach graphify uncertainty metadata
             if graph_provenance:

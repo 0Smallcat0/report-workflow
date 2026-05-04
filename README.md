@@ -39,13 +39,21 @@ report-workflow prepare `
   --prompt "write an engineering lab report from these sources" `
   --source C:\path\to\source.txt `
   --output C:\path\to\out `
-  --profile engineering_lab_report
+  --profile engineering_lab_report `
+  --preflight-decisions C:\path\to\preflight_decisions.json `
+  --template-field course_name="Control Systems"
 
 report-workflow validate --job-id <job_id>
 report-workflow render --job-id <job_id>
 report-workflow status --job-id <job_id>
 report-workflow run --job-id <job_id>
 ```
+
+`prepare` requires a `--preflight-decisions` JSON record confirming the user's
+install, degraded-render, and optional-feature decisions. Required dependencies
+must actually pass preflight before start; a decision string alone does not
+override a still-missing dependency. This mirrors the agent-skill
+`preflight_decisions` contract instead of silently starting from the raw CLI.
 
 `--source PATH:ROLE` may be repeated. Valid roles are `source_data` and
 `base_document`. The role suffix is parsed only when the trailing token exactly
@@ -56,7 +64,7 @@ CLI exit codes:
 - `0`: success
 - `1`: crash
 - `2`: hard-block validation failure
-- `3`: waiting for agent-authored artifacts
+- `3`: waiting for user decisions or agent-authored artifacts
 
 ## Report Profiles
 
@@ -117,13 +125,26 @@ Use the incremental validation tools when operating through the agent skill:
 
 `validate` checks artifact completeness, section contracts, citation linkage,
 factuality, profile policy, figure contracts, and QA gates. `render` runs only
-after `qa_decision=pass`.
+after the validated checkpoint records `qa_decision=pass`, a passing
+`qa_summary.json`, a clean `factuality_report.json`, and no unresolved citation
+audit entries.
 
 Final artifacts are packaged under:
 
 ```text
 output/<slug>--<job_id>/published/
 ```
+
+The published `qa/` directory includes `final_qa_summary.json` and
+`final_qa_summary.md`, which summarize QA gate status, factuality, artifact
+lint, engineering audit, and render-layout evidence for delivery review.
+It also includes `template_style_map.json` and `template_style_map.md`, which
+explain reference-DOCX mode, renderer use, applied-reference status, and
+rendered style usage.
+For fixed-template reports, `template_field_fill_report.json` and
+`template_field_fill_report.md` show whether structured cover/front-matter
+fields such as course, student ID, instructor, date, or department were found in
+the final DOCX.
 
 ## Reference Templates
 
@@ -148,7 +169,8 @@ The core hard gates are:
 - Evidence-backed sentences must contain matching `[CITE:<id>]` placeholders.
 - Citation audit entries must resolve.
 - Placeholder prose and template metadata are blocked.
-- Render runs only after `qa_decision=pass`.
+- Render requires `qa_decision=pass`, a passing `qa_summary.json`, a clean
+  `factuality_report.json`, and no unresolved citation audit entries.
 
 Profile policies adjust strictness for front matter, abstract structure, citation
 style, reference verification, figure/table contracts, and section roles.

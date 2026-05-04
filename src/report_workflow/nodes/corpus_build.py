@@ -13,6 +13,8 @@ try:
 except ImportError:  # pragma: no cover - depends on local environment
     filetype = None
 
+VALID_ARTIFACT_ROLES = {"source_data", "base_document"}
+
 def detect_file_type(file_path: str) -> str:
     """Detect file type from extension and content."""
     ext = Path(file_path).suffix.lower().lstrip(".")
@@ -75,7 +77,18 @@ def run_corpus_build(state: ReportState) -> ReportState:
             }
             corpus_manifest.append(manifest_entry)
             
-            artifact_role = artifact_role_map.get(path.name, "source_data")
+            artifact_role = (
+                artifact_role_map.get(str(path.resolve()))
+                or artifact_role_map.get(str(path))
+                or artifact_role_map.get(str(file_path))
+                or artifact_role_map.get(path.name)
+                or "source_data"
+            )
+            if artifact_role not in VALID_ARTIFACT_ROLES:
+                raise QAHardBlockError(
+                    f"Invalid artifact role {artifact_role!r} for source {path.name}; "
+                    f"expected one of {sorted(VALID_ARTIFACT_ROLES)}"
+                )
             
             registry_entry = {
                 "source_id": source_id,

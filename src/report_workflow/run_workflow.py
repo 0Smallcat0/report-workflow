@@ -1,6 +1,7 @@
 """Main workflow orchestrator."""
 import json
 import sys
+from pathlib import Path
 from .state import ReportState, run_dir_for
 from .errors import AgentWorkRequired, QAHardBlockError
 from .runtime_support import append_job_event
@@ -183,6 +184,10 @@ def prepare_workflow(
     artifact_role_map: dict[str, str] | None = None,
     front_matter: dict | None = None,
     project_identity: dict | None = None,
+    enable_research: bool = False,
+    enable_notebook_sync: bool = False,
+    notebooklm_notebook_id: str | None = None,
+    notebooklm_storage_path: str | None = None,
 ) -> ReportState:
     """Prepare deterministic artifacts and agent task briefs.
 
@@ -203,6 +208,14 @@ def prepare_workflow(
         state.spec["project_identity"] = project_identity
         identity_path = run_dir_for(state) / "project_identity.json"
         identity_path.write_text(json.dumps(project_identity, indent=2), encoding="utf-8")
+    if enable_research:
+        state.flags["enable_research"] = True
+    if enable_notebook_sync:
+        state.flags["enable_notebook_sync"] = True
+    if notebooklm_notebook_id:
+        state.spec["notebooklm_notebook_id"] = notebooklm_notebook_id
+    if notebooklm_storage_path:
+        state.spec["notebooklm_storage_path"] = notebooklm_storage_path
     try:
         state = run_preflight_checks(state)
     except QAHardBlockError as e:
@@ -218,6 +231,75 @@ def prepare_workflow(
     state = _run_nodes(state, prepare_nodes())
     state.checkpoint("AWAITING_AGENT_ARTIFACTS")
     return state
+
+
+def _load_json_for_gate(path: str | None, label: str) -> dict:
+    if not path:
+        raise QAHardBlockError(f"Cannot render before validate writes {label}")
+    p = Path(path)
+    if not p.exists():
+        raise QAHardBlockError(f"Cannot render because {label} is missing: {path}")
+    try:
+        with open(p, encoding="utf-8") as f:
+            data = json.load(f)
+    except Exception as exc:
+        raise QAHardBlockError(f"Cannot render because {label} is unreadable: {exc}") from exc
+    if not isinstance(data, dict):
+        raise QAHardBlockError(f"Cannot render because {label} is malformed")
+    return data
+
+
+def _assert_render_ready(state: ReportState) -> None:
+    """Require evidence that the normal QA gate actually passed before render."""
+    if state.flags.get("bypass_qa_gate"):
+        raise QAHardBlockError("Cannot render with bypass_qa_gate enabled")
+    if state.status != "validated":
+        raise QAHardBlockError(
+            f"Cannot render before validate completes; current status is {state.status!r}"
+        )
+    if state.qa.get("qa_decision") != "pass":
+        raise QAHardBlockError("Cannot render before validate produces qa_decision=pass")
+
+    qa_summary = _load_json_for_gate(state.qa.get("qa_summary_path"), "qa_summary.json")
+    if qa_summary.get("qa_decision") != "pass":
+        raise QAHardBlockError("Cannot render because qa_summary.json does not record qa_decision=pass")
+    if qa_summary.get("artifact_completeness_status") != "pass":
+        raise QAHardBlockError("Cannot render because artifact completeness did not pass")
+    if qa_summary.get("hard_fail_reasons"):
+        raise QAHardBlockError("Cannot render because qa_summary.json contains hard fail reasons")
+
+    factuality = _load_json_for_gate(
+        state.qa.get("factuality_report_path"),
+        "factuality_report.json",
+    )
+    if int(factuality.get("blocked_count", 0) or 0) > 0:
+        raise QAHardBlockError("Cannot render because factuality_report.json contains blocked claims")
+    if int(factuality.get("disputed_count", 0) or 0) > 0:
+        raise QAHardBlockError("Cannot render because factuality_report.json contains disputed claims")
+
+    unresolved = [
+        item for item in state.citations.get("citation_audit", [])
+        if not item.get("resolved", False)
+    ]
+    if unresolved:
+        raise QAHardBlockError("Cannot render because unresolved citations remain")
+
+
+def _run_nodes_with_render_gate(state: ReportState, nodes: list[tuple[str, object]]) -> ReportState:
+    render_names = {name for name, _ in render_nodes()}
+    first_render_index = next(
+        (index for index, (name, _) in enumerate(nodes) if name in render_names),
+        None,
+    )
+    if first_render_index is None:
+        return _run_nodes(state, nodes)
+
+    state = _run_nodes(state, nodes[:first_render_index])
+    if state.status != "validated":
+        state.update_status("validated")
+        state.checkpoint("VALIDATED")
+    _assert_render_ready(state)
+    return _run_nodes(state, nodes[first_render_index:])
 
 def validate_workflow(job_id: str, *, deep_audit: bool = False, workspace_root: str | None = None) -> ReportState:
     """Validate agent-authored artifacts for an existing prepared run."""
@@ -276,8 +358,7 @@ def validate_workflow_dry_run(job_id: str, *, deep_audit: bool = False, workspac
 def render_workflow(job_id: str, *, workspace_root: str | None = None) -> ReportState:
     """Render and package a validated report workflow."""
     state = ReportState.resume(job_id, workspace_root=workspace_root)
-    if state.qa.get("qa_decision") != "pass":
-        raise QAHardBlockError("Cannot render before validate produces qa_decision=pass")
+    _assert_render_ready(state)
     return _run_nodes(state, render_nodes())
 
 
@@ -303,12 +384,17 @@ def resume_workflow(job_id: str, *, workspace_root: str | None = None) -> Report
     """Resume a workflow from the latest checkpoint."""
     state = ReportState.resume(job_id, workspace_root=workspace_root)
     if state.status == "awaiting_agent_artifacts":
-        return _run_nodes(state, validate_nodes() + render_nodes())
+        state = _run_nodes(state, validate_nodes())
+        state.update_status("validated")
+        state.checkpoint("VALIDATED")
+        _assert_render_ready(state)
+        return _run_nodes(state, render_nodes())
     if state.status == "validated":
+        _assert_render_ready(state)
         return _run_nodes(state, render_nodes())
     nodes = workflow_nodes()
     start_index = _start_index_for_resume(state, nodes)
-    return _run_nodes(state, nodes[start_index:])
+    return _run_nodes_with_render_gate(state, nodes[start_index:])
 
 
 # ------------------------------------------------------------------

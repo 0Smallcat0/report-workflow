@@ -999,4 +999,6 @@ def run_docx_render(state: ReportState) -> ReportState:
     state.output["final_docx_path"] = str(final_docx_path)
     state.output["rendered_docx_path"] = str(final_docx_path)
     state.output["renderer_used"] = renderer_used
+    state.output["reference_docx_path"] = str(_REFERENCE_DOC) if _REFERENCE_DOC.exists() else ""
+    state.output["reference_docx_applied"] = bool(used_pandoc and _REFERENCE_DOC.exists())
     return state

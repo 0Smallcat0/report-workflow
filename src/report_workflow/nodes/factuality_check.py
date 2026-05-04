@@ -9,6 +9,8 @@ When debugging FE failures: edit claim_matrix.json and evidence_ledger.jsonl dir
 Checkpoint files are NOT read by this node.
 """
 import json
+import re
+import unicodedata
 from pathlib import Path
 
 from ..errors import QAHardBlockError
@@ -298,35 +300,30 @@ _VALID_WORDING_STRENGTHS = {"measured", "hedged", "weak"}
 # ----------------------------------------------------------------------
 
 
-_NUMERIC_IN_CLAIM_RE = __import__("re").compile(
+_NUMERIC_IN_CLAIM_RE = re.compile(
     r"""
-    (?:^|\s|[,(])                    # boundary
-    (                                 # start capture: number + optional unit
-        \d{1,3}(?:,\d{3})*(?:\.\d+)?(?:[eE][+-]?\d+)?  # integer (with comma thousands), decimal, or scientific
-        \s+                              # REQUIRES ≥1 space before unit
-        (?![a-zA-Z]')                    # reject possessive: "386's" not a valid unit
-        [a-zA-Z%°µμ]+(?:/?[a-zA-Z%°µμ]*)?
+    (?<![A-Za-z0-9.])                # boundary without consuming CJK text
+    (                                 # number
+        \d{1,3}(?:,\d{3})*(?:\.\d+)?(?:[eE][+-]?\d+)?
+    )
+    \s*                               # supports "5 cm" and "5cm"
+    (?![a-zA-Z]')                     # reject possessive: "386's" is not a unit
+    (                                 # unit
+        [a-zA-Z%\u00b0\u4e00-\u9fff]+(?:/?[a-zA-Z%\u00b0\u4e00-\u9fff]*)?
     )
     """,
-    __import__("re").VERBOSE,
+    re.VERBOSE,
 )
 
 
 def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
     """Return list of (number_str, unit_str) from text."""
-    import re
     _APOSTROPHE_SUFFIX_RE = re.compile(r"'[strelmv]|'ll|'ve|'d\b")
-    _NUM_PART_RE = re.compile(r'^(\d{1,3}(?:,\d{3})*(?:\.\d+)?(?:[eE][+-]?\d+)?)\s+(.*)$')
     results = []
-    for m in _NUMERIC_IN_CLAIM_RE.finditer(text):
-        num_unit = m.group(1).strip()
-        # Strip leading ~ ("approximately" prefix) before parsing number
-        num_unit_clean = num_unit.lstrip('~')
-        m2 = _NUM_PART_RE.match(num_unit_clean)
-        if m2:
-            unit = m2.group(2)
-            unit_stripped = _APOSTROPHE_SUFFIX_RE.sub('', unit)
-            results.append((m2.group(1), unit_stripped))
+    normalized = unicodedata.normalize("NFKC", text or "")
+    for m in _NUMERIC_IN_CLAIM_RE.finditer(normalized):
+        unit = _APOSTROPHE_SUFFIX_RE.sub("", m.group(2).strip())
+        results.append((m.group(1).lstrip("~"), unit))
     return results
 
 
@@ -338,6 +335,83 @@ def _normalize_number_str(s: str) -> float:
     s = s.lstrip('~').replace(',', '')
     s = _re.sub(r'[eE][+-]?\d+', lambda m: str(float(m.group(0))), s)
     return float(s)
+
+
+_UNIT_ALIASES = {
+    "percent": "%",
+    "\u516c\u5206": "cm",
+    "\u5398\u7c73": "cm",
+    "\u6beb\u7c73": "mm",
+    "\u516c\u5398": "mm",
+    "\u516c\u5c3a": "m",
+    "\u7c73": "m",
+    "\u4f0f\u7279": "v",
+    "\u5b89\u57f9": "a",
+    "\u6b50\u59c6": "ohm",
+    "\u6b27\u59c6": "ohm",
+    "\u79d2": "s",
+    "\u5206\u9418": "min",
+    "\u5206\u949f": "min",
+    "\u5c0f\u6642": "h",
+    "\u5c0f\u65f6": "h",
+    "\u767e\u5206\u6bd4": "%",
+    "\uff05": "%",
+}
+
+
+def _singular_unit(unit: str) -> str:
+    if unit.endswith("s") and len(unit) > 1:
+        return unit[:-1]
+    return unit
+
+
+def _normalize_unit(unit: str) -> str:
+    normalized = unicodedata.normalize("NFKC", unit or "").strip().casefold()
+    normalized = normalized.replace(" ", "")
+    return _UNIT_ALIASES.get(normalized, normalized)
+
+
+def _units_match(claim_unit: str, evidence_unit: str) -> bool:
+    claim_norm = _normalize_unit(claim_unit)
+    evidence_norm = _normalize_unit(evidence_unit)
+    return claim_norm == evidence_norm or _singular_unit(claim_norm) == _singular_unit(evidence_norm)
+
+
+def _cjk_chars(text: str) -> list[str]:
+    normalized = unicodedata.normalize("NFKC", text or "")
+    return re.findall(r"[\u3400-\u9fff]", normalized)
+
+
+def _cjk_bigrams(chars: list[str]) -> set[str]:
+    return {
+        "".join(chars[index:index + 2])
+        for index in range(max(0, len(chars) - 1))
+    }
+
+
+def _check_cjk_overlap(claim_text: str, evidence_content: str) -> list[str]:
+    claim_chars = _cjk_chars(claim_text)
+    evidence_chars = _cjk_chars(evidence_content)
+    if len(claim_chars) < 4 or len(evidence_chars) < 4:
+        return []
+
+    claim_grams = _cjk_bigrams(claim_chars)
+    evidence_grams = _cjk_bigrams(evidence_chars)
+    if not claim_grams:
+        return []
+
+    matched = claim_grams & evidence_grams
+    coverage = len(matched) / len(claim_grams)
+    threshold = 0.25
+    if coverage >= threshold:
+        return []
+
+    missing = sorted(claim_grams - evidence_grams)
+    return [
+        "Chinese claim terms not in evidence "
+        f"({coverage:.0%} bigram coverage, threshold={threshold:.0%}): "
+        + ", ".join(missing[:5])
+    ]
 
 
 def _check_content_overlap(
@@ -389,7 +463,7 @@ def _check_content_overlap(
         found = False
         for ev_num, ev_unit in evidence_numbers:
             # Units must match (after normalization)
-            if ev_unit.lower() != unit.lower() and unit.lower() not in ev_unit.lower():
+            if not _units_match(unit, ev_unit):
                 continue
             try:
                 ev_val = _normalize_number_str(ev_num)
@@ -406,8 +480,8 @@ def _check_content_overlap(
             reasons.append(
                 f"Claim number {num_str!r}{unit} not found in evidence content "
                 f"(evidence has: {ev_nums_str}). "
-                f"Note: numeric extractor requires 'number + space + unit' — "
-                f"'226 edges' matches but '226edges' does not."
+                f"Note: numeric extractor supports both spaced and compact "
+                f"unit forms, such as '226 edges' and '226edges'."
             )
 
     # 3. Term overlap — key terms from claim should appear in evidence
@@ -424,7 +498,9 @@ def _check_content_overlap(
         total = len(text)
         return total > 0 and (total - ascii_chars) / total > 0.3
 
-    if not _is_likely_non_ascii(evidence_content):
+    if _is_likely_non_ascii(evidence_content):
+        reasons.extend(_check_cjk_overlap(claim_text, evidence_content))
+    else:
         term_re = re.compile(r"\b[a-zA-Z]{5,}\b")
         claim_terms = term_re.findall(claim_text.lower())
         # Filter stopwords

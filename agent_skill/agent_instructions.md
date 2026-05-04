@@ -13,11 +13,23 @@ The workflow has three phases:
 1. **Prepare**: `start_report_task` reads sources, infers or accepts
    `report_profile`, writes `report_spec.json`, `report_profile.json`,
    `blueprint.json`, `evidence_ledger.jsonl`, and task briefs.
-2. **Author**: the agent writes `claim_matrix.json`, `outline.json`,
-   `section_drafts/*.md`, and `sentence_map.jsonl`.
+2. **Author**: the agent writes `claim_matrix.json`, `outline.json`, and either
+   `structured_drafts.json` or canonical `section_drafts/*.md` plus
+   `sentence_map.jsonl`.
 3. **Validate and render**: `submit_and_publish_report` validates contracts,
    evidence support, citations, section rules, profile policy, and render
-   quality before publishing the DOCX.
+   quality before publishing the DOCX. Successful render validation writes a
+   `post_render_layout_manifest.json` audit artifact with renderer, file size,
+   paragraph/table/figure counts, headings, table previews, related render QA
+   reports, and issues.
+   Publish packaging writes `final_qa_summary.json` and
+   `final_qa_summary.md` to consolidate QA gate, factuality, artifact lint,
+   engineering audit, and render-layout evidence for delivery review.
+   It also writes `template_style_map.json` and `template_style_map.md` to
+   explain reference-DOCX mode, renderer choice, applied-reference status, key
+   style definitions, and rendered style usage.
+   Fixed-template metadata is audited through
+   `template_field_fill_report.json` and `template_field_fill_report.md`.
 
 The workflow does not call an LLM provider and does not preserve tracked
 changes from existing DOCX files. In `revise_existing` mode, the supported
@@ -74,17 +86,27 @@ Optional integrations:
 - `notebooklm-py` and a notebook ID for NotebookLM sync
 
 `start_report_task` requires `preflight_confirmed=True` and a complete
-`preflight_decisions` record. Missing critical render dependencies must be
-installed or explicitly accepted through `allow_degraded_render=True`.
+`preflight_decisions` record. Required dependencies must actually pass
+preflight before start. Missing critical render dependencies must be installed
+or explicitly accepted with `install_decisions` set to `accept_degraded` and
+`allow_degraded_render=True`.
 
 ## Start A Report
 
 ```python
 start_report_task(
     prompt="Write an engineering lab report from these measurements.",
-    source_files=["lab_notes.pdf", "measurements.csv"],
+    source_files=[
+        {"path": "lab_notes.pdf", "role": "source_data"},
+        {"path": "measurements.csv", "role": "source_data"},
+    ],
     output_dir="output",
     report_profile="engineering_lab_report",
+    task_intent="new_draft",
+    template_fields={
+        "course_name": "Control Systems",
+        "student_id": "S12345"
+    },
     preflight_confirmed=True,
     preflight_decisions={...}
 )
@@ -93,6 +115,23 @@ start_report_task(
 If `report_profile` is omitted, the workflow infers it from the prompt and
 source context. Use explicit profile IDs when the user has already chosen the
 report type.
+
+For revision workflows, pass one base document explicitly:
+
+```python
+start_report_task(
+    prompt="Revise this report using the supplied measurements.",
+    source_files=[
+        {"path": "old_report.docx", "role": "base_document"},
+        {"path": "measurements.csv", "role": "source_data"},
+    ],
+    output_dir="output",
+    report_profile="engineering_lab_report",
+    task_intent="revise_existing",
+    preflight_confirmed=True,
+    preflight_decisions={...}
+)
+```
 
 ## Authoring Artifacts
 
@@ -107,12 +146,41 @@ Write these artifacts in the run directory:
 
 - `claim_matrix.json`
 - `outline.json`
+- `structured_drafts.json` as the preferred low-drift draft input
 - `section_drafts/*.md`
 - `sentence_map.jsonl`
 
 Every authored artifact must include the `_contract` block from the brief. If
 you reuse artifacts from a previous run, call `remap_agent_artifacts` instead of
 manually editing evidence IDs.
+After any artifact edit, call `lint_agent_artifacts(job_id=...)` when you want
+fast read-only feedback before a full validation run. It writes
+`artifact_lint_report.json` with severity, artifact name, JSON path, message,
+and repair hint.
+
+`structured_drafts.json` may replace manual section Markdown and sentence-map
+authoring for new drafts. Use this shape:
+
+```json
+{
+  "sections": {
+    "results": {
+      "sentences": [
+        {
+          "text": "The pilot program enrolled 42 participants.",
+          "claim_ids": ["c1"],
+          "evidence_ids": ["E001"],
+          "wording_strength": "hedged"
+        }
+      ]
+    }
+  }
+}
+```
+
+When `submit_drafts` sees `structured_drafts.json` and the canonical draft files
+are missing, the pipeline writes `section_drafts/*.md`, inserts `[CITE:]`
+markers from `evidence_ids`, and writes `sentence_map.jsonl`.
 
 ## Evidence Rules
 
@@ -124,6 +192,8 @@ manually editing evidence IDs.
 - Use hedged wording for medium-grade or qualitative evidence.
 - Do not cite checkpoint files, internal paths, generated task briefs, or
   workflow metadata as external evidence.
+- Use `query_evidence(job_id=..., query="...")` for relevance-ranked browsing
+  when the ledger is large; use `evidence_ids=[...]` for exact lookups.
 
 ## Draft Rules
 
@@ -151,6 +221,11 @@ rubrics as first-class sources. The report should preserve:
 - question-and-answer requirements from the handout
 - Chinese report tone without agent/workflow jargon
 
+Use `run_engineering_audit` before publish when the report contains measured
+values, formulas, or calculations. Review `engineering_audit_report.json` for
+claim/evidence unit-support warnings, table-value support checks, unit notation
+drift, missing-unit notes, and simple arithmetic mismatches.
+
 The built-in `CHINESE_ENGINEERING` guideline is selected by default for this
 profile.
 
@@ -160,12 +235,32 @@ Preferred sequence:
 
 1. Write `claim_matrix.json`, then call `submit_claim_matrix(job_id=...)`.
 2. Write `outline.json`, then call `submit_outline(job_id=...)`.
-3. Write `section_drafts/*.md` and `sentence_map.jsonl`, then call
-   `submit_drafts(job_id=...)`.
-4. Call `submit_and_publish_report(job_id=...)`.
+3. Write `structured_drafts.json` or `section_drafts/*.md` plus
+   `sentence_map.jsonl`, then call `submit_drafts(job_id=...)`.
+4. Optionally call `lint_agent_artifacts(job_id=...)` after edits or before
+   full validation to catch shape errors and ID drift early.
+5. For `engineering_lab_report`, call `run_engineering_audit(job_id=...)`
+   after drafts exist to check units, table-value support, measurement support, and simple
+   calculations.
+6. Call `submit_and_publish_report(job_id=...)`.
 
 Legacy two-step use is still supported: after prepare, create all artifacts and
 call `submit_and_publish_report` directly.
+
+When `submit_and_publish_report` succeeds, use
+`post_render_layout_manifest_path` if you need evidence about final DOCX
+structure. The same file is packaged under
+`published/qa/post_render_layout_manifest.json` when present.
+For delivery readiness, inspect `final_qa_summary_path` first. It is packaged
+with a Markdown sibling under `published/qa/final_qa_summary.json` and
+`published/qa/final_qa_summary.md`.
+For template questions, inspect `template_style_map_path`; the published
+package includes `published/qa/template_style_map.json` and
+`published/qa/template_style_map.md`.
+For cover or fixed-template field questions, inspect
+`template_field_fill_report_path`; the published package includes
+`published/qa/template_field_fill_report.json` and
+`published/qa/template_field_fill_report.md`.
 
 ## Revise Existing
 
@@ -189,6 +284,9 @@ Read the gate name and fix the canonical source artifact:
   `evidence_ledger.jsonl` content.
 - Citation failures: edit section drafts and `sentence_map.jsonl`.
 - Section contract failures: edit `outline.json` or the relevant section draft.
+- Artifact shape failures: inspect `artifact_lint_report.json` first; it points
+  to the artifact and JSON path that should be edited.
+- Engineering unit/calculation findings: inspect `engineering_audit_report.json`.
 - Render failures: fix Markdown structure, tables, figures, or template issues.
 
 For factuality failures, delete stale `factuality_report.json`, rerun validate,
@@ -197,11 +295,12 @@ then inspect the fresh report.
 ## CLI Equivalents
 
 ```powershell
-report-workflow prepare --prompt "..." --source source.pdf --profile engineering_lab_report --output output
+report-workflow prepare --prompt "..." --source source.pdf --profile engineering_lab_report --output output --preflight-decisions preflight_decisions.json
 report-workflow validate --job-id <job_id> --verbose
 report-workflow render --job-id <job_id>
 report-workflow status --job-id <job_id>
 report-workflow diagnose --job-id <job_id> --verbose
 ```
 
-Use `--profile`; do not use the removed `--family` option.
+Use `--profile`; do not use the removed `--family` option. CLI `prepare`
+requires the same explicit user preflight decision record as `start_report_task`.

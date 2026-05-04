@@ -57,13 +57,15 @@ def parse_structured(file_path: str, file_type: str) -> dict:
         content_lines = []
         for i, record in enumerate(records):
             line = json.dumps(record, ensure_ascii=False)
+            headers = [str(key) for key in record.keys()]
+            values = [str(value) for value in record.values()]
             content_lines.append(line)
             blocks.append({
                 "block_id": f"block_{i}",
                 "block_type": "table_row",
                 "content": line,
                 "page_number": None,
-                "table_data": None
+                "table_data": [headers, values] if headers or values else None
             })
 
         return {

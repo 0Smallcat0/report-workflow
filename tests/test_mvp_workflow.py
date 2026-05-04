@@ -17,7 +17,7 @@ from report_workflow.nodes.artifacts import run_artifacts
 from report_workflow.nodes.corpus_build import run_corpus_build
 from report_workflow.nodes.evidence_normalize import run_evidence_normalize
 from report_workflow.nodes.evidence_store import run_evidence_store
-from report_workflow.nodes.factuality_check import run_factuality_check, run_factuality_check_fa, run_factuality_check_fb, run_factuality_check_fd
+from report_workflow.nodes.factuality_check import run_factuality_check, run_factuality_check_fa, run_factuality_check_fb, run_factuality_check_fd, run_factuality_check_fe
 from report_workflow.nodes.consistency_check import run_consistency_check
 from report_workflow.nodes.guideline_check import run_guideline_check, _check_guideline, _split_by_sections
 from report_workflow.nodes.figure_quality import run_figure_quality, _check_figure_contract, _check_no_audit_tables_in_main_text
@@ -30,8 +30,14 @@ from report_workflow.nodes.methods_protocol_build import run_methods_protocol_bu
 from report_workflow.nodes.qa_gate import run_qa_gate
 from report_workflow.nodes.section_plan_freeze import run_section_plan_freeze
 from report_workflow.nodes.source_parse import run_source_parse
-from report_workflow.preflight import check_preflight, run_preflight_checks
-from report_workflow.run_workflow import prepare_workflow, render_workflow, run_workflow, status_workflow, validate_workflow
+from report_workflow.preflight import (
+    FeatureDiscovery,
+    FeatureInfo,
+    PreflightResult,
+    check_preflight,
+    run_preflight_checks,
+)
+from report_workflow.run_workflow import prepare_workflow, render_workflow, resume_workflow, run_workflow, status_workflow, validate_workflow
 from report_workflow.config import PROJECT_ROOT
 from report_workflow.state import (
     ReportState,
@@ -53,6 +59,44 @@ def _read_jsonl(path: str) -> list[dict]:
 
 def _all_packages_present(_module_name):
     return object()
+
+
+def _ready_cli_discovery() -> FeatureDiscovery:
+    return FeatureDiscovery(features=[
+        FeatureInfo(
+            feature_id="web_research",
+            name="Web Research",
+            description="Ready research backend",
+            enabled=False,
+            ready=True,
+            missing_setup=[],
+            install_commands=[],
+            config_flag="enable_research",
+        ),
+        FeatureInfo(
+            feature_id="notebook_sync",
+            name="NotebookLM Sync",
+            description="Ready notebook integration",
+            enabled=False,
+            ready=True,
+            missing_setup=[],
+            install_commands=[],
+            config_flag="enable_notebook_sync",
+        ),
+    ])
+
+
+def _write_cli_preflight_decisions(tmpdir: str) -> str:
+    path = Path(tmpdir) / "preflight_decisions.json"
+    path.write_text(json.dumps({
+        "confirmed_by_user": True,
+        "install_decisions": {},
+        "feature_decisions": {
+            "web_research": "skip",
+            "notebook_sync": "skip",
+        },
+    }), encoding="utf-8")
+    return str(path)
 
 
 def _state_with_output(tmpdir: str, files: list[str]) -> ReportState:
@@ -331,6 +375,28 @@ class StageWorkflowTests(unittest.TestCase):
                 with self.assertRaises(AgentWorkRequired):
                     run_workflow("write an academic report", [str(src)], str(Path(tmpdir) / "out"))
 
+    def test_prepare_persists_optional_feature_flags_before_checkpoint(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "source.txt"
+            src.write_text("The data show 42 participants.", encoding="utf-8")
+            workspace = str(Path(tmpdir) / "out")
+            with patch("report_workflow.preflight.importlib.util.find_spec", side_effect=_all_packages_present), \
+                 patch("report_workflow.nodes.notebook_sync.notebooklm_available", return_value=False):
+                state = prepare_workflow(
+                    "write a work report",
+                    [str(src)],
+                    workspace,
+                    report_profile="business_report",
+                    enable_research=True,
+                    enable_notebook_sync=True,
+                    notebooklm_notebook_id="notebook-123",
+                )
+
+            resumed = status_workflow(state.job_id, workspace_root=workspace)
+            self.assertTrue(resumed.flags["enable_research"])
+            self.assertTrue(resumed.flags["enable_notebook_sync"])
+            self.assertEqual(resumed.spec["notebooklm_notebook_id"], "notebook-123")
+
     def test_outline_requires_required_blueprint_sections(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             state = _prepare(tmpdir, "academic_paper")
@@ -434,8 +500,11 @@ class CLITests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             src = Path(tmpdir) / "source.txt"
             src.write_text("The data show 42 participants and a 20 percent reduction.", encoding="utf-8")
+            decisions_path = _write_cli_preflight_decisions(tmpdir)
             stdout = io.StringIO()
             with patch("report_workflow.preflight.importlib.util.find_spec", side_effect=_all_packages_present), \
+                 patch("report_workflow.cli.check_preflight", return_value=PreflightResult(ok=True, missing_packages=[])), \
+                 patch("report_workflow.cli.discover_features", return_value=_ready_cli_discovery()), \
                  patch("sys.stdout", stdout):
                 code = cli_main([
                     "prepare",
@@ -443,6 +512,7 @@ class CLITests(unittest.TestCase):
                     "--source", str(src),
                     "--output", str(Path(tmpdir) / "out"),
                     "--profile", "business_report",
+                    "--preflight-decisions", decisions_path,
                 ])
             self.assertEqual(code, 0)
             job_id = next(line.split(": ", 1)[1] for line in stdout.getvalue().splitlines() if line.startswith("job_id:"))
@@ -461,6 +531,120 @@ class CLITests(unittest.TestCase):
             with patch("sys.stdout", io.StringIO()) as status_out:
                 self.assertEqual(cli_main(["status", "--job-id", job_id]), 0)
                 self.assertIn("final_docx_path:", status_out.getvalue())
+
+    def test_cli_prepare_requires_preflight_decision_file(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "source.txt"
+            src.write_text("The data show 42 participants.", encoding="utf-8")
+            stderr = io.StringIO()
+            with patch("report_workflow.cli.check_preflight", return_value=PreflightResult(ok=True, missing_packages=[])), \
+                 patch("report_workflow.cli.discover_features", return_value=_ready_cli_discovery()), \
+                 patch("sys.stderr", stderr):
+                code = cli_main([
+                    "prepare",
+                    "--prompt", "write a work report",
+                    "--source", str(src),
+                    "--output", str(Path(tmpdir) / "out"),
+                    "--profile", "business_report",
+                ])
+            self.assertEqual(code, 3)
+            self.assertIn("missing preflight_decisions", stderr.getvalue())
+
+    def test_cli_prepare_malformed_preflight_decisions_returns_user_decision_exit(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "source.txt"
+            src.write_text("The data show 42 participants.", encoding="utf-8")
+            bad_decisions = Path(tmpdir) / "bad_decisions.json"
+            bad_decisions.write_text("[]", encoding="utf-8")
+            stderr = io.StringIO()
+            with patch("report_workflow.cli.check_preflight", return_value=PreflightResult(ok=True, missing_packages=[])), \
+                 patch("report_workflow.cli.discover_features", return_value=_ready_cli_discovery()), \
+                 patch("sys.stderr", stderr):
+                code = cli_main([
+                    "prepare",
+                    "--prompt", "write a work report",
+                    "--source", str(src),
+                    "--output", str(Path(tmpdir) / "out"),
+                    "--profile", "business_report",
+                    "--preflight-decisions", str(bad_decisions),
+                ])
+            self.assertEqual(code, 3)
+            self.assertIn("invalid preflight_decisions file", stderr.getvalue())
+
+    def test_cli_prepare_blocks_required_dependency_until_preflight_passes(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "source.txt"
+            src.write_text("The data show 42 participants.", encoding="utf-8")
+            decisions = Path(tmpdir) / "preflight_decisions.json"
+            decisions.write_text(json.dumps({
+                "confirmed_by_user": True,
+                "install_decisions": {
+                    "python_packages": "installed",
+                },
+                "feature_decisions": {
+                    "web_research": "skip",
+                    "notebook_sync": "skip",
+                },
+            }), encoding="utf-8")
+            stderr = io.StringIO()
+            with patch(
+                "report_workflow.cli.check_preflight",
+                return_value=PreflightResult(ok=False, missing_packages=["pydantic"]),
+            ), \
+                 patch("report_workflow.cli.discover_features", return_value=_ready_cli_discovery()), \
+                 patch("sys.stderr", stderr):
+                code = cli_main([
+                    "prepare",
+                    "--prompt", "write a work report",
+                    "--source", str(src),
+                    "--output", str(Path(tmpdir) / "out"),
+                    "--profile", "business_report",
+                    "--preflight-decisions", str(decisions),
+                ])
+            self.assertEqual(code, 3)
+            self.assertIn("Required dependencies", stderr.getvalue())
+
+    def test_cli_prepare_requires_accept_degraded_decision_for_degraded_render(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "source.txt"
+            src.write_text("The data show 42 participants.", encoding="utf-8")
+            decisions = Path(tmpdir) / "preflight_decisions.json"
+            decisions.write_text(json.dumps({
+                "confirmed_by_user": True,
+                "install_decisions": {
+                    "pandoc": "install",
+                },
+                "feature_decisions": {
+                    "web_research": "skip",
+                    "notebook_sync": "skip",
+                },
+            }), encoding="utf-8")
+            preflight = PreflightResult(
+                ok=True,
+                missing_packages=[],
+                external_tool_warnings=[{
+                    "tool": "pandoc",
+                    "severity": "critical",
+                    "installed": False,
+                    "install_command": "winget install JohnMacFarlane.Pandoc",
+                    "description": "Required for high-quality DOCX rendering.",
+                }],
+            )
+            stderr = io.StringIO()
+            with patch("report_workflow.cli.check_preflight", return_value=preflight), \
+                 patch("report_workflow.cli.discover_features", return_value=_ready_cli_discovery()), \
+                 patch("sys.stderr", stderr):
+                code = cli_main([
+                    "prepare",
+                    "--prompt", "write a work report",
+                    "--source", str(src),
+                    "--output", str(Path(tmpdir) / "out"),
+                    "--profile", "business_report",
+                    "--preflight-decisions", str(decisions),
+                    "--allow-degraded-render",
+                ])
+            self.assertEqual(code, 3)
+            self.assertIn("accept_degraded", stderr.getvalue())
 
     def test_default_workspace_root_is_project_local_even_if_cwd_changes(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -552,6 +736,25 @@ class GateTests(unittest.TestCase):
         self.assertEqual(results[0]["status"], "blocked")
         self.assertIn("not allowed", results[0]["reason"])
 
+    def test_factuality_does_not_match_units_by_substring(self):
+        claim_matrix = {
+            "claims": [{
+                "claim_id": "c1",
+                "claim_text": "The displacement was 5 m.",
+                "claim_type": "factual",
+                "evidence_ids": ["e1"],
+            }]
+        }
+        checked = [{"claim_id": "c1", "status": "verified", "checker": "FB", "reason": ""}]
+        evidence = [{
+            "evidence_id": "e1",
+            "evidence_type": "quantitative",
+            "content": "The displacement was 5 mm.",
+        }]
+        results = run_factuality_check_fe(checked, claim_matrix, evidence)
+        self.assertEqual(results[0]["status"], "blocked")
+        self.assertIn("not found", results[0]["reason"])
+
     def test_qa_gate_blocks_missing_citation_placeholder(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
@@ -579,6 +782,47 @@ class GateTests(unittest.TestCase):
             with self.assertRaises(QAHardBlockError):
                 run_qa_gate(state)
             self.assertIn("missing citation placeholders", "; ".join(state.qa["hard_fail_reasons"]))
+
+    def test_qa_gate_rejects_bypass_flag(self):
+        state = ReportState.new("report", [], "out")
+        state.flags["bypass_qa_gate"] = True
+        with self.assertRaises(QAHardBlockError) as ctx:
+            run_qa_gate(state)
+        self.assertIn("bypass_qa_gate is not allowed", str(ctx.exception))
+
+    def test_render_rejects_bypass_flag_from_checkpoint(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
+            state.status = "validated"
+            state.qa["qa_decision"] = "pass"
+            state.flags["bypass_qa_gate"] = True
+            state.checkpoint("VALIDATED")
+
+            with self.assertRaises(QAHardBlockError) as ctx:
+                render_workflow(state.job_id)
+            self.assertIn("bypass_qa_gate", str(ctx.exception))
+
+    def test_render_rejects_pass_without_qa_summary(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
+            state.status = "validated"
+            state.qa["qa_decision"] = "pass"
+            state.checkpoint("VALIDATED")
+
+            with self.assertRaises(QAHardBlockError) as ctx:
+                render_workflow(state.job_id)
+            self.assertIn("qa_summary", str(ctx.exception))
+
+    def test_resume_render_phase_uses_same_render_gate(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
+            state.status = "running"
+            state.qa["qa_decision"] = "pass"
+            state.checkpoint("STYLE_PASS")
+
+            with self.assertRaises(QAHardBlockError) as ctx:
+                resume_workflow(state.job_id)
+            self.assertIn("qa_summary", str(ctx.exception))
 
     def test_revise_existing_sidecars_satisfy_citation_linkage(self):
         with tempfile.TemporaryDirectory() as tmpdir:

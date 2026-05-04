@@ -17,6 +17,13 @@ from .run_workflow import (
 )
 from .state import ReportState
 from .profiles import PROFILE_IDS
+from .config import load_config
+from .preflight import check_preflight, discover_features
+from .preflight_decisions import (
+    evaluate_preflight_start,
+    pending_preflight_installs,
+    required_preflight_decision_shape,
+)
 
 
 REPORT_PROFILES = PROFILE_IDS
@@ -33,6 +40,49 @@ def _parse_source_arg(value: str) -> tuple[str, str]:
         path, role = value.rsplit(":", 1)
         return path.strip(), role
     return value, "source_data"
+
+
+def _parse_template_field_arg(value: str) -> tuple[str, str]:
+    if "=" not in value:
+        raise argparse.ArgumentTypeError("Template field must use KEY=VALUE format")
+    key, field_value = value.split("=", 1)
+    key = key.strip()
+    field_value = field_value.strip()
+    if not key or not field_value:
+        raise argparse.ArgumentTypeError("Template field KEY and VALUE must be non-empty")
+    return key, field_value
+
+
+def _load_preflight_decisions(path: str | None) -> dict | None:
+    if not path:
+        return None
+    with open(path, encoding="utf-8") as f:
+        data = json.load(f)
+    if not isinstance(data, dict):
+        raise argparse.ArgumentTypeError("preflight decisions file must contain a JSON object")
+    return data
+
+
+def _print_preflight_decision_block(
+    message: str,
+    pending_installs: list[dict],
+    ask_user: list[dict],
+    decision_issues: list[str] | None = None,
+) -> None:
+    print(message, file=sys.stderr)
+    if decision_issues:
+        print("decision_issues:", file=sys.stderr)
+        for issue in decision_issues:
+            print(f"- {issue}", file=sys.stderr)
+    print("required_preflight_decisions:", file=sys.stderr)
+    print(
+        json.dumps(
+            required_preflight_decision_shape(pending_installs, ask_user),
+            indent=2,
+            default=str,
+        ),
+        file=sys.stderr,
+    )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -66,6 +116,13 @@ def build_parser() -> argparse.ArgumentParser:
     prepare.add_argument("--affiliation", help="Structured front matter affiliation block")
     prepare.add_argument("--correspondence", help="Structured front matter correspondence email/contact")
     prepare.add_argument(
+        "--template-field",
+        action="append",
+        default=[],
+        type=_parse_template_field_arg,
+        help="Fixed-template/front-matter field in KEY=VALUE form; may be repeated",
+    )
+    prepare.add_argument(
         "--keyword",
         action="append",
         default=[],
@@ -75,6 +132,19 @@ def build_parser() -> argparse.ArgumentParser:
         "--project-identity",
         help="Path to project_identity.json with required/forbidden project identity terms",
     )
+    prepare.add_argument(
+        "--preflight-decisions",
+        help="Path to a JSON preflight_decisions record confirming user install/feature choices",
+    )
+    prepare.add_argument(
+        "--allow-degraded-render",
+        action="store_true",
+        help="Allow python-docx fallback only when the user accepted degraded rendering in preflight_decisions",
+    )
+    prepare.add_argument("--enable-research", action="store_true", default=None, help="Enable configured web research")
+    prepare.add_argument("--enable-notebook-sync", action="store_true", default=None, help="Enable NotebookLM sync")
+    prepare.add_argument("--notebooklm-notebook-id", help="NotebookLM notebook URL or ID for this report")
+    prepare.add_argument("--notebooklm-storage-path", help="Optional NotebookLM local storage path")
 
     validate = subcommands.add_parser("validate", help="Validate agent-authored artifacts")
     validate.add_argument("--job-id", required=True, help="Workflow job id from prepare")
@@ -470,6 +540,47 @@ def main(argv: list[str] | None = None) -> int:
             if args.project_identity:
                 with open(args.project_identity, encoding="utf-8") as f:
                     project_identity = json.load(f)
+            template_fields = dict(args.template_field or [])
+            cfg = load_config(
+                enable_research=args.enable_research,
+                enable_notebook_sync=args.enable_notebook_sync,
+                notebooklm_notebook_id=args.notebooklm_notebook_id,
+                notebooklm_storage_path=args.notebooklm_storage_path,
+            )
+            preflight = check_preflight()
+            discovery = discover_features(
+                enable_research=cfg.enable_research,
+                enable_notebook_sync=cfg.enable_notebook_sync,
+            )
+            try:
+                preflight_decisions = _load_preflight_decisions(args.preflight_decisions)
+            except (OSError, json.JSONDecodeError, argparse.ArgumentTypeError) as exc:
+                pending_installs = pending_preflight_installs(preflight, discovery)
+                ask_user = discovery.agent_should_ask_user
+                _print_preflight_decision_block(
+                    "report-workflow prepare requires explicit user preflight decisions.",
+                    pending_installs,
+                    ask_user,
+                    [f"invalid preflight_decisions file: {exc}"],
+                )
+                return 3
+
+            readiness = evaluate_preflight_start(
+                preflight=preflight,
+                discovery=discovery,
+                cfg=cfg,
+                preflight_decisions=preflight_decisions,
+                preflight_confirmed=True,
+                allow_degraded_render=args.allow_degraded_render,
+            )
+            if not readiness["ready"]:
+                _print_preflight_decision_block(
+                    readiness["message"],
+                    readiness.get("pending_installs", []),
+                    readiness.get("agent_should_ask_user", []),
+                    readiness.get("decision_issues", []),
+                )
+                return 3
 
             state = prepare_workflow(
                 args.prompt,
@@ -485,10 +596,15 @@ def main(argv: list[str] | None = None) -> int:
                         "affiliation_block": args.affiliation,
                         "correspondence": args.correspondence,
                         "keywords": args.keyword,
+                        "template_fields": template_fields,
                     }.items()
                     if value
                 },
                 project_identity=project_identity,
+                enable_research=cfg.enable_research,
+                enable_notebook_sync=cfg.enable_notebook_sync,
+                notebooklm_notebook_id=cfg.notebooklm_notebook_id,
+                notebooklm_storage_path=cfg.notebooklm_storage_path,
             )
             _print_state(state)
             return 0

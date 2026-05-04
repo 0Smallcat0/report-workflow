@@ -323,8 +323,19 @@ def _structured_front_matter_from_spec(spec: dict) -> dict:
         "acknowledgements",
         "funding",
         "conflict_note",
+        "template_fields",
     }
-    return {key: value for key, value in raw.items() if key in allowed and value}
+    structured = {key: value for key, value in raw.items() if key in allowed and value}
+    template_fields = structured.get("template_fields")
+    if isinstance(template_fields, dict):
+        structured["template_fields"] = {
+            str(key).strip(): str(value).strip()
+            for key, value in template_fields.items()
+            if str(key).strip() and str(value).strip()
+        }
+    elif template_fields:
+        structured.pop("template_fields", None)
+    return structured
 
 
 def _parse_preamble_metadata_line(line: str) -> tuple[str, str] | None:
@@ -589,6 +600,14 @@ def _format_front_matter_markdown(front_matter: dict) -> str:
     # Affiliation block
     if front_matter.get("affiliation_block"):
         sections.append(front_matter["affiliation_block"])
+
+    template_fields = front_matter.get("template_fields") or {}
+    if isinstance(template_fields, dict):
+        for key, value in template_fields.items():
+            label = str(key).replace("_", " ").strip().title()
+            clean_value = str(value).strip()
+            if label and clean_value:
+                sections.append(f"**{label}:** {clean_value}")
 
     # Correspondence
     if front_matter.get("correspondence"):

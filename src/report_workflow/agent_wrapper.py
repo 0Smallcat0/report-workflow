@@ -3,7 +3,8 @@
 Step 1: start_report_task        -> Prepare deterministic artifacts + task briefs
 Step 2: submit_claim_matrix      -> Validate claim_matrix.json (agent produces this)
 Step 3: submit_outline           -> Validate outline.json (agent produces this)
-Step 4: submit_drafts            -> Validate section_drafts/*.md + sentence_map.jsonl
+Step 4: submit_drafts            -> Validate structured/canonical drafts
+Optional: lint_agent_artifacts   -> Read-only artifact shape and ID lint report
 Step 5: submit_and_publish_report -> Full validate + render pipeline
 
 The 4-step split (Steps 2-4) allows the agent to work on each artifact
@@ -26,11 +27,74 @@ from report_workflow.run_workflow import (
     validate_step_drafts,
 )
 from report_workflow.errors import AgentWorkRequired, QAHardBlockError
-from report_workflow.state import run_dir_for
+from report_workflow.state import ReportState, run_dir_for
 from report_workflow.runtime_support import load_jsonl
 from report_workflow.artifact_contract import remap_evidence_ids
+from report_workflow.artifact_lint import lint_agent_artifacts as run_artifact_lint
+from report_workflow.engineering_audit import run_engineering_audit as run_engineering_lab_audit
 from report_workflow.config import load_config, save_feature_flag
 from report_workflow.preflight import discover_features, check_preflight
+from report_workflow.preflight_decisions import (
+    evaluate_preflight_start,
+    pending_preflight_installs,
+    required_preflight_decision_shape,
+)
+
+VALID_SOURCE_FILE_ROLES = {"source_data", "base_document"}
+
+
+def _parse_source_file_string(value: str) -> tuple[str, str]:
+    """Parse an optional PATH:ROLE suffix without breaking Windows paths."""
+    if value.rsplit(":", 1)[-1] in VALID_SOURCE_FILE_ROLES:
+        path, role = value.rsplit(":", 1)
+        return path.strip(), role
+    return value, "source_data"
+
+
+def _normalize_source_files(source_files: list[str | dict]) -> tuple[list[str], dict[str, str]]:
+    """Normalize legacy and structured agent-skill source file inputs.
+
+    Supported forms:
+      - "path/to/source.pdf"
+      - "path/to/base.docx:base_document"
+      - {"path": "path/to/base.docx", "role": "base_document"}
+    """
+    normalized_files: list[str] = []
+    artifact_role_map: dict[str, str] = {}
+
+    for index, item in enumerate(source_files or []):
+        if isinstance(item, str):
+            path, role = _parse_source_file_string(item)
+        elif isinstance(item, dict):
+            path = str(item.get("path") or item.get("file_path") or "").strip()
+            role = str(
+                item.get("role")
+                or item.get("artifact_role")
+                or item.get("source_role")
+                or "source_data"
+            ).strip()
+        else:
+            raise ValueError(
+                f"source_files[{index}] must be a string or object with path/role"
+            )
+
+        if not path:
+            raise ValueError(f"source_files[{index}] is missing a path")
+        if role not in VALID_SOURCE_FILE_ROLES:
+            raise ValueError(
+                f"source_files[{index}] has invalid role {role!r}; "
+                f"expected one of {sorted(VALID_SOURCE_FILE_ROLES)}"
+            )
+
+        normalized_files.append(path)
+        artifact_role_map[path] = role
+        artifact_role_map[str(Path(path).name)] = role
+        try:
+            artifact_role_map[str(Path(path).expanduser().resolve())] = role
+        except OSError:
+            pass
+
+    return normalized_files, artifact_role_map
 
 
 def check_setup() -> dict:
@@ -62,48 +126,7 @@ def check_setup() -> dict:
         ask_user = discovery.agent_should_ask_user
         features_dict = discovery.as_dict()
 
-        # ---- Build pending_installs list ----
-        # These are things the agent can install with user's permission
-        pending_installs = []
-
-        # Core packages
-        if not preflight.ok:
-            pending_installs.append({
-                "name": "Python package dependencies",
-                "description": "Install required Python packages for report_workflow",
-                "command": "pip install -r requirements.txt",
-                "severity": "required",  # Cannot proceed without this
-                "auto_installable": True,
-            })
-
-        # External tools from preflight
-        seen_commands = set()
-        for tw in preflight.external_tool_warnings:
-            pending_installs.append({
-                "name": tw["tool"],
-                "description": tw["description"],
-                "command": tw["install_command"],
-                "severity": tw["severity"],  # "critical" or "optional"
-                "auto_installable": tw["tool"] != "pandoc",  # pandoc needs system install
-            })
-            seen_commands.add(tw["install_command"])
-
-        # Optional packages from feature discovery (skip already-added tools)
-        for f in discovery.features:
-            if not f.ready and f.install_commands:
-                for cmd in f.install_commands:
-                    if cmd in seen_commands:
-                        continue  # Already added from preflight
-                    if cmd.startswith("pip ") or cmd.startswith("npm "):
-                        pending_installs.append({
-                            "name": f.name,
-                            "description": f.description,
-                            "command": cmd,
-                            "severity": "optional",
-                            "auto_installable": True,
-                            "feature_id": f.feature_id,
-                        })
-                        seen_commands.add(cmd)
+        pending_installs = pending_preflight_installs(preflight, discovery)
 
         lines = ["Report Workflow setup check"]
         if not preflight.ok:
@@ -151,7 +174,7 @@ def check_setup() -> dict:
             ),
             "message": "\n".join(lines),
             "pending_installs": pending_installs,
-            "required_preflight_decisions": _required_preflight_decision_shape(
+            "required_preflight_decisions": required_preflight_decision_shape(
                 pending_installs, ask_user
             ),
             "feature_discovery": features_dict,
@@ -163,176 +186,18 @@ def check_setup() -> dict:
         return {"status": "failed", "error": str(e)}
 
 
-def _pending_preflight_installs(preflight, discovery) -> list[dict]:
-    pending_installs = []
-    if not preflight.ok:
-        pending_installs.append({
-            "name": "python_packages",
-            "description": "Required Python packages are missing: "
-            + ", ".join(preflight.missing_packages),
-            "command": "pip install -r requirements.txt",
-            "severity": "required",
-            "auto_installable": True,
-        })
-
-    seen_commands = set()
-    for warning in preflight.external_tool_warnings:
-        pending_installs.append({
-            "name": warning["tool"],
-            "description": warning["description"],
-            "command": warning["install_command"],
-            "severity": warning["severity"],
-            "auto_installable": warning["tool"] != "pandoc",
-        })
-        seen_commands.add(warning["install_command"])
-
-    for feature in discovery.features:
-        if feature.ready or not feature.install_commands:
-            continue
-        for command in feature.install_commands:
-            if command in seen_commands:
-                continue
-            if command.startswith(("pip ", "npm ")):
-                pending_installs.append({
-                    "name": feature.name,
-                    "description": feature.description,
-                    "command": command,
-                    "severity": "optional",
-                    "auto_installable": True,
-                    "feature_id": feature.feature_id,
-                })
-                seen_commands.add(command)
-
-    return pending_installs
-
-
-def _feature_by_id(discovery, feature_id: str):
-    for feature in discovery.features:
-        if feature.feature_id == feature_id:
-            return feature
-    return None
-
-
-INSTALL_DECISIONS = {"install", "installed", "skip", "decline", "accept_degraded"}
-FEATURE_DECISIONS = {"enable", "enabled", "disable", "disabled", "skip", "decline"}
-
-
-def _preflight_item_key(item: dict) -> str:
-    return str(
-        item.get("feature_id")
-        or item.get("tool")
-        or item.get("name")
-        or item.get("command")
-        or "unknown"
-    ).strip()
-
-
-def _required_preflight_decision_shape(pending_installs: list[dict], ask_user: list[dict]) -> dict:
-    return {
-        "confirmed_by_user": True,
-        "install_decisions": {
-            _preflight_item_key(item): "install|installed|skip|decline|accept_degraded"
-            for item in pending_installs
-        },
-        "feature_decisions": {
-            str(item.get("feature_id")): "enable|disable|skip|decline"
-            for item in ask_user
-            if item.get("feature_id")
-        },
-    }
-
-
-def _validate_preflight_decisions(
-    decisions: dict | None,
-    pending_installs: list[dict],
-    ask_user: list[dict],
-    *,
-    cfg,
-    allow_degraded_render: bool,
-) -> list[str]:
-    """Require a structured user-confirmation record before workflow start."""
-    issues: list[str] = []
-    if not isinstance(decisions, dict):
-        return ["missing preflight_decisions; call check_setup and record the user's choices"]
-    if decisions.get("confirmed_by_user") is not True:
-        issues.append("preflight_decisions.confirmed_by_user must be true")
-
-    install_decisions = decisions.get("install_decisions") or {}
-    feature_decisions = decisions.get("feature_decisions") or {}
-    if not isinstance(install_decisions, dict):
-        issues.append("preflight_decisions.install_decisions must be an object")
-        install_decisions = {}
-    if not isinstance(feature_decisions, dict):
-        issues.append("preflight_decisions.feature_decisions must be an object")
-        feature_decisions = {}
-
-    for item in pending_installs:
-        key = _preflight_item_key(item)
-        decision = str(install_decisions.get(key, "")).strip().lower()
-        if not decision:
-            issues.append(f"missing install decision for {key!r}")
-            continue
-        if decision not in INSTALL_DECISIONS:
-            issues.append(f"invalid install decision for {key!r}: {decision!r}")
-            continue
-        if item.get("severity") == "critical" and decision in {"skip", "decline"}:
-            issues.append(
-                f"critical dependency {key!r} cannot be skipped; use 'install' or "
-                "'accept_degraded' with allow_degraded_render=True"
-            )
-        if (
-            item.get("severity") == "critical"
-            and decision == "accept_degraded"
-            and not allow_degraded_render
-        ):
-            issues.append(
-                f"critical dependency {key!r} accepted degraded rendering, but "
-                "allow_degraded_render=True was not provided"
-            )
-        if item.get("severity") == "required" and decision not in {"install", "installed"}:
-            issues.append(f"required dependency {key!r} must be installed before starting")
-
-    for item in ask_user:
-        feature_id = str(item.get("feature_id") or "").strip()
-        if not feature_id:
-            continue
-        decision = str(feature_decisions.get(feature_id, "")).strip().lower()
-        if not decision:
-            issues.append(f"missing feature decision for {feature_id!r}")
-            continue
-        if decision not in FEATURE_DECISIONS:
-            issues.append(f"invalid feature decision for {feature_id!r}: {decision!r}")
-            continue
-
-        enabled = bool(
-            cfg.enable_research if feature_id == "web_research"
-            else cfg.enable_notebook_sync if feature_id == "notebook_sync"
-            else False
-        )
-        if decision in {"enable", "enabled"} and not enabled:
-            issues.append(
-                f"feature {feature_id!r} was approved by the user, but the matching "
-                "enable_* flag was not set"
-            )
-        if decision in {"disable", "disabled", "skip", "decline"} and enabled:
-            issues.append(
-                f"feature {feature_id!r} was declined by the user, but the matching "
-                "enable_* flag is true"
-            )
-
-    return issues
-
-
 def start_report_task(
     prompt: str,
-    source_files: list[str],
+    source_files: list[str | dict],
     output_dir: str | None = None,
     report_profile: str | None = None,
+    task_intent: str = "new_draft",
     title: str | None = None,
     author_block: str | None = None,
     affiliation_block: str | None = None,
     correspondence: str | None = None,
     keywords: list[str] | None = None,
+    template_fields: dict | None = None,
     project_identity: dict | None = None,
     enable_research: bool | None = None,
     enable_notebook_sync: bool | None = None,
@@ -359,6 +224,8 @@ def start_report_task(
       4. workflow_config.yaml in project root
     """
     try:
+        normalized_source_files, artifact_role_map = _normalize_source_files(source_files)
+
         # ---- Load merged configuration ----
         cfg = load_config(
             enable_research=enable_research,
@@ -372,92 +239,34 @@ def start_report_task(
             enable_research=cfg.enable_research,
             enable_notebook_sync=cfg.enable_notebook_sync,
         )
-        pending_installs = _pending_preflight_installs(preflight, discovery)
-        ask_user = discovery.agent_should_ask_user
-
-        decision_issues = _validate_preflight_decisions(
-            preflight_decisions,
-            pending_installs,
-            ask_user,
+        readiness = evaluate_preflight_start(
+            preflight=preflight,
+            discovery=discovery,
             cfg=cfg,
+            preflight_decisions=preflight_decisions,
+            preflight_confirmed=preflight_confirmed,
             allow_degraded_render=allow_degraded_render,
         )
-        if not preflight_confirmed:
-            decision_issues.insert(0, "preflight_confirmed must be true after user confirmation")
-        if decision_issues:
+        if not readiness["ready"]:
             return {
                 "status": "needs_user_decision",
-                "message": (
-                    "Call check_setup(), ask the user about every pending install "
-                    "and optional integration, then call start_report_task again "
-                    "with preflight_confirmed=True, selected feature flags, and "
-                    "a complete preflight_decisions record."
-                ),
-                "pending_installs": pending_installs,
-                "agent_should_ask_user": ask_user,
-                "decision_issues": decision_issues,
-                "required_preflight_decisions": _required_preflight_decision_shape(
-                    pending_installs, ask_user
-                ),
+                "message": readiness["message"],
+                "pending_installs": readiness.get("pending_installs", []),
+                "agent_should_ask_user": readiness.get("agent_should_ask_user", []),
+                "decision_issues": readiness.get("decision_issues", []),
+                "required_preflight_decisions": readiness.get("required_preflight_decisions", {}),
                 "feature_discovery": discovery.as_dict(),
                 "config_summary": cfg.as_env_summary(),
                 "preflight": preflight.as_dict(),
             }
-
-        critical_installs = [
-            item for item in pending_installs if item.get("severity") == "critical"
-        ]
-        if critical_installs and not allow_degraded_render:
-            return {
-                "status": "needs_user_decision",
-                "message": (
-                    "Critical render dependencies are missing. Install them before starting, "
-                    "or explicitly set allow_degraded_render=True after the user accepts the "
-                    "lower-quality fallback."
-                ),
-                "pending_installs": critical_installs,
-                "feature_discovery": discovery.as_dict(),
-                "config_summary": cfg.as_env_summary(),
-                "preflight": preflight.as_dict(),
-            }
-
-        research_feature = _feature_by_id(discovery, "web_research")
-        if cfg.enable_research and research_feature and not research_feature.ready:
-            return {
-                "status": "needs_user_decision",
-                "message": "Web Research was enabled but no research backend/API key is ready.",
-                "agent_should_ask_user": ask_user,
-                "feature_discovery": discovery.as_dict(),
-                "config_summary": cfg.as_env_summary(),
-            }
-
-        notebook_feature = _feature_by_id(discovery, "notebook_sync")
-        if cfg.enable_notebook_sync:
-            if notebook_feature and not notebook_feature.ready:
-                return {
-                    "status": "needs_user_decision",
-                    "message": "NotebookLM sync was enabled but notebooklm-py is not installed.",
-                    "agent_should_ask_user": ask_user,
-                    "feature_discovery": discovery.as_dict(),
-                    "config_summary": cfg.as_env_summary(),
-                }
-            if not cfg.notebooklm_notebook_id:
-                return {
-                    "status": "needs_user_decision",
-                    "message": (
-                        "NotebookLM sync was enabled but notebooklm_notebook_id was not provided. "
-                        "Ask the user for the notebook URL or ID."
-                    ),
-                    "agent_should_ask_user": ask_user,
-                    "feature_discovery": discovery.as_dict(),
-                    "config_summary": cfg.as_env_summary(),
-                }
 
         state = prepare_workflow(
             prompt,
-            source_files,
+            normalized_source_files,
             output_dir,
             report_profile=report_profile,
+            intent=task_intent,
+            artifact_role_map=artifact_role_map,
             front_matter={
                 key: value for key, value in {
                     "title": title,
@@ -465,21 +274,16 @@ def start_report_task(
                     "affiliation_block": affiliation_block,
                     "correspondence": correspondence,
                     "keywords": keywords,
+                    "template_fields": template_fields,
                 }.items()
                 if value
             },
             project_identity=project_identity,
+            enable_research=cfg.enable_research,
+            enable_notebook_sync=cfg.enable_notebook_sync,
+            notebooklm_notebook_id=cfg.notebooklm_notebook_id,
+            notebooklm_storage_path=cfg.notebooklm_storage_path,
         )
-
-        # Apply resolved config to state flags
-        if cfg.enable_research:
-            state.flags["enable_research"] = True
-        if cfg.enable_notebook_sync:
-            state.flags["enable_notebook_sync"] = True
-        if cfg.notebooklm_notebook_id:
-            state.spec["notebooklm_notebook_id"] = cfg.notebooklm_notebook_id
-        if cfg.notebooklm_storage_path:
-            state.spec["notebooklm_storage_path"] = cfg.notebooklm_storage_path
 
         warnings = state.runtime.get("warnings", [])
 
@@ -492,7 +296,7 @@ def start_report_task(
                 "Submit artifacts step-by-step:",
                 "  1. Create claim_matrix.json, then call submit_claim_matrix",
                 "  2. Create outline.json, then call submit_outline",
-                "  3. Create section_drafts/*.md + sentence_map.jsonl, then call submit_drafts",
+                "  3. Create structured_drafts.json or section_drafts/*.md + sentence_map.jsonl, then call submit_drafts",
                 "  4. Call submit_and_publish_report to render the final DOCX",
                 "",
             ]
@@ -581,7 +385,7 @@ def submit_outline(job_id: str, workspace_root: str | None = None) -> dict:
             "job_id": state.job_id,
             "message": (
                 "Step 2/3 complete: outline.json validated.\n"
-                "Next: Create section_drafts/*.md + sentence_map.jsonl, "
+                "Next: Create structured_drafts.json or section_drafts/*.md + sentence_map.jsonl, "
                 "then call submit_drafts."
             ),
         }
@@ -604,9 +408,10 @@ def submit_outline(job_id: str, workspace_root: str | None = None) -> dict:
 
 
 def submit_drafts(job_id: str, workspace_root: str | None = None) -> dict:
-    """Step 4: Validate section_drafts/*.md and sentence_map.jsonl.
+    """Step 4: Validate structured_drafts or canonical draft artifacts.
 
-    Call this after creating all section draft files and sentence_map.jsonl.
+    Call this after creating structured_drafts.json, or all section draft files
+    and sentence_map.jsonl.
     Requires both claim_matrix and outline to be validated first.
     """
     try:
@@ -623,7 +428,7 @@ def submit_drafts(job_id: str, workspace_root: str | None = None) -> dict:
         return {
             "status": "validation_failed",
             "job_id": job_id,
-            "message": "Section drafts or sentence_map are missing.",
+            "message": "structured_drafts.json or section drafts/sentence_map are missing.",
             "missing_artifacts": e.missing_artifacts,
         }
     except QAHardBlockError as e:
@@ -632,6 +437,45 @@ def submit_drafts(job_id: str, workspace_root: str | None = None) -> dict:
             "job_id": job_id,
             "message": "Section draft validation failed. Revise and resubmit.",
             "error_details": str(e),
+        }
+    except Exception as e:
+        return {"status": "failed", "error": str(e)}
+
+
+def lint_agent_artifacts(job_id: str, workspace_root: str | None = None) -> dict:
+    """Read-only lint of agent-authored artifacts before full validation."""
+    try:
+        state = ReportState.resume(job_id, workspace_root=workspace_root)
+        report = run_artifact_lint(state)
+        return {
+            "status": "ok" if report.get("error_count", 0) == 0 else "issues_found",
+            "job_id": job_id,
+            "report_path": report.get("report_path", ""),
+            "issue_count": report.get("issue_count", 0),
+            "error_count": report.get("error_count", 0),
+            "warning_count": report.get("warning_count", 0),
+            "issues": report.get("issues", []),
+        }
+    except Exception as e:
+        return {"status": "failed", "error": str(e)}
+
+
+def run_engineering_audit(job_id: str, workspace_root: str | None = None) -> dict:
+    """Read-only engineering lab unit/calculation audit."""
+    try:
+        state = ReportState.resume(job_id, workspace_root=workspace_root)
+        report = run_engineering_lab_audit(state)
+        return {
+            "status": "ok" if report.get("warning_count", 0) == 0 else "review_recommended",
+            "job_id": job_id,
+            "report_path": report.get("report_path", ""),
+            "measurement_count": report.get("measurement_count", 0),
+            "table_evidence_count": report.get("table_evidence_count", 0),
+            "calculation_count": report.get("calculation_count", 0),
+            "issue_count": report.get("issue_count", 0),
+            "warning_count": report.get("warning_count", 0),
+            "info_count": report.get("info_count", 0),
+            "issues": report.get("issues", []),
         }
     except Exception as e:
         return {"status": "failed", "error": str(e)}
@@ -654,6 +498,13 @@ def submit_and_publish_report(job_id: str, workspace_root: str | None = None) ->
             "published_report_path": state.output.get("published_report_path", ""),
             "workflow_success": bool(state.output.get("workflow_success") and state.status == "completed"),
             "renderer_used": state.output.get("renderer_used", "unknown"),
+            "post_render_layout_manifest_path": state.output.get("post_render_layout_manifest_path", ""),
+            "final_qa_summary_path": state.output.get("final_qa_summary_path", ""),
+            "final_qa_summary_md_path": state.output.get("final_qa_summary_md_path", ""),
+            "template_style_map_path": state.output.get("template_style_map_path", ""),
+            "template_style_map_md_path": state.output.get("template_style_map_md_path", ""),
+            "template_field_fill_report_path": state.output.get("template_field_fill_report_path", ""),
+            "template_field_fill_report_md_path": state.output.get("template_field_fill_report_md_path", ""),
             "message": "Report validation passed and DOCX successfully rendered!",
         }
         if warnings:
@@ -697,6 +548,7 @@ def submit_and_publish_report(job_id: str, workspace_root: str | None = None) ->
 def query_evidence(
     job_id: str,
     evidence_ids: list[str] | None = None,
+    query: str | None = None,
     offset: int = 0,
     limit: int = 20,
     workspace_root: str | None = None,
@@ -740,6 +592,22 @@ def query_evidence(
                 "entries": entries,
                 "missing_ids": list(missing) if missing else [],
             }
+        elif query:
+            ranked = _rank_evidence_entries(all_entries, query)
+            limit = min(limit, 50)
+            page = ranked[offset:offset + limit]
+            return {
+                "status": "ok",
+                "job_id": job_id,
+                "total_entries": total,
+                "query": query,
+                "total_matches": len(ranked),
+                "offset": offset,
+                "limit": limit,
+                "returned": len(page),
+                "entries": [entry for _score, entry in page],
+                "has_more": (offset + limit) < len(ranked),
+            }
         else:
             # Paginated browsing
             limit = min(limit, 50)
@@ -761,6 +629,49 @@ def query_evidence(
         }
     except Exception as e:
         return {"status": "failed", "error": str(e)}
+
+
+def _rank_evidence_entries(entries: list[dict], query: str) -> list[tuple[float, dict]]:
+    import re
+    import unicodedata
+
+    normalized_query = unicodedata.normalize("NFKC", query or "").casefold()
+    terms = set(re.findall(r"[a-z0-9_]{2,}", normalized_query))
+    cjk_chars = re.findall(r"[\u3400-\u9fff]", normalized_query)
+    cjk_bigrams = {
+        "".join(cjk_chars[index:index + 2])
+        for index in range(max(0, len(cjk_chars) - 1))
+    }
+
+    ranked: list[tuple[float, dict]] = []
+    for entry in entries:
+        haystack = " ".join(
+            str(entry.get(key, ""))
+            for key in (
+                "evidence_id",
+                "content",
+                "quote",
+                "source_file_name",
+                "source_role",
+                "evidence_type",
+            )
+        )
+        normalized_haystack = unicodedata.normalize("NFKC", haystack).casefold()
+        score = 0.0
+        score += sum(1.0 for term in terms if term in normalized_haystack)
+        score += sum(1.5 for gram in cjk_bigrams if gram in normalized_haystack)
+        if normalized_query and normalized_query in normalized_haystack:
+            score += 3.0
+        if score > 0:
+            ranked.append((score, entry))
+
+    ranked.sort(
+        key=lambda item: (
+            -item[0],
+            str(item[1].get("evidence_id", "")),
+        )
+    )
+    return ranked
 
 
 def remap_agent_artifacts(

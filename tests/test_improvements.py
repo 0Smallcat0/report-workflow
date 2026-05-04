@@ -120,6 +120,40 @@ class AgentWrapperPreflightGateTests(unittest.TestCase):
     @patch("report_workflow.agent_wrapper.check_preflight")
     @patch("report_workflow.agent_wrapper.discover_features")
     @patch("report_workflow.agent_wrapper.load_config")
+    def test_start_report_task_blocks_required_dependency_until_preflight_passes(
+        self, mock_config, mock_discovery, mock_preflight, mock_prepare
+    ):
+        mock_config.return_value = self._config()
+        mock_preflight.return_value = PreflightResult(ok=False, missing_packages=["pydantic"])
+        mock_discovery.return_value = self._discovery()
+
+        result = start_report_task(
+            "Draft report",
+            [],
+            output_dir="out",
+            enable_research=False,
+            enable_notebook_sync=False,
+            preflight_confirmed=True,
+            preflight_decisions={
+                "confirmed_by_user": True,
+                "install_decisions": {
+                    "python_packages": "installed",
+                },
+                "feature_decisions": {
+                    "web_research": "skip",
+                    "notebook_sync": "skip",
+                },
+            },
+        )
+
+        self.assertEqual(result["status"], "needs_user_decision")
+        self.assertIn("Required dependencies", result["message"])
+        mock_prepare.assert_not_called()
+
+    @patch("report_workflow.agent_wrapper.prepare_workflow")
+    @patch("report_workflow.agent_wrapper.check_preflight")
+    @patch("report_workflow.agent_wrapper.discover_features")
+    @patch("report_workflow.agent_wrapper.load_config")
     def test_start_report_task_blocks_notebook_without_notebook_id(
         self, mock_config, mock_discovery, mock_preflight, mock_prepare
     ):
@@ -189,6 +223,51 @@ class AgentWrapperPreflightGateTests(unittest.TestCase):
 
         self.assertEqual(result["status"], "needs_user_decision")
         self.assertIn("Critical render dependencies", result["message"])
+        mock_prepare.assert_not_called()
+
+    @patch("report_workflow.agent_wrapper.prepare_workflow")
+    @patch("report_workflow.agent_wrapper.check_preflight")
+    @patch("report_workflow.agent_wrapper.discover_features")
+    @patch("report_workflow.agent_wrapper.load_config")
+    def test_start_report_task_requires_accept_degraded_for_degraded_render(
+        self, mock_config, mock_discovery, mock_preflight, mock_prepare
+    ):
+        mock_config.return_value = self._config()
+        mock_preflight.return_value = PreflightResult(
+            ok=True,
+            missing_packages=[],
+            external_tool_warnings=[{
+                "tool": "pandoc",
+                "severity": "critical",
+                "installed": False,
+                "install_command": "winget install JohnMacFarlane.Pandoc",
+                "description": "Required for high-quality DOCX rendering.",
+            }],
+        )
+        mock_discovery.return_value = self._discovery()
+
+        result = start_report_task(
+            "Draft report",
+            [],
+            output_dir="out",
+            enable_research=False,
+            enable_notebook_sync=False,
+            preflight_confirmed=True,
+            allow_degraded_render=True,
+            preflight_decisions={
+                "confirmed_by_user": True,
+                "install_decisions": {
+                    "pandoc": "install",
+                },
+                "feature_decisions": {
+                    "web_research": "skip",
+                    "notebook_sync": "skip",
+                },
+            },
+        )
+
+        self.assertEqual(result["status"], "needs_user_decision")
+        self.assertIn("accept", result["message"])
         mock_prepare.assert_not_called()
 
     @patch("report_workflow.agent_wrapper.prepare_workflow")
