@@ -148,16 +148,20 @@ Reference DOCX behavior:
 
 `agent_skill/skill.yaml` exposes:
 
+<!-- report-workflow:tool-surface:start -->
 - `check_setup`
 - `start_report_task`
 - `submit_claim_matrix`
 - `submit_outline`
 - `submit_drafts`
+- `lint_agent_artifacts`
+- `run_engineering_audit`
 - `submit_and_publish_report`
 - `query_evidence`
 - `remap_agent_artifacts`
 - `submit_revision_plan`
 - `preview_revision_diff`
+<!-- report-workflow:tool-surface:end -->
 
 ## Hard Rules
 

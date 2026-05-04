@@ -1,8 +1,10 @@
 import json
+import importlib.util
 import tempfile
 import unittest
 from pathlib import Path
 
+import yaml
 from docx import Document
 
 from report_workflow.agent_wrapper import (
@@ -670,6 +672,78 @@ class DocumentationContractTests(unittest.TestCase):
 
         self.assertIn("Pillow>=10.0.0", pyproject)
         self.assertIn("Pillow>=10.0.0", requirements)
+
+    def test_short_skill_documents_yaml_tool_surface(self):
+        skill_text = Path("agent_skill/SKILL.md").read_text(encoding="utf-8")
+        skill_yaml = yaml.safe_load(Path("agent_skill/skill.yaml").read_text(encoding="utf-8"))
+
+        tool_names = [tool["name"] for tool in skill_yaml["tools"]]
+        for tool_name in tool_names:
+            with self.subTest(tool=tool_name):
+                self.assertIn(f"`{tool_name}`", skill_text)
+
+    def test_short_skill_documents_operational_guardrails(self):
+        skill_text = Path("agent_skill/SKILL.md").read_text(encoding="utf-8")
+
+        expected_phrases = [
+            "## Preflight Decision Examples",
+            "allow_degraded_render=True",
+            '"pandoc": "accept_degraded"',
+            "enable_research=True",
+            "notebooklm_notebook_id=\"notebook-id-from-user\"",
+            "`structured_drafts.json`",
+            "by default and call `submit_drafts`",
+            "Use manual `section_drafts/*.md` plus `sentence_map.jsonl` only",
+            "remap_agent_artifacts(job_id=..., previous_job_id=...)",
+            "## Revision Flow",
+            "`preview_revision_diff`",
+            "`submit_revision_plan`",
+            "Chinese engineering publish checklist",
+            "`template_field_fill_report_path`",
+            "Failure repair order",
+            "`final_qa_summary_path`",
+            "python scripts/render_skill_docs.py --check",
+            "python scripts/sync_codex_skill.py --write",
+        ]
+        for phrase in expected_phrases:
+            with self.subTest(phrase=phrase):
+                self.assertIn(phrase, skill_text)
+
+    def test_generated_skill_doc_blocks_are_current(self):
+        script_path = Path("scripts/render_skill_docs.py")
+        spec = importlib.util.spec_from_file_location("render_skill_docs", script_path)
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(module)
+
+        results = module.render_docs(Path("."), write=False)
+        self.assertTrue(results)
+        for result in results:
+            with self.subTest(path=str(result["path"])):
+                self.assertFalse(result["changed"])
+
+    def test_sync_codex_skill_script_copies_skill_files(self):
+        script_path = Path("scripts/sync_codex_skill.py")
+        spec = importlib.util.spec_from_file_location("sync_codex_skill", script_path)
+        module = importlib.util.module_from_spec(spec)
+        assert spec.loader is not None
+        spec.loader.exec_module(module)
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            dest_dir = Path(tmpdir) / "report-workflow"
+
+            dry_run_ops = module.sync_skill(Path("agent_skill"), dest_dir, write=False)
+            self.assertEqual(len(dry_run_ops), 3)
+            self.assertFalse(dest_dir.exists())
+
+            write_ops = module.sync_skill(Path("agent_skill"), dest_dir, write=True)
+            self.assertEqual(len(write_ops), 3)
+            for source, dest in write_ops:
+                self.assertTrue(dest.exists())
+                self.assertEqual(
+                    source.read_text(encoding="utf-8"),
+                    dest.read_text(encoding="utf-8"),
+                )
 
 
 if __name__ == "__main__":
