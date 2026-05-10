@@ -78,6 +78,19 @@ Required runtime:
 - `pip install -e .` from the repository root
 - Pandoc 3.x for high-quality DOCX rendering
 
+For Windows runs that include Chinese text, configure the console and Python
+stdio for UTF-8 before calling CLI commands or inline Python helpers:
+
+```powershell
+$OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+$env:PYTHONIOENCODING = 'utf-8'
+```
+
+This prevents cp950 preflight crashes and mojibake in template fields or
+Chinese source notes.
+
 Optional integrations:
 
 - `mmdc` for Mermaid-to-PNG conversion
@@ -115,6 +128,22 @@ start_report_task(
 If `report_profile` is omitted, the workflow infers it from the prompt and
 source context. Use explicit profile IDs when the user has already chosen the
 report type.
+
+When scanned PDFs or reference images need manual transcription, create a
+Markdown or text transcription and pass it as `role: "source_data"`. Source-data
+`.md` and `.txt` files are accepted as internal project sources even when their
+names contain `notes`; never use generated workflow artifacts as source
+evidence.
+Keep an explicit source-role ledger before drafting: `source_data`,
+`base_document`, template/reference-format files, and reference-only context.
+Only `source_data` may support experiment conditions, measured values,
+calculated results, comparison groups, tables, or charts. Reference-only files
+may inform interpretation and expected discussion scope, but their numbers must
+not enter the evidence ledger, calculations, figures, body text, or references.
+External references may support theory, standards, or reference data only. Keep
+them separate from experiment measurements, cite them directly, and do not use
+them to fill missing measurements, create comparison groups, or override the
+source-data ledger.
 
 For revision workflows, pass one base document explicitly:
 
@@ -182,6 +211,11 @@ When `submit_drafts` sees `structured_drafts.json` and the canonical draft files
 are missing, the pipeline writes `section_drafts/*.md`, inserts `[CITE:]`
 markers from `evidence_ids`, and writes `sentence_map.jsonl`.
 
+For sentences with multiple supporting entries, emit separate markers such as
+`[CITE:E001] [CITE:E002]`. Legacy comma-delimited markers such as
+`[CITE:E001,E002]` are accepted for older artifacts, but separate markers are
+the preferred output.
+
 ## Evidence Rules
 
 - Every publishable claim needs at least one valid `evidence_id`.
@@ -225,6 +259,53 @@ Use `run_engineering_audit` before publish when the report contains measured
 values, formulas, or calculations. Review `engineering_audit_report.json` for
 claim/evidence unit-support warnings, table-value support checks, unit notation
 drift, missing-unit notes, and simple arithmetic mismatches.
+The audit tolerates page labels, adjacent engineering units, and small rounding
+differences between prose and table values; remaining warnings still need human
+review before changing claim wording.
+
+For domain-specific tables, charts, standards, calculators, or external
+databases, prefer the user-supplied sources. If a scanned chart or table is not
+readable enough to support a value, say so instead of fabricating precise
+numbers. When the user requests or allows external lookup, record the external
+source, access date, input basis/units, mapping between source fields and
+report quantities, assumptions, representative point, and calculation formulas.
+Mark derived values as estimates and use conservative significant figures.
+Per-unit or normalized values may support per-unit comparisons, but aggregate
+totals require the relevant scaling variable to be measured or explicitly
+supplied.
+
+If the user asks to copy a school cover or exact template, use `fixed_template`
+for the workflow pass where possible and verify the final DOCX visually. If the
+renderer cannot preserve the cover exactly, keep the workflow output as the
+validated content source and use a template-copy post-render pass, then inspect
+the rendered pages for cover, table, chart, and Chinese text layout.
+If the prompt supplies a reference DOCX for whole-report style, inspect the
+reference body as well as the cover: margins, paragraph density, font sizes,
+captions, tables, and page breaks. After any post-render repair, compare the
+exact-cover paragraph order, visible text, run font sizes, spacing, and body
+page density again; only requested fields such as title or date may differ.
+
+Before delivery, treat figure and format checks as hard gates:
+
+- A figure caption or figure reference requires a real nearby embedded visual.
+  Verify the final DOCX contains drawing/image objects and visually inspect the
+  rendered PNG pages; extracted text showing a figure title is not enough.
+- Build charts only from accepted `source_data`. Each chart needs labeled axes,
+  units where applicable, readable legends, and a caption below the visual.
+- Use publication-ready engineering notation: table headers such as `P (kPa)`
+  and `T (°C)`, and formula/prose symbols rendered with Word subscript runs or
+  stable Unicode subscripts when needed. Scan for mixed unit formats, raw
+  underscores, missing degree symbols, and broken symbol wraps.
+- Keep symbol semantics distinct: do not reuse the same symbol for quantities
+  with different units or meanings. Add qualifiers such as rate, per-unit,
+  average, nominal, measured, or estimated when needed. If a derived indicator
+  is unusually high or conflicts with the primary measured result, state that
+  it is an estimate, list the assumptions and likely error sources, and keep
+  the source-supported measured result as primary unless the data justify
+  otherwise.
+- Scan the final DOCX text for user-provided forbidden phrases and internal
+  provenance leaks such as page-transcription labels, `source_notes`, local
+  filenames, reference image names, or workflow artifact names.
 
 The built-in `CHINESE_ENGINEERING` guideline is selected by default for this
 profile.

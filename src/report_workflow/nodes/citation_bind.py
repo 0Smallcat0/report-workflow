@@ -57,6 +57,11 @@ SOURCE_ROLE_CITATION_TYPE = {
 }
 
 
+def _split_cite_ids(raw: str) -> list[str]:
+    """Return individual citation IDs from one [CITE:...] payload."""
+    return [part.strip() for part in re.split(r"[,;]", raw or "") if part.strip()]
+
+
 # ------------------------------------------------------------------
 # Internal trace layer
 # ------------------------------------------------------------------
@@ -458,72 +463,79 @@ def resolve_citations_publication(
     # Track internal trace references
     internal_trace_refs: list[str] = []
 
-    # Process each citation
+    # Process each citation. Accept both preferred separate markers
+    # ([CITE:E1] [CITE:E2]) and older comma-delimited markers
+    # ([CITE:E1,E2]) so stale artifacts can still bind cleanly.
     new_audit = []
     for match in cite_pattern.finditer(merged_md):
-        cite_id = match.group(1)
+        cite_ids = _split_cite_ids(match.group(1))
         original = match.group(0)
 
-        audit_entry = {
-            "cite_id": cite_id,
-            "evidence_ids": [cite_id],
-            "resolved": False,
-            "citation_type": "unknown",
-        }
+        replacements: list[str] = []
+        all_resolved = bool(cite_ids)
+        for cite_id in cite_ids:
+            audit_entry = {
+                "cite_id": cite_id,
+                "evidence_ids": [cite_id],
+                "resolved": False,
+                "citation_type": "unknown",
+            }
 
-        replacement = None
+            replacement = None
 
-        # Try evidence lookup first
-        if cite_id in evidence_by_id:
-            evidence = evidence_by_id[cite_id]
-            source_role = evidence.get("source_role", "primary_source")
-            citation_type = SOURCE_ROLE_CITATION_TYPE.get(source_role, "reference_entry")
+            # Try evidence lookup first
+            if cite_id in evidence_by_id:
+                evidence = evidence_by_id[cite_id]
+                source_role = evidence.get("source_role", "primary_source")
+                citation_type = SOURCE_ROLE_CITATION_TYPE.get(source_role, "reference_entry")
 
-            replacement = _format_in_text_citation(evidence)
-            audit_entry["evidence_ids"] = [cite_id]
-            audit_entry["resolved"] = True
-            audit_entry["citation_type"] = citation_type
+                replacement = _format_in_text_citation(evidence)
+                audit_entry["evidence_ids"] = [cite_id]
+                audit_entry["resolved"] = True
+                audit_entry["citation_type"] = citation_type
 
-            # Collect reference entries for literature sources
-            if citation_type == "reference_entry":
-                ref_entry = _format_reference_entry(evidence)
-                if ref_entry and ref_entry not in seen_refs:
-                    seen_refs.add(ref_entry)
-                    literature_refs.append(ref_entry)
+                # Collect reference entries for literature sources
+                if citation_type == "reference_entry":
+                    ref_entry = _format_reference_entry(evidence)
+                    if ref_entry and ref_entry not in seen_refs:
+                        seen_refs.add(ref_entry)
+                        literature_refs.append(ref_entry)
 
-            # Track internal refs for audit
-            if source_role in ("code_artifact", "graph_analysis", "derived_summary", "internal_project_source"):
-                internal_trace_refs.append(evidence.get("source_file_name", cite_id))
+                # Track internal refs for audit
+                if source_role in ("code_artifact", "graph_analysis", "derived_summary", "internal_project_source"):
+                    internal_trace_refs.append(evidence.get("source_file_name", cite_id))
 
-        # Try source lookup
-        elif cite_id in source_by_id:
-            evidence = source_by_id[cite_id]
-            source_role = evidence.get("source_role", "primary_source")
-            citation_type = SOURCE_ROLE_CITATION_TYPE.get(source_role, "reference_entry")
+            # Try source lookup
+            elif cite_id in source_by_id:
+                evidence = source_by_id[cite_id]
+                source_role = evidence.get("source_role", "primary_source")
+                citation_type = SOURCE_ROLE_CITATION_TYPE.get(source_role, "reference_entry")
 
-            replacement = _format_in_text_citation(evidence)
-            audit_entry["resolved"] = True
-            audit_entry["citation_type"] = citation_type
+                replacement = _format_in_text_citation(evidence)
+                audit_entry["resolved"] = True
+                audit_entry["citation_type"] = citation_type
 
-            if citation_type == "reference_entry":
-                ref_entry = _format_reference_entry(evidence)
-                if ref_entry and ref_entry not in seen_refs:
-                    seen_refs.add(ref_entry)
-                    literature_refs.append(ref_entry)
+                if citation_type == "reference_entry":
+                    ref_entry = _format_reference_entry(evidence)
+                    if ref_entry and ref_entry not in seen_refs:
+                        seen_refs.add(ref_entry)
+                        literature_refs.append(ref_entry)
 
-            if source_role in ("code_artifact", "graph_analysis", "derived_summary", "internal_project_source"):
-                internal_trace_refs.append(evidence.get("source_file_name", cite_id))
+                if source_role in ("code_artifact", "graph_analysis", "derived_summary", "internal_project_source"):
+                    internal_trace_refs.append(evidence.get("source_file_name", cite_id))
 
-        else:
-            # Unresolved
-            import sys
-            print(f"[CITATION_BIND] unresolved cite_id={cite_id!r}", file=sys.stderr)
+            else:
+                all_resolved = False
+                import sys
+                print(f"[CITATION_BIND] unresolved cite_id={cite_id!r}", file=sys.stderr)
+
+            if replacement:
+                replacements.append(replacement)
+            new_audit.append(audit_entry)
 
         # Apply replacement
-        if replacement is not None:
-            resolved_md = resolved_md.replace(original, replacement, 1)
-
-        new_audit.append(audit_entry)
+        if all_resolved:
+            resolved_md = resolved_md.replace(original, "; ".join(dict.fromkeys(replacements)), 1)
 
     # Add unresolved entries from existing audit
     existing_resolved = {a["cite_id"] for a in new_audit}
@@ -542,7 +554,11 @@ def audit_sentence_citations(
     evidence_ledger: list[dict],
 ) -> list[dict]:
     """Audit evidence-backed sentence map entries against draft citation placeholders."""
-    placeholders = set(re.findall(r"\[CITE:([^\]]+)\]", merged_md))
+    placeholders = {
+        cite_id
+        for raw_marker in re.findall(r"\[CITE:([^\]]+)\]", merged_md)
+        for cite_id in _split_cite_ids(raw_marker)
+    }
     evidence_ids = {item.get("evidence_id") for item in evidence_ledger if item.get("evidence_id")}
     audit = []
     seen = set()

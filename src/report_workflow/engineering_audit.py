@@ -237,12 +237,51 @@ def _extract_support_numbers(text: str) -> list[str]:
         prefix = normalized[max(0, match.start() - 12):match.start()].casefold()
         if re.search(r"(table|figure|fig\.?)\s*$", prefix):
             continue
+        if _is_page_or_label_number(normalized, match.start(), match.end()):
+            continue
         raw = match.group(0)
         try:
             values.append(str(float(raw)))
         except ValueError:
             values.append(raw)
     return values
+
+
+def _is_page_or_label_number(text: str, start: int, end: int) -> bool:
+    before = text[max(0, start - 16):start].casefold()
+    after = text[end:min(len(text), end + 16)].casefold()
+    return bool(
+        re.search(r"(page|p\.|pp\.|fig\.?|figure|table)\s*$", before)
+        or re.search(r"^\s*(page|fig\.?|figure|table)\b", after)
+        or re.search(r"\u7b2c\s*$", before) and re.search(r"^\s*\u9801", after)
+    )
+
+
+def _has_adjacent_engineering_unit(text: str, end: int) -> bool:
+    after = text[end:min(len(text), end + 20)].strip().casefold()
+    return bool(re.match(r"^(m/s|kpa(?:\(g\))?|ml|l/min|kcal/hr|degc|c\b)", after))
+
+
+def _missing_numbers_with_tolerance(claim_numbers: set[str], evidence_numbers: set[str]) -> list[str]:
+    numeric_evidence: list[float] = []
+    literal_evidence: set[str] = set()
+    for raw in evidence_numbers:
+        try:
+            numeric_evidence.append(float(raw))
+        except ValueError:
+            literal_evidence.add(raw)
+
+    missing: list[str] = []
+    for raw in sorted(claim_numbers):
+        try:
+            value = float(raw)
+        except ValueError:
+            if raw not in literal_evidence:
+                missing.append(raw)
+            continue
+        if not any(math.isclose(value, candidate, rel_tol=1e-3, abs_tol=5e-3) for candidate in numeric_evidence):
+            missing.append(raw)
+    return missing
 
 
 def _rows_from_table_data(table_data: Any) -> list[list[str]]:
@@ -371,9 +410,14 @@ def _claim_table_support_issues(claim_matrix: dict, evidence: list[dict]) -> lis
             continue
 
         table_text = "\n".join(snapshot.text() for snapshot in linked_tables)
+        linked_content = "\n".join(
+            str(evidence_by_id.get(str(eid), {}).get("content") or evidence_by_id.get(str(eid), {}).get("quote") or "")
+            for eid in claim.get("evidence_ids", []) or []
+        )
         table_numbers = set(_extract_numbers(table_text))
+        linked_numbers = set(_extract_numbers(linked_content))
         table_measurements = {_measurement_key(item) for item in extract_measurements(table_text)}
-        missing_numbers = sorted(claim_numbers - table_numbers)
+        missing_numbers = _missing_numbers_with_tolerance(claim_numbers, table_numbers | linked_numbers)
         missing_measurements = sorted(claim_measurements - table_measurements)
         if missing_numbers:
             issues.append({
@@ -455,6 +499,10 @@ def _missing_unit_issues(text: str, measurements: list[Measurement]) -> list[dic
         if raw in {"0", "1"}:
             continue
         if re.fullmatch(r"19\d{2}|20\d{2}", raw):
+            continue
+        if _is_page_or_label_number(normalized, match.start(), match.end()):
+            continue
+        if _has_adjacent_engineering_unit(normalized, match.end()):
             continue
         surrounding = _context(normalized, match.start(), match.end())
         if "[CITE:" in surrounding or "E0" in surrounding:

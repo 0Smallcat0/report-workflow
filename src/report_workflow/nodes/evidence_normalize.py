@@ -28,6 +28,7 @@ def _determine_source_role(entry: dict, block: dict) -> str:
     - project-authored txt/md corpora and architecture docs → internal_project_source
     - research/literature documents (PDF, DOCX)           → research_document
     - derived_summary files (summary.txt, digest.md)      → derived_summary
+    - source_data markdown/text notes                     → internal_project_source
     - structured data (csv, xlsx, json without graphify)  → primary_source
     - base_document artifact_role                         → derived_summary
     - Unknown/default                                     → primary_source
@@ -41,6 +42,13 @@ def _determine_source_role(entry: dict, block: dict) -> str:
     # Explicit base_document override
     if artifact_role == "base_document":
         return "derived_summary"
+
+    # A user/agent-curated Markdown or text source supplied as source_data is
+    # an accepted project source, even when the filename contains "notes".
+    # Otherwise Chinese lab workflows that transcribe scanned PDFs into
+    # source_notes.md are hard-blocked as derived-only evidence.
+    if artifact_role == "source_data" and file_type in {"md", "txt"}:
+        return "internal_project_source"
 
     # Graphify artifacts
     if "graph" in file_name.lower() or "graph_report" in file_name.lower():

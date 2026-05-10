@@ -15,11 +15,13 @@ from report_workflow.agent_wrapper import (
 )
 from report_workflow.nodes.artifacts import run_artifacts
 from report_workflow.nodes.corpus_build import run_corpus_build
+from report_workflow.nodes.citation_bind import audit_sentence_citations, resolve_citations_publication
 from report_workflow.nodes.factuality_check import (
     _check_content_overlap,
     _extract_numbers_with_unit,
 )
 from report_workflow.nodes.front_matter_build import run_front_matter_build
+from report_workflow.nodes.evidence_normalize import _determine_source_role
 from report_workflow.nodes.post_render_validate import run_post_render_validate
 from report_workflow.nodes.section_draft import run_section_draft
 from report_workflow.artifact_contract import load_jsonl_without_contract
@@ -36,6 +38,18 @@ class SourceRoleContractTests(unittest.TestCase):
         self.assertEqual(files, ["old_report.docx", "measurements.csv"])
         self.assertEqual(role_map["old_report.docx"], "base_document")
         self.assertEqual(role_map["measurements.csv"], "source_data")
+
+    def test_source_data_markdown_notes_are_project_sources(self):
+        role = _determine_source_role(
+            {
+                "artifact_role": "source_data",
+                "file_name": "source_notes.md",
+                "file_type": "md",
+            },
+            {"content": "Transcribed measurements from scanned lab handout."},
+        )
+
+        self.assertEqual(role, "internal_project_source")
 
     def test_corpus_build_resolves_roles_by_absolute_path(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -160,6 +174,82 @@ class StructuredDraftContractTests(unittest.TestCase):
         self.assertEqual(rows[0]["evidence_ids"], ["E001"])
         self.assertEqual(rows[0]["citation_ids"], ["E001"])
         self.assertEqual(rows[0]["draft_origin"], "structured_draft")
+
+    def test_structured_drafts_emit_separate_markers_for_multiple_citations(self):
+        state = ReportState.new("write report", [], "out")
+        state.plan["blueprint"] = {
+            "section_order": ["results"],
+            "sections": {"results": {"required": True}},
+        }
+        state.plan["outline"] = {
+            "sections": {
+                "results": {
+                    "section_id": "results",
+                    "claim_ids": ["c1"],
+                }
+            }
+        }
+        state.plan["claim_matrix"] = {
+            "claims": [{
+                "claim_id": "c1",
+                "claim_text": "The table and notes both support the result.",
+                "evidence_ids": ["E001", "E002"],
+            }]
+        }
+        run_dir = WORKFLOW_RUNS_DIR / state.job_id
+        (run_dir / "structured_drafts.json").write_text(json.dumps({
+            "sections": {
+                "results": {
+                    "title": "Results",
+                    "sentences": [{
+                        "text": "The table and notes both support the result.",
+                        "claim_ids": ["c1"],
+                        "evidence_ids": ["E001", "E002"],
+                    }],
+                }
+            }
+        }), encoding="utf-8")
+
+        result = run_section_draft(state)
+
+        section_text = Path(result.drafts["section_drafts"]["results"]).read_text(encoding="utf-8")
+        self.assertIn("[CITE:E001] [CITE:E002]", section_text)
+        self.assertNotIn("[CITE:E001,E002]", section_text)
+        rows = load_jsonl_without_contract(result.drafts["sentence_map_path"])
+        self.assertEqual(rows[0]["citation_ids"], ["E001", "E002"])
+
+    def test_citation_bind_accepts_comma_delimited_legacy_markers(self):
+        evidence = [
+            {
+                "evidence_id": "E001",
+                "source_id": "S1",
+                "source_role": "internal_project_source",
+                "source_file_name": "source_data.md",
+            },
+            {
+                "evidence_id": "E002",
+                "source_id": "S1",
+                "source_role": "internal_project_source",
+                "source_file_name": "source_data.md",
+            },
+        ]
+        sentence_map = [{
+            "sentence_id": "s1",
+            "section_id": "results",
+            "evidence_ids": ["E001", "E002"],
+            "citation_ids": ["E001", "E002"],
+        }]
+
+        audit = audit_sentence_citations("Result [CITE:E001,E002].", sentence_map, evidence)
+        resolved, resolved_audit, _, _ = resolve_citations_publication(
+            "Result [CITE:E001,E002].",
+            evidence,
+            [],
+        )
+
+        self.assertEqual(audit, [])
+        self.assertNotIn("[CITE:", resolved)
+        self.assertTrue(all(item["resolved"] for item in resolved_audit))
 
 
 class PostRenderLayoutManifestTests(unittest.TestCase):
@@ -655,6 +745,50 @@ class EngineeringAuditContractTests(unittest.TestCase):
             self.assertEqual(result["status"], "ok")
             self.assertEqual(result["table_evidence_count"], 1)
             self.assertNotIn("claim_table_value_support", {issue["check"] for issue in result["issues"]})
+
+    def test_engineering_audit_accepts_rounded_table_claim_values_and_page_numbers(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("engineering report", [], str(Path(tmpdir) / "out"))
+            state.spec["report_profile"] = "engineering_lab_report"
+            run_dir = WORKFLOW_RUNS_DIR / state.job_id
+            evidence_path = run_dir / "evidence_ledger.jsonl"
+            evidence_path.write_text(
+                "\n".join([
+                    json.dumps({
+                        "evidence_id": "E001",
+                        "source_file_name": "measurements.md",
+                        "file_type": "md",
+                        "content": "PDF page 12 records airflow 6.0 m/s.",
+                    }),
+                    json.dumps({
+                        "evidence_id": "E002",
+                        "source_file_name": "measurements.md",
+                        "file_type": "md",
+                        "content": "| metric | value |\n|---|---:|\n| COP initial | 1.587793 |\n| COP final | 5.722860 |",
+                    }),
+                ]) + "\n",
+                encoding="utf-8",
+            )
+            state.sources["evidence_ledger_path"] = str(evidence_path)
+            (run_dir / "claim_matrix.json").write_text(json.dumps({
+                "claims": [{
+                    "claim_id": "C001",
+                    "claim_text": "PDF page 12 shows airflow 6.0 m/s and COP rises from 1.588 to 5.723.",
+                    "evidence_ids": ["E001", "E002"],
+                }]
+            }), encoding="utf-8")
+            draft_dir = run_dir / "section_drafts"
+            draft_dir.mkdir()
+            (draft_dir / "data.md").write_text(
+                "# Data\n\nPDF page 12 shows airflow 6.0 m/s and rounded COP values.\n",
+                encoding="utf-8",
+            )
+            state.checkpoint("AGENT_TASKS")
+
+            result = run_engineering_audit(state.job_id)
+
+            self.assertNotIn("claim_table_value_support", {issue["check"] for issue in result["issues"]})
+            self.assertNotIn("number_without_unit", {issue["check"] for issue in result["issues"]})
 
 
 class DocumentationContractTests(unittest.TestCase):

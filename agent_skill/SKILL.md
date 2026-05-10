@@ -50,6 +50,19 @@ Core dependencies:
 - `pip install -e .` in the repo root
 - Pandoc 3.x for high-quality DOCX rendering
 
+On Windows runs that include Chinese text, configure UTF-8 before calling the
+CLI or inline Python helpers:
+
+```powershell
+$OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::InputEncoding = [System.Text.UTF8Encoding]::new($false)
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+$env:PYTHONIOENCODING = 'utf-8'
+```
+
+This avoids cp950 crashes or mojibake in preflight output, template fields, and
+Chinese source notes.
+
 Optional:
 
 - `mmdc` for Mermaid diagrams
@@ -192,6 +205,26 @@ Use `task_intent="revise_existing"` with exactly one
 `{"path": "...", "role": "base_document"}` entry when revising an existing
 document. Legacy string paths are still accepted for new drafts.
 
+When a scanned PDF or reference image must be manually transcribed, save the
+transcription as Markdown or text and pass it with `role: "source_data"`. The
+workflow treats `source_data` `.md` and `.txt` files as accepted internal
+project sources, even if the file is named `source_notes.md`; do not use
+generated workflow artifacts as source evidence.
+If the user marks files as "reference only", do not pass them as
+`source_data`, do not let their measurements enter the evidence ledger, and do
+not cite or list them in the delivered report unless the user explicitly
+changes their role.
+Before drafting, keep a short source-role ledger that separates `source_data`,
+`base_document`, template/reference format files, and reference-only context.
+Only `source_data` may support measured values, calculated results, experiment
+conditions, comparison groups, charts, or tables. Reference-only files may help
+interpret terminology or expected discussion scope, but their numbers must not
+enter the report, source ledger, calculations, figures, or references.
+When external references are needed for theory, standards, or reference data,
+keep them separate from experiment measurements. Cite the external source, use
+it only for the specific theory/property claim, and never use it to invent
+missing measured values or extra trial groups.
+
 For academic-style profiles, pass structured front matter when available:
 `title`, `author_block`, `affiliation_block`, `correspondence`, and `keywords`.
 For school/company fixed templates, pass `template_fields` for fields such as
@@ -221,6 +254,10 @@ Use incremental submission by default:
 Every evidence-backed sentence in drafts must include `[CITE:<evidence_id>]`.
 When using `structured_drafts.json`, provide sentence `evidence_ids`; the
 pipeline inserts matching `[CITE:]` markers and writes `sentence_map.jsonl`.
+For sentences supported by multiple evidence entries, prefer one marker per
+entry, such as `[CITE:E001] [CITE:E002]`. Legacy markers such as
+`[CITE:E001,E002]` are accepted by validation, but newly generated drafts should
+emit separate markers.
 Use manual `section_drafts/*.md` plus `sentence_map.jsonl` only when the draft
 needs direct Markdown control or when repairing generated canonical drafts.
 Do not cite internal workflow files, evidence ledgers, claim matrices, or
@@ -260,25 +297,84 @@ template details. The profile expects:
 Use `run_engineering_audit` to write `engineering_audit_report.json` before
 publish when units, table-backed claims, measurement claims, or arithmetic need
 explicit checking.
+Only introduce experiment conditions, comparison groups, measured values, and
+calculated results that are supported by the accepted source-data ledger. Do
+not infer extra fan speeds, trial groups, or comparison rows from examples,
+reference-only images, or similar prior reports.
+For domain-specific tables, charts, standards, calculators, or external
+databases, use the user-supplied sources first. If the supplied scan or table
+is not readable enough for a reliable value, state that limitation. If the user
+requests or allows external lookup, record the source, access date, input
+basis/units, mapping between source fields and report quantities, assumptions,
+representative point, and formulas. Label derived values as estimates and use
+conservative significant figures. Do not compute aggregate totals from per-unit
+or normalized values unless the required scaling variable is measured or
+otherwise explicitly supplied.
 
 Reference DOCX behavior:
 
 - User-specified mode wins.
 - Default is `style_reference`.
 - If the prompt asks to exactly match the format or cover, use `fixed_template`.
+- If a school cover must be copied exactly, validate content through the
+  workflow, then verify the final DOCX with a fixed-template render or a
+  template-copy post-render pass and visual page QA. Inspect the cover page,
+  tables, charts, and Chinese text before delivery.
+- When the user says to copy a cover exactly and change only selected fields,
+  preserve the original first-page paragraphs and runs; replace text inside
+  existing runs where possible, and compare the cover text, order, font sizes,
+  and spacing against the template before delivery.
+- When a reference DOCX is supplied for the whole report format, inspect body
+  paragraphs, captions, tables, page margins, font sizes, and rendered page
+  density from the reference; do not validate only the cover page.
+- If the final document is generated or repaired outside the workflow renderer,
+  rerun a template/style comparison after that post-render pass. Compare the
+  exact-cover paragraph order, visible text, run font sizes, spacing, and
+  the body page density against the reference; only intentional field changes
+  such as title or date may differ.
 
 Chinese engineering publish checklist:
 
 - `lint_agent_artifacts` has no errors and citation IDs match the current run.
 - `run_engineering_audit` has been reviewed for unit support, table-value
   support, measured values, and simple calculations.
+- Engineering audit page labels, adjacent engineering units, and rounded table
+  values are tolerated, but review remaining warnings before changing claim
+  wording.
 - The draft covers the lab handout/SOP requirements, required questions,
   apparatus/procedure, results, discussion, conclusion/reflection, and
   references.
 - Formula variables, parameters, units, table numbers, figure numbers, and
   prose references are consistent.
+- Engineering symbols and units are publication-ready: table headers use
+  `Name (unit)` formatting such as `P (kPa)` and `T (°C)`; formulas and prose
+  use proper subscript notation through Word subscript runs or stable Unicode
+  subscripts; scan for mixed unit formats, raw underscores, broken symbol
+  wraps, or missing degree symbols before delivery.
+- Keep symbol semantics distinct: do not reuse the same symbol for quantities
+  with different units or meanings. Add qualifiers such as rate, per-unit,
+  average, nominal, measured, or estimated when needed. If a derived indicator
+  is unusually high or conflicts with the primary measured result, explicitly
+  frame it as an estimate, list the assumptions and likely error sources, and
+  keep the source-supported measured result as primary unless the data justify
+  otherwise.
+- Every figure caption or figure reference has a nearby embedded visual, and
+  the rendered PNG page shows the actual chart/image rather than only a
+  caption or placeholder.
+- Every chart is built only from accepted source-data values. Each figure has
+  one visible chart, a caption below the chart, labeled axes with units where
+  applicable, and readable legends. Verify the DOCX has embedded drawing/image
+  objects and visually inspect rendered PNG pages; text extraction that finds
+  a figure title is not evidence that the chart exists.
 - Chinese prose is natural and contains no workflow/agent jargon, placeholder
   text, mojibake, or raw internal file paths.
+- Delivery prose does not expose internal provenance labels such as page
+  transcription notes, `source_notes`, local filenames, image names, or agent
+  workflow artifacts unless the user specifically requests an appendix for
+  traceability.
+- If the user supplies forbidden phrases, source-use constraints, or known-bad
+  comparison labels, scan the final DOCX text for them after any post-render
+  edit.
 - Template fields such as course, student ID, instructor, lab section, date,
   and department are supplied when the school/company template expects them.
 - Before delivery, inspect `final_qa_summary_path`, then

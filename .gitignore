@@ -24,6 +24,7 @@ out/
 custom-out/
 reports/
 tmp/
+workflow_output*/
 
 # Temporary repair scripts
 temp_*.py

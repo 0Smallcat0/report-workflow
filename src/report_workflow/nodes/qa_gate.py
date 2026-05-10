@@ -15,6 +15,10 @@ from .remediation_router import write_remediation_plan
 logger = logging.getLogger(__name__)
 
 
+def _split_cite_ids(raw: str) -> list[str]:
+    return [part.strip() for part in re.split(r"[,;]", raw or "") if part.strip()]
+
+
 def _append_qa_warning(state: ReportState, key: str, message: str) -> None:
     warnings = state.qa.setdefault(key, [])
     if message not in warnings:
@@ -433,7 +437,11 @@ def _citation_linkage_reasons(state: ReportState) -> list[str]:
         return reasons
 
     merged_text = Path(merged_path).read_text(encoding="utf-8")
-    placeholders = set(re.findall(r"\[CITE:([^\]]+)\]", merged_text))
+    placeholders = {
+        cite_id
+        for raw_marker in re.findall(r"\[CITE:([^\]]+)\]", merged_text)
+        for cite_id in _split_cite_ids(raw_marker)
+    }
 
     if _is_revise_existing(state):
         sidecar_status = _sidecar_traceability_status(state)

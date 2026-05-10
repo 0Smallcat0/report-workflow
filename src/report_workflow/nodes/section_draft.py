@@ -81,17 +81,31 @@ def _as_list(value, field_name: str, section_id: str, sentence_index: int) -> li
     return value
 
 
+def _split_citation_ids(raw: str) -> list[str]:
+    """Split one [CITE:...] payload into individual citation ids.
+
+    Older structured-draft compilation emitted [CITE:id1,id2].  Downstream
+    citation binders treat citations as individual evidence IDs, so normalize
+    comma/semicolon-delimited payloads everywhere we compare or generate them.
+    """
+    return [part.strip() for part in re.split(r"[,;]", raw or "") if part.strip()]
+
+
 def _sentence_text_with_citations(text: str, evidence_ids: list[str]) -> tuple[str, list[str]]:
     citation_ids = [str(eid).strip() for eid in evidence_ids if str(eid).strip()]
     if not citation_ids:
         return text.strip(), []
 
-    existing = set(re.findall(r"\[CITE:([^\]]+)\]", text))
+    existing = {
+        cite_id
+        for raw_marker in re.findall(r"\[CITE:([^\]]+)\]", text)
+        for cite_id in _split_citation_ids(raw_marker)
+    }
     missing = [eid for eid in citation_ids if eid not in existing]
     if not missing:
         return text.strip(), citation_ids
 
-    cite_marker = "[CITE:" + ",".join(missing) + "]"
+    cite_marker = " ".join(f"[CITE:{eid}]" for eid in missing)
     stripped = text.strip()
     if stripped.endswith((".", "!", "?", "\u3002", "\uff01", "\uff1f")):
         return stripped[:-1].rstrip() + f" {cite_marker}" + stripped[-1], citation_ids

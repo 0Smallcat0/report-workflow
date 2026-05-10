@@ -85,6 +85,22 @@ def _print_preflight_decision_block(
     )
 
 
+def _configure_utf8_stdio() -> None:
+    """Prefer UTF-8 CLI output on Windows consoles.
+
+    Preflight/status output can contain Chinese prompts and symbols such as
+    checkmarks.  Windows cp950 consoles cannot encode all of them, so use
+    UTF-8 with replacement fallback when Python exposes reconfigure().
+    """
+    for stream_name in ("stdout", "stderr"):
+        stream = getattr(sys, stream_name, None)
+        if hasattr(stream, "reconfigure"):
+            try:
+                stream.reconfigure(encoding="utf-8", errors="replace")
+            except Exception:
+                pass
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="report-workflow")
     subcommands = parser.add_subparsers(dest="command", required=True)
@@ -526,6 +542,7 @@ def _run_diagnose(job_id: str, verbose: bool, workspace_root: str | None = None)
 
 
 def main(argv: list[str] | None = None) -> int:
+    _configure_utf8_stdio()
     parser = build_parser()
     args = parser.parse_args(argv)
 

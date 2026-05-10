@@ -1,5 +1,18 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Hardened report-workflow skill guidance for source-role boundaries,
+  exact-template visual QA, figure-caption validation, and final DOCX scans for
+  internal provenance leaks and user-provided forbidden phrases.
+- Added generic guidance for external reference/database lookup: keep external
+  references separate from measured/source data, record source/input units and
+  assumptions, label derived values as estimates, avoid aggregating per-unit
+  values without the required scaling variable, and avoid symbol reuse with
+  conflicting units or meanings.
+
 ## 4.0.0 - 2026-05-01
 
 ### Breaking Changes
