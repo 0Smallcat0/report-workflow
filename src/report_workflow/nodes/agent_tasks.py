@@ -72,20 +72,118 @@ def _read_figure_recommendation_summary(path: str | None, limit: int = 8) -> str
     for rec in recommendations[:limit]:
         if not isinstance(rec, dict):
             continue
+        candidates = rec.get("chart_candidates", []) or []
+        candidate_summary = ",".join(
+            f"{item.get('figure_type', '?')}:{item.get('score', '?')}"
+            for item in candidates[:3]
+            if isinstance(item, dict)
+        ) or rec.get("recommended_figure_type", "?")
+        warnings = "; ".join(rec.get("selection_warnings", []) or [])
         rows.append(
-            "  {rid} | {rtype} | acceptable:{acceptable} | confidence:{confidence} | evidence:{evidence} | {reason}".format(
+            (
+                "  {rid} | recommended:{rtype} | candidates:{candidates} | acceptable:{acceptable} | "
+                "confidence:{confidence} | evidence:{evidence} | warnings:{warnings} | {reason}"
+            ).format(
                 rid=rec.get("recommendation_id", "?"),
                 rtype=rec.get("recommended_figure_type", "?"),
+                candidates=candidate_summary,
                 acceptable=",".join(rec.get("acceptable_figure_types", []) or []),
                 confidence=rec.get("confidence", "?"),
                 evidence=",".join(rec.get("evidence_ids", []) or []),
+                warnings=warnings[:120] if warnings else "none",
                 reason=(rec.get("reason", "") or "")[:120],
             )
         )
     header = f"Total figure recommendations: {len(recommendations)} (showing first {min(len(recommendations), limit)})\n"
-    header += "  recommendation_id | recommended_type | acceptable_types | confidence | evidence_ids | reason\n"
+    header += "  recommendation_id | recommended_type | candidates | acceptable_types | confidence | evidence_ids | warnings | reason\n"
     header += "  " + "-" * 100 + "\n"
     return header + "\n".join(rows)
+
+
+def _recommended_figure_plans(path: str | None) -> tuple[list[dict], str]:
+    if not path or not Path(path).exists():
+        return [], "skipped_no_recommendations"
+    try:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    except Exception:
+        return [], "skipped_unreadable_recommendations"
+    recommendations = payload.get("recommendations", []) if isinstance(payload, dict) else []
+    figures: list[dict] = []
+    for recommendation in recommendations:
+        if not isinstance(recommendation, dict):
+            continue
+        plan = recommendation.get("figure_plan")
+        if not isinstance(plan, dict):
+            continue
+        if not plan.get("figure_id") or not plan.get("figure_type") or not isinstance(plan.get("data"), dict):
+            continue
+        figures.append(dict(plan))
+    if not figures:
+        return [], "skipped_no_valid_figure_plans"
+    return figures, "ready"
+
+
+def _write_auto_figure_plan(state: ReportState, recommendations_path: str | None) -> dict:
+    run_dir = run_dir_for(state)
+    plan_path = run_dir / "section_drafts" / "figure_plan.json"
+    if plan_path.exists():
+        info = {
+            "status": "preserved_existing",
+            "path": str(plan_path),
+            "generated_figure_count": 0,
+        }
+        state.runtime["auto_figure_plan"] = info
+        return info
+
+    figures, status = _recommended_figure_plans(recommendations_path)
+    if not figures:
+        info = {
+            "status": status,
+            "path": str(plan_path),
+            "generated_figure_count": 0,
+        }
+        state.runtime["auto_figure_plan"] = info
+        return info
+
+    plan_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "generated_by": "report_workflow.nodes.agent_tasks.auto_figure_plan",
+        "source_recommendations_path": str(recommendations_path or ""),
+        "generated_figure_count": len(figures),
+        "figures": figures,
+    }
+    plan_path.write_text(json.dumps(payload, indent=2), encoding="utf-8")
+    info = {
+        "status": "generated",
+        "path": str(plan_path),
+        "generated_figure_count": len(figures),
+    }
+    state.output["auto_figure_plan_path"] = str(plan_path)
+    state.plan["auto_figure_plan_count"] = len(figures)
+    state.runtime["auto_figure_plan"] = info
+    return info
+
+
+def _auto_figure_plan_guidance(info: dict) -> str:
+    status = info.get("status")
+    path = info.get("path", "")
+    count = info.get("generated_figure_count", 0)
+    if status == "generated":
+        return (
+            f"A starter figure plan has been generated at `{path}` with {count} recommended figure(s). "
+            "You may adopt, edit, or delete it. It does not automatically insert figures into outline.json "
+            "or section drafts; reference figures only where they fit the report narrative."
+        )
+    if status == "preserved_existing":
+        return (
+            f"An existing figure plan was found at `{path}` and was preserved unchanged. "
+            "Review it against the deterministic recommendations before validation."
+        )
+    if status == "skipped_unreadable_recommendations":
+        return "No starter figure plan was generated because the recommendation report could not be read."
+    if status == "skipped_no_valid_figure_plans":
+        return "No starter figure plan was generated because the recommendation report had no valid figure_plan entries."
+    return "No starter figure plan was generated because there are no figure recommendations for this run."
 
 
 def write_agent_task_briefs(state: ReportState) -> ReportState:
@@ -99,6 +197,8 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
     evidence_summary = _read_jsonl_compact_summary(evidence_path)
     figure_recommendations_path = state.output.get("figure_recommendations_path", "")
     figure_recommendation_summary = _read_figure_recommendation_summary(figure_recommendations_path)
+    auto_figure_plan = _write_auto_figure_plan(state, figure_recommendations_path)
+    auto_figure_plan_guidance = _auto_figure_plan_guidance(auto_figure_plan)
     task_intent = state.spec.get("task_intent", "new_draft")
     contract = make_artifact_contract(state)
     contract_json = json.dumps(contract, indent=2)
@@ -233,6 +333,9 @@ Use this deterministic chart-selection guidance when deciding `figure_ids` and f
 ```
 {figure_recommendation_summary}
 ```
+
+## Starter Figure Plan
+{auto_figure_plan_guidance}
 
 ## Hard Rules
 - Assign every claim to at least one non-reference/non-appendix section.
@@ -389,6 +492,8 @@ If `results_mode` is `architectural_characterization`: Describe structural prope
 ## Figure Guidance
 
 Reference figures by their number in the body text at the natural point of discussion (e.g. "as shown in Figure 2"). Do NOT dump all figures at the end of the document. The rendering pipeline will embed each figure after its first reference.
+
+{auto_figure_plan_guidance}
 
 If `{figure_recommendations_path}` contains recommendations, use them to avoid one-size-fits-all chart choices:
 - Use the recommendation's `recommended_figure_type` unless you have a specific reason to choose an acceptable alternative.
