@@ -7,6 +7,7 @@ from pathlib import Path
 from ..state import ReportState
 from ..runtime_support import run_dir_for
 from ..artifact_contract import make_artifact_contract
+from .figure_types import SUPPORTED_FIGURE_TYPES_TEXT
 
 
 def agent_tasks_dir(state: ReportState) -> Path:
@@ -79,23 +80,30 @@ def _read_figure_recommendation_summary(path: str | None, limit: int = 8) -> str
             if isinstance(item, dict)
         ) or rec.get("recommended_figure_type", "?")
         warnings = "; ".join(rec.get("selection_warnings", []) or [])
+        transform = rec.get("data_transform", {}) if isinstance(rec.get("data_transform", {}), dict) else {}
+        operations = transform.get("operations", []) or []
+        transform_summary = (
+            f"{transform.get('status', 'source')}:{','.join(str(item) for item in operations)}"
+            if operations else str(transform.get("status", "source"))
+        )
         rows.append(
             (
                 "  {rid} | recommended:{rtype} | candidates:{candidates} | acceptable:{acceptable} | "
-                "confidence:{confidence} | evidence:{evidence} | warnings:{warnings} | {reason}"
+                "confidence:{confidence} | transform:{transform} | evidence:{evidence} | warnings:{warnings} | {reason}"
             ).format(
                 rid=rec.get("recommendation_id", "?"),
                 rtype=rec.get("recommended_figure_type", "?"),
                 candidates=candidate_summary,
                 acceptable=",".join(rec.get("acceptable_figure_types", []) or []),
                 confidence=rec.get("confidence", "?"),
+                transform=transform_summary,
                 evidence=",".join(rec.get("evidence_ids", []) or []),
                 warnings=warnings[:120] if warnings else "none",
                 reason=(rec.get("reason", "") or "")[:120],
             )
         )
     header = f"Total figure recommendations: {len(recommendations)} (showing first {min(len(recommendations), limit)})\n"
-    header += "  recommendation_id | recommended_type | candidates | acceptable_types | confidence | evidence_ids | warnings | reason\n"
+    header += "  recommendation_id | recommended_type | candidates | acceptable_types | confidence | transform | evidence_ids | warnings | reason\n"
     header += "  " + "-" * 100 + "\n"
     return header + "\n".join(rows)
 
@@ -121,16 +129,23 @@ def _read_recommended_figure_usage_map(path: str | None, limit: int = 8) -> str:
         if not isinstance(evidence_ids, list):
             evidence_ids = []
         recommended_type = rec.get("recommended_figure_type") or plan.get("figure_type") or "?"
+        transform = rec.get("data_transform", {}) if isinstance(rec.get("data_transform", {}), dict) else {}
+        operations = transform.get("operations", []) or []
+        transform_note = (
+            f"; use the deterministic transformed view `{', '.join(str(item) for item in operations)}`"
+            if transform.get("status") == "transformed" and operations else ""
+        )
         rows.append(
             (
                 "- `{figure_id}` -> outline `sections.{section_id}.figure_ids`; "
                 "draft `{section_id}.md`; place `[FIGURE:{figure_id}]` at the first paragraph "
-                "that discusses evidence `{evidence}`; recommended chart `{recommended_type}`."
+                "that discusses evidence `{evidence}`; recommended chart `{recommended_type}`{transform_note}."
             ).format(
                 figure_id=figure_id,
                 section_id=section_id,
                 evidence=", ".join(str(item) for item in evidence_ids) or "unknown",
                 recommended_type=recommended_type,
+                transform_note=transform_note,
             )
         )
     if not rows:
@@ -211,7 +226,9 @@ def _auto_figure_plan_guidance(info: dict) -> str:
         return (
             f"A starter figure plan has been generated at `{path}` with {count} recommended figure(s). "
             "You may adopt, edit, or delete it. It does not automatically insert figures into outline.json "
-            "or section drafts; reference figures only where they fit the report narrative."
+            "or section drafts; reference figures only where they fit the report narrative. "
+            "If a figure includes data_transform metadata, keep that block unless you replace it with a specific "
+            "chart_selection_reason for the manual derived view."
         )
     if status == "preserved_existing":
         return (
@@ -540,10 +557,15 @@ Reference figures by their number in the body text at the natural point of discu
 
 If `{figure_recommendations_path}` contains recommendations, use them to avoid one-size-fits-all chart choices:
 - Use the recommendation's `recommended_figure_type` unless you have a specific reason to choose an acceptable alternative.
+- If the starter figure includes `data_transform`, preserve that metadata and chart data. Do not manually recompute group-by, pivot, wide-to-long, percent-of-total, sort, or top-N values unless you also explain the replacement in `chart_selection_reason`.
 - Do not default all numeric data to line charts. Line charts are for ordered time/step trends.
-- Composition/share data should normally use `pie` (or `bar` when comparison is clearer).
+- Composition/share data should normally use `pie` for a small whole-part split or `stacked_bar` for multi-series category breakdowns.
 - Category/value comparisons should use `bar`.
 - Two numeric variables should use `scatter`.
+- One numeric distribution with enough observations should use `histogram`.
+- Repeated numeric measurements by group should use `boxplot`.
+- Matrix-shaped numeric evidence should use `heatmap`.
+- Central values with SD/SE/CI/error columns should use `error_bar`.
 - Exact measurement/calculation values should stay as a table.
 
 {recommended_figure_usage_map}
@@ -559,7 +581,7 @@ When you create `{run_dir / "section_drafts" / "figure_plan.json"}`, each genera
 ```json
 {{
   "figure_id": "1",
-  "figure_type": "bar|line|scatter|pie|table",
+  "figure_type": "{SUPPORTED_FIGURE_TYPES_TEXT}",
   "recommendation_id": "figrec_1",
   "source_evidence_ids": ["evidence id(s) used for the chart"],
   "chart_selection_reason": "Why this chart type fits the evidence.",

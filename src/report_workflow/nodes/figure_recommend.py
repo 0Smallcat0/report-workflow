@@ -15,11 +15,19 @@ from ..errors import QAHardBlockError
 from ..policies import get_policy
 from ..runtime_support import load_jsonl, write_json_artifact
 from ..state import ReportState, run_dir_for
+from .figure_types import (
+    SUPPORTED_FIGURE_TYPES_SET,
+    SUPPORTED_FIGURE_TYPES_TEXT,
+    SUPPORTED_OUTPUT_FORMATS_SET,
+    SUPPORTED_OUTPUT_FORMATS_TEXT,
+)
+from .table_transform import build_table_variants
 
 
 MAX_CHART_ROWS = 24
 MAX_TABLE_FIGURE_ROWS = 12
 MIN_CHART_ROWS = 2
+MIN_DISTRIBUTION_POINTS = 8
 NUMERIC_RATIO_THRESHOLD = 0.75
 MAX_PIE_SLICES = 6
 MAX_BAR_CATEGORIES = 12
@@ -27,6 +35,9 @@ MAX_LINE_SCATTER_POINTS = 50
 MAX_TABLE_COLUMNS = 6
 MAX_CATEGORY_LABEL_LENGTH = 35
 MAX_LINE_BAR_SERIES = 3
+MAX_STACKED_BAR_SERIES = 6
+MAX_HEATMAP_ROWS = 16
+MAX_HEATMAP_COLUMNS = 12
 
 TIME_HEADER_TERMS = {
     "time",
@@ -55,6 +66,17 @@ COMPOSITION_TERMS = {
     "breakdown",
     "allocation",
 }
+STACKED_BAR_TERMS = {
+    "share",
+    "percent",
+    "percentage",
+    "%",
+    "ratio",
+    "proportion",
+    "composition",
+    "breakdown",
+    "allocation",
+}
 ID_HEADER_TERMS = {
     "id",
     "identifier",
@@ -75,6 +97,40 @@ PARAMETER_TABLE_TERMS = {
     "formula",
     "constant",
     "calculation",
+}
+ERROR_HEADER_TERMS = {
+    "error",
+    "err",
+    "sd",
+    "std",
+    "standard deviation",
+    "se",
+    "sem",
+    "standard error",
+    "ci",
+    "confidence interval",
+    "uncertainty",
+    "margin",
+    "deviation",
+}
+MATRIX_TERMS = {
+    "matrix",
+    "heatmap",
+    "grid",
+    "correlation",
+    "confusion",
+    "intensity",
+}
+GROUPED_DISTRIBUTION_TERMS = {
+    "boxplot",
+    "box plot",
+    "distribution",
+    "replicate",
+    "replicates",
+    "sample",
+    "samples",
+    "variation",
+    "spread",
 }
 TEXT_MIXED_ROLE = "text/mixed"
 
@@ -398,6 +454,113 @@ def _series_payload(headers: list[str], rows: list[list[str]], label_index: int,
     return {"labels": labels, "series": series}
 
 
+def _contains_terms(headers: list[str], content: str, terms: set[str]) -> bool:
+    text = " ".join(headers + [content]).casefold()
+    return any(term in text for term in terms)
+
+
+def _error_indices(headers: list[str], numeric_indices: list[int]) -> list[int]:
+    return [index for index in numeric_indices if _header_contains(headers[index], ERROR_HEADER_TERMS)]
+
+
+def _non_error_numeric_indices(headers: list[str], numeric_indices: list[int]) -> list[int]:
+    error_index_set = set(_error_indices(headers, numeric_indices))
+    return [index for index in numeric_indices if index not in error_index_set]
+
+
+def _all_values_non_negative(rows: list[list[str]], numeric_indices: list[int]) -> bool:
+    for index in numeric_indices:
+        values = _numeric_values_for_rows(rows, index)
+        if not values or any(value < 0 for value in values):
+            return False
+    return True
+
+
+def _row_totals_are_composition_like(rows: list[list[str]], numeric_indices: list[int]) -> bool:
+    totals: list[float] = []
+    for row in rows[1:MAX_CHART_ROWS + 1]:
+        values = []
+        for index in numeric_indices:
+            number = _to_float(row[index] if index < len(row) else "")
+            if number is None:
+                values = []
+                break
+            values.append(number)
+        if values:
+            totals.append(sum(values))
+    if not totals:
+        return False
+    return all(99 <= total <= 101 or 0.99 <= total <= 1.01 for total in totals)
+
+
+def _grouped_numeric_series(rows: list[list[str]], group_index: int, value_index: int) -> list[dict]:
+    grouped: dict[str, list[float]] = {}
+    for row in rows[1:MAX_CHART_ROWS + 1]:
+        label = _clean_text(row[group_index] if group_index < len(row) else "")
+        value = _to_float(row[value_index] if value_index < len(row) else "")
+        if label and value is not None:
+            grouped.setdefault(label, []).append(value)
+    return [
+        {"name": label, "values": values}
+        for label, values in grouped.items()
+        if len(values) >= 2
+    ]
+
+
+def _numeric_column_series(headers: list[str], rows: list[list[str]], numeric_indices: list[int]) -> list[dict]:
+    series: list[dict] = []
+    for index in numeric_indices:
+        values = _numeric_values_for_rows(rows, index)
+        if len(values) >= MIN_CHART_ROWS:
+            series.append({"name": headers[index], "values": values})
+    return series
+
+
+def _heatmap_payload(headers: list[str], rows: list[list[str]], label_index: int, numeric_indices: list[int]) -> dict:
+    values: list[list[float]] = []
+    y_labels: list[str] = []
+    for row in rows[1:MAX_HEATMAP_ROWS + 1]:
+        row_values: list[float] = []
+        for index in numeric_indices[:MAX_HEATMAP_COLUMNS]:
+            number = _to_float(row[index] if index < len(row) else "")
+            if number is None:
+                row_values = []
+                break
+            row_values.append(number)
+        if row_values:
+            y_labels.append(_clean_text(row[label_index] if label_index < len(row) else ""))
+            values.append(row_values)
+    return {
+        "x_labels": [headers[index] for index in numeric_indices[:MAX_HEATMAP_COLUMNS]],
+        "y_labels": y_labels,
+        "values": values,
+    }
+
+
+def _error_bar_payload(
+    headers: list[str],
+    rows: list[list[str]],
+    label_index: int,
+    value_index: int,
+    error_index: int,
+) -> dict:
+    labels: list[str] = []
+    values: list[float] = []
+    errors: list[float] = []
+    for row in rows[1:MAX_CHART_ROWS + 1]:
+        label = _clean_text(row[label_index] if label_index < len(row) else "")
+        value = _to_float(row[value_index] if value_index < len(row) else "")
+        error = _to_float(row[error_index] if error_index < len(row) else "")
+        if label and value is not None and error is not None:
+            labels.append(label)
+            values.append(value)
+            errors.append(abs(error))
+    return {
+        "labels": labels,
+        "series": [{"name": headers[value_index], "values": values, "errors": errors}],
+    }
+
+
 def _make_recommendation(
     state: ReportState,
     table: dict,
@@ -415,7 +578,23 @@ def _make_recommendation(
 ) -> dict:
     rec_id = f"figrec_{rec_index}"
     title_source = table.get("source_file_name") or table.get("source_id") or "source data"
-    title = f"{figure_type.title()} view of {Path(str(title_source)).stem or title_source}"
+    data_transform = table.get("data_transform") if isinstance(table.get("data_transform"), dict) else None
+    transform_operations = data_transform.get("operations", []) if data_transform else []
+    transform_status = data_transform.get("status", "source") if data_transform else "source"
+    transform_label = ""
+    if transform_status == "transformed" and transform_operations:
+        transform_label = " after " + ", ".join(str(item).replace("_", " ") for item in transform_operations)
+        reason = (
+            f"{reason} Data were deterministically transformed before plotting "
+            f"({', '.join(str(item) for item in transform_operations)}); derived chart values remain tied "
+            "to the source evidence IDs."
+        )
+        if any(item == "normalize_percent" for item in transform_operations):
+            if not ylabel:
+                ylabel = "Percent of total (%)"
+            elif "%" not in ylabel and "percent" not in ylabel.casefold():
+                ylabel = f"{ylabel} (%)"
+    title = f"{figure_type.title()} view of {Path(str(title_source)).stem or title_source}{transform_label}"
     section_id = _section_for_recommendation(state)
     figure_plan = {
         "figure_id": rec_id,
@@ -430,6 +609,8 @@ def _make_recommendation(
         "source_evidence_ids": table.get("evidence_ids", []),
         "chart_selection_reason": reason,
     }
+    if data_transform:
+        figure_plan["data_transform"] = data_transform
     return {
         "recommendation_id": rec_id,
         "source_id": table.get("source_id", ""),
@@ -446,189 +627,423 @@ def _make_recommendation(
             _chart_candidate(figure_type, 1.0, confidence, reason)
         ],
         "selection_warnings": selection_warnings or [],
+        "data_transform": data_transform or {
+            "status": "source",
+            "operations": [],
+            "input_shape": {"rows": max(len(table.get("rows", [])) - 1, 0), "columns": len(table.get("rows", [[]])[0])},
+            "output_shape": {"rows": max(len(table.get("rows", [])) - 1, 0), "columns": len(table.get("rows", [[]])[0])},
+            "warnings": [],
+            "source_evidence_ids": table.get("evidence_ids", []),
+        },
         "figure_plan": figure_plan,
     }
+
+
+def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> dict | None:
+    """Build one chart recommendation from one source or transformed table view."""
+    rows = table.get("rows", [])
+    if len(rows) < 3:
+        return None
+    headers = [_clean_text(header) or f"Column {index + 1}" for index, header in enumerate(rows[0])]
+    profile = _profile_table(headers, rows, table.get("content", ""))
+    summary = profile["summary"]
+    data_transform = table.get("data_transform") if isinstance(table.get("data_transform"), dict) else {}
+    warnings = _selection_warnings(profile) + list(data_transform.get("warnings", []) or [])
+    categorical_indices = _indices_with_role(profile, "categorical")
+    time_indices = _indices_with_role(profile, "time_like")
+    numeric_indices = _indices_with_role(profile, "numeric_measure")
+    composition_indices = _indices_with_role(profile, "composition_value")
+    error_indices = _error_indices(headers, numeric_indices)
+    measure_indices = _non_error_numeric_indices(headers, numeric_indices)
+    chart_candidates: list[dict] = []
+
+    if summary.get("parameter_table") and len(rows) - 1 <= MAX_TABLE_FIGURE_ROWS:
+        reason = (
+            "Parameter, unit, formula, or calculation-shaped evidence should remain a table so exact values and units stay visible."
+        )
+        chart_candidates.append(_chart_candidate("table", 0.9, "high", reason))
+        return _make_recommendation(
+            state,
+            table,
+            rec_index,
+            "table",
+            ["table"],
+            "high",
+            reason,
+            {"columns": headers, "rows": rows[1:MAX_TABLE_FIGURE_ROWS + 1]},
+            data_profile=profile,
+            chart_candidates=chart_candidates,
+            selection_warnings=warnings,
+        )
+
+    if summary.get("missing_ratio", 0) >= 0.25 and len(rows) - 1 <= MAX_TABLE_FIGURE_ROWS:
+        reason = "High missing-value density makes a compact table safer than a potentially misleading chart."
+        chart_candidates.append(_chart_candidate("table", 0.78, "medium", reason))
+        return _make_recommendation(
+            state,
+            table,
+            rec_index,
+            "table",
+            ["table"],
+            "medium",
+            reason,
+            {"columns": headers, "rows": rows[1:MAX_TABLE_FIGURE_ROWS + 1]},
+            data_profile=profile,
+            chart_candidates=chart_candidates,
+            selection_warnings=warnings,
+        )
+
+    label_indices = (categorical_indices or time_indices)
+    if label_indices and error_indices and measure_indices:
+        label_index = label_indices[0]
+        value_index = measure_indices[0]
+        error_index = error_indices[0]
+        payload = _error_bar_payload(headers, rows, label_index, value_index, error_index)
+        if payload["labels"] and len(payload["labels"]) >= MIN_CHART_ROWS:
+            reason = (
+                "Category or ordered observations with a central value and explicit error, SD, SE, CI, "
+                "or uncertainty column should be shown with error bars."
+            )
+            chart_candidates.append(_chart_candidate("error_bar", 0.93, "high", reason))
+            chart_candidates.append(_chart_candidate(
+                "bar",
+                0.62,
+                "low",
+                "Bar can show central values, but it hides uncertainty unless the error column is rendered.",
+            ))
+            return _make_recommendation(
+                state,
+                table,
+                rec_index,
+                "error_bar",
+                ["error_bar"],
+                "high",
+                reason,
+                payload,
+                xlabel=headers[label_index],
+                ylabel=headers[value_index],
+                data_profile=profile,
+                chart_candidates=chart_candidates,
+                selection_warnings=warnings,
+            )
+
+    if (
+        _contains_terms(headers, table.get("content", ""), MATRIX_TERMS)
+        and (categorical_indices or _indices_with_role(profile, TEXT_MIXED_ROLE))
+        and len(measure_indices) >= 2
+        and len(rows) - 1 <= MAX_HEATMAP_ROWS
+    ):
+        label_index = (categorical_indices or _indices_with_role(profile, TEXT_MIXED_ROLE))[0]
+        payload = _heatmap_payload(headers, rows, label_index, measure_indices)
+        if payload["values"] and len(payload["values"][0]) >= 2:
+            reason = (
+                "Matrix-shaped numeric evidence is suited to a heatmap so row/column intensity patterns are visible."
+            )
+            chart_candidates.append(_chart_candidate("heatmap", 0.9, "high", reason))
+            chart_candidates.append(_chart_candidate(
+                "table",
+                0.68,
+                "medium",
+                "A table remains acceptable when exact cell values matter more than pattern visibility.",
+            ))
+            return _make_recommendation(
+                state,
+                table,
+                rec_index,
+                "heatmap",
+                ["heatmap", "table"],
+                "high",
+                reason,
+                payload,
+                xlabel="Columns",
+                ylabel="Rows",
+                data_profile=profile,
+                chart_candidates=chart_candidates,
+                selection_warnings=warnings,
+            )
+
+    if (
+        categorical_indices
+        and len(measure_indices) >= 2
+        and len(measure_indices) <= MAX_STACKED_BAR_SERIES
+        and _all_values_non_negative(rows, measure_indices)
+        and (
+            _contains_terms(headers, table.get("content", ""), STACKED_BAR_TERMS)
+            or _row_totals_are_composition_like(rows, measure_indices)
+        )
+    ):
+        cat_index = categorical_indices[0]
+        reason = (
+            "Categorical rows with multiple non-negative part or composition series should be shown as a stacked bar."
+        )
+        chart_candidates.append(_chart_candidate("stacked_bar", 0.91, "high", reason))
+        chart_candidates.append(_chart_candidate(
+            "bar",
+            0.65,
+            "medium",
+            "Grouped bars remain acceptable when direct series-by-series comparison matters more than total composition.",
+        ))
+        return _make_recommendation(
+            state,
+            table,
+            rec_index,
+            "stacked_bar",
+            ["stacked_bar", "bar", "table"],
+            "high",
+            reason,
+            _series_payload(headers, rows, cat_index, measure_indices),
+            xlabel=headers[cat_index],
+            ylabel=", ".join(headers[index] for index in measure_indices),
+            data_profile=profile,
+            chart_candidates=chart_candidates,
+            selection_warnings=warnings,
+        )
+
+    if categorical_indices and len(measure_indices) == 1:
+        cat_index = categorical_indices[0]
+        value_index = measure_indices[0]
+        grouped_series = _grouped_numeric_series(rows, cat_index, value_index)
+        if len(grouped_series) >= 2:
+            reason = (
+                "Repeated numeric measurements within categorical groups should be shown as a boxplot to compare spread."
+            )
+            chart_candidates.append(_chart_candidate("boxplot", 0.86, "high", reason))
+            chart_candidates.append(_chart_candidate(
+                "bar",
+                0.55,
+                "low",
+                "Bar charts hide within-group spread unless values have already been aggregated.",
+            ))
+            return _make_recommendation(
+                state,
+                table,
+                rec_index,
+                "boxplot",
+                ["boxplot", "table"],
+                "high",
+                reason,
+                {"series": grouped_series},
+                xlabel=headers[cat_index],
+                ylabel=headers[value_index],
+                data_profile=profile,
+                chart_candidates=chart_candidates,
+                selection_warnings=warnings,
+            )
+
+    if (
+        not categorical_indices
+        and not time_indices
+        and len(measure_indices) >= 2
+        and len(rows) - 1 >= MIN_DISTRIBUTION_POINTS
+        and _contains_terms(headers, table.get("content", ""), GROUPED_DISTRIBUTION_TERMS)
+    ):
+        grouped_series = _numeric_column_series(headers, rows, measure_indices[:MAX_LINE_BAR_SERIES])
+        if len(grouped_series) >= 2:
+            reason = (
+                "Multiple comparable numeric measurement columns with repeated observations should be shown as a boxplot."
+            )
+            chart_candidates.append(_chart_candidate("boxplot", 0.82, "medium", reason))
+            return _make_recommendation(
+                state,
+                table,
+                rec_index,
+                "boxplot",
+                ["boxplot", "table"],
+                "medium",
+                reason,
+                {"series": grouped_series},
+                xlabel="Series",
+                ylabel=", ".join(headers[index] for index in measure_indices[:MAX_LINE_BAR_SERIES]),
+                data_profile=profile,
+                chart_candidates=chart_candidates,
+                selection_warnings=warnings,
+            )
+
+    if categorical_indices and composition_indices:
+        cat_index = categorical_indices[0]
+        value_index = composition_indices[0]
+        labels = _column_values(rows, cat_index)[:MAX_CHART_ROWS]
+        values = _numeric_values_for_rows(rows, value_index)
+        if 2 <= len(_unique_non_empty(labels)) <= 6 and len(values) == len([label for label in labels if _clean_text(label)]):
+            reason = (
+                "Categorical composition data with non-negative values summing near 1 or 100 "
+                "is best summarized as a pie chart; bar is acceptable for comparison emphasis."
+            )
+            chart_candidates.append(_chart_candidate("pie", 0.95, "high", reason))
+            chart_candidates.append(_chart_candidate(
+                "bar",
+                0.78,
+                "medium",
+                "Bar remains acceptable when comparing segment magnitudes is more important than whole-part perception.",
+            ))
+            return _make_recommendation(
+                state,
+                table,
+                rec_index,
+                "pie",
+                ["pie", "bar"],
+                "high",
+                reason,
+                _series_payload(headers, rows, cat_index, [value_index]),
+                xlabel=headers[cat_index],
+                ylabel=headers[value_index],
+                data_profile=profile,
+                chart_candidates=chart_candidates,
+                selection_warnings=warnings,
+            )
+
+    if time_indices and numeric_indices:
+        x_index = time_indices[0]
+        y_indices = measure_indices[:3]
+        if not y_indices:
+            return None
+        reason = "Ordered time/step data with numeric measurements should be shown as a line chart to preserve trend direction."
+        chart_candidates.append(_chart_candidate("line", 0.92, "high", reason))
+        return _make_recommendation(
+            state,
+            table,
+            rec_index,
+            "line",
+            ["line"],
+            "high",
+            reason,
+            _series_payload(headers, rows, x_index, y_indices),
+            xlabel=headers[x_index],
+            ylabel=", ".join(headers[index] for index in y_indices),
+            data_profile=profile,
+            chart_candidates=chart_candidates,
+            selection_warnings=warnings,
+        )
+
+    if categorical_indices and (measure_indices or composition_indices):
+        cat_index = categorical_indices[0]
+        y_indices = (measure_indices or composition_indices)[:3]
+        reason = "Categorical labels with numeric values should be compared with a bar chart."
+        chart_candidates.append(_chart_candidate("bar", 0.88, "high", reason))
+        return _make_recommendation(
+            state,
+            table,
+            rec_index,
+            "bar",
+            ["bar"],
+            "high",
+            reason,
+            _series_payload(headers, rows, cat_index, y_indices),
+            xlabel=headers[cat_index],
+            ylabel=", ".join(headers[index] for index in y_indices),
+            data_profile=profile,
+            chart_candidates=chart_candidates,
+            selection_warnings=warnings,
+        )
+
+    if len(measure_indices) >= 2 and len(rows) - 1 >= 3:
+        x_index, y_index = measure_indices[:2]
+        reason = (
+            "Two numeric measurement variables across multiple observations are suited "
+            "to scatter plots for relationship inspection."
+        )
+        chart_candidates.append(_chart_candidate("scatter", 0.75, "medium", reason))
+        return _make_recommendation(
+            state,
+            table,
+            rec_index,
+            "scatter",
+            ["scatter"],
+            "medium",
+            reason,
+            {
+                "x": [_to_float(row[x_index]) or 0 for row in rows[1:MAX_CHART_ROWS + 1]],
+                "y": [_to_float(row[y_index]) or 0 for row in rows[1:MAX_CHART_ROWS + 1]],
+            },
+            xlabel=headers[x_index],
+            ylabel=headers[y_index],
+            data_profile=profile,
+            chart_candidates=chart_candidates,
+            selection_warnings=warnings,
+        )
+
+    if not categorical_indices and not time_indices and len(measure_indices) == 1 and len(rows) - 1 >= MIN_DISTRIBUTION_POINTS:
+        value_index = measure_indices[0]
+        values = _numeric_values_for_rows(rows, value_index, limit=MAX_LINE_SCATTER_POINTS)
+        if len(values) >= MIN_DISTRIBUTION_POINTS:
+            reason = (
+                "A single numeric measurement column with enough observations and no safer category/time mapping "
+                "is suited to a histogram for distribution shape."
+            )
+            chart_candidates.append(_chart_candidate("histogram", 0.78, "medium", reason))
+            return _make_recommendation(
+                state,
+                table,
+                rec_index,
+                "histogram",
+                ["histogram", "table"],
+                "medium",
+                reason,
+                {"values": values, "bins": min(10, max(5, round(len(values) ** 0.5)))},
+                xlabel=headers[value_index],
+                ylabel="Frequency count",
+                data_profile=profile,
+                chart_candidates=chart_candidates,
+                selection_warnings=warnings,
+            )
+
+    if len(rows) - 1 <= MAX_TABLE_FIGURE_ROWS:
+        reason = (
+            "The evidence has no reliable category, ordered time, composition, or two-measure relationship; "
+            "preserve exact values as a table figure."
+        )
+        chart_candidates.append(_chart_candidate("table", 0.7, "medium", reason))
+        return _make_recommendation(
+            state,
+            table,
+            rec_index,
+            "table",
+            ["table"],
+            "medium",
+            reason,
+            {"columns": headers, "rows": rows[1:MAX_TABLE_FIGURE_ROWS + 1]},
+            data_profile=profile,
+            chart_candidates=chart_candidates,
+            selection_warnings=warnings,
+        )
+
+    return None
+
+
+def _recommendation_score(recommendation: dict) -> float:
+    candidates = recommendation.get("chart_candidates", []) or []
+    top_score = 0.0
+    if candidates and isinstance(candidates[0], dict):
+        try:
+            top_score = float(candidates[0].get("score", 0) or 0)
+        except (TypeError, ValueError):
+            top_score = 0.0
+    transform = recommendation.get("data_transform", {}) if isinstance(recommendation.get("data_transform", {}), dict) else {}
+    if transform.get("status") == "transformed":
+        top_score += 0.03
+        output_shape = transform.get("output_shape", {}) if isinstance(transform.get("output_shape", {}), dict) else {}
+        if int(output_shape.get("rows", 0) or 0) <= MAX_BAR_CATEGORIES:
+            top_score += 0.02
+    top_score -= 0.01 * len(recommendation.get("selection_warnings", []) or [])
+    return top_score
 
 
 def recommend_figures_from_evidence(state: ReportState, evidence: list[dict]) -> list[dict]:
     """Build chart recommendations from table-shaped evidence."""
     recommendations: list[dict] = []
     for table in _table_candidates(evidence):
-        rows = table.get("rows", [])
-        if len(rows) < 3:
+        variants = build_table_variants(
+            table,
+            max_bar_categories=MAX_BAR_CATEGORIES,
+            max_pie_slices=MAX_PIE_SLICES,
+        )
+        candidates = [
+            rec for variant in variants
+            if (rec := _recommend_single_table(state, variant, len(recommendations) + 1)) is not None
+        ]
+        if not candidates:
             continue
-        headers = [_clean_text(header) or f"Column {index + 1}" for index, header in enumerate(rows[0])]
-        profile = _profile_table(headers, rows, table.get("content", ""))
-        summary = profile["summary"]
-        warnings = _selection_warnings(profile)
-        categorical_indices = _indices_with_role(profile, "categorical")
-        time_indices = _indices_with_role(profile, "time_like")
-        numeric_indices = _indices_with_role(profile, "numeric_measure")
-        composition_indices = _indices_with_role(profile, "composition_value")
-        chart_candidates: list[dict] = []
-
-        if summary.get("parameter_table") and len(rows) - 1 <= MAX_TABLE_FIGURE_ROWS:
-            reason = (
-                "Parameter, unit, formula, or calculation-shaped evidence should remain a table so exact values and units stay visible."
-            )
-            chart_candidates.append(_chart_candidate("table", 0.9, "high", reason))
-            recommendations.append(_make_recommendation(
-                state,
-                table,
-                len(recommendations) + 1,
-                "table",
-                ["table"],
-                "high",
-                reason,
-                {"columns": headers, "rows": rows[1:MAX_TABLE_FIGURE_ROWS + 1]},
-                data_profile=profile,
-                chart_candidates=chart_candidates,
-                selection_warnings=warnings,
-            ))
-            continue
-
-        if summary.get("missing_ratio", 0) >= 0.25 and len(rows) - 1 <= MAX_TABLE_FIGURE_ROWS:
-            reason = "High missing-value density makes a compact table safer than a potentially misleading chart."
-            chart_candidates.append(_chart_candidate("table", 0.78, "medium", reason))
-            recommendations.append(_make_recommendation(
-                state,
-                table,
-                len(recommendations) + 1,
-                "table",
-                ["table"],
-                "medium",
-                reason,
-                {"columns": headers, "rows": rows[1:MAX_TABLE_FIGURE_ROWS + 1]},
-                data_profile=profile,
-                chart_candidates=chart_candidates,
-                selection_warnings=warnings,
-            ))
-            continue
-
-        if categorical_indices and composition_indices:
-            cat_index = categorical_indices[0]
-            value_index = composition_indices[0]
-            labels = _column_values(rows, cat_index)[:MAX_CHART_ROWS]
-            values = _numeric_values_for_rows(rows, value_index)
-            if 2 <= len(_unique_non_empty(labels)) <= 6 and len(values) == len([label for label in labels if _clean_text(label)]):
-                reason = (
-                    "Categorical composition data with non-negative values summing near 1 or 100 "
-                    "is best summarized as a pie chart; bar is acceptable for comparison emphasis."
-                )
-                chart_candidates.append(_chart_candidate("pie", 0.95, "high", reason))
-                chart_candidates.append(_chart_candidate(
-                    "bar",
-                    0.78,
-                    "medium",
-                    "Bar remains acceptable when comparing segment magnitudes is more important than whole-part perception.",
-                ))
-                recommendations.append(_make_recommendation(
-                    state,
-                    table,
-                    len(recommendations) + 1,
-                    "pie",
-                    ["pie", "bar"],
-                    "high",
-                    reason,
-                    _series_payload(headers, rows, cat_index, [value_index]),
-                    xlabel=headers[cat_index],
-                    ylabel=headers[value_index],
-                    data_profile=profile,
-                    chart_candidates=chart_candidates,
-                    selection_warnings=warnings,
-                ))
-                continue
-
-        if time_indices and numeric_indices:
-            x_index = time_indices[0]
-            y_indices = numeric_indices[:3]
-            reason = "Ordered time/step data with numeric measurements should be shown as a line chart to preserve trend direction."
-            chart_candidates.append(_chart_candidate("line", 0.92, "high", reason))
-            recommendations.append(_make_recommendation(
-                state,
-                table,
-                len(recommendations) + 1,
-                "line",
-                ["line"],
-                "high",
-                reason,
-                _series_payload(headers, rows, x_index, y_indices),
-                xlabel=headers[x_index],
-                ylabel=", ".join(headers[index] for index in y_indices),
-                data_profile=profile,
-                chart_candidates=chart_candidates,
-                selection_warnings=warnings,
-            ))
-            continue
-
-        if categorical_indices and (numeric_indices or composition_indices):
-            cat_index = categorical_indices[0]
-            y_indices = (numeric_indices or composition_indices)[:3]
-            reason = "Categorical labels with numeric values should be compared with a bar chart."
-            chart_candidates.append(_chart_candidate("bar", 0.88, "high", reason))
-            recommendations.append(_make_recommendation(
-                state,
-                table,
-                len(recommendations) + 1,
-                "bar",
-                ["bar"],
-                "high",
-                reason,
-                _series_payload(headers, rows, cat_index, y_indices),
-                xlabel=headers[cat_index],
-                ylabel=", ".join(headers[index] for index in y_indices),
-                data_profile=profile,
-                chart_candidates=chart_candidates,
-                selection_warnings=warnings,
-            ))
-            continue
-
-        if len(numeric_indices) >= 2 and len(rows) - 1 >= 3:
-            x_index, y_index = numeric_indices[:2]
-            reason = (
-                "Two numeric measurement variables across multiple observations are suited "
-                "to scatter plots for relationship inspection."
-            )
-            chart_candidates.append(_chart_candidate("scatter", 0.75, "medium", reason))
-            recommendations.append(_make_recommendation(
-                state,
-                table,
-                len(recommendations) + 1,
-                "scatter",
-                ["scatter"],
-                "medium",
-                reason,
-                {
-                    "x": [_to_float(row[x_index]) or 0 for row in rows[1:MAX_CHART_ROWS + 1]],
-                    "y": [_to_float(row[y_index]) or 0 for row in rows[1:MAX_CHART_ROWS + 1]],
-                },
-                xlabel=headers[x_index],
-                ylabel=headers[y_index],
-                data_profile=profile,
-                chart_candidates=chart_candidates,
-                selection_warnings=warnings,
-            ))
-            continue
-
-        if len(rows) - 1 <= MAX_TABLE_FIGURE_ROWS:
-            reason = (
-                "The evidence has no reliable category, ordered time, composition, or two-measure relationship; "
-                "preserve exact values as a table figure."
-            )
-            chart_candidates.append(_chart_candidate("table", 0.7, "medium", reason))
-            recommendations.append(_make_recommendation(
-                state,
-                table,
-                len(recommendations) + 1,
-                "table",
-                ["table"],
-                "medium",
-                reason,
-                {"columns": headers, "rows": rows[1:MAX_TABLE_FIGURE_ROWS + 1]},
-                data_profile=profile,
-                chart_candidates=chart_candidates,
-                selection_warnings=warnings,
-            ))
+        recommendations.append(max(candidates, key=_recommendation_score))
 
     return recommendations
 
@@ -756,6 +1171,9 @@ def _label_values(data: dict) -> list[str]:
     labels = data.get("labels", [])
     if isinstance(labels, list):
         return [_clean_text(label) for label in labels]
+    x_labels = data.get("x_labels", [])
+    if isinstance(x_labels, list):
+        return [_clean_text(label) for label in x_labels]
     rows = data.get("rows", [])
     if isinstance(rows, list):
         values = []
@@ -779,6 +1197,14 @@ def _point_count(figure_type: str, data: dict) -> int:
         x_vals = data.get("x", [])
         y_vals = data.get("y", [])
         return max(len(x_vals) if isinstance(x_vals, list) else 0, len(y_vals) if isinstance(y_vals, list) else 0)
+    if figure_type == "histogram":
+        values = data.get("values", [])
+        return len(values) if isinstance(values, list) else 0
+    if figure_type == "heatmap":
+        values = data.get("values", [])
+        if isinstance(values, list):
+            return sum(len(row) for row in values if isinstance(row, list))
+        return 0
     series = _series_values(data)
     if series:
         return max((len(item.get("values", []) or []) for item in series), default=0)
@@ -815,7 +1241,7 @@ def _chart_readability_issues(figure: dict, index: int) -> list[dict]:
             "Add a specific chart title that names the measured relationship or comparison.",
         ))
 
-    if figure_type in {"bar", "line", "scatter"}:
+    if figure_type in {"bar", "line", "scatter", "histogram", "boxplot", "error_bar", "stacked_bar"}:
         xlabel = _clean_text(figure.get("xlabel", ""))
         ylabel = _clean_text(figure.get("ylabel", ""))
         if not xlabel:
@@ -846,7 +1272,7 @@ def _chart_readability_issues(figure: dict, index: int) -> list[dict]:
                 axis="y",
             ))
 
-    if figure_type in {"bar", "line"}:
+    if figure_type in {"bar", "line", "error_bar"}:
         if len(series) > MAX_LINE_BAR_SERIES:
             issues.append(_readability_issue(
                 "too_many_data_points",
@@ -857,6 +1283,7 @@ def _chart_readability_issues(figure: dict, index: int) -> list[dict]:
                 series_count=len(series),
                 threshold=MAX_LINE_BAR_SERIES,
             ))
+    if figure_type in {"bar", "line", "stacked_bar", "error_bar"}:
         if len(series) > 1:
             generic_names = {
                 "",
@@ -881,12 +1308,23 @@ def _chart_readability_issues(figure: dict, index: int) -> list[dict]:
                     "Give each series a meaningful name that matches the source evidence.",
                 ))
 
-    if figure_type == "bar" and len(labels) > MAX_BAR_CATEGORIES:
+    if figure_type == "stacked_bar" and len(series) > MAX_STACKED_BAR_SERIES:
+        issues.append(_readability_issue(
+            "too_many_data_points",
+            figure,
+            index,
+            f"Stacked bar chart has {len(series)} series; more than {MAX_STACKED_BAR_SERIES} is hard to read.",
+            "Reduce the number of stacked series or move the full breakdown to a table.",
+            series_count=len(series),
+            threshold=MAX_STACKED_BAR_SERIES,
+        ))
+
+    if figure_type in {"bar", "stacked_bar", "error_bar"} and len(labels) > MAX_BAR_CATEGORIES:
         issues.append(_readability_issue(
             "too_many_categories",
             figure,
             index,
-            f"Bar chart has {len(labels)} categories; more than {MAX_BAR_CATEGORIES} is hard to scan.",
+            f"Chart has {len(labels)} categories; more than {MAX_BAR_CATEGORIES} is hard to scan.",
             "Group minor categories, switch to a table, or split the chart.",
             category_count=len(labels),
             threshold=MAX_BAR_CATEGORIES,
@@ -903,7 +1341,7 @@ def _chart_readability_issues(figure: dict, index: int) -> list[dict]:
             threshold=MAX_PIE_SLICES,
         ))
 
-    if figure_type in {"line", "scatter"}:
+    if figure_type in {"line", "scatter", "histogram", "heatmap"}:
         points = _point_count(figure_type, data)
         if points > MAX_LINE_SCATTER_POINTS:
             issues.append(_readability_issue(
@@ -948,6 +1386,30 @@ def _chart_readability_issues(figure: dict, index: int) -> list[dict]:
         ))
 
     return issues
+
+
+def _transform_provenance_issues(figure: dict, rec: dict, index: int) -> list[dict]:
+    rec_transform = rec.get("data_transform", {}) if isinstance(rec.get("data_transform", {}), dict) else {}
+    if rec_transform.get("status") != "transformed":
+        return []
+    figure_transform = figure.get("data_transform", {}) if isinstance(figure.get("data_transform", {}), dict) else {}
+    if figure_transform.get("status") == "transformed":
+        return []
+    if _selection_reason(figure):
+        return []
+    operations = ", ".join(str(item) for item in rec_transform.get("operations", []) or []) or "unknown"
+    return [_readability_issue(
+        "transformed_recommendation_without_provenance",
+        figure,
+        index,
+        (
+            "Figure is linked to a recommendation built from transformed source data, "
+            "but the figure entry does not preserve data_transform metadata or explain the derived view."
+        ),
+        "Keep the recommendation's data_transform block in figure_plan.json or add chart_selection_reason for the manual edit.",
+        recommendation_id=rec.get("recommendation_id"),
+        operations=operations,
+    )]
 
 
 def audit_figure_plan(state: ReportState, recommendations: list[dict], figure_plan: dict | None, plan_path: Path) -> dict:
@@ -1009,6 +1471,39 @@ def audit_figure_plan(state: ReportState, recommendations: list[dict], figure_pl
             hard_issues.append(issue)
             continue
         figure_type = str(figure.get("figure_type") or "").strip().lower()
+        if figure_type not in SUPPORTED_FIGURE_TYPES_SET:
+            issue = {
+                "severity": "hard",
+                "type": "unsupported_figure_type",
+                "figure_id": figure.get("figure_id", f"index_{index}"),
+                "selected_figure_type": figure_type,
+                "supported_figure_types": sorted(SUPPORTED_FIGURE_TYPES_SET),
+                "detail": (
+                    f"Figure selects unsupported figure_type {figure_type!r}. "
+                    f"Supported values: {SUPPORTED_FIGURE_TYPES_TEXT}."
+                ),
+                "repair_hint": "Use a supported figure_type or remove the figure from figure_plan.json.",
+            }
+            issues.append(issue)
+            hard_issues.append(issue)
+            continue
+        output_format = str(figure.get("output_format", "png")).strip().lower().lstrip(".") or "png"
+        if output_format not in SUPPORTED_OUTPUT_FORMATS_SET:
+            issue = {
+                "severity": "hard",
+                "type": "unsupported_output_format",
+                "figure_id": figure.get("figure_id", f"index_{index}"),
+                "selected_output_format": output_format,
+                "supported_output_formats": sorted(SUPPORTED_OUTPUT_FORMATS_SET),
+                "detail": (
+                    f"Figure selects unsupported output_format {output_format!r}. "
+                    f"Supported values: {SUPPORTED_OUTPUT_FORMATS_TEXT}."
+                ),
+                "repair_hint": "Use png or svg output_format, or omit output_format to use png.",
+            }
+            issues.append(issue)
+            hard_issues.append(issue)
+            continue
         rec = recommendation_by_id.get(str(figure.get("recommendation_id") or ""))
         if rec is None:
             evidence_ids = _figure_evidence_ids(figure)
@@ -1035,6 +1530,7 @@ def audit_figure_plan(state: ReportState, recommendations: list[dict], figure_pl
         if recommended:
             acceptable.add(recommended)
         if figure_type in acceptable:
+            issues.extend(_transform_provenance_issues(figure, rec, index))
             issues.extend(_chart_readability_issues(figure, index))
             continue
 
@@ -1059,6 +1555,7 @@ def audit_figure_plan(state: ReportState, recommendations: list[dict], figure_pl
         issues.append(issue)
         if severity == "hard":
             hard_issues.append(issue)
+        issues.extend(_transform_provenance_issues(figure, rec, index))
         issues.extend(_chart_readability_issues(figure, index))
 
     if recommendations and figures:

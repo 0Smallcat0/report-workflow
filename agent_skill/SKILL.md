@@ -366,6 +366,15 @@ Chinese engineering publish checklist:
   applicable, and readable legends. Verify the DOCX has embedded drawing/image
   objects and visually inspect rendered PNG pages; text extraction that finds
   a figure title is not evidence that the chart exists.
+- Supported generated chart types are `bar`, `line`, `scatter`, `pie`,
+  `table`, `histogram`, `boxplot`, `heatmap`, `error_bar`, and
+  `stacked_bar`. Prefer the deterministic recommendation, and keep exact
+  values as a table when the visual mapping is ambiguous.
+- If a starter chart includes `data_transform`, preserve that metadata and
+  plotted data. The workflow may have already applied group-by, pivot,
+  wide-to-long, percent-of-total, sorting, or top-N transforms; do not hand
+  recalculate those values unless the manual replacement is explained in
+  `chart_selection_reason`.
 - Chinese prose is natural and contains no workflow/agent jargon, placeholder
   text, mojibake, or raw internal file paths.
 - Delivery prose does not expose internal provenance labels such as page

@@ -292,6 +292,15 @@ Before delivery, treat figure and format checks as hard gates:
   rendered PNG pages; extracted text showing a figure title is not enough.
 - Build charts only from accepted `source_data`. Each chart needs labeled axes,
   units where applicable, readable legends, and a caption below the visual.
+- Supported generated chart types are `bar`, `line`, `scatter`, `pie`,
+  `table`, `histogram`, `boxplot`, `heatmap`, `error_bar`, and
+  `stacked_bar`. Prefer the deterministic recommendation, and keep exact
+  values as a table when the visual mapping is ambiguous.
+- If a recommended starter chart contains `data_transform`, keep that metadata
+  and chart payload unless you intentionally replace the derived view. The
+  deterministic layer may have already handled group-by, pivot, wide-to-long,
+  percent-of-total, sorting, or top-N cleanup; manual replacements need a
+  specific `chart_selection_reason`.
 - Use publication-ready engineering notation: table headers such as `P (kPa)`
   and `T (°C)`, and formula/prose symbols rendered with Word subscript runs or
   stable Unicode subscripts when needed. Scan for mixed unit formats, raw

@@ -238,6 +238,336 @@ class FigureRecommendationTests(unittest.TestCase):
             self.assertEqual(recommendations[0]["recommended_figure_type"], "line")
             self.assertEqual(recommendations[0]["evidence_ids"], ["E1", "E2", "E3"])
 
+    def test_recommends_histogram_for_single_numeric_distribution(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "measurements",
+                "source_file_name": "measurements.csv",
+                "granularity": "table",
+                "content": "Measurement distribution across observations",
+                "table_data": [["Reading"]] + [[str(value)] for value in [10, 11, 12, 11, 13, 14, 13, 12, 15, 16]],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "histogram")
+            self.assertEqual(rec["figure_plan"]["data"]["values"][0], 10)
+            self.assertIn("histogram", rec["acceptable_figure_types"])
+
+    def test_recommends_boxplot_for_grouped_repeated_measurements(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "groups",
+                "source_file_name": "groups.csv",
+                "granularity": "table",
+                "content": "Replicate measurement distribution by material",
+                "table_data": [
+                    ["Material", "Strength"],
+                    ["A", "12"],
+                    ["A", "14"],
+                    ["A", "13"],
+                    ["B", "18"],
+                    ["B", "19"],
+                    ["B", "17"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "boxplot")
+            self.assertEqual([series["name"] for series in rec["figure_plan"]["data"]["series"]], ["A", "B"])
+
+    def test_recommends_heatmap_for_matrix_shaped_table(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "matrix",
+                "source_file_name": "matrix.csv",
+                "granularity": "table",
+                "content": "Correlation matrix values",
+                "table_data": [
+                    ["Metric", "A", "B", "C"],
+                    ["A", "1.0", "0.4", "0.2"],
+                    ["B", "0.4", "1.0", "0.7"],
+                    ["C", "0.2", "0.7", "1.0"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "heatmap")
+            self.assertEqual(rec["figure_plan"]["data"]["x_labels"], ["A", "B", "C"])
+            self.assertEqual(rec["figure_plan"]["data"]["y_labels"], ["A", "B", "C"])
+
+    def test_recommends_error_bar_for_value_with_uncertainty_column(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "uncertainty",
+                "source_file_name": "uncertainty.csv",
+                "granularity": "table",
+                "content": "Mean response with standard deviation",
+                "table_data": [
+                    ["Sample", "Mean", "SD"],
+                    ["A", "10.2", "0.4"],
+                    ["B", "11.8", "0.7"],
+                    ["C", "9.9", "0.3"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "error_bar")
+            series = rec["figure_plan"]["data"]["series"][0]
+            self.assertEqual(series["values"], [10.2, 11.8, 9.9])
+            self.assertEqual(series["errors"], [0.4, 0.7, 0.3])
+
+    def test_recommends_stacked_bar_for_composition_breakdown_series(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "allocation",
+                "source_file_name": "allocation.csv",
+                "granularity": "table",
+                "content": "Budget allocation breakdown share by phase",
+                "table_data": [
+                    ["Phase", "Design", "Build", "Test"],
+                    ["Q1", "40", "35", "25"],
+                    ["Q2", "20", "50", "30"],
+                    ["Q3", "30", "45", "25"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "stacked_bar")
+            self.assertIn("bar", rec["acceptable_figure_types"])
+            self.assertEqual(len(rec["figure_plan"]["data"]["series"]), 3)
+
+    def test_distribution_language_without_composition_does_not_recommend_stacked_bar(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "distribution",
+                "source_file_name": "distribution.csv",
+                "granularity": "table",
+                "content": "Score distribution by material and test condition",
+                "table_data": [
+                    ["Material", "Strength", "Elasticity"],
+                    ["A", "12", "4"],
+                    ["B", "18", "6"],
+                    ["C", "16", "5"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "bar")
+            self.assertNotEqual(rec["figure_plan"]["figure_type"], "stacked_bar")
+
+    def test_group_by_sum_transform_for_duplicate_additive_categories(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "regional_sales",
+                "source_file_name": "regional_sales.csv",
+                "granularity": "table",
+                "content": "Regional sales count by region",
+                "table_data": [
+                    ["Region", "Sales count"],
+                    ["North", "10"],
+                    ["North", "15"],
+                    ["South", "8"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "bar")
+            self.assertEqual(rec["data_transform"]["status"], "transformed")
+            self.assertIn("group_by_sum", rec["data_transform"]["operations"])
+            self.assertEqual(rec["figure_plan"]["data"]["labels"], ["North", "South"])
+            self.assertEqual(rec["figure_plan"]["data"]["series"][0]["values"], [25.0, 8.0])
+            self.assertEqual(rec["figure_plan"]["data_transform"]["source_evidence_ids"], ["E1"])
+
+    def test_long_key_series_value_table_pivots_before_chart_selection(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "monthly_sales",
+                "source_file_name": "monthly_sales.csv",
+                "granularity": "table",
+                "content": "Sales amount by month and segment",
+                "table_data": [
+                    ["Month", "Segment", "Sales"],
+                    ["2026-01", "A", "10"],
+                    ["2026-01", "B", "5"],
+                    ["2026-02", "A", "12"],
+                    ["2026-02", "B", "7"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "line")
+            self.assertIn("pivot", rec["data_transform"]["operations"])
+            self.assertEqual(rec["figure_plan"]["data"]["labels"], ["2026-01", "2026-02"])
+            self.assertEqual([series["name"] for series in rec["figure_plan"]["data"]["series"]], ["A", "B"])
+            self.assertEqual(rec["figure_plan"]["data"]["series"][1]["values"], [5.0, 7.0])
+
+    def test_wide_time_columns_become_line_series(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "wide_years",
+                "source_file_name": "wide_years.csv",
+                "granularity": "table",
+                "content": "Revenue and cost by year",
+                "table_data": [
+                    ["Metric", "2024", "2025", "2026"],
+                    ["Revenue", "10", "12", "15"],
+                    ["Cost", "7", "8", "9"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "line")
+            self.assertIn("wide_to_long", rec["data_transform"]["operations"])
+            self.assertEqual(rec["figure_plan"]["data"]["labels"], ["2024", "2025", "2026"])
+            self.assertEqual([series["name"] for series in rec["figure_plan"]["data"]["series"]], ["Revenue", "Cost"])
+
+    def test_composition_counts_normalize_to_percent(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "composition_counts",
+                "source_file_name": "composition_counts.csv",
+                "granularity": "table",
+                "content": "Response composition by segment",
+                "table_data": [
+                    ["Segment", "Responses"],
+                    ["A", "3"],
+                    ["B", "7"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "pie")
+            self.assertIn("normalize_percent", rec["data_transform"]["operations"])
+            self.assertEqual(rec["figure_plan"]["data"]["series"][0]["values"], [30.0, 70.0])
+            self.assertIn("%", rec["figure_plan"]["ylabel"])
+            self.assertIn("Data were deterministically transformed", rec["figure_plan"]["chart_selection_reason"])
+
+    def test_large_category_table_uses_sorted_top_n_with_other_bucket(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            rows = [["Category", "Sales"]] + [[f"C{index}", str(15 - index)] for index in range(1, 15)]
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "category_sales",
+                "source_file_name": "category_sales.csv",
+                "granularity": "table",
+                "content": "Sales amount by category",
+                "table_data": rows,
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            labels = rec["figure_plan"]["data"]["labels"]
+            values = rec["figure_plan"]["data"]["series"][0]["values"]
+            self.assertEqual(rec["recommended_figure_type"], "bar")
+            self.assertEqual(rec["data_transform"]["operations"], ["sort_desc", "top_n"])
+            self.assertEqual(len(labels), 12)
+            self.assertEqual(labels[-1], "Other")
+            self.assertEqual(values[:3], [14.0, 13.0, 12.0])
+            self.assertEqual(values[-1], 6.0)
+
+    def test_large_response_composition_top_n_keeps_other_bucket(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            values = [200, 180, 160, 140, 120, 80, 50, 30, 20, 10, 5, 3, 1, 1]
+            rows = [["Segment", "Responses"]] + [[f"S{index}", str(value)] for index, value in enumerate(values, 1)]
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "response_composition",
+                "source_file_name": "response_composition.csv",
+                "granularity": "table",
+                "content": "Response composition by segment",
+                "table_data": rows,
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            labels = rec["figure_plan"]["data"]["labels"]
+            chart_values = rec["figure_plan"]["data"]["series"][0]["values"]
+            self.assertEqual(rec["recommended_figure_type"], "pie")
+            self.assertEqual(rec["data_transform"]["operations"], ["normalize_percent", "sort_desc", "top_n"])
+            self.assertEqual(len(labels), 6)
+            self.assertEqual(labels[-1], "Other")
+            self.assertAlmostEqual(sum(chart_values), 100.0, places=5)
+
+    def test_non_additive_repeated_measurements_do_not_group_by_sum(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "strength",
+                "source_file_name": "strength.csv",
+                "granularity": "table",
+                "content": "Replicate measurement distribution by material",
+                "table_data": [
+                    ["Material", "Strength"],
+                    ["A", "12"],
+                    ["A", "14"],
+                    ["B", "18"],
+                    ["B", "19"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "boxplot")
+            self.assertEqual(rec["data_transform"]["status"], "source")
+            self.assertNotIn("group_by_sum", rec["data_transform"]["operations"])
+
+    def test_non_additive_score_summary_does_not_match_sum_term(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "score_summary",
+                "source_file_name": "score_summary.csv",
+                "granularity": "table",
+                "content": "Score summary by group",
+                "table_data": [
+                    ["Group", "Score"],
+                    ["A", "4"],
+                    ["A", "5"],
+                    ["B", "7"],
+                    ["B", "8"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "boxplot")
+            self.assertEqual(rec["data_transform"]["status"], "source")
+            self.assertNotIn("group_by_sum", rec["data_transform"]["operations"])
+
 
 class AutoFigurePlanTests(unittest.TestCase):
     def test_agent_tasks_writes_starter_figure_plan_from_recommendations(self):
@@ -496,6 +826,205 @@ class FigurePlanAuditTests(unittest.TestCase):
             self.assertEqual(report["status"], "failed")
             self.assertEqual(report["hard_issues"][0]["type"], "malformed_figure_entry")
 
+    def test_audit_accepts_supported_new_figure_types(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            run_dir = run_dir_for(state)
+            plan = {
+                "figures": [
+                    {
+                        "figure_id": "hist",
+                        "figure_type": "histogram",
+                        "chart_selection_reason": "Distribution view.",
+                        "title": "Reading distribution",
+                        "xlabel": "Reading",
+                        "ylabel": "Frequency count",
+                        "data": {"values": [1, 2, 2, 3, 4, 4, 5]},
+                    },
+                    {
+                        "figure_id": "box",
+                        "figure_type": "boxplot",
+                        "chart_selection_reason": "Grouped spread view.",
+                        "title": "Strength spread",
+                        "xlabel": "Material",
+                        "ylabel": "Strength value",
+                        "data": {"series": [{"name": "A", "values": [1, 2, 3]}, {"name": "B", "values": [2, 3, 4]}]},
+                    },
+                    {
+                        "figure_id": "heat",
+                        "figure_type": "heatmap",
+                        "chart_selection_reason": "Matrix intensity view.",
+                        "title": "Correlation matrix",
+                        "xlabel": "Column",
+                        "ylabel": "Row",
+                        "data": {"x_labels": ["A", "B"], "y_labels": ["A", "B"], "values": [[1, 0.2], [0.2, 1]]},
+                    },
+                    {
+                        "figure_id": "err",
+                        "figure_type": "error_bar",
+                        "chart_selection_reason": "Uncertainty view.",
+                        "title": "Mean with SD",
+                        "xlabel": "Sample",
+                        "ylabel": "Mean value",
+                        "data": {"labels": ["A", "B"], "series": [{"name": "Mean", "values": [1, 2], "errors": [0.1, 0.2]}]},
+                    },
+                    {
+                        "figure_id": "stack",
+                        "figure_type": "stacked_bar",
+                        "chart_selection_reason": "Composition view.",
+                        "title": "Phase allocation",
+                        "xlabel": "Phase",
+                        "ylabel": "Share percent",
+                        "data": {
+                            "labels": ["Q1", "Q2"],
+                            "series": [{"name": "A", "values": [40, 30]}, {"name": "B", "values": [60, 70]}],
+                        },
+                    },
+                ]
+            }
+
+            report = audit_figure_plan(state, [], plan, run_dir / "section_drafts" / "figure_plan.json")
+
+            self.assertEqual(report["hard_issues"], [])
+
+    def test_audit_uses_stacked_bar_specific_series_limit(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            run_dir = run_dir_for(state)
+            series = [
+                {"name": "A", "values": [10, 20]},
+                {"name": "B", "values": [20, 30]},
+                {"name": "C", "values": [30, 20]},
+                {"name": "D", "values": [40, 30]},
+            ]
+            report = audit_figure_plan(
+                state,
+                [],
+                {
+                    "figures": [{
+                        "figure_id": "stack",
+                        "figure_type": "stacked_bar",
+                        "chart_selection_reason": "Composition view.",
+                        "title": "Phase allocation",
+                        "xlabel": "Phase",
+                        "ylabel": "Share (%)",
+                        "data": {"labels": ["Q1", "Q2"], "series": series},
+                    }]
+                },
+                run_dir / "section_drafts" / "figure_plan.json",
+            )
+
+            self.assertEqual(report["hard_issues"], [])
+            self.assertFalse(
+                any(
+                    issue.get("type") == "too_many_data_points" and issue.get("threshold") == 3
+                    for issue in report["issues"]
+                )
+            )
+
+    def test_audit_accepts_transformed_starter_plan(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            run_dir = run_dir_for(state)
+            evidence_path = run_dir / "evidence_ledger.jsonl"
+            evidence_path.write_text(json.dumps({
+                "evidence_id": "E1",
+                "source_id": "regional_sales",
+                "source_file_name": "regional_sales.csv",
+                "granularity": "table",
+                "content": "Regional sales count by region",
+                "table_data": [
+                    ["Region", "Sales count"],
+                    ["North", "10"],
+                    ["North", "15"],
+                    ["South", "8"],
+                ],
+            }) + "\n", encoding="utf-8")
+            state.sources["evidence_ledger_path"] = str(evidence_path)
+            run_figure_recommend(state)
+            write_agent_task_briefs(state)
+
+            audited = run_figure_plan_audit(state)
+            report = json.loads(Path(audited.qa["figure_plan_audit_report_path"]).read_text(encoding="utf-8"))
+
+            self.assertEqual(report["hard_issues"], [])
+            self.assertEqual(report["status"], "passed")
+
+    def test_audit_warns_when_transformed_plan_metadata_is_removed(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "regional_sales",
+                "source_file_name": "regional_sales.csv",
+                "granularity": "table",
+                "content": "Regional sales amount by region",
+                "table_data": [
+                    ["Region", "Sales"],
+                    ["North", "10"],
+                    ["North", "15"],
+                    ["South", "8"],
+                ],
+            }]
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+            plan = {
+                "figures": [{
+                    "figure_id": rec["figure_plan"]["figure_id"],
+                    "figure_type": rec["figure_plan"]["figure_type"],
+                    "recommendation_id": rec["recommendation_id"],
+                    "source_evidence_ids": ["E1"],
+                    "title": rec["figure_plan"]["title"],
+                    "xlabel": rec["figure_plan"]["xlabel"],
+                    "ylabel": rec["figure_plan"]["ylabel"],
+                    "data": rec["figure_plan"]["data"],
+                }]
+            }
+
+            report = audit_figure_plan(state, [rec], plan, run_dir_for(state) / "section_drafts" / "figure_plan.json")
+
+            self.assertEqual(report["hard_issues"], [])
+            self.assertIn(
+                "transformed_recommendation_without_provenance",
+                {issue["type"] for issue in report["issues"]},
+            )
+
+    def test_audit_hard_blocks_unsupported_figure_type(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            run_dir = run_dir_for(state)
+
+            report = audit_figure_plan(
+                state,
+                [],
+                {"figures": [{"figure_id": "bad", "figure_type": "radar", "data": {}}]},
+                run_dir / "section_drafts" / "figure_plan.json",
+            )
+
+            self.assertEqual(report["status"], "failed")
+            self.assertEqual(report["hard_issues"][0]["type"], "unsupported_figure_type")
+
+    def test_audit_hard_blocks_unsupported_output_format(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            run_dir = run_dir_for(state)
+
+            report = audit_figure_plan(
+                state,
+                [],
+                {
+                    "figures": [{
+                        "figure_id": "bad_format",
+                        "figure_type": "bar",
+                        "output_format": "pdf",
+                        "data": {"labels": ["A", "B"], "series": [{"name": "Value", "values": [1, 2]}]},
+                    }]
+                },
+                run_dir / "section_drafts" / "figure_plan.json",
+            )
+
+            self.assertEqual(report["status"], "failed")
+            self.assertEqual(report["hard_issues"][0]["type"], "unsupported_output_format")
+
     def test_run_figure_recommend_writes_report_path(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             state = _state(tmpdir)
@@ -505,6 +1034,123 @@ class FigurePlanAuditTests(unittest.TestCase):
             self.assertTrue(path.exists())
             payload = json.loads(path.read_text(encoding="utf-8"))
             self.assertEqual(payload["recommendation_count"], 1)
+
+
+class ExpandedFigureBuildTests(unittest.TestCase):
+    def test_builds_all_new_supported_figure_types(self):
+        try:
+            import matplotlib  # noqa: F401
+        except Exception as exc:
+            self.skipTest(f"matplotlib is not available: {exc}")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            run_dir = run_dir_for(state)
+            draft_dir = run_dir / "section_drafts"
+            draft_dir.mkdir(parents=True, exist_ok=True)
+            (draft_dir / "figure_plan.json").write_text(json.dumps({
+                "figures": [
+                    {
+                        "figure_id": "hist",
+                        "figure_type": "histogram",
+                        "title": "Reading distribution",
+                        "xlabel": "Reading",
+                        "ylabel": "Frequency count",
+                        "data": {"values": [1, 2, 2, 3, 4, 4, 5], "bins": 4},
+                    },
+                    {
+                        "figure_id": "box",
+                        "figure_type": "boxplot",
+                        "title": "Grouped spread",
+                        "xlabel": "Group",
+                        "ylabel": "Measured value",
+                        "data": {"series": [{"name": "A", "values": [1, 2, 3]}, {"name": "B", "values": [2, 3, 4]}]},
+                    },
+                    {
+                        "figure_id": "heat",
+                        "figure_type": "heatmap",
+                        "title": "Matrix intensity",
+                        "xlabel": "Column",
+                        "ylabel": "Row",
+                        "data": {"x_labels": ["A", "B"], "y_labels": ["R1", "R2"], "values": [[1, 2], [3, 4]]},
+                    },
+                    {
+                        "figure_id": "err",
+                        "figure_type": "error_bar",
+                        "title": "Mean with error",
+                        "xlabel": "Sample",
+                        "ylabel": "Mean value",
+                        "data": {"labels": ["A", "B"], "series": [{"name": "Mean", "values": [1, 2], "errors": [0.1, 0.2]}]},
+                    },
+                    {
+                        "figure_id": "stack",
+                        "figure_type": "stacked_bar",
+                        "title": "Composition",
+                        "xlabel": "Phase",
+                        "ylabel": "Share percent",
+                        "data": {
+                            "labels": ["Q1", "Q2"],
+                            "series": [{"name": "A", "values": [40, 30]}, {"name": "B", "values": [60, 70]}],
+                        },
+                    },
+                ]
+            }), encoding="utf-8")
+
+            built = run_figure_build(state)
+            manifest_path = Path(built.output["figure_manifest_path"])
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+            self.assertEqual(manifest["generated_count"], 5)
+            self.assertEqual(manifest["error_count"], 0)
+            for entry in manifest["figures"]:
+                path = Path(entry["path"])
+                self.assertTrue(path.exists(), entry)
+                self.assertGreater(path.stat().st_size, 0, entry)
+
+    def test_build_sanitizes_figure_path_and_rejects_bad_format(self):
+        try:
+            import matplotlib  # noqa: F401
+        except Exception as exc:
+            self.skipTest(f"matplotlib is not available: {exc}")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            run_dir = run_dir_for(state)
+            draft_dir = run_dir / "section_drafts"
+            draft_dir.mkdir(parents=True, exist_ok=True)
+            (draft_dir / "figure_plan.json").write_text(json.dumps({
+                "figures": [
+                    {
+                        "figure_id": "..\\outside/report",
+                        "figure_type": "bar",
+                        "title": "Escaped path attempt",
+                        "xlabel": "Category",
+                        "ylabel": "Value count",
+                        "output_format": "png",
+                        "data": {"labels": ["A", "B"], "series": [{"name": "Value", "values": [1, 2]}]},
+                    },
+                    {
+                        "figure_id": "bad_format",
+                        "figure_type": "bar",
+                        "title": "Bad format",
+                        "xlabel": "Category",
+                        "ylabel": "Value count",
+                        "output_format": "pdf",
+                        "data": {"labels": ["A", "B"], "series": [{"name": "Value", "values": [1, 2]}]},
+                    },
+                ]
+            }), encoding="utf-8")
+
+            built = run_figure_build(state)
+            manifest_path = Path(built.output["figure_manifest_path"])
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+            self.assertEqual(manifest["generated_count"], 1)
+            self.assertEqual(manifest["error_count"], 1)
+            self.assertIn("unsupported output_format", manifest["errors"][0])
+            output_path = Path(manifest["figures"][0]["path"])
+            self.assertEqual(output_path.parent, run_dir / "figures")
+            self.assertEqual(output_path.name, "outside_report.png")
 
 
 def run_figure_recommend_with_composition_data(state: ReportState) -> None:

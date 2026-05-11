@@ -253,6 +253,8 @@ def run_artifacts(state: ReportState) -> ReportState:
         "factuality_report.json": state.qa.get("factuality_report_path"),
         "qa_summary.json": state.qa.get("qa_summary_path"),
         "engineering_audit_report.json": state.qa.get("engineering_audit_report_path"),
+        "figure_recommendations.json": state.output.get("figure_recommendations_path"),
+        "figure_plan_audit_report.json": state.qa.get("figure_plan_audit_report_path"),
         "post_render_repair_report.json": state.runtime.get("post_render_repair_report_path"),
         "post_render_validate_report.json": state.runtime.get("post_render_validate_report_path"),
         "post_render_layout_manifest.json": layout_manifest_path,

@@ -90,21 +90,34 @@ def run_supplementary_package_build(state: ReportState) -> ReportState:
         shutil.copy(figure_manifest, dest)
         files_added.append({"role": "supplementary_figure_manifest", "path": str(dest)})
 
-    # 7. Style Issues Report
+    # 7. Figure Recommendation and Audit Reports
+    figure_recommendations = state.output.get("figure_recommendations_path", "")
+    if figure_recommendations and Path(figure_recommendations).exists():
+        dest = supp_dir / "figure_recommendations.json"
+        shutil.copy(figure_recommendations, dest)
+        files_added.append({"role": "supplementary_figure_recommendations", "path": str(dest)})
+
+    figure_plan_audit = state.qa.get("figure_plan_audit_report_path", "")
+    if figure_plan_audit and Path(figure_plan_audit).exists():
+        dest = supp_dir / "figure_plan_audit_report.json"
+        shutil.copy(figure_plan_audit, dest)
+        files_added.append({"role": "supplementary_figure_plan_audit", "path": str(dest)})
+
+    # 8. Style Issues Report
     style_issues = state.drafts.get("style_issues_report_path", "")
     if style_issues and Path(style_issues).exists():
         dest = supp_dir / "style_issues_report.json"
         shutil.copy(style_issues, dest)
         files_added.append({"role": "supplementary_style_issues", "path": str(dest)})
 
-    # 8. Guideline Coverage (if academic)
+    # 9. Guideline Coverage (if academic)
     guideline_coverage = state.governance.get("guideline_coverage_path", "")
     if guideline_coverage and Path(guideline_coverage).exists():
         dest = supp_dir / "guideline_coverage_matrix.json"
         shutil.copy(guideline_coverage, dest)
         files_added.append({"role": "supplementary_guideline_coverage", "path": str(dest)})
 
-    # 9. Section Role Report
+    # 10. Section Role Report
     section_role = state.qa.get("section_role_report_path", "")
     if section_role and Path(section_role).exists():
         dest = supp_dir / "section_role_report.json"
