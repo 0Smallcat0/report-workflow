@@ -264,7 +264,16 @@ class AutoFigurePlanTests(unittest.TestCase):
             self.assertEqual(state.plan["auto_figure_plan_count"], 1)
 
             outline_task = run_dir_for(state) / "agent_tasks" / "02_outline_plan.md"
-            self.assertIn("Starter Figure Plan", outline_task.read_text(encoding="utf-8"))
+            outline_text = outline_task.read_text(encoding="utf-8")
+            self.assertIn("Starter Figure Plan", outline_text)
+            self.assertIn("Recommended Figure Usage Map", outline_text)
+            self.assertIn("sections.results.figure_ids", outline_text)
+            self.assertIn("[FIGURE:figrec_1]", outline_text)
+
+            section_task = run_dir_for(state) / "agent_tasks" / "03_section_draft.md"
+            section_text = section_task.read_text(encoding="utf-8")
+            self.assertIn("Recommended figure usage map", section_text)
+            self.assertIn("evidence `E1`", section_text)
 
     def test_agent_tasks_preserves_existing_figure_plan(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -394,6 +403,68 @@ class FigurePlanAuditTests(unittest.TestCase):
 
             self.assertEqual(report["status"], "passed_with_warnings")
             self.assertEqual(report["issues"][0]["type"], "chart_type_mismatch")
+
+    def test_audit_reports_chart_readability_warnings(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            run_figure_recommend_with_composition_data(state)
+            recommendations = json.loads(
+                Path(state.output["figure_recommendations_path"]).read_text(encoding="utf-8")
+            )["recommendations"]
+            labels = [
+                f"Very long category label that should be shortened {index}"
+                for index in range(13)
+            ]
+            plan = {
+                "figures": [
+                    {
+                        "figure_id": "figrec_1",
+                        "figure_type": "bar",
+                        "recommendation_id": "figrec_1",
+                        "source_evidence_ids": ["E1"],
+                        "title": "Chart Title",
+                        "xlabel": "",
+                        "ylabel": "Metric",
+                        "data": {
+                            "labels": labels,
+                            "series": [
+                                {"name": "Series 1", "values": list(range(13))},
+                                {"name": "Series 2", "values": list(range(13))},
+                                {"name": "Series 3", "values": list(range(13))},
+                                {"name": "Series 4", "values": list(range(13))},
+                            ],
+                        },
+                    },
+                    {
+                        "figure_id": "manual_pie",
+                        "figure_type": "pie",
+                        "chart_selection_reason": "Manual composition comparison.",
+                        "title": "Segment split",
+                        "data": {
+                            "labels": [f"S{index}" for index in range(7)],
+                            "series": [{"name": "Share", "values": [1, 1, 1, 1, 1, 1, 1]}],
+                        },
+                    },
+                ]
+            }
+
+            report = audit_figure_plan(
+                state,
+                recommendations,
+                plan,
+                run_dir_for(state) / "section_drafts" / "figure_plan.json",
+            )
+
+            issue_types = {issue["type"] for issue in report["issues"]}
+            self.assertEqual(report["status"], "passed_with_warnings")
+            self.assertIn("missing_chart_title", issue_types)
+            self.assertIn("missing_axis_label", issue_types)
+            self.assertIn("unit_label_unclear", issue_types)
+            self.assertIn("legend_label_missing", issue_types)
+            self.assertIn("category_labels_too_long", issue_types)
+            self.assertIn("too_many_categories", issue_types)
+            self.assertIn("too_many_data_points", issue_types)
+            self.assertIn("pie_too_many_categories", issue_types)
 
     def test_audit_hard_blocks_non_list_figures(self):
         with tempfile.TemporaryDirectory() as tmpdir:

@@ -100,6 +100,45 @@ def _read_figure_recommendation_summary(path: str | None, limit: int = 8) -> str
     return header + "\n".join(rows)
 
 
+def _read_recommended_figure_usage_map(path: str | None, limit: int = 8) -> str:
+    if not path or not Path(path).exists():
+        return "(no recommended figure usage map available)"
+    try:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    except Exception as exc:
+        return f"(recommended figure usage map could not be read: {exc})"
+    recommendations = payload.get("recommendations", []) if isinstance(payload, dict) else []
+    rows = []
+    for rec in recommendations[:limit]:
+        if not isinstance(rec, dict):
+            continue
+        plan = rec.get("figure_plan", {})
+        if not isinstance(plan, dict):
+            continue
+        figure_id = plan.get("figure_id") or rec.get("recommendation_id") or "?"
+        section_id = plan.get("section_id") or rec.get("section_id") or "results"
+        evidence_ids = plan.get("source_evidence_ids") or rec.get("evidence_ids") or []
+        if not isinstance(evidence_ids, list):
+            evidence_ids = []
+        recommended_type = rec.get("recommended_figure_type") or plan.get("figure_type") or "?"
+        rows.append(
+            (
+                "- `{figure_id}` -> outline `sections.{section_id}.figure_ids`; "
+                "draft `{section_id}.md`; place `[FIGURE:{figure_id}]` at the first paragraph "
+                "that discusses evidence `{evidence}`; recommended chart `{recommended_type}`."
+            ).format(
+                figure_id=figure_id,
+                section_id=section_id,
+                evidence=", ".join(str(item) for item in evidence_ids) or "unknown",
+                recommended_type=recommended_type,
+            )
+        )
+    if not rows:
+        return "(no recommendation entries contained usable figure_plan guidance)"
+    header = "Recommended figure usage map:\n"
+    return header + "\n".join(rows)
+
+
 def _recommended_figure_plans(path: str | None) -> tuple[list[dict], str]:
     if not path or not Path(path).exists():
         return [], "skipped_no_recommendations"
@@ -197,6 +236,7 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
     evidence_summary = _read_jsonl_compact_summary(evidence_path)
     figure_recommendations_path = state.output.get("figure_recommendations_path", "")
     figure_recommendation_summary = _read_figure_recommendation_summary(figure_recommendations_path)
+    recommended_figure_usage_map = _read_recommended_figure_usage_map(figure_recommendations_path)
     auto_figure_plan = _write_auto_figure_plan(state, figure_recommendations_path)
     auto_figure_plan_guidance = _auto_figure_plan_guidance(auto_figure_plan)
     task_intent = state.spec.get("task_intent", "new_draft")
@@ -336,6 +376,9 @@ Use this deterministic chart-selection guidance when deciding `figure_ids` and f
 
 ## Starter Figure Plan
 {auto_figure_plan_guidance}
+
+## Recommended Figure Usage Map
+{recommended_figure_usage_map}
 
 ## Hard Rules
 - Assign every claim to at least one non-reference/non-appendix section.
@@ -502,6 +545,14 @@ If `{figure_recommendations_path}` contains recommendations, use them to avoid o
 - Category/value comparisons should use `bar`.
 - Two numeric variables should use `scatter`.
 - Exact measurement/calculation values should stay as a table.
+
+{recommended_figure_usage_map}
+
+For every figure you keep from that map, put its ID in the named outline
+`figure_ids` array and place the exact `[FIGURE:<figure_id>]` marker at the
+first body paragraph that discusses the listed evidence. If a recommended
+figure does not fit the narrative, remove it from `figure_plan.json` rather
+than leaving an unused planned chart.
 
 When you create `{run_dir / "section_drafts" / "figure_plan.json"}`, each generated chart should include:
 

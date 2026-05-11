@@ -22,7 +22,7 @@ import re
 from pathlib import Path
 
 from ..errors import QAHardBlockError
-from ..state import ReportState
+from ..state import ReportState, run_dir_for
 from ..runtime_support import write_json_artifact
 from ..policies import get_policy
 
@@ -34,18 +34,18 @@ logger = logging.getLogger(__name__)
 # Helpers
 # ------------------------------------------------------------------
 
-# Pattern: [FIGURE:id] or [FIGURE:id caption text]
-_FIGURE_PLACEHOLDER_RE = re.compile(r"\[FIGURE:([^\]]+)\]", re.IGNORECASE)
+# Pattern: [FIGURE:id] or [FIGURE:id caption text], matching DOCX_RENDER.
+_FIGURE_PLACEHOLDER_RE = re.compile(r"\[FIGURE:\s*([^\]\s]+)(?:\s+([^\]]+))?\]", re.IGNORECASE)
 
 # Pattern: prose reference to a figure, e.g. "see figure 1", "figure 2 shows".
 _FIGURE_PROSE_RE = re.compile(
-    r"\b(?:see\s+figure\s+|figure\s+)(\d+|[a-z])\b(?!\s*:)",
+    r"\b(?:see\s+figure\s+|figure\s+)([a-z]|\d+|[a-z0-9_.-]*[\d_.-][a-z0-9_.-]*)\b(?!\s*:)",
     re.IGNORECASE,
 )
 
 # Pattern: caption start, e.g. "Figure 1:" or "[Figure 1]" at start of line/sentence.
 _FIGURE_CAPTION_RE = re.compile(
-    r"(?:^|(?<=\n))(\[?Figure\s+(\d+|[a-z])\]?:?\s+)",
+    r"(?:^|(?<=\n))(\[?Figure\s+([a-z]|\d+|[a-z0-9_.-]*[\d_.-][a-z0-9_.-]*)\]?:?\s+)",
     re.IGNORECASE | re.MULTILINE,
 )
 
@@ -60,6 +60,171 @@ def _extract_prose_refs(text: str) -> set[str]:
 
 def _extract_captions(text: str) -> set[str]:
     return {m.group(2).lower() for m in _FIGURE_CAPTION_RE.finditer(text)}
+
+
+def _extract_known_prose_refs(text: str, known_ids: set[str]) -> set[str]:
+    refs = _extract_prose_refs(text)
+    for figure_id in known_ids:
+        if not figure_id:
+            continue
+        pattern = re.compile(
+            rf"\b(?:see\s+figure\s+|figure\s+){re.escape(figure_id)}\b(?!\s*:)",
+            re.IGNORECASE,
+        )
+        if pattern.search(text):
+            refs.add(figure_id.lower())
+    return refs
+
+
+def _extract_known_captions(text: str, known_ids: set[str]) -> set[str]:
+    captions = _extract_captions(text)
+    for figure_id in known_ids:
+        if not figure_id:
+            continue
+        pattern = re.compile(
+            rf"(?:^|(?<=\n))\[?Figure\s+{re.escape(figure_id)}\]?:?\s+",
+            re.IGNORECASE | re.MULTILINE,
+        )
+        if pattern.search(text):
+            captions.add(figure_id.lower())
+    return captions
+
+
+def _read_json_object(path: str | Path | None) -> dict:
+    if not path:
+        return {}
+    candidate = Path(path)
+    if not candidate.exists():
+        return {}
+    try:
+        payload = json.loads(candidate.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    return payload if isinstance(payload, dict) else {}
+
+
+def _planned_figures(state: ReportState) -> list[dict]:
+    plan_path = run_dir_for(state) / "section_drafts" / "figure_plan.json"
+    payload = _read_json_object(plan_path)
+    figures = payload.get("figures", [])
+    return [figure for figure in figures if isinstance(figure, dict)]
+
+
+def _recommendation_keys(recommendations: list[dict]) -> tuple[set[str], set[str]]:
+    recommendation_ids = {
+        str(rec.get("recommendation_id"))
+        for rec in recommendations
+        if isinstance(rec, dict) and rec.get("recommendation_id")
+    }
+    evidence_ids: set[str] = set()
+    for rec in recommendations:
+        if not isinstance(rec, dict):
+            continue
+        for evidence_id in rec.get("evidence_ids", []) or []:
+            if evidence_id:
+                evidence_ids.add(str(evidence_id))
+    return recommendation_ids, evidence_ids
+
+
+def _figure_evidence_ids(figure: dict) -> set[str]:
+    values: set[str] = set()
+    for key in ("source_evidence_id", "evidence_id"):
+        raw = figure.get(key)
+        if raw:
+            values.add(str(raw))
+    for key in ("source_evidence_ids", "evidence_ids"):
+        raw_list = figure.get(key) or []
+        if isinstance(raw_list, list):
+            values.update(str(item) for item in raw_list if item)
+    return values
+
+
+def _is_recommendation_backed_figure(figure: dict, recommendation_ids: set[str], evidence_ids: set[str]) -> bool:
+    recommendation_id = str(figure.get("recommendation_id") or "")
+    if recommendation_id and recommendation_id in recommendation_ids:
+        return True
+    return bool(_figure_evidence_ids(figure) & evidence_ids)
+
+
+def _body_mentions_figure_id(merged_text: str, figure_id: str) -> bool:
+    if not figure_id:
+        return False
+    normalized = figure_id.lower()
+    if normalized in _extract_figure_placeholders(merged_text):
+        return True
+    pattern = re.compile(
+        rf"\b(?:see\s+figure\s+|figure\s+){re.escape(figure_id)}\b(?!\s*:)",
+        re.IGNORECASE,
+    )
+    return bool(pattern.search(merged_text))
+
+
+def _figure_recommendations_payload(state: ReportState) -> dict:
+    output_path = state.output.get("figure_recommendations_path", "")
+    payload = _read_json_object(output_path)
+    if payload:
+        return payload
+    return _read_json_object(run_dir_for(state) / "figure_recommendations.json")
+
+
+def _check_planned_figure_usage(
+    state: ReportState,
+    merged_text: str,
+    outline_figure_ids: list[str],
+) -> list[dict]:
+    recommendations_payload = _figure_recommendations_payload(state)
+    recommendations = [
+        rec for rec in recommendations_payload.get("recommendations", [])
+        if isinstance(rec, dict)
+    ]
+    if not recommendations:
+        return []
+
+    figures = _planned_figures(state)
+    if not figures:
+        return []
+
+    recommendation_ids, evidence_ids = _recommendation_keys(recommendations)
+    outline_ids = {str(fid).lower() for fid in outline_figure_ids}
+    recommendation_backed_figures = [
+        figure
+        for figure in figures
+        if _is_recommendation_backed_figure(figure, recommendation_ids, evidence_ids)
+    ]
+
+    unused: list[dict] = []
+    for index, figure in enumerate(recommendation_backed_figures):
+        figure_id = str(figure.get("figure_id") or f"index_{index}").strip()
+        if not figure_id:
+            continue
+        normalized = figure_id.lower()
+        if normalized in outline_ids or _body_mentions_figure_id(merged_text, figure_id):
+            continue
+        unused.append({
+            "type": "planned_figure_not_used",
+            "severity": "warning",
+            "figure_id": figure_id,
+            "recommendation_id": figure.get("recommendation_id", ""),
+            "section_id": figure.get("section_id", ""),
+            "detail": (
+                f"Figure '{figure_id}' is present in figure_plan.json but is not listed in "
+                "outline figure_ids and is not referenced in the draft body."
+            ),
+            "repair_hint": (
+                f"Add '{figure_id}' to the target section figure_ids and place "
+                f"[FIGURE:{figure_id}] where the cited evidence is discussed, or remove the planned figure."
+            ),
+        })
+
+    if unused and len(unused) == len(recommendation_backed_figures):
+        unused.append({
+            "type": "recommended_figure_plan_unused",
+            "severity": "warning",
+            "figure_ids": [issue["figure_id"] for issue in unused if issue.get("type") == "planned_figure_not_used"],
+            "detail": "All recommendation-backed figures in figure_plan.json are unused by outline and draft body.",
+            "repair_hint": "Use the recommended figures in the outline/draft or remove the unused figure plans.",
+        })
+    return unused
 
 
 # ------------------------------------------------------------------
@@ -113,10 +278,9 @@ def _check_figure_contract(
     issues = []
 
     placeholders = _extract_figure_placeholders(merged_text)
-    prose_refs = _extract_prose_refs(merged_text)
-    captions = _extract_captions(merged_text)
-
     outline_ids = {str(fid).lower() for fid in outline_figure_ids}
+    prose_refs = _extract_known_prose_refs(merged_text, placeholders | outline_ids)
+    captions = _extract_known_captions(merged_text, placeholders | outline_ids)
     all_fig_ids = placeholders | outline_ids
     issue_severity = "hard" if hard_contract else "soft"
 
@@ -218,7 +382,13 @@ def run_figure_quality(state: ReportState) -> ReportState:
     if contract_issues:
         all_issues.extend(contract_issues)
 
-    # 3. Figure manifest reality check: outline declared figures but no manifest
+    # 3. Warning-only usage lint: planned recommendation-backed figures should
+    # either enter the outline or be referenced by the draft body.
+    usage_issues = _check_planned_figure_usage(state, merged_text, outline_figure_ids)
+    if usage_issues:
+        all_issues.extend(usage_issues)
+
+    # 4. Figure manifest reality check: outline declared figures but no manifest
     # means figure_plan.json was missing/malformed or matplotlib skipped them.
     # For academic_paper (where figures are load-bearing), this is a hard fail
     # per the user's directive: never ship a silently-missing-figure doc.
@@ -264,7 +434,10 @@ def run_figure_quality(state: ReportState) -> ReportState:
         "caption_count": len(_extract_captions(merged_text)),
         "prose_reference_count": len(_extract_prose_refs(merged_text)),
         "issues": all_issues,
-        "total_issues": sum(len(i.get("issues", [])) for i in all_issues if "issues" in i),
+        "total_issues": sum(
+            len(i.get("issues", [])) if "issues" in i else 1
+            for i in all_issues
+        ),
         "hard_issues": hard_issues,
         "status": "passed" if not hard_issues else "failed",
     }

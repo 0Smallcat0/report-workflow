@@ -1490,6 +1490,49 @@ class GuidelineCheckTests(unittest.TestCase):
 # ------------------------------------------------------------------
 
 class FigureContractCheckTests(unittest.TestCase):
+    def _write_figure_recommendations(
+        self,
+        state: ReportState,
+        recommendation_ids: list[str],
+        write_plan: bool = True,
+    ) -> None:
+        run_dir = WORKFLOW_RUNS_DIR / state.job_id
+        section_dir = run_dir / "section_drafts"
+        section_dir.mkdir(parents=True, exist_ok=True)
+        recommendations = [
+            {
+                "recommendation_id": figure_id,
+                "evidence_ids": [f"E{index + 1}"],
+                "recommended_figure_type": "bar",
+                "section_id": "results",
+            }
+            for index, figure_id in enumerate(recommendation_ids)
+        ]
+        recommendations_path = run_dir / "figure_recommendations.json"
+        recommendations_path.write_text(
+            json.dumps({"recommendations": recommendations}),
+            encoding="utf-8",
+        )
+        state.output["figure_recommendations_path"] = str(recommendations_path)
+        if not write_plan:
+            return
+        figures = [
+            {
+                "figure_id": figure_id,
+                "figure_type": "bar",
+                "recommendation_id": figure_id,
+                "source_evidence_ids": [f"E{index + 1}"],
+                "section_id": "results",
+                "title": f"Figure {index + 1}",
+                "data": {"labels": ["A"], "series": [{"name": "Value", "values": [1]}]},
+            }
+            for index, figure_id in enumerate(recommendation_ids)
+        ]
+        (section_dir / "figure_plan.json").write_text(
+            json.dumps({"figures": figures}),
+            encoding="utf-8",
+        )
+
     def test_figure_with_placeholder_prose_and_caption_passes(self):
         """All three contract elements present ??no issues."""
         text = "# Results\n\n[FIGURE:1]\n\nFigure 1: This is a chart.\n\nThe results are shown (see Figure 1).\n"
@@ -1519,6 +1562,17 @@ class FigureContractCheckTests(unittest.TestCase):
         ]
         self.assertEqual(len(prose_issues), 1)
 
+    def test_nonnumeric_figure_placeholder_with_caption_and_reference_passes(self):
+        text = (
+            "# Results\n\n"
+            "[FIGURE:summary Voltage trend]\n\n"
+            "Figure summary: Voltage trend.\n\n"
+            "The measured trend is shown in Figure summary.\n"
+        )
+        issues = _check_figure_contract(text, ["summary"], hard_contract=True)
+        all_issues = [i for i in issues if i.get("issues")]
+        self.assertEqual(all_issues, [])
+
     def test_figure_contract_node_writes_report(self):
         """Figure contract node writes figure_contract_report.json."""
         state = ReportState.new("report", [], "out")
@@ -1532,6 +1586,104 @@ class FigureContractCheckTests(unittest.TestCase):
             }
             result = run_figure_quality(state)
             self.assertNotEqual(result.qa.get("figure_quality_report_path", ""), "")
+
+    def test_figure_quality_warns_when_recommended_plan_is_unused(self):
+        state = ReportState.new("report", [], "out")
+        state.spec["report_profile"] = "business_report"
+        state.plan["outline"] = {"sections": {"results": {"figure_ids": []}}}
+        self._write_figure_recommendations(state, ["figrec_1"])
+        with tempfile.TemporaryDirectory() as tmpdir:
+            merged = Path(tmpdir) / "merged.md"
+            merged.write_text("# Results\n\nNo figure is discussed here.\n", encoding="utf-8")
+            state.drafts["merged_draft_md"] = str(merged)
+
+            result = run_figure_quality(state)
+            report = json.loads(Path(result.qa["figure_quality_report_path"]).read_text(encoding="utf-8"))
+
+        issue_types = {issue.get("type") for issue in report["issues"] if "type" in issue}
+        self.assertIn("planned_figure_not_used", issue_types)
+        self.assertIn("recommended_figure_plan_unused", issue_types)
+        self.assertEqual(report["hard_issues"], [])
+
+    def test_figure_quality_uses_run_dir_recommendations_when_state_path_missing(self):
+        state = ReportState.new("report", [], "out")
+        state.spec["report_profile"] = "business_report"
+        state.plan["outline"] = {"sections": {"results": {"figure_ids": []}}}
+        self._write_figure_recommendations(state, ["figrec_1"])
+        state.output.pop("figure_recommendations_path", None)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            merged = Path(tmpdir) / "merged.md"
+            merged.write_text("# Results\n\nNo figure is discussed here.\n", encoding="utf-8")
+            state.drafts["merged_draft_md"] = str(merged)
+
+            result = run_figure_quality(state)
+            report = json.loads(Path(result.qa["figure_quality_report_path"]).read_text(encoding="utf-8"))
+
+        issue_types = {issue.get("type") for issue in report["issues"] if "type" in issue}
+        self.assertIn("planned_figure_not_used", issue_types)
+
+    def test_figure_quality_warns_only_for_unused_recommended_planned_figures(self):
+        state = ReportState.new("report", [], "out")
+        state.spec["report_profile"] = "business_report"
+        state.plan["outline"] = {"sections": {"results": {"figure_ids": []}}}
+        self._write_figure_recommendations(state, ["figrec_1", "figrec_2"])
+        with tempfile.TemporaryDirectory() as tmpdir:
+            merged = Path(tmpdir) / "merged.md"
+            merged.write_text(
+                "# Results\n\n"
+                "[FIGURE:figrec_1]\n\n"
+                "Figure figrec_1: Used chart.\n\n"
+                "The first chart is shown in Figure figrec_1.\n",
+                encoding="utf-8",
+            )
+            state.drafts["merged_draft_md"] = str(merged)
+
+            result = run_figure_quality(state)
+            report = json.loads(Path(result.qa["figure_quality_report_path"]).read_text(encoding="utf-8"))
+
+        unused_ids = [
+            issue.get("figure_id")
+            for issue in report["issues"]
+            if issue.get("type") == "planned_figure_not_used"
+        ]
+        summary_issues = [
+            issue for issue in report["issues"]
+            if issue.get("type") == "recommended_figure_plan_unused"
+        ]
+        self.assertEqual(unused_ids, ["figrec_2"])
+        self.assertEqual(summary_issues, [])
+
+    def test_figure_quality_skips_usage_lint_without_recommendations(self):
+        state = ReportState.new("report", [], "out")
+        state.spec["report_profile"] = "business_report"
+        state.plan["outline"] = {"sections": {"results": {"figure_ids": []}}}
+        self._write_figure_recommendations(state, [])
+        with tempfile.TemporaryDirectory() as tmpdir:
+            merged = Path(tmpdir) / "merged.md"
+            merged.write_text("# Results\n\nNo figure is discussed here.\n", encoding="utf-8")
+            state.drafts["merged_draft_md"] = str(merged)
+
+            result = run_figure_quality(state)
+            report = json.loads(Path(result.qa["figure_quality_report_path"]).read_text(encoding="utf-8"))
+
+        issue_types = {issue.get("type") for issue in report["issues"] if "type" in issue}
+        self.assertNotIn("planned_figure_not_used", issue_types)
+
+    def test_figure_quality_skips_usage_lint_when_plan_is_missing(self):
+        state = ReportState.new("report", [], "out")
+        state.spec["report_profile"] = "business_report"
+        state.plan["outline"] = {"sections": {"results": {"figure_ids": []}}}
+        self._write_figure_recommendations(state, ["figrec_1"], write_plan=False)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            merged = Path(tmpdir) / "merged.md"
+            merged.write_text("# Results\n\nNo figure is discussed here.\n", encoding="utf-8")
+            state.drafts["merged_draft_md"] = str(merged)
+
+            result = run_figure_quality(state)
+            report = json.loads(Path(result.qa["figure_quality_report_path"]).read_text(encoding="utf-8"))
+
+        issue_types = {issue.get("type") for issue in report["issues"] if "type" in issue}
+        self.assertNotIn("planned_figure_not_used", issue_types)
 
     # ------------------------------------------------------------------
     # Fix #3: academic_paper flat hard issues must enter hard_issues

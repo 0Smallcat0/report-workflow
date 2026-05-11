@@ -21,6 +21,12 @@ MAX_CHART_ROWS = 24
 MAX_TABLE_FIGURE_ROWS = 12
 MIN_CHART_ROWS = 2
 NUMERIC_RATIO_THRESHOLD = 0.75
+MAX_PIE_SLICES = 6
+MAX_BAR_CATEGORIES = 12
+MAX_LINE_SCATTER_POINTS = 50
+MAX_TABLE_COLUMNS = 6
+MAX_CATEGORY_LABEL_LENGTH = 35
+MAX_LINE_BAR_SERIES = 3
 
 TIME_HEADER_TERMS = {
     "time",
@@ -692,6 +698,258 @@ def _selection_reason(figure: dict) -> str:
     )
 
 
+def _generic_title(title: str, figure_id: str) -> bool:
+    normalized = title.casefold()
+    generic_titles = {
+        "",
+        "chart",
+        "chart title",
+        "figure",
+        "figure title",
+        "publication-safe chart title",
+        "untitled",
+        "todo",
+        "tbd",
+    }
+    return normalized in generic_titles or normalized == figure_id.casefold()
+
+
+def _label_has_unit(label: str) -> bool:
+    text = label.casefold()
+    if not text:
+        return False
+    unit_tokens = (
+        "%",
+        "(",
+        ")",
+        "/",
+        "percent",
+        "percentage",
+        "share",
+        "ratio",
+        "rate",
+        "count",
+        "number",
+        "score",
+        "value",
+        "index",
+        "seconds",
+        "second",
+        "minutes",
+        "minute",
+        "hours",
+        "hour",
+        "days",
+        "day",
+        "voltage",
+        "current",
+        "temperature",
+        "mass",
+        "length",
+        "distance",
+        "time",
+    )
+    return any(token in text for token in unit_tokens)
+
+
+def _label_values(data: dict) -> list[str]:
+    labels = data.get("labels", [])
+    if isinstance(labels, list):
+        return [_clean_text(label) for label in labels]
+    rows = data.get("rows", [])
+    if isinstance(rows, list):
+        values = []
+        for row in rows:
+            if isinstance(row, list) and row:
+                values.append(_clean_text(row[0]))
+            elif isinstance(row, dict) and row:
+                first_value = next(iter(row.values()))
+                values.append(_clean_text(first_value))
+        return values
+    return []
+
+
+def _series_values(data: dict) -> list[dict]:
+    series = data.get("series", [])
+    return [item for item in series if isinstance(item, dict)] if isinstance(series, list) else []
+
+
+def _point_count(figure_type: str, data: dict) -> int:
+    if figure_type == "scatter":
+        x_vals = data.get("x", [])
+        y_vals = data.get("y", [])
+        return max(len(x_vals) if isinstance(x_vals, list) else 0, len(y_vals) if isinstance(y_vals, list) else 0)
+    series = _series_values(data)
+    if series:
+        return max((len(item.get("values", []) or []) for item in series), default=0)
+    return len(_label_values(data))
+
+
+def _readability_issue(issue_type: str, figure: dict, index: int, detail: str, repair_hint: str, **extra: Any) -> dict:
+    issue = {
+        "severity": "warning",
+        "type": issue_type,
+        "figure_id": figure.get("figure_id", f"index_{index}"),
+        "detail": detail,
+        "repair_hint": repair_hint,
+    }
+    issue.update(extra)
+    return issue
+
+
+def _chart_readability_issues(figure: dict, index: int) -> list[dict]:
+    figure_type = str(figure.get("figure_type") or "").strip().lower()
+    figure_id = str(figure.get("figure_id") or f"index_{index}")
+    title = _clean_text(figure.get("title", ""))
+    data = figure.get("data", {}) if isinstance(figure.get("data", {}), dict) else {}
+    labels = _label_values(data)
+    series = _series_values(data)
+    issues: list[dict] = []
+
+    if _generic_title(title, figure_id):
+        issues.append(_readability_issue(
+            "missing_chart_title",
+            figure,
+            index,
+            "Figure has no publication-safe title or uses a placeholder/generic title.",
+            "Add a specific chart title that names the measured relationship or comparison.",
+        ))
+
+    if figure_type in {"bar", "line", "scatter"}:
+        xlabel = _clean_text(figure.get("xlabel", ""))
+        ylabel = _clean_text(figure.get("ylabel", ""))
+        if not xlabel:
+            issues.append(_readability_issue(
+                "missing_axis_label",
+                figure,
+                index,
+                "Chart is missing an x-axis label.",
+                "Set xlabel to the category, time, or independent variable represented on the x-axis.",
+                axis="x",
+            ))
+        if not ylabel:
+            issues.append(_readability_issue(
+                "missing_axis_label",
+                figure,
+                index,
+                "Chart is missing a y-axis label.",
+                "Set ylabel to the measured value and include units when available.",
+                axis="y",
+            ))
+        elif not _label_has_unit(ylabel):
+            issues.append(_readability_issue(
+                "unit_label_unclear",
+                figure,
+                index,
+                "Y-axis label does not clearly state a unit or value scale.",
+                "Add units or a clear scale term to ylabel, such as '(V)', '(%)', 'count', or 'score'.",
+                axis="y",
+            ))
+
+    if figure_type in {"bar", "line"}:
+        if len(series) > MAX_LINE_BAR_SERIES:
+            issues.append(_readability_issue(
+                "too_many_data_points",
+                figure,
+                index,
+                f"Chart has {len(series)} series; more than {MAX_LINE_BAR_SERIES} series is hard to read.",
+                "Reduce the number of plotted series or split the chart into simpler figures.",
+                series_count=len(series),
+                threshold=MAX_LINE_BAR_SERIES,
+            ))
+        if len(series) > 1:
+            generic_names = {
+                "",
+                "series",
+                "series 1",
+                "series 2",
+                "value",
+                "values",
+                "data",
+            }
+            missing = [
+                _clean_text(item.get("name", ""))
+                for item in series
+                if _clean_text(item.get("name", "")).casefold() in generic_names
+            ]
+            if missing:
+                issues.append(_readability_issue(
+                    "legend_label_missing",
+                    figure,
+                    index,
+                    "Multi-series chart has missing or generic legend labels.",
+                    "Give each series a meaningful name that matches the source evidence.",
+                ))
+
+    if figure_type == "bar" and len(labels) > MAX_BAR_CATEGORIES:
+        issues.append(_readability_issue(
+            "too_many_categories",
+            figure,
+            index,
+            f"Bar chart has {len(labels)} categories; more than {MAX_BAR_CATEGORIES} is hard to scan.",
+            "Group minor categories, switch to a table, or split the chart.",
+            category_count=len(labels),
+            threshold=MAX_BAR_CATEGORIES,
+        ))
+
+    if figure_type == "pie" and len(labels) > MAX_PIE_SLICES:
+        issues.append(_readability_issue(
+            "pie_too_many_categories",
+            figure,
+            index,
+            f"Pie chart has {len(labels)} slices; more than {MAX_PIE_SLICES} is hard to read.",
+            "Use a bar chart, group small slices, or keep exact values in a table.",
+            category_count=len(labels),
+            threshold=MAX_PIE_SLICES,
+        ))
+
+    if figure_type in {"line", "scatter"}:
+        points = _point_count(figure_type, data)
+        if points > MAX_LINE_SCATTER_POINTS:
+            issues.append(_readability_issue(
+                "too_many_data_points",
+                figure,
+                index,
+                f"Chart has {points} data points; more than {MAX_LINE_SCATTER_POINTS} may be unreadable at report scale.",
+                "Downsample, aggregate, or use a table/appendix for dense data.",
+                point_count=points,
+                threshold=MAX_LINE_SCATTER_POINTS,
+            ))
+
+    if figure_type == "table":
+        rows = data.get("rows", [])
+        columns = data.get("columns", [])
+        row_count = len(rows) if isinstance(rows, list) else 0
+        column_count = len(columns) if isinstance(columns, list) else 0
+        if row_count > MAX_TABLE_FIGURE_ROWS or column_count > MAX_TABLE_COLUMNS:
+            issues.append(_readability_issue(
+                "too_many_categories",
+                figure,
+                index,
+                (
+                    f"Table figure has {row_count} rows and {column_count} columns; "
+                    f"recommended maximum is {MAX_TABLE_FIGURE_ROWS} rows and {MAX_TABLE_COLUMNS} columns."
+                ),
+                "Trim to the key values for the main report and move full detail to supplementary material.",
+                row_count=row_count,
+                column_count=column_count,
+            ))
+
+    long_labels = [label for label in labels if len(label) > MAX_CATEGORY_LABEL_LENGTH]
+    if long_labels:
+        issues.append(_readability_issue(
+            "category_labels_too_long",
+            figure,
+            index,
+            f"{len(long_labels)} category label(s) exceed {MAX_CATEGORY_LABEL_LENGTH} characters.",
+            "Shorten labels or use a table when full category text must be preserved.",
+            examples=long_labels[:3],
+            threshold=MAX_CATEGORY_LABEL_LENGTH,
+        ))
+
+    return issues
+
+
 def audit_figure_plan(state: ReportState, recommendations: list[dict], figure_plan: dict | None, plan_path: Path) -> dict:
     """Audit figure_plan.json chart choices against deterministic recommendations."""
     issues: list[dict] = []
@@ -768,6 +1026,7 @@ def audit_figure_plan(state: ReportState, recommendations: list[dict], figure_pl
                     "detail": "Figure has chart data but no recommendation_id/source_evidence_ids/chart_selection_reason.",
                     "repair_hint": "Link the figure to a recommendation or add chart_selection_reason.",
                 })
+            issues.extend(_chart_readability_issues(figure, index))
             continue
 
         matched_recommendations.add(str(rec.get("recommendation_id")))
@@ -776,6 +1035,7 @@ def audit_figure_plan(state: ReportState, recommendations: list[dict], figure_pl
         if recommended:
             acceptable.add(recommended)
         if figure_type in acceptable:
+            issues.extend(_chart_readability_issues(figure, index))
             continue
 
         reason = _selection_reason(figure)
@@ -799,6 +1059,7 @@ def audit_figure_plan(state: ReportState, recommendations: list[dict], figure_pl
         issues.append(issue)
         if severity == "hard":
             hard_issues.append(issue)
+        issues.extend(_chart_readability_issues(figure, index))
 
     if recommendations and figures:
         unused_high_confidence = [
