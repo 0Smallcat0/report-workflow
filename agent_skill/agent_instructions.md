@@ -24,7 +24,8 @@ The workflow has three phases:
    reports, and issues.
    Publish packaging writes `final_qa_summary.json` and
    `final_qa_summary.md` to consolidate QA gate, factuality, artifact lint,
-   engineering audit, and render-layout evidence for delivery review.
+   engineering audit, chart visual-quality review, and render-layout evidence
+   for delivery review.
    It also writes `template_style_map.json` and `template_style_map.md` to
    explain reference-DOCX mode, renderer choice, applied-reference status, key
    style definitions, and rendered style usage.
@@ -292,6 +293,8 @@ Before delivery, treat figure and format checks as hard gates:
   rendered PNG pages; extracted text showing a figure title is not enough.
 - Build charts only from accepted `source_data`. Each chart needs labeled axes,
   units where applicable, readable legends, and a caption below the visual.
+- Generated charts write `figure_visual_quality_report.json` with review-only
+  checks for overlapping labels, legend placement, and heatmap density.
 - Supported generated chart types are `bar`, `line`, `scatter`, `pie`,
   `table`, `histogram`, `boxplot`, `heatmap`, `error_bar`, and
   `stacked_bar`. Prefer the deterministic recommendation, and keep exact
@@ -344,6 +347,8 @@ structure. The same file is packaged under
 For delivery readiness, inspect `final_qa_summary_path` first. It is packaged
 with a Markdown sibling under `published/qa/final_qa_summary.json` and
 `published/qa/final_qa_summary.md`.
+For chart readability review, inspect `figure_visual_quality_report_path`; the
+published package includes `published/qa/figure_visual_quality_report.json`.
 For template questions, inspect `template_style_map_path`; the published
 package includes `published/qa/template_style_map.json` and
 `published/qa/template_style_map.md`.

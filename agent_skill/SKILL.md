@@ -18,7 +18,8 @@ renderer, document size, paragraph/table/figure counts, heading and table
 previews, related render QA report paths, and any render validation issues.
 At publish time, it also writes `final_qa_summary.json` and
 `final_qa_summary.md`, a delivery-level summary that links QA gate,
-factuality, artifact lint, engineering audit, and render-layout evidence.
+factuality, artifact lint, engineering audit, chart visual-quality review, and
+render-layout evidence.
 It writes `template_style_map.json` and `template_style_map.md` to explain the
 reference DOCX mode, renderer, applied-reference status, key style definitions,
 and rendered style usage.
@@ -366,6 +367,9 @@ Chinese engineering publish checklist:
   applicable, and readable legends. Verify the DOCX has embedded drawing/image
   objects and visually inspect rendered PNG pages; text extraction that finds
   a figure title is not evidence that the chart exists.
+- Generated charts also write `figure_visual_quality_report.json`, which flags
+  review-only visual risks such as overlapping tick labels, legends covering
+  plotted data, and heatmaps that are too dense for report scale.
 - Supported generated chart types are `bar`, `line`, `scatter`, `pie`,
   `table`, `histogram`, `boxplot`, `heatmap`, `error_bar`, and
   `stacked_bar`. Prefer the deterministic recommendation, and keep exact
@@ -412,6 +416,9 @@ Failure repair order:
 For completed runs, inspect `final_qa_summary_path` or packaged
 `published/qa/final_qa_summary.json` first when reporting final delivery
 readiness; the Markdown sibling is packaged as `published/qa/final_qa_summary.md`.
+Inspect `figure_visual_quality_report_path` or packaged
+`published/qa/figure_visual_quality_report.json` when chart readability needs
+review.
 Inspect `post_render_layout_manifest_path` or packaged
 `published/qa/post_render_layout_manifest.json` when you need render-structure
 evidence for the delivered DOCX.

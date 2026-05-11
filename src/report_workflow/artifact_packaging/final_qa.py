@@ -42,6 +42,7 @@ def _build_final_qa_summary_md(summary: dict) -> str:
     engineering = summary["engineering_audit"]
     template_style = summary["template_style"]
     template_fields = summary["template_field_fill"]
+    figure_visual = summary["figure_visual_quality"]
     render = summary["render"]
     report = summary["report"]
 
@@ -76,6 +77,10 @@ def _build_final_qa_summary_md(summary: dict) -> str:
         (
             f"- Template fields: {template_fields['status']} "
             f"({template_fields['filled_count']} filled, {template_fields['warning_count']} warnings)"
+        ),
+        (
+            f"- Figure visual quality: {figure_visual['status']} "
+            f"({figure_visual['issue_count']} review issues across {figure_visual['figure_count']} figures)"
         ),
         (
             f"- Render: {render['status']} "
@@ -118,6 +123,11 @@ def build_final_qa_summary(state: ReportState, run_dir: Path) -> dict[str, str]:
     post_render_validate = load_json(state.runtime.get("post_render_validate_report_path"))
     layout = load_json(layout_manifest_path)
     visual = load_json(state.runtime.get("visual_render_check_report_path"))
+    figure_visual_path = (
+        state.qa.get("figure_visual_quality_report_path")
+        or state.output.get("figure_visual_quality_report_path")
+    )
+    figure_visual = load_json(figure_visual_path)
 
     hard_fail_reasons = state.qa.get("hard_fail_reasons", [])
     citation_audit = state.citations.get("citation_audit", [])
@@ -142,6 +152,7 @@ def build_final_qa_summary(state: ReportState, run_dir: Path) -> dict[str, str]:
     engineering_issue_count = int(engineering.get("issue_count", 0) or 0)
     template_style_warning_count = len(template_style_map.get("warnings", [])) if template_style_map else 0
     template_field_warning_count = len(template_field_fill.get("warnings", [])) if template_field_fill else 0
+    figure_visual_issue_count = int(figure_visual.get("issue_count", 0) or 0)
 
     failed = (
         state.qa.get("qa_decision") not in ("pass", None, "")
@@ -156,6 +167,7 @@ def build_final_qa_summary(state: ReportState, run_dir: Path) -> dict[str, str]:
         or engineering_issue_count > 0
         or template_style_warning_count > 0
         or template_field_warning_count > 0
+        or figure_visual_issue_count > 0
         or render_status == "review"
     )
     overall_status = "failed" if failed else ("review" if needs_review else "pass")
@@ -228,6 +240,12 @@ def build_final_qa_summary(state: ReportState, run_dir: Path) -> dict[str, str]:
             "not_found_count": int(template_field_fill.get("not_found_count", 0) or 0),
             "path": existing_path(state.output.get("template_field_fill_report_path")),
         },
+        "figure_visual_quality": {
+            "status": _check_status(figure_visual, figure_visual_issue_count),
+            "issue_count": figure_visual_issue_count,
+            "figure_count": len(figure_visual.get("figures", [])) if isinstance(figure_visual.get("figures"), list) else 0,
+            "path": existing_path(figure_visual_path),
+        },
         "render": {
             "status": render_status,
             "post_render_validate_status": post_render_validate.get("status", "missing") if post_render_validate else "missing",
@@ -246,6 +264,7 @@ def build_final_qa_summary(state: ReportState, run_dir: Path) -> dict[str, str]:
             "engineering_audit_report": existing_path(state.qa.get("engineering_audit_report_path")),
             "template_style_map": existing_path(state.output.get("template_style_map_path")),
             "template_field_fill_report": existing_path(state.output.get("template_field_fill_report_path")),
+            "figure_visual_quality_report": existing_path(figure_visual_path),
             "post_render_validate_report": existing_path(state.runtime.get("post_render_validate_report_path")),
             "post_render_layout_manifest": existing_path(layout_manifest_path),
             "visual_render_check_report": existing_path(state.runtime.get("visual_render_check_report_path")),

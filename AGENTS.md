@@ -104,8 +104,8 @@ counts, heading summary, table previews, front-matter preview, related render QA
 reports, and validation issues. `ARTIFACTS` packages it under `published/qa/`
 when present. `ARTIFACTS` also writes `final_qa_summary.json` and
 `final_qa_summary.md` as the delivery-level QA entry point, combining QA gate,
-factuality, artifact lint, engineering audit, and render-layout evidence without
-adding a new hard gate.
+factuality, artifact lint, engineering audit, chart visual-quality review, and
+render-layout evidence without adding a new hard gate.
 It also writes `template_style_map.json` and `template_style_map.md`, explaining
 the reference DOCX mode, renderer, applied reference status, key style
 definitions, rendered style usage, and template-fidelity warnings.
@@ -150,6 +150,9 @@ warnings, missing-unit notes, and simple calculation checks.
 Completed publications include `published/qa/final_qa_summary.json` and
 `published/qa/final_qa_summary.md`; inspect those first when summarizing
 delivery readiness for a user.
+Use `published/qa/figure_visual_quality_report.json` when the user asks about
+chart readability issues such as overlapping labels, legend placement, or dense
+heatmaps.
 Use `published/qa/template_style_map.json` when the user asks how the reference
 DOCX/template influenced the final render.
 Use `published/qa/template_field_fill_report.json` when the user asks whether

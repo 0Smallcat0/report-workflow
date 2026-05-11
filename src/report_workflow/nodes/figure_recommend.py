@@ -21,7 +21,7 @@ from .figure_types import (
     SUPPORTED_OUTPUT_FORMATS_SET,
     SUPPORTED_OUTPUT_FORMATS_TEXT,
 )
-from .table_transform import build_table_variants
+from .table_transform import _time_sort_key, build_table_variants
 
 
 MAX_CHART_ROWS = 24
@@ -133,6 +133,38 @@ GROUPED_DISTRIBUTION_TERMS = {
     "spread",
 }
 TEXT_MIXED_ROLE = "text/mixed"
+UNIT_TERMS = {
+    "%",
+    "percent",
+    "percentage",
+    "ratio",
+    "score",
+    "count",
+    "number",
+    "v",
+    "volt",
+    "voltage",
+    "a",
+    "amp",
+    "current",
+    "w",
+    "kw",
+    "pa",
+    "kpa",
+    "bar",
+    "c",
+    "degc",
+    "kg",
+    "g",
+    "m",
+    "cm",
+    "mm",
+    "s",
+    "sec",
+    "min",
+    "h",
+    "hr",
+}
 
 
 def _clean_text(value: Any) -> str:
@@ -151,6 +183,53 @@ def _to_float(value: Any) -> float | None:
         return float(text)
     except ValueError:
         return None
+
+
+def _unit_signature(text: Any) -> str:
+    normalized = _clean_text(text).casefold()
+    if not normalized:
+        return ""
+    paren_matches = re.findall(r"\(([^)]+)\)", normalized)
+    explicit_parenthetical = bool(paren_matches)
+    if paren_matches:
+        normalized = paren_matches[-1]
+    elif "%" in normalized:
+        return "%"
+    normalized = normalized.replace("\u00b0", "deg")
+    normalized = re.sub(r"[^a-z0-9%/]+", " ", normalized).strip()
+    if not normalized:
+        return ""
+    aliases = {
+        "amps": "a",
+        "ampere": "a",
+        "amperes": "a",
+        "current": "a",
+        "volts": "v",
+        "volt": "v",
+        "voltage": "v",
+        "percentage": "%",
+        "percent": "%",
+        "share": "%",
+        "celsius": "degc",
+        "temperature": "degc",
+        "seconds": "s",
+        "second": "s",
+        "minutes": "min",
+        "minute": "min",
+        "hours": "h",
+        "hour": "h",
+        "counts": "count",
+        "responses": "count",
+    }
+    tokens = normalized.split()
+    symbol_units = {"v", "a", "w", "kw", "pa", "kpa", "c", "kg", "g", "m", "cm", "mm", "s", "h"}
+    for token in tokens:
+        token = aliases.get(token, token)
+        if token in symbol_units and not explicit_parenthetical:
+            continue
+        if token in UNIT_TERMS:
+            return token
+    return ""
 
 
 def _rows_from_table_data(table_data: Any) -> list[list[str]]:
@@ -236,7 +315,8 @@ def _is_time_like(header: str, values: list[str]) -> bool:
     if not non_empty:
         return False
     date_like = sum(1 for value in non_empty if re.search(r"\d{4}[-/]\d{1,2}|\d{1,2}:\d{2}", value))
-    if date_like / len(non_empty) >= 0.6:
+    parsed_time_like = sum(1 for value in non_empty if _time_sort_key(value) is not None)
+    if max(date_like, parsed_time_like) / len(non_empty) >= 0.6:
         return True
     return False
 
@@ -294,13 +374,9 @@ def _is_ordered_values(values: list[str]) -> bool:
 
     date_keys: list[tuple[int, ...]] = []
     for value in non_empty:
-        match = re.match(r"^(\d{4})[-/](\d{1,2})(?:[-/](\d{1,2}))?", value)
-        if match:
-            date_keys.append(tuple(int(part) for part in match.groups(default="1")))
-            continue
-        match = re.match(r"^(\d{1,2}):(\d{2})", value)
-        if match:
-            date_keys.append(tuple(int(part) for part in match.groups()))
+        key = _time_sort_key(value)
+        if key is not None:
+            date_keys.append(key)
             continue
         return False
     deltas = [
@@ -339,6 +415,7 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
         missing_cells += missing
         numeric_values = _numeric_values(non_empty)
         numeric_ratio = len(numeric_values) / len(non_empty) if non_empty else 0.0
+        negative_count = len([value for value in numeric_values if value < 0])
         unique_values = _unique_non_empty(values)
         unique_count = len(unique_values)
         ordered = _is_ordered_values(values)
@@ -373,6 +450,8 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
             "numeric_ratio": round(numeric_ratio, 3),
             "unique_count": unique_count,
             "ordered": ordered,
+            "unit_signature": _unit_signature(header),
+            "negative_value_count": negative_count,
         })
 
     composition_total: float | None = None
@@ -387,6 +466,12 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
     role_counts: dict[str, int] = {}
     for column in columns:
         role_counts[column["role"]] = role_counts.get(column["role"], 0) + 1
+    measure_units = sorted({
+        str(column.get("unit_signature") or "")
+        for column in columns
+        if column.get("role") == "numeric_measure" and column.get("unit_signature")
+    })
+    negative_numeric_value_count = sum(int(column.get("negative_value_count", 0) or 0) for column in columns)
 
     return {
         "summary": {
@@ -400,6 +485,9 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
             "composition_value_column_count": role_counts.get("composition_value", 0),
             "composition_total": composition_total,
             "parameter_table": _is_parameter_table(headers, content),
+            "measure_unit_signatures": measure_units,
+            "mixed_measure_units": len(measure_units) > 1,
+            "negative_numeric_value_count": negative_numeric_value_count,
         },
         "columns": columns,
     }
@@ -427,6 +515,10 @@ def _selection_warnings(profile: dict) -> list[str]:
         warnings.append("ID-like numeric columns were excluded from trend and relationship chart selection.")
     if summary.get("numeric_column_count", 0) == 0 and summary.get("composition_value_column_count", 0) == 0:
         warnings.append("No reliable numeric measure column was detected.")
+    if summary.get("mixed_measure_units"):
+        warnings.append("Multiple numeric measure columns have mixed units; avoid plotting them on one shared y-axis.")
+    if summary.get("negative_numeric_value_count", 0):
+        warnings.append("Negative numeric values were detected; whole-part charts such as pie or stacked bar were excluded.")
     return warnings
 
 
@@ -686,6 +778,45 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
             "table",
             ["table"],
             "medium",
+            reason,
+            {"columns": headers, "rows": rows[1:MAX_TABLE_FIGURE_ROWS + 1]},
+            data_profile=profile,
+            chart_candidates=chart_candidates,
+            selection_warnings=warnings,
+        )
+
+    if any("Time/date labels" in warning for warning in warnings):
+        reason = (
+            "Time/date labels could not be deterministically parsed or sorted, so exact source order should remain visible."
+        )
+        chart_candidates.append(_chart_candidate("table", 0.82, "medium", reason))
+        return _make_recommendation(
+            state,
+            table,
+            rec_index,
+            "table",
+            ["table"],
+            "medium",
+            reason,
+            {"columns": headers, "rows": rows[1:MAX_TABLE_FIGURE_ROWS + 1]},
+            data_profile=profile,
+            chart_candidates=chart_candidates,
+            selection_warnings=warnings,
+        )
+
+    if summary.get("mixed_measure_units"):
+        reason = (
+            "Numeric measure columns use mixed units; keep them as a table or split them into separate charts "
+            "instead of sharing one y-axis."
+        )
+        chart_candidates.append(_chart_candidate("table", 0.91, "high", reason))
+        return _make_recommendation(
+            state,
+            table,
+            rec_index,
+            "table",
+            ["table"],
+            "high",
             reason,
             {"columns": headers, "rows": rows[1:MAX_TABLE_FIGURE_ROWS + 1]},
             data_profile=profile,
@@ -1192,6 +1323,24 @@ def _series_values(data: dict) -> list[dict]:
     return [item for item in series if isinstance(item, dict)] if isinstance(series, list) else []
 
 
+def _numeric_data_values(data: dict) -> list[float]:
+    values: list[float] = []
+    raw_values = data.get("values", [])
+    if isinstance(raw_values, list):
+        for value in raw_values:
+            if isinstance(value, list):
+                values.extend(number for item in value if (number := _to_float(item)) is not None)
+            else:
+                number = _to_float(value)
+                if number is not None:
+                    values.append(number)
+    for item in _series_values(data):
+        raw_series = item.get("values", [])
+        if isinstance(raw_series, list):
+            values.extend(number for value in raw_series if (number := _to_float(value)) is not None)
+    return values
+
+
 def _point_count(figure_type: str, data: dict) -> int:
     if figure_type == "scatter":
         x_vals = data.get("x", [])
@@ -1221,6 +1370,48 @@ def _readability_issue(issue_type: str, figure: dict, index: int, detail: str, r
     }
     issue.update(extra)
     return issue
+
+
+def _chart_semantic_issues(figure: dict, index: int) -> list[dict]:
+    figure_type = str(figure.get("figure_type") or "").strip().lower()
+    data = figure.get("data", {}) if isinstance(figure.get("data", {}), dict) else {}
+    issues: list[dict] = []
+    numeric_values = _numeric_data_values(data)
+    if figure_type in {"pie", "stacked_bar"} and any(value < 0 for value in numeric_values):
+        issues.append(_readability_issue(
+            "negative_composition_values",
+            figure,
+            index,
+            "Composition charts cannot represent negative values without misleading part-to-whole semantics.",
+            "Use a regular bar/line chart for signed values, split positive and negative components, or keep the data as a table.",
+            severity="hard",
+            negative_value_count=sum(1 for value in numeric_values if value < 0),
+        ))
+
+    if figure_type not in {"bar", "line", "error_bar", "stacked_bar"}:
+        return issues
+    series = _series_values(data)
+    if len(series) < 2:
+        return issues
+    units_by_series: dict[str, str] = {}
+    for item in series:
+        name = _clean_text(item.get("name", ""))
+        unit = _unit_signature(name)
+        if unit:
+            units_by_series[name or "<unnamed>"] = unit
+    distinct_units = sorted(set(units_by_series.values()))
+    if len(distinct_units) <= 1:
+        return issues
+    issues.append(_readability_issue(
+        "mixed_units_same_axis",
+        figure,
+        index,
+        "Multi-series chart places explicitly mixed units on one shared y-axis.",
+        "Split the series into separate charts or keep the values as a table.",
+        severity="hard",
+        units=units_by_series,
+    ))
+    return issues
 
 
 def _chart_readability_issues(figure: dict, index: int) -> list[dict]:
@@ -1504,6 +1695,10 @@ def audit_figure_plan(state: ReportState, recommendations: list[dict], figure_pl
             issues.append(issue)
             hard_issues.append(issue)
             continue
+        semantic_issues = _chart_semantic_issues(figure, index)
+        if semantic_issues:
+            issues.extend(semantic_issues)
+            hard_issues.extend(issue for issue in semantic_issues if issue.get("severity") == "hard")
         rec = recommendation_by_id.get(str(figure.get("recommendation_id") or ""))
         if rec is None:
             evidence_ids = _figure_evidence_ids(figure)

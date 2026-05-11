@@ -5,8 +5,9 @@ from pathlib import Path
 
 from report_workflow.errors import QAHardBlockError
 from report_workflow.nodes.agent_tasks import write_agent_task_briefs
-from report_workflow.nodes.figure_build import run_figure_build
+from report_workflow.nodes.figure_build import _figure_visual_quality_issues, run_figure_build
 from report_workflow.nodes.figure_recommend import (
+    MAX_TABLE_FIGURE_ROWS,
     audit_figure_plan,
     recommend_figures_from_evidence,
     run_figure_plan_audit,
@@ -472,6 +473,252 @@ class FigureRecommendationTests(unittest.TestCase):
             self.assertIn("%", rec["figure_plan"]["ylabel"])
             self.assertIn("Data were deterministically transformed", rec["figure_plan"]["chart_selection_reason"])
 
+    def test_fraction_composition_scales_to_percent(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "fraction_share",
+                "source_file_name": "fraction_share.csv",
+                "granularity": "table",
+                "content": "Segment share distribution",
+                "table_data": [
+                    ["Segment", "Share"],
+                    ["Design", "0.3"],
+                    ["Testing", "0.7"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "pie")
+            self.assertIn("scale_fraction_to_percent", rec["data_transform"]["operations"])
+            self.assertEqual(rec["figure_plan"]["data"]["series"][0]["values"], [30.0, 70.0])
+            self.assertEqual(rec["data_transform"]["percent_scale"]["input_scale"], "fraction_0_1")
+
+    def test_percent_composition_does_not_double_normalize(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "percent_share",
+                "source_file_name": "percent_share.csv",
+                "granularity": "table",
+                "content": "Segment share percentage",
+                "table_data": [
+                    ["Segment", "Share (%)"],
+                    ["Design", "30"],
+                    ["Testing", "70"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "pie")
+            self.assertNotIn("normalize_percent", rec["data_transform"]["operations"])
+            self.assertNotIn("scale_fraction_to_percent", rec["data_transform"]["operations"])
+            self.assertEqual(rec["figure_plan"]["data"]["series"][0]["values"], [30, 70])
+
+    def test_negative_composition_values_do_not_recommend_pie(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "negative_share",
+                "source_file_name": "negative_share.csv",
+                "granularity": "table",
+                "content": "Segment share distribution",
+                "table_data": [
+                    ["Segment", "Share"],
+                    ["Gain", "120"],
+                    ["Loss", "-20"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertNotEqual(rec["recommended_figure_type"], "pie")
+            self.assertIn("negative", " ".join(rec["selection_warnings"]).lower())
+
+    def test_negative_stacked_parts_do_not_recommend_stacked_bar(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "mixed_parts",
+                "source_file_name": "mixed_parts.csv",
+                "granularity": "table",
+                "content": "Allocation breakdown by phase",
+                "table_data": [
+                    ["Phase", "Revenue", "Adjustment"],
+                    ["Q1", "100", "-20"],
+                    ["Q2", "80", "10"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertNotEqual(rec["recommended_figure_type"], "stacked_bar")
+            self.assertIn("negative", " ".join(rec["selection_warnings"]).lower())
+
+    def test_mixed_unit_series_recommends_table(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "mixed_units",
+                "source_file_name": "mixed_units.csv",
+                "granularity": "table",
+                "content": "Voltage and current by condition",
+                "table_data": [
+                    ["Condition", "Voltage (V)", "Current (A)"],
+                    ["Idle", "5", "0.2"],
+                    ["Load", "4.8", "0.5"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "table")
+            self.assertTrue(rec["data_profile"]["summary"]["mixed_measure_units"])
+            self.assertIn("mixed units", rec["reason"].lower())
+
+    def test_large_mixed_unit_time_series_recommends_table(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            rows = [["Date", "Voltage (V)", "Current (A)"]]
+            rows.extend([
+                [f"2026-01-{index:02d}", str(4.5 + index / 10), str(0.1 + index / 100)]
+                for index in range(1, 15)
+            ])
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "mixed_units_long",
+                "source_file_name": "mixed_units_long.csv",
+                "granularity": "table",
+                "content": "Voltage and current by date",
+                "table_data": rows,
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "table")
+            self.assertTrue(rec["data_profile"]["summary"]["mixed_measure_units"])
+            self.assertEqual(len(rec["figure_plan"]["data"]["rows"]), MAX_TABLE_FIGURE_ROWS)
+            self.assertIn("sharing one y-axis", rec["reason"])
+
+    def test_unsorted_iso_dates_are_sorted_for_line_chart(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "dates",
+                "source_file_name": "dates.csv",
+                "granularity": "table",
+                "content": "Temperature by date",
+                "table_data": [
+                    ["Date", "Temperature (C)"],
+                    ["2026-03-01", "22"],
+                    ["2026-01-01", "18"],
+                    ["2026-02-01", "20"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "line")
+            self.assertIn("sort_time_asc", rec["data_transform"]["operations"])
+            self.assertEqual(rec["figure_plan"]["data"]["labels"], ["2026-01-01", "2026-02-01", "2026-03-01"])
+
+    def test_month_labels_are_sorted_for_line_chart(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "months",
+                "source_file_name": "months.csv",
+                "granularity": "table",
+                "content": "Temperature by month",
+                "table_data": [
+                    ["Month", "Temperature (C)"],
+                    ["Mar", "22"],
+                    ["Jan", "18"],
+                    ["February", "20"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "line")
+            self.assertIn("sort_time_asc", rec["data_transform"]["operations"])
+            self.assertEqual(rec["figure_plan"]["data"]["labels"], ["Jan", "February", "Mar"])
+
+    def test_month_year_labels_are_sorted_for_line_chart(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "month_year",
+                "source_file_name": "month_year.csv",
+                "granularity": "table",
+                "content": "Temperature by month",
+                "table_data": [
+                    ["Month", "Temperature (C)"],
+                    ["Jan 2026", "18"],
+                    ["Dec 2025", "16"],
+                    ["Feb-26", "20"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "line")
+            self.assertIn("sort_time_asc", rec["data_transform"]["operations"])
+            self.assertEqual(rec["figure_plan"]["data"]["labels"], ["Dec 2025", "Jan 2026", "Feb-26"])
+
+    def test_ambiguous_dates_are_not_sorted_and_warn(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "ambiguous_dates",
+                "source_file_name": "ambiguous_dates.csv",
+                "granularity": "table",
+                "content": "Temperature by date",
+                "table_data": [
+                    ["Date", "Temperature (C)"],
+                    ["03/01/26", "22"],
+                    ["01/01/26", "18"],
+                    ["02/01/26", "20"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "table")
+            self.assertNotIn("sort_time_asc", rec["data_transform"]["operations"])
+            self.assertIn("date", " ".join(rec["selection_warnings"]).lower())
+
+    def test_large_ambiguous_dates_recommend_table(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            rows = [["Date", "Temperature (C)"]]
+            rows.extend([[f"{index:02d}/01/26", str(18 + index)] for index in range(1, 14)])
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "ambiguous_dates_long",
+                "source_file_name": "ambiguous_dates_long.csv",
+                "granularity": "table",
+                "content": "Temperature by date",
+                "table_data": rows,
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "table")
+            self.assertEqual(len(rec["figure_plan"]["data"]["rows"]), MAX_TABLE_FIGURE_ROWS)
+            self.assertIn("date", " ".join(rec["selection_warnings"]).lower())
+
     def test_large_category_table_uses_sorted_top_n_with_other_bucket(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             state = _state(tmpdir)
@@ -854,6 +1101,55 @@ class FigurePlanAuditTests(unittest.TestCase):
             self.assertEqual(report["status"], "failed")
             self.assertEqual(report["hard_issues"][0]["type"], "malformed_figure_entry")
 
+    def test_audit_hard_blocks_negative_pie_values(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir, profile="custom")
+            run_dir = run_dir_for(state)
+            plan = {
+                "figures": [{
+                    "figure_id": "bad_pie",
+                    "figure_type": "pie",
+                    "chart_selection_reason": "Manual signed composition.",
+                    "title": "Signed share",
+                    "data": {
+                        "labels": ["Gain", "Loss"],
+                        "series": [{"name": "Share", "values": [120, -20]}],
+                    },
+                }]
+            }
+
+            report = audit_figure_plan(state, [], plan, run_dir / "section_drafts" / "figure_plan.json")
+
+            self.assertEqual(report["status"], "failed")
+            self.assertEqual(report["hard_issues"][0]["type"], "negative_composition_values")
+
+    def test_audit_hard_blocks_negative_stacked_bar_values(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir, profile="custom")
+            run_dir = run_dir_for(state)
+            plan = {
+                "figures": [{
+                    "figure_id": "bad_stack",
+                    "figure_type": "stacked_bar",
+                    "chart_selection_reason": "Manual signed stack.",
+                    "title": "Signed components",
+                    "xlabel": "Quarter",
+                    "ylabel": "Share percent",
+                    "data": {
+                        "labels": ["Q1", "Q2"],
+                        "series": [
+                            {"name": "Positive", "values": [80, 90]},
+                            {"name": "Negative", "values": [-10, -20]},
+                        ],
+                    },
+                }]
+            }
+
+            report = audit_figure_plan(state, [], plan, run_dir / "section_drafts" / "figure_plan.json")
+
+            self.assertEqual(report["status"], "failed")
+            self.assertEqual(report["hard_issues"][0]["type"], "negative_composition_values")
+
     def test_audit_accepts_supported_new_figure_types(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             state = _state(tmpdir)
@@ -1053,6 +1349,37 @@ class FigurePlanAuditTests(unittest.TestCase):
             self.assertEqual(report["status"], "failed")
             self.assertEqual(report["hard_issues"][0]["type"], "unsupported_output_format")
 
+    def test_audit_hard_blocks_unexplained_mixed_unit_multi_series(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            run_dir = run_dir_for(state)
+
+            report = audit_figure_plan(
+                state,
+                [],
+                {
+                    "figures": [{
+                        "figure_id": "mixed_units",
+                        "figure_type": "bar",
+                        "chart_selection_reason": "Both are instrument readings for the same conditions.",
+                        "title": "Voltage and current",
+                        "xlabel": "Condition",
+                        "ylabel": "Value",
+                        "data": {
+                            "labels": ["Idle", "Load"],
+                            "series": [
+                                {"name": "Voltage (V)", "values": [5, 4.8]},
+                                {"name": "Current (A)", "values": [0.2, 0.5]},
+                            ],
+                        },
+                    }]
+                },
+                run_dir / "section_drafts" / "figure_plan.json",
+            )
+
+            self.assertEqual(report["status"], "failed")
+            self.assertEqual(report["hard_issues"][0]["type"], "mixed_units_same_axis")
+
     def test_run_figure_recommend_writes_report_path(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             state = _state(tmpdir)
@@ -1179,6 +1506,104 @@ class ExpandedFigureBuildTests(unittest.TestCase):
             output_path = Path(manifest["figures"][0]["path"])
             self.assertEqual(output_path.parent, run_dir / "figures")
             self.assertEqual(output_path.name, "outside_report.png")
+
+    def test_build_writes_visual_quality_report_with_review_issues(self):
+        try:
+            import matplotlib  # noqa: F401
+        except Exception as exc:
+            self.skipTest(f"matplotlib is not available: {exc}")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            run_dir = run_dir_for(state)
+            draft_dir = run_dir / "section_drafts"
+            draft_dir.mkdir(parents=True, exist_ok=True)
+            (draft_dir / "figure_plan.json").write_text(json.dumps({
+                "figures": [
+                    {
+                        "figure_id": "crowded_bar",
+                        "figure_type": "bar",
+                        "title": "Crowded labels",
+                        "xlabel": "Category",
+                        "ylabel": "Value count",
+                        "width": 2,
+                        "height": 1.6,
+                        "data": {
+                            "labels": [f"Very long category label {index}" for index in range(8)],
+                            "series": [{"name": "Value", "values": list(range(8))}],
+                        },
+                    },
+                    {
+                        "figure_id": "dense_heat",
+                        "figure_type": "heatmap",
+                        "title": "Dense heatmap",
+                        "xlabel": "Column",
+                        "ylabel": "Row",
+                        "width": 2,
+                        "height": 1.5,
+                        "data": {
+                            "x_labels": [f"C{index}" for index in range(18)],
+                            "y_labels": [f"R{index}" for index in range(18)],
+                            "values": [[row + col for col in range(18)] for row in range(18)],
+                        },
+                    },
+                ]
+            }), encoding="utf-8")
+
+            built = run_figure_build(state)
+            report_path = Path(built.qa["figure_visual_quality_report_path"])
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+            manifest = json.loads(Path(built.output["figure_manifest_path"]).read_text(encoding="utf-8"))
+
+            self.assertEqual(report["status"], "review")
+            issue_types = {issue["type"] for issue in report["issues"]}
+            self.assertTrue({"tick_label_overlap", "dense_heatmap"} & issue_types)
+            self.assertTrue(all("visual_quality_status" in entry for entry in manifest["figures"]))
+
+    def test_build_writes_visual_quality_pass_for_clean_chart(self):
+        try:
+            import matplotlib  # noqa: F401
+        except Exception as exc:
+            self.skipTest(f"matplotlib is not available: {exc}")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            run_dir = run_dir_for(state)
+            draft_dir = run_dir / "section_drafts"
+            draft_dir.mkdir(parents=True, exist_ok=True)
+            (draft_dir / "figure_plan.json").write_text(json.dumps({
+                "figures": [{
+                    "figure_id": "clean_bar",
+                    "figure_type": "bar",
+                    "title": "Clean comparison",
+                    "xlabel": "Category",
+                    "ylabel": "Value count",
+                    "width": 6,
+                    "height": 4,
+                    "data": {"labels": ["A", "B"], "series": [{"name": "Value", "values": [1, 2]}]},
+                }]
+            }), encoding="utf-8")
+
+            built = run_figure_build(state)
+            report = json.loads(Path(built.qa["figure_visual_quality_report_path"]).read_text(encoding="utf-8"))
+
+            self.assertEqual(report["status"], "passed")
+            self.assertEqual(report["issues"], [])
+
+    def test_visual_quality_draw_failure_returns_review_issue(self):
+        class BrokenCanvas:
+            def draw(self):
+                raise RuntimeError("draw failed")
+
+        class BrokenFigure:
+            canvas = BrokenCanvas()
+
+        issues = _figure_visual_quality_issues(BrokenFigure(), object(), "broken", "bar", {})
+
+        self.assertEqual(issues[0]["type"], "visual_quality_check_failed")
+        self.assertEqual(issues[0]["severity"], "review")
+        self.assertEqual(issues[0]["figure_id"], "broken")
+        self.assertEqual(issues[0]["error_type"], "RuntimeError")
 
 
 def run_figure_recommend_with_composition_data(state: ReportState) -> None:

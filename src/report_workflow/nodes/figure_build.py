@@ -134,8 +134,148 @@ def _check_matplotlib() -> bool:
     return _MATPLOTLIB_AVAILABLE
 
 
+def _bbox_overlap(a: Any, b: Any) -> bool:
+    return bool(a and b and a.overlaps(b))
+
+
+def _text_bboxes(texts: list[Any], renderer: Any) -> list[Any]:
+    bboxes = []
+    for text in texts:
+        if not text.get_visible() or not str(text.get_text()).strip():
+            continue
+        try:
+            bbox = text.get_window_extent(renderer=renderer)
+        except Exception:
+            continue
+        if bbox.width > 0 and bbox.height > 0:
+            bboxes.append(bbox)
+    return bboxes
+
+
+def _visual_issue(issue_type: str, figure_id: str, detail: str, repair_hint: str, **extra: Any) -> dict:
+    issue = {
+        "severity": "review",
+        "type": issue_type,
+        "figure_id": figure_id,
+        "detail": detail,
+        "repair_hint": repair_hint,
+    }
+    issue.update(extra)
+    return issue
+
+
+def _overlapping_text_issue(axis: str, bboxes: list[Any], figure_id: str) -> dict | None:
+    for left_index, left in enumerate(bboxes):
+        for right in bboxes[left_index + 1:]:
+            if _bbox_overlap(left, right):
+                return _visual_issue(
+                    "tick_label_overlap",
+                    figure_id,
+                    f"{axis}-axis tick labels overlap in the rendered chart.",
+                    "Increase figure size, rotate or shorten labels, reduce categories, or use a table.",
+                    axis=axis,
+                )
+    return None
+
+
+def _dense_heatmap_issue(fig: Any, ax: Any, figure_id: str, data: dict) -> dict | None:
+    values = data.get("values", [])
+    if not isinstance(values, list) or not values:
+        return None
+    row_count = len(values)
+    column_count = max((len(row) for row in values if isinstance(row, list)), default=0)
+    if row_count == 0 or column_count == 0:
+        return None
+    axis_box = ax.get_window_extent()
+    cell_width = axis_box.width / max(column_count, 1)
+    cell_height = axis_box.height / max(row_count, 1)
+    if row_count * column_count <= 100 and cell_width >= 12 and cell_height >= 10:
+        return None
+    return _visual_issue(
+        "dense_heatmap",
+        figure_id,
+        (
+            f"Heatmap has {row_count} rows and {column_count} columns at about "
+            f"{cell_width:.1f}x{cell_height:.1f} pixels per cell."
+        ),
+        "Split the heatmap, aggregate rows/columns, use top-N, or keep exact values in a table.",
+        row_count=row_count,
+        column_count=column_count,
+        cell_width_px=round(cell_width, 1),
+        cell_height_px=round(cell_height, 1),
+    )
+
+
+def _figure_visual_quality_issues(fig: Any, ax: Any, figure_id: str, figure_type: str, data: dict) -> list[dict]:
+    try:
+        fig.canvas.draw()
+        renderer = fig.canvas.get_renderer()
+    except Exception as exc:
+        return [_visual_issue(
+            "visual_quality_check_failed",
+            figure_id,
+            "Visual quality checks could not inspect the rendered figure canvas.",
+            "Review the generated chart manually and investigate the matplotlib canvas/rendering error.",
+            error_type=type(exc).__name__,
+            error_message=str(exc),
+        )]
+
+    issues: list[dict] = []
+    x_issue = _overlapping_text_issue("x", _text_bboxes(ax.get_xticklabels(), renderer), figure_id)
+    if x_issue:
+        issues.append(x_issue)
+    y_issue = _overlapping_text_issue("y", _text_bboxes(ax.get_yticklabels(), renderer), figure_id)
+    if y_issue:
+        issues.append(y_issue)
+
+    legend = ax.get_legend()
+    if legend is not None:
+        try:
+            if _bbox_overlap(legend.get_window_extent(renderer=renderer), ax.get_window_extent(renderer=renderer)):
+                issues.append(_visual_issue(
+                    "legend_overlaps_plot_area",
+                    figure_id,
+                    "Legend overlaps the plotted data area.",
+                    "Move the legend outside the axes, shorten legend labels, or split the chart.",
+                ))
+        except Exception:
+            pass
+
+    fig_box = fig.bbox
+    text_artists = [ax.title, ax.xaxis.label, ax.yaxis.label]
+    for bbox in _text_bboxes(text_artists, renderer):
+        if bbox.x0 < fig_box.x0 or bbox.y0 < fig_box.y0 or bbox.x1 > fig_box.x1 or bbox.y1 > fig_box.y1:
+            issues.append(_visual_issue(
+                "axis_text_clipped",
+                figure_id,
+                "Title or axis label extends outside the figure bounds.",
+                "Increase figure size or shorten the title/axis label.",
+            ))
+            break
+
+    if figure_type == "heatmap":
+        issue = _dense_heatmap_issue(fig, ax, figure_id, data)
+        if issue:
+            issues.append(issue)
+    return issues
+
+
+def _legend_outside(ax: Any) -> None:
+    ax.legend(loc="center left", bbox_to_anchor=(1.02, 0.5), borderaxespad=0.0)
+
+
+def _save_figure(fig: Any, ax: Any, figure_id: str, figure_type: str, data: dict, output_path: Path, dpi: int) -> list[dict]:
+    try:
+        fig.tight_layout()
+    except Exception:
+        pass
+    issues = _figure_visual_quality_issues(fig, ax, figure_id, figure_type, data)
+    fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
+    return issues
+
+
 def _generate_bar(figure_id: str, title: str, data: dict, xlabel: str, ylabel: str,
-                  width: float, height: float, dpi: int, output_path: Path) -> None:
+                  width: float, height: float, dpi: int, output_path: Path) -> list[dict]:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -159,15 +299,15 @@ def _generate_bar(figure_id: str, title: str, data: dict, xlabel: str, ylabel: s
         ax.set_xticks(x)
         ax.set_xticklabels(labels)
     if len(series) > 1:
-        ax.legend()
+        _legend_outside(ax)
     ax.grid(axis="y", alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(output_path, dpi=dpi)
+    issues = _save_figure(fig, ax, figure_id, "bar", data, output_path, dpi)
     plt.close(fig)
+    return issues
 
 
 def _generate_line(figure_id: str, title: str, data: dict, xlabel: str, ylabel: str,
-                   width: float, height: float, dpi: int, output_path: Path) -> None:
+                   width: float, height: float, dpi: int, output_path: Path) -> list[dict]:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -188,16 +328,16 @@ def _generate_line(figure_id: str, title: str, data: dict, xlabel: str, ylabel: 
     if labels and len(labels) == len(range(len(labels))):
         ax.set_xticks(range(len(labels)))
         ax.set_xticklabels(labels)
-    if series:
-        ax.legend()
+    if len(series) > 1:
+        _legend_outside(ax)
     ax.grid(alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(output_path, dpi=dpi)
+    issues = _save_figure(fig, ax, figure_id, "line", data, output_path, dpi)
     plt.close(fig)
+    return issues
 
 
 def _generate_scatter(figure_id: str, title: str, data: dict, xlabel: str, ylabel: str,
-                      width: float, height: float, dpi: int, output_path: Path) -> None:
+                      width: float, height: float, dpi: int, output_path: Path) -> list[dict]:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -212,13 +352,13 @@ def _generate_scatter(figure_id: str, title: str, data: dict, xlabel: str, ylabe
     ax.set_ylabel(ylabel)
     ax.set_title(title)
     ax.grid(alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(output_path, dpi=dpi)
+    issues = _save_figure(fig, ax, figure_id, "scatter", data, output_path, dpi)
     plt.close(fig)
+    return issues
 
 
 def _generate_pie(figure_id: str, title: str, data: dict,
-                  width: float, height: float, dpi: int, output_path: Path) -> None:
+                  width: float, height: float, dpi: int, output_path: Path) -> list[dict]:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -230,13 +370,13 @@ def _generate_pie(figure_id: str, title: str, data: dict,
     fig, ax = plt.subplots(figsize=(width, height), dpi=dpi)
     ax.pie(values, labels=labels, autopct="%1.1f%%", startangle=140)
     ax.set_title(title)
-    fig.tight_layout()
-    fig.savefig(output_path, dpi=dpi)
+    issues = _save_figure(fig, ax, figure_id, "pie", data, output_path, dpi)
     plt.close(fig)
+    return issues
 
 
 def _generate_table(figure_id: str, title: str, data: dict,
-                   width: float, height: float, dpi: int, output_path: Path) -> None:
+                   width: float, height: float, dpi: int, output_path: Path) -> list[dict]:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -256,13 +396,13 @@ def _generate_table(figure_id: str, title: str, data: dict,
     table.set_fontsize(9)
     table.scale(1.2, 1.8)
     ax.set_title(title, pad=20)
-    fig.tight_layout()
-    fig.savefig(output_path, dpi=dpi)
+    issues = _save_figure(fig, ax, figure_id, "table", data, output_path, dpi)
     plt.close(fig)
+    return issues
 
 
 def _generate_histogram(figure_id: str, title: str, data: dict, xlabel: str, ylabel: str,
-                        width: float, height: float, dpi: int, output_path: Path) -> None:
+                        width: float, height: float, dpi: int, output_path: Path) -> list[dict]:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -280,13 +420,13 @@ def _generate_histogram(figure_id: str, title: str, data: dict, xlabel: str, yla
     ax.set_ylabel(ylabel or "Frequency")
     ax.set_title(title)
     ax.grid(axis="y", alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(output_path, dpi=dpi)
+    issues = _save_figure(fig, ax, figure_id, "histogram", data, output_path, dpi)
     plt.close(fig)
+    return issues
 
 
 def _generate_boxplot(figure_id: str, title: str, data: dict, xlabel: str, ylabel: str,
-                      width: float, height: float, dpi: int, output_path: Path) -> None:
+                      width: float, height: float, dpi: int, output_path: Path) -> list[dict]:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -304,13 +444,13 @@ def _generate_boxplot(figure_id: str, title: str, data: dict, xlabel: str, ylabe
     ax.set_ylabel(ylabel)
     ax.set_title(title)
     ax.grid(axis="y", alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(output_path, dpi=dpi)
+    issues = _save_figure(fig, ax, figure_id, "boxplot", data, output_path, dpi)
     plt.close(fig)
+    return issues
 
 
 def _generate_heatmap(figure_id: str, title: str, data: dict, xlabel: str, ylabel: str,
-                      width: float, height: float, dpi: int, output_path: Path) -> None:
+                      width: float, height: float, dpi: int, output_path: Path) -> list[dict]:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -342,13 +482,13 @@ def _generate_heatmap(figure_id: str, title: str, data: dict, xlabel: str, ylabe
     if y_labels:
         ax.set_yticks(range(len(matrix)))
         ax.set_yticklabels([str(item) for item in y_labels])
-    fig.tight_layout()
-    fig.savefig(output_path, dpi=dpi)
+    issues = _save_figure(fig, ax, figure_id, "heatmap", data, output_path, dpi)
     plt.close(fig)
+    return issues
 
 
 def _generate_error_bar(figure_id: str, title: str, data: dict, xlabel: str, ylabel: str,
-                        width: float, height: float, dpi: int, output_path: Path) -> None:
+                        width: float, height: float, dpi: int, output_path: Path) -> list[dict]:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -382,15 +522,15 @@ def _generate_error_bar(figure_id: str, title: str, data: dict, xlabel: str, yla
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
     if len(series) > 1:
-        ax.legend()
+        _legend_outside(ax)
     ax.grid(axis="y", alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(output_path, dpi=dpi)
+    issues = _save_figure(fig, ax, figure_id, "error_bar", data, output_path, dpi)
     plt.close(fig)
+    return issues
 
 
 def _generate_stacked_bar(figure_id: str, title: str, data: dict, xlabel: str, ylabel: str,
-                          width: float, height: float, dpi: int, output_path: Path) -> None:
+                          width: float, height: float, dpi: int, output_path: Path) -> list[dict]:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -415,11 +555,11 @@ def _generate_stacked_bar(figure_id: str, title: str, data: dict, xlabel: str, y
     ax.set_xticks(x)
     ax.set_xticklabels(labels)
     if len(series) > 1:
-        ax.legend()
+        _legend_outside(ax)
     ax.grid(axis="y", alpha=0.3)
-    fig.tight_layout()
-    fig.savefig(output_path, dpi=dpi)
+    issues = _save_figure(fig, ax, figure_id, "stacked_bar", data, output_path, dpi)
     plt.close(fig)
+    return issues
 
 
 # ------------------------------------------------------------------
@@ -471,6 +611,8 @@ def run_figure_build(state: ReportState) -> ReportState:
 
     manifest_entries: list[dict] = []
     errors: list[str] = []
+    visual_figure_reports: list[dict] = []
+    visual_issues: list[dict] = []
 
     for fig in figures:
         figure_id = str(fig.get("figure_id") or f"fig_{len(manifest_entries) + 1}").strip()
@@ -488,6 +630,7 @@ def run_figure_build(state: ReportState) -> ReportState:
             output_format = _output_format(fig.get("output_format", "png"))
             safe_id = _safe_figure_file_stem(figure_id, f"fig_{len(manifest_entries) + 1}")
             output_path = figures_dir / f"{safe_id}.{output_format}"
+            figure_visual_issues: list[dict] = []
             if figure_type not in SUPPORTED_FIGURE_TYPES_SET:
                 errors.append(
                     f"{figure_id}: unknown figure_type '{figure_type}'. "
@@ -495,26 +638,27 @@ def run_figure_build(state: ReportState) -> ReportState:
                 )
                 continue
             if figure_type == "bar":
-                _generate_bar(figure_id, title, data, xlabel, ylabel, width, height, dpi, output_path)
+                figure_visual_issues = _generate_bar(figure_id, title, data, xlabel, ylabel, width, height, dpi, output_path)
             elif figure_type == "line":
-                _generate_line(figure_id, title, data, xlabel, ylabel, width, height, dpi, output_path)
+                figure_visual_issues = _generate_line(figure_id, title, data, xlabel, ylabel, width, height, dpi, output_path)
             elif figure_type == "scatter":
-                _generate_scatter(figure_id, title, data, xlabel, ylabel, width, height, dpi, output_path)
+                figure_visual_issues = _generate_scatter(figure_id, title, data, xlabel, ylabel, width, height, dpi, output_path)
             elif figure_type == "pie":
-                _generate_pie(figure_id, title, data, width, height, dpi, output_path)
+                figure_visual_issues = _generate_pie(figure_id, title, data, width, height, dpi, output_path)
             elif figure_type == "table":
-                _generate_table(figure_id, title, data, width, height, dpi, output_path)
+                figure_visual_issues = _generate_table(figure_id, title, data, width, height, dpi, output_path)
             elif figure_type == "histogram":
-                _generate_histogram(figure_id, title, data, xlabel, ylabel, width, height, dpi, output_path)
+                figure_visual_issues = _generate_histogram(figure_id, title, data, xlabel, ylabel, width, height, dpi, output_path)
             elif figure_type == "boxplot":
-                _generate_boxplot(figure_id, title, data, xlabel, ylabel, width, height, dpi, output_path)
+                figure_visual_issues = _generate_boxplot(figure_id, title, data, xlabel, ylabel, width, height, dpi, output_path)
             elif figure_type == "heatmap":
-                _generate_heatmap(figure_id, title, data, xlabel, ylabel, width, height, dpi, output_path)
+                figure_visual_issues = _generate_heatmap(figure_id, title, data, xlabel, ylabel, width, height, dpi, output_path)
             elif figure_type == "error_bar":
-                _generate_error_bar(figure_id, title, data, xlabel, ylabel, width, height, dpi, output_path)
+                figure_visual_issues = _generate_error_bar(figure_id, title, data, xlabel, ylabel, width, height, dpi, output_path)
             elif figure_type == "stacked_bar":
-                _generate_stacked_bar(figure_id, title, data, xlabel, ylabel, width, height, dpi, output_path)
+                figure_visual_issues = _generate_stacked_bar(figure_id, title, data, xlabel, ylabel, width, height, dpi, output_path)
 
+            visual_status = "review" if figure_visual_issues else "passed"
             manifest_entries.append({
                 "figure_id": figure_id,
                 "figure_type": figure_type,
@@ -522,7 +666,18 @@ def run_figure_build(state: ReportState) -> ReportState:
                 "path": str(output_path),
                 "format": output_format,
                 "section_id": section_id,
+                "visual_quality_status": visual_status,
+                "visual_quality_issue_count": len(figure_visual_issues),
             })
+            visual_figure_reports.append({
+                "figure_id": figure_id,
+                "figure_type": figure_type,
+                "path": str(output_path),
+                "status": visual_status,
+                "issue_count": len(figure_visual_issues),
+                "issues": figure_visual_issues,
+            })
+            visual_issues.extend(figure_visual_issues)
             logger.info(f"[FIGURE_BUILD] Generated {output_path}")
 
         except Exception as exc:
@@ -542,6 +697,19 @@ def run_figure_build(state: ReportState) -> ReportState:
         json.dump(manifest, f, indent=2, default=str)
 
     state.output["figure_manifest_path"] = str(manifest_path)
+    visual_report = {
+        "job_id": state.job_id,
+        "status": "review" if visual_issues else "passed",
+        "generated_count": len(manifest_entries),
+        "issue_count": len(visual_issues),
+        "issues": visual_issues,
+        "figures": visual_figure_reports,
+    }
+    visual_report_path = run_dir / "figure_visual_quality_report.json"
+    with open(visual_report_path, "w", encoding="utf-8") as f:
+        json.dump(visual_report, f, indent=2, default=str)
+    state.qa["figure_visual_quality_report_path"] = str(visual_report_path)
+    state.output["figure_visual_quality_report_path"] = str(visual_report_path)
     logger.info(f"[FIGURE_BUILD] Manifest written to {manifest_path} ({len(manifest_entries)} figures)")
 
     return state

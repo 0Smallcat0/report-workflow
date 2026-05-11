@@ -87,6 +87,33 @@ TIME_HEADER_TERMS = {
     "year",
 }
 
+MONTH_ALIASES = {
+    "jan": 1,
+    "january": 1,
+    "feb": 2,
+    "february": 2,
+    "mar": 3,
+    "march": 3,
+    "apr": 4,
+    "april": 4,
+    "may": 5,
+    "jun": 6,
+    "june": 6,
+    "jul": 7,
+    "july": 7,
+    "aug": 8,
+    "august": 8,
+    "sep": 9,
+    "sept": 9,
+    "september": 9,
+    "oct": 10,
+    "october": 10,
+    "nov": 11,
+    "november": 11,
+    "dec": 12,
+    "december": 12,
+}
+
 
 def _clean(value: Any) -> str:
     return " ".join(str(value if value is not None else "").strip().split())
@@ -169,7 +196,78 @@ def _is_time_header(header: str) -> bool:
         return True
     if re.fullmatch(r"q[1-4]\s*\d{2,4}|\d{2,4}\s*q[1-4]", text):
         return True
-    return text[:3] in {"jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"}
+    return text[:3] in {month[:3] for month in MONTH_ALIASES}
+
+
+def _two_or_four_digit_year(value: str) -> int | None:
+    if not re.fullmatch(r"\d{2}|\d{4}", value):
+        return None
+    year = int(value)
+    return year + 2000 if year < 100 else year
+
+
+def _time_sort_key(value: Any) -> tuple[int, ...] | None:
+    text = _clean(value).casefold()
+    if not text:
+        return None
+    match = re.fullmatch(r"(\d{4})[-/](\d{1,2})(?:[-/](\d{1,2}))?", text)
+    if match:
+        year, month, day = match.groups(default="1")
+        return (int(year), int(month), int(day))
+    match = re.fullmatch(r"(\d{4})", text)
+    if match:
+        return (int(match.group(1)), 1, 1)
+    match = re.fullmatch(r"q([1-4])\s*(\d{2,4})|(\d{2,4})\s*q([1-4])", text)
+    if match:
+        q1, year1, year2, q2 = match.groups()
+        year = int(year1 or year2)
+        if year < 100:
+            year += 2000
+        quarter = int(q1 or q2)
+        return (year, quarter * 3 - 2, 1)
+    tokens = [token for token in re.split(r"[\s,/-]+", text) if token]
+    if len(tokens) == 1:
+        month = MONTH_ALIASES.get(tokens[0])
+        if month is not None:
+            return (0, month, 1)
+    elif len(tokens) == 2:
+        first_month = MONTH_ALIASES.get(tokens[0])
+        second_month = MONTH_ALIASES.get(tokens[1])
+        first_year = _two_or_four_digit_year(tokens[0])
+        second_year = _two_or_four_digit_year(tokens[1])
+        if first_month is not None and second_year is not None:
+            return (second_year, first_month, 1)
+        if first_year is not None and second_month is not None:
+            return (first_year, second_month, 1)
+    match = re.fullmatch(r"(\d{1,2}):(\d{2})", text)
+    if match:
+        hour, minute = match.groups()
+        return (0, 1, 1, int(hour), int(minute))
+    return None
+
+
+def _sort_time_ascending(rows: list[list[Any]]) -> tuple[list[list[Any]], list[str], list[str]]:
+    headers = _headers(rows)
+    if len(headers) < 2 or len(rows) < 3 or not _is_time_header(headers[0]):
+        return rows, [], []
+    values = [_clean(row[0]) for row in rows[1:]]
+    numeric_keys = [_to_float(value) for value in values]
+    if all(key is not None for key in numeric_keys):
+        keyed_rows = list(zip([float(key) for key in numeric_keys if key is not None], rows[1:]))
+        sorted_rows = [row for _, row in sorted(keyed_rows, key=lambda item: item[0])]
+        if sorted_rows == rows[1:]:
+            return rows, [], []
+        return [headers, *sorted_rows], ["sort_time_asc"], []
+    keys = [_time_sort_key(value) for value in values]
+    if any(key is None for key in keys):
+        return rows, [], [
+            "Time/date labels could not be deterministically parsed, so source order was preserved."
+        ]
+    keyed_rows = list(zip(keys, rows[1:]))
+    sorted_rows = [row for _, row in sorted(keyed_rows, key=lambda item: item[0])]
+    if sorted_rows == rows[1:]:
+        return rows, [], []
+    return [headers, *sorted_rows], ["sort_time_asc"], []
 
 
 def _is_additive_measure(header: str, content: str, values: list[Any]) -> bool:
@@ -190,8 +288,9 @@ def _metadata(
     output_rows: list[list[Any]],
     evidence_ids: list[str],
     warnings: list[str] | None = None,
+    extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    return {
+    metadata = {
         "status": status,
         "operations": operations,
         "input_shape": _rows_shape(input_rows),
@@ -199,6 +298,9 @@ def _metadata(
         "warnings": warnings or [],
         "source_evidence_ids": evidence_ids,
     }
+    if extra:
+        metadata.update(extra)
+    return metadata
 
 
 def _with_rows(table: dict, rows: list[list[Any]], transform: dict[str, Any]) -> dict:
@@ -304,6 +406,11 @@ def _normalize_percent(rows: list[list[Any]], content: str) -> tuple[list[list[A
     total = sum(value for value in values if value is not None)
     if total <= 0:
         return rows, [], ["Cannot normalize composition values because the total is zero."]
+    if 0.99 <= total <= 1.01 and all(0 <= float(value) <= 1 for value in values if value is not None):
+        output = [[headers[0], f"{headers[1]} (%)"]]
+        for row, value in zip(rows[1:], values):
+            output.append([row[0], round(float(value) * 100, 6)])
+        return output, ["scale_fraction_to_percent"], []
     if 99 <= total <= 101:
         return rows, [], []
 
@@ -384,6 +491,7 @@ def build_table_variants(
         return []
 
     evidence_ids = [str(item) for item in table.get("evidence_ids", []) if item]
+    _, _, source_warnings = _sort_time_ascending(source_rows)
     variants = [
         _with_rows(
             table,
@@ -394,6 +502,7 @@ def build_table_variants(
                 input_rows=source_rows,
                 output_rows=source_rows,
                 evidence_ids=evidence_ids,
+                warnings=source_warnings,
             ),
         )
     ]
@@ -409,6 +518,11 @@ def build_table_variants(
         warnings.extend(new_warnings)
         if new_ops:
             break
+
+    if not operations:
+        transformed, new_ops, new_warnings = _sort_time_ascending(transformed)
+        operations.extend(new_ops)
+        warnings.extend(new_warnings)
 
     if not operations:
         transformed, new_ops, new_warnings = _pivot_long_series(transformed, content)
@@ -430,6 +544,17 @@ def build_table_variants(
     warnings.extend(new_warnings)
 
     if operations and transformed != source_rows:
+        extra: dict[str, Any] = {}
+        if "scale_fraction_to_percent" in operations:
+            extra["percent_scale"] = {
+                "input_scale": "fraction_0_1",
+                "output_scale": "percent_0_100",
+            }
+        elif "normalize_percent" in operations:
+            extra["percent_scale"] = {
+                "input_scale": "raw_counts_or_amounts",
+                "output_scale": "percent_0_100",
+            }
         variants.append(
             _with_rows(
                 table,
@@ -441,6 +566,7 @@ def build_table_variants(
                     output_rows=transformed,
                     evidence_ids=evidence_ids,
                     warnings=warnings,
+                    extra=extra,
                 ),
             )
         )

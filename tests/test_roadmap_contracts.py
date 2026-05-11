@@ -368,6 +368,15 @@ class FinalQASummaryContractTests(unittest.TestCase):
             }), encoding="utf-8")
             state.runtime["post_render_layout_manifest_path"] = str(layout_path)
 
+            figure_visual_path = run_dir / "figure_visual_quality_report.json"
+            figure_visual_path.write_text(json.dumps({
+                "status": "review",
+                "issue_count": 1,
+                "issues": [{"type": "tick_label_overlap", "figure_id": "fig1"}],
+                "figures": [{"figure_id": "fig1", "status": "review"}],
+            }), encoding="utf-8")
+            state.qa["figure_visual_quality_report_path"] = str(figure_visual_path)
+
             packaged = run_artifacts(state)
 
             summary_path = Path(packaged.qa["final_qa_summary_path"])
@@ -382,12 +391,16 @@ class FinalQASummaryContractTests(unittest.TestCase):
             self.assertEqual(summary["factuality"]["verified_count"], 2)
             self.assertEqual(summary["engineering_audit"]["warning_count"], 1)
             self.assertEqual(summary["engineering_audit"]["table_evidence_count"], 1)
+            self.assertEqual(summary["figure_visual_quality"]["issue_count"], 1)
             self.assertEqual(summary["render"]["table_count"], 1)
             self.assertTrue(markdown_path.exists())
             self.assertIn("Engineering audit: review", markdown_path.read_text(encoding="utf-8"))
+            self.assertIn("Figure visual quality: review", markdown_path.read_text(encoding="utf-8"))
             self.assertIn("qa_final_qa_summary", roles)
             self.assertIn("qa_final_qa_summary_markdown", roles)
+            self.assertIn("qa_figure_visual_quality_report", roles)
             self.assertTrue((Path(packaged.output["published_dir"]) / "qa" / "final_qa_summary.json").exists())
+            self.assertTrue((Path(packaged.output["published_dir"]) / "qa" / "figure_visual_quality_report.json").exists())
 
 
 class TemplateStyleMapContractTests(unittest.TestCase):
