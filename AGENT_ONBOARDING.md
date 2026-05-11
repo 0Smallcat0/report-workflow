@@ -28,7 +28,8 @@ The workflow has three phases:
    previews, front-matter preview, related render QA reports, and issues.
    Publish packaging writes `final_qa_summary.json` and
    `final_qa_summary.md`, which consolidate QA gate, factuality, artifact lint,
-   engineering audit, and render-layout evidence for delivery review.
+   engineering audit, scholarly-quality review, chart visual-quality review, and
+   render-layout evidence for delivery review.
    It also writes `template_style_map.json` and `template_style_map.md`, which
    explain renderer choice, reference DOCX application, key style definitions,
    rendered style usage, and template-fidelity warnings.
@@ -71,6 +72,10 @@ stable; nodes derive behavior from profile policy.
 - Render QA for table compression, images, cover/template drift, and page layout.
 - Published QA artifacts include a post-render layout manifest when rendering
   reaches `POST_RENDER_VALIDATE`.
+- Validation writes `scholarly_quality_report.json` and
+  `scholarly_quality_report.md` for review-grade checks of lab spine,
+  reproducible method/procedure cues, figure/table scholarly expectations, and
+  article-style language.
 - Completed packages include `published/qa/final_qa_summary.json` and
   `published/qa/final_qa_summary.md` as the first QA files to inspect before
   reporting delivery readiness.

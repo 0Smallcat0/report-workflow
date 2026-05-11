@@ -199,6 +199,11 @@ def _load_refs_from_citation_bind(state: ReportState) -> list[dict]:
                     "raw": ref_text,
                     "source": "publication_reference_list",
                 })
+            elif re.match(r"^\[\d+\]\s+", line):
+                refs.append({
+                    "raw": line,
+                    "source": "publication_reference_list",
+                })
 
     # Also inspect agent-authored references section because docx_render can use
     # it when generated publication refs are absent.
@@ -238,6 +243,10 @@ def _write_curated_reference_list(state: ReportState, refs: list[dict]) -> None:
     """Rewrite publication_reference_list.md using curation-passing references."""
     ref_list_path = state.citations.get("publication_reference_list_path", "")
     if not ref_list_path:
+        return
+    if state.citations.get("publication_citation_style") == "gb_t_7714_2015":
+        state.citations["curated_reference_list_path"] = ref_list_path
+        state.citations["curated_reference_count"] = len(refs)
         return
     path = Path(ref_list_path)
     curated: list[str] = []

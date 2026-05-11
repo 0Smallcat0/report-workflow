@@ -559,7 +559,7 @@ def markdown_to_docx(
 
 
 def _add_hanging_indent_references(doc: Document, ref_md: str) -> None:
-    """Append a formatted References section with APA hanging-indent paragraphs."""
+    """Append a formatted References section with hanging-indent paragraphs."""
     ref_re = re.compile(r"^## References\s*$", re.MULTILINE)
     m = ref_re.search(ref_md)
     if not m:
@@ -574,6 +574,10 @@ def _add_hanging_indent_references(doc: Document, ref_md: str) -> None:
             if current:
                 entries.append("\n".join(current))
             current = [stripped[2:].strip()]
+        elif re.match(r"^\[\d+\]\s+", stripped):
+            if current:
+                entries.append("\n".join(current))
+            current = [stripped]
         elif stripped:
             current.append(stripped)
     if current:

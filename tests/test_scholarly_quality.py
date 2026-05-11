@@ -1,0 +1,461 @@
+import json
+import tempfile
+import unittest
+from datetime import date
+from pathlib import Path
+
+from report_workflow.errors import QAHardBlockError
+from report_workflow.nodes.artifacts import run_artifacts
+from report_workflow.nodes.citation_bind import (
+    default_gbt7714_standard,
+    resolve_citations_publication,
+)
+from report_workflow.nodes.qa_gate import run_qa_gate
+from report_workflow.nodes.reference_verify import run_reference_verify
+from report_workflow.nodes.scholarly_quality import run_scholarly_quality
+from report_workflow.state import ReportState, run_dir_for
+
+
+def _write_section(run_dir: Path, section_id: str, text: str) -> str:
+    section_dir = run_dir / "section_drafts"
+    section_dir.mkdir(parents=True, exist_ok=True)
+    path = section_dir / f"{section_id}.md"
+    path.write_text(text, encoding="utf-8")
+    return str(path)
+
+
+def _academic_state(tmpdir: str) -> ReportState:
+    state = ReportState.new("write academic paper", [], str(Path(tmpdir) / "out"))
+    state.spec["report_profile"] = "academic_paper"
+    state.plan["front_matter"] = {
+        "title": "Deterministic Validation for Evidence Backed Report Generation",
+    }
+    state.plan["outline"] = {
+        "paper_spine": {
+            "problem": "Evidence-backed reports need stronger scholarly structure.",
+            "gap": "Existing drafts often lack explicit method and limitation framing.",
+            "objective": "Assess deterministic QA signals for report generation.",
+            "contribution": "A review-grade audit identifies missing scholarly cues.",
+            "method_basis": "Static source and artifact inspection.",
+            "main_limitation": "The audit cannot judge novelty by itself.",
+        },
+        "sections": {
+            "abstract": {"claim_ids": []},
+            "introduction": {"claim_ids": ["c1"], "figure_ids": ["1"]},
+            "methods": {"claim_ids": ["c1"]},
+            "results": {"claim_ids": ["c1"], "figure_ids": ["1"]},
+            "discussion": {"claim_ids": ["c1"]},
+            "limitations": {"claim_ids": []},
+            "conclusion": {"claim_ids": []},
+            "references": {"claim_ids": []},
+        },
+    }
+    return state
+
+
+class ScholarlyQualityNodeTests(unittest.TestCase):
+    def test_passes_strong_academic_draft(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _academic_state(tmpdir)
+            run_dir = run_dir_for(state)
+            state.drafts["section_drafts"] = {
+                "abstract": _write_section(
+                    run_dir,
+                    "abstract",
+                    "# Abstract\n\nBackground and objective are summarized with methods, principal findings, significance, and limitation.",
+                ),
+                "introduction": _write_section(
+                    run_dir,
+                    "introduction",
+                    "# Introduction\n\nThe problem is that evidence-backed reports need stronger scholarly structure. However, the gap is that drafts often lack a stable objective and contribution. This paper evaluates deterministic audit signals and contributes a review-grade quality layer.",
+                ),
+                "methods": _write_section(
+                    run_dir,
+                    "methods",
+                    "# Methods\n\nWe used source data from parsed artifacts, followed a documented procedure, recorded software version and parameter settings, and filtered transformed table evidence before analysis.",
+                ),
+                "results": _write_section(
+                    run_dir,
+                    "results",
+                    "# Results\n\nFigure 1 summarizes the supported comparison. [FIGURE:1]\n\nFigure 1: Supported evidence coverage by section.",
+                ),
+                "discussion": _write_section(
+                    run_dir,
+                    "discussion",
+                    "# Discussion\n\nThe result indicates where review attention should be focused.",
+                ),
+            }
+            merged = run_dir / "merged_draft.md"
+            merged.write_text(
+                "\n\n".join(Path(path).read_text(encoding="utf-8") for path in state.drafts["section_drafts"].values()),
+                encoding="utf-8",
+            )
+            state.drafts["merged_draft_md"] = str(merged)
+            (run_dir / "section_drafts" / "figure_plan.json").write_text(json.dumps({
+                "figures": [{
+                    "figure_id": "1",
+                    "figure_type": "bar",
+                    "title": "Supported Evidence Coverage",
+                    "xlabel": "Section",
+                    "ylabel": "Evidence count",
+                    "data": {"labels": ["Methods", "Results"], "series": [{"name": "Evidence", "values": [2, 3]}]},
+                }]
+            }), encoding="utf-8")
+
+            result = run_scholarly_quality(state)
+            report = json.loads(Path(result.qa["scholarly_quality_report_path"]).read_text(encoding="utf-8"))
+
+            self.assertEqual(report["status"], "passed")
+            self.assertEqual(report["issues"], [])
+
+    def test_flags_missing_gap_objective_and_spine(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _academic_state(tmpdir)
+            state.plan["outline"].pop("paper_spine")
+            run_dir = run_dir_for(state)
+            state.drafts["section_drafts"] = {
+                "introduction": _write_section(
+                    run_dir,
+                    "introduction",
+                    "# Introduction\n\nReports are important. The system is described in general terms.",
+                ),
+                "methods": _write_section(
+                    run_dir,
+                    "methods",
+                    "# Methods\n\nSource data were parsed with a documented procedure, parameter settings, and filtering rules.",
+                ),
+            }
+
+            result = run_scholarly_quality(state)
+            report = json.loads(Path(result.qa["scholarly_quality_report_path"]).read_text(encoding="utf-8"))
+            issue_types = {issue["type"] for issue in report["issues"]}
+
+            self.assertIn("paper_spine_missing", issue_types)
+            self.assertIn("introduction_spine_weak", issue_types)
+            self.assertEqual(report["status"], "review")
+
+    def test_flags_template_text_left_in_paper_spine(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _academic_state(tmpdir)
+            state.plan["outline"]["paper_spine"]["problem"] = "For academic_paper: the concrete problem or phenomenon."
+
+            result = run_scholarly_quality(state)
+            report = json.loads(Path(result.qa["scholarly_quality_report_path"]).read_text(encoding="utf-8"))
+            issue_types = {issue["type"] for issue in report["issues"]}
+
+            self.assertIn("paper_spine_template_text", issue_types)
+            self.assertEqual(report["checks"]["spine"], "review")
+
+    def test_flags_methods_that_contain_findings(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _academic_state(tmpdir)
+            run_dir = run_dir_for(state)
+            state.drafts["section_drafts"] = {
+                "introduction": _write_section(
+                    run_dir,
+                    "introduction",
+                    "# Introduction\n\nThe problem and gap motivate the objective. This paper contributes an audit layer.",
+                ),
+                "methods": _write_section(
+                    run_dir,
+                    "methods",
+                    "# Methods\n\nWe used source data and a documented procedure. The results show that the method is superior.",
+                ),
+            }
+
+            result = run_scholarly_quality(state)
+            report = json.loads(Path(result.qa["scholarly_quality_report_path"]).read_text(encoding="utf-8"))
+
+            self.assertIn("methods_contains_findings", {issue["type"] for issue in report["issues"]})
+
+    def test_flags_figure_caption_units_and_error_definition(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _academic_state(tmpdir)
+            run_dir = run_dir_for(state)
+            state.drafts["section_drafts"] = {
+                "introduction": _write_section(
+                    run_dir,
+                    "introduction",
+                    "# Introduction\n\nThe problem and gap motivate the objective. This paper contributes an audit layer.",
+                ),
+                "methods": _write_section(
+                    run_dir,
+                    "methods",
+                    "# Methods\n\nWe used source data, procedure settings, software version, and filtering parameters.",
+                ),
+                "results": _write_section(
+                    run_dir,
+                    "results",
+                    "# Results\n\nFigure 2 summarizes uncertainty. [FIGURE:2]",
+                ),
+            }
+            (run_dir / "section_drafts" / "figure_plan.json").write_text(json.dumps({
+                "figures": [{
+                    "figure_id": "2",
+                    "figure_type": "error_bar",
+                    "title": "Uncertainty",
+                    "xlabel": "Sample",
+                    "ylabel": "Value",
+                    "data": {"labels": ["A", "B"], "series": [{"name": "Mean", "values": [1, 2], "errors": [0.1, 0.2]}]},
+                }]
+            }), encoding="utf-8")
+
+            result = run_scholarly_quality(state)
+            report = json.loads(Path(result.qa["scholarly_quality_report_path"]).read_text(encoding="utf-8"))
+            issue_types = {issue["type"] for issue in report["issues"]}
+
+            self.assertIn("figure_axis_unit_missing", issue_types)
+            self.assertIn("error_bar_uncertainty_undefined", issue_types)
+            self.assertIn("figure_caption_missing", issue_types)
+
+    def test_flags_chinese_engineering_jargon_and_missing_lab_spine(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("write engineering report", [], str(Path(tmpdir) / "out"))
+            state.spec["report_profile"] = "engineering_lab_report"
+            state.plan["outline"] = {"sections": {"procedure": {"claim_ids": ["c1"]}}}
+            run_dir = run_dir_for(state)
+            procedure = _write_section(
+                run_dir,
+                "procedure",
+                "# 實驗步驟\n\n本 workflow 的 claim_matrix 洩漏到正文。",
+            )
+            state.drafts["section_drafts"] = {"procedure": procedure}
+            state.drafts["merged_draft_md"] = procedure
+
+            result = run_scholarly_quality(state)
+            report = json.loads(Path(result.qa["scholarly_quality_report_path"]).read_text(encoding="utf-8"))
+            issue_types = {issue["type"] for issue in report["issues"]}
+
+            self.assertIn("lab_spine_missing", issue_types)
+            self.assertIn("workflow_jargon_in_body", issue_types)
+            self.assertEqual(report["status"], "failed")
+
+    def test_agent_and_tool_terms_are_not_hard_blocked_when_legitimate(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("write engineering report", [], str(Path(tmpdir) / "out"))
+            state.spec["report_profile"] = "engineering_lab_report"
+            state.plan["outline"] = {
+                "lab_spine": {
+                    "experiment_purpose": "Measure tool wear after reagent exposure.",
+                    "variables": "Exposure time and tool wear depth in mm.",
+                    "apparatus_procedure_basis": "Calibrated microscope procedure.",
+                    "measurement_basis": "Recorded measurement table.",
+                    "uncertainty_limitations": "Instrument resolution limits.",
+                },
+                "sections": {"procedure": {"claim_ids": ["c1"]}},
+            }
+            run_dir = run_dir_for(state)
+            procedure = _write_section(
+                run_dir,
+                "procedure",
+                "# Procedure\n\nThe reagent was applied before measuring tool wear with a calibrated software tool.",
+            )
+            state.drafts["section_drafts"] = {"procedure": procedure}
+            state.drafts["merged_draft_md"] = procedure
+
+            result = run_scholarly_quality(state)
+            report = json.loads(Path(result.qa["scholarly_quality_report_path"]).read_text(encoding="utf-8"))
+
+            self.assertNotIn("workflow_jargon_in_body", {issue["type"] for issue in report["issues"]})
+            self.assertEqual(report["hard_issue_count"], 0)
+
+    def test_publication_draft_is_audited_before_pre_citation_merged_draft(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("write engineering report", [], str(Path(tmpdir) / "out"))
+            state.spec["report_profile"] = "engineering_lab_report"
+            state.plan["outline"] = {
+                "lab_spine": {
+                    "experiment_purpose": "Measure output voltage.",
+                    "variables": "Input setting and voltage in V.",
+                    "apparatus_procedure_basis": "Bench procedure.",
+                    "measurement_basis": "Recorded instrument readings.",
+                    "uncertainty_limitations": "Meter uncertainty.",
+                },
+                "sections": {"procedure": {"claim_ids": ["c1"]}},
+            }
+            run_dir = run_dir_for(state)
+            merged = run_dir / "merged_draft.md"
+            publication = run_dir / "merged_draft_cited.md"
+            merged.write_text("# Procedure\n\nThe claim_matrix artifact should not be audited here.", encoding="utf-8")
+            publication.write_text("# Procedure\n\nThe voltage was measured with a calibrated meter.", encoding="utf-8")
+            state.drafts["merged_draft_md"] = str(merged)
+            state.drafts["publication_draft_md"] = str(publication)
+
+            result = run_scholarly_quality(state)
+            report = json.loads(Path(result.qa["scholarly_quality_report_path"]).read_text(encoding="utf-8"))
+
+            self.assertNotIn("workflow_jargon_in_body", {issue["type"] for issue in report["issues"]})
+            self.assertEqual(report["hard_issue_count"], 0)
+
+
+class ScholarlyCitationTests(unittest.TestCase):
+    def test_engineering_report_uses_gbt_7714_2015_numeric_references(self):
+        evidence = [{
+            "evidence_id": "E001",
+            "source_id": "S001",
+            "source_role": "primary_source",
+            "source_file_name": "experiment_notes.pdf",
+            "file_type": "pdf",
+            "author": "Lab Team",
+            "title": "Experiment Notes",
+            "year": "2026",
+        }]
+
+        resolved, audit, refs, _ = resolve_citations_publication(
+            "測試結果來自量測資料 [CITE:E001]。",
+            evidence,
+            [],
+            citation_style="gb_t_7714_2015",
+            gbt7714_as_of=date(2026, 5, 11),
+        )
+
+        self.assertIn("[1]", resolved)
+        self.assertTrue(all(item["resolved"] for item in audit))
+        self.assertTrue(refs[0].startswith("[1] Lab Team. Experiment Notes[Z]. 2026."))
+        self.assertIn("GB/T 7714-2015", refs[0])
+
+    def test_academic_paper_citation_remains_apa_by_default(self):
+        evidence = [{
+            "evidence_id": "E001",
+            "source_id": "S001",
+            "source_role": "primary_source",
+            "source_file_name": "source_paper.pdf",
+            "file_type": "pdf",
+        }]
+
+        resolved, _audit, refs, _ = resolve_citations_publication(
+            "The claim is supported [CITE:E001].",
+            evidence,
+            [],
+        )
+
+        self.assertNotIn("[1]", resolved)
+        self.assertIn("(source & paper (n.d.))", resolved.lower())
+        self.assertTrue(refs[0].startswith("source & paper."))
+
+    def test_gbt_7714_2025_is_not_default_before_effective_date(self):
+        self.assertEqual(default_gbt7714_standard(date(2026, 5, 11)), "GB/T 7714-2015")
+        self.assertEqual(default_gbt7714_standard(date(2026, 7, 1)), "GB/T 7714-2025")
+
+    def test_gbt_7714_references_survive_reference_verify_curation(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("publish engineering report", [], str(Path(tmpdir) / "out"))
+            state.spec["report_profile"] = "engineering_lab_report"
+            run_dir = run_dir_for(state)
+            ref_path = run_dir / "publication_reference_list.md"
+            ref_path.write_text(
+                "## References\n\n[1] Lab Team. Experiment Notes[Z]. 2026. (GB/T 7714-2015)\n",
+                encoding="utf-8",
+            )
+            state.citations["publication_reference_list_path"] = str(ref_path)
+            state.citations["publication_citation_style"] = "gb_t_7714_2015"
+
+            result = run_reference_verify(state)
+            content = ref_path.read_text(encoding="utf-8")
+            report = json.loads(Path(result.runtime["reference_verify_report_path"]).read_text(encoding="utf-8"))
+
+            self.assertIn("[1] Lab Team. Experiment Notes[Z]. 2026.", content)
+            self.assertEqual(report["total_refs"], 1)
+
+
+class ScholarlyPackagingTests(unittest.TestCase):
+    def test_qa_gate_blocks_scholarly_hard_issues(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("validate academic paper", [], str(Path(tmpdir) / "out"))
+            state.spec["report_profile"] = "academic_paper"
+            run_dir = run_dir_for(state)
+            section_path = _write_section(
+                run_dir,
+                "introduction",
+                "# Introduction\n\nThe supported claim is stated [CITE:E001].\n",
+            )
+            ledger = run_dir / "evidence_ledger.jsonl"
+            ledger.write_text(json.dumps({"evidence_id": "E001", "quote": "supported claim"}) + "\n", encoding="utf-8")
+            sentence_map = run_dir / "sentence_map.jsonl"
+            sentence_map.write_text(
+                json.dumps({"sentence_id": "S001", "section_id": "introduction", "evidence_ids": ["E001"]}) + "\n",
+                encoding="utf-8",
+            )
+            factuality = run_dir / "factuality_report.json"
+            factuality.write_text(
+                json.dumps({"verified_count": 1, "blocked_count": 0, "disputed_count": 0, "claims": []}),
+                encoding="utf-8",
+            )
+            scholarly = run_dir / "scholarly_quality_report.json"
+            scholarly.write_text(
+                json.dumps({
+                    "status": "failed",
+                    "hard_issue_count": 1,
+                    "issue_count": 1,
+                    "issues": [{
+                        "type": "workflow_jargon_in_body",
+                        "severity": "hard",
+                        "detail": "Workflow jargon leaked into publication prose.",
+                    }],
+                }),
+                encoding="utf-8",
+            )
+
+            state.sources["source_registry"] = [{"parse_status": "parsed", "parsed_content": "supported claim"}]
+            state.sources["evidence_ledger_path"] = str(ledger)
+            state.plan["claim_matrix"] = {"claims": [{"claim_id": "C001"}]}
+            state.plan["outline"] = {"sections": {"introduction": {}}}
+            state.drafts["section_drafts"] = {"introduction": section_path}
+            state.drafts["sentence_map_path"] = str(sentence_map)
+            state.drafts["merged_draft_md"] = section_path
+            state.qa["factuality_report_path"] = str(factuality)
+            state.qa["scholarly_quality_report_path"] = str(scholarly)
+
+            with self.assertRaises(QAHardBlockError) as raised:
+                run_qa_gate(state)
+
+            self.assertIn("scholarly quality hard issues", str(raised.exception))
+
+    def test_artifacts_package_scholarly_quality_reports_and_summary(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("publish report", [], str(Path(tmpdir) / "out"))
+            state.status = "completed"
+            state.spec["report_profile"] = "academic_paper"
+            state.qa["qa_decision"] = "pass"
+            state.qa["artifact_completeness_status"] = "pass"
+            state.output["workflow_success"] = True
+            run_dir = run_dir_for(state)
+            docx = run_dir / "report.docx"
+            docx.write_bytes(b"docx")
+            state.output["final_docx_path"] = str(docx)
+            state.output["published_report_path"] = str(docx)
+
+            qa_summary = run_dir / "qa_summary.json"
+            qa_summary.write_text(json.dumps({"qa_decision": "pass", "artifact_completeness_status": "pass"}), encoding="utf-8")
+            state.qa["qa_summary_path"] = str(qa_summary)
+            factuality = run_dir / "factuality_report.json"
+            factuality.write_text(json.dumps({"verified_count": 1, "blocked_count": 0, "claims": []}), encoding="utf-8")
+            state.qa["factuality_report_path"] = str(factuality)
+            scholarly_json = run_dir / "scholarly_quality_report.json"
+            scholarly_json.write_text(json.dumps({
+                "status": "review",
+                "issue_count": 1,
+                "hard_issue_count": 0,
+                "review_issue_count": 1,
+                "issues": [{"type": "paper_spine_missing"}],
+            }), encoding="utf-8")
+            scholarly_md = run_dir / "scholarly_quality_report.md"
+            scholarly_md.write_text("# Scholarly Quality Report\n", encoding="utf-8")
+            state.qa["scholarly_quality_report_path"] = str(scholarly_json)
+            state.qa["scholarly_quality_report_md_path"] = str(scholarly_md)
+
+            packaged = run_artifacts(state)
+            summary = json.loads(Path(packaged.qa["final_qa_summary_path"]).read_text(encoding="utf-8"))
+            roles = {
+                item["role"]
+                for item in json.loads(Path(packaged.output["artifacts_manifest_path"]).read_text(encoding="utf-8"))["files"]
+            }
+
+            self.assertEqual(summary["scholarly_quality"]["status"], "review")
+            self.assertEqual(summary["overall_status"], "review")
+            self.assertIn("qa_scholarly_quality_report", roles)
+            self.assertIn("qa_scholarly_quality_report_markdown", roles)
+
+
+if __name__ == "__main__":
+    unittest.main()

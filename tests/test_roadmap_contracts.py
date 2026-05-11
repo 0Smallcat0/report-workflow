@@ -839,7 +839,7 @@ class DocumentationContractTests(unittest.TestCase):
             "enable_research=True",
             "notebooklm_notebook_id=\"notebook-id-from-user\"",
             "`structured_drafts.json`",
-            "by default and call `submit_drafts`",
+            "Call `submit_and_publish_report` when the controlled harness",
             "Use manual `section_drafts/*.md` plus `sentence_map.jsonl` only",
             "remap_agent_artifacts(job_id=..., previous_job_id=...)",
             "## Revision Flow",

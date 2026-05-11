@@ -13,9 +13,10 @@ The workflow has three phases:
 1. **Prepare**: `start_report_task` reads sources, infers or accepts
    `report_profile`, writes `report_spec.json`, `report_profile.json`,
    `blueprint.json`, `evidence_ledger.jsonl`, and task briefs.
-2. **Author**: the agent writes `claim_matrix.json`, `outline.json`, and either
-   `structured_drafts.json` or canonical `section_drafts/*.md` plus
-   `sentence_map.jsonl`.
+2. **Author**: the agent uses the controlled harness by default:
+   `get_controlled_next_action` returns the current task, read-first files,
+   and allowed write paths; `submit_controlled_action` validates that stage and
+   records evidence in `harness_manifest.json`.
 3. **Validate and render**: `submit_and_publish_report` validates contracts,
    evidence support, citations, section rules, profile policy, and render
    quality before publishing the DOCX. Successful render validation writes a
@@ -24,8 +25,8 @@ The workflow has three phases:
    reports, and issues.
    Publish packaging writes `final_qa_summary.json` and
    `final_qa_summary.md` to consolidate QA gate, factuality, artifact lint,
-   engineering audit, chart visual-quality review, and render-layout evidence
-   for delivery review.
+   engineering audit, scholarly-quality review, chart visual-quality review,
+   and render-layout evidence for delivery review.
    It also writes `template_style_map.json` and `template_style_map.md` to
    explain reference-DOCX mode, renderer choice, applied-reference status, key
    style definitions, and rendered style usage.
@@ -208,8 +209,8 @@ authoring for new drafts. Use this shape:
 }
 ```
 
-When `submit_drafts` sees `structured_drafts.json` and the canonical draft files
-are missing, the pipeline writes `section_drafts/*.md`, inserts `[CITE:]`
+When validation sees `structured_drafts.json` and the canonical draft files are
+missing, the pipeline writes `section_drafts/*.md`, inserts `[CITE:]`
 markers from `evidence_ids`, and writes `sentence_map.jsonl`.
 
 For sentences with multiple supporting entries, emit separate markers such as
@@ -233,7 +234,9 @@ the preferred output.
 ## Draft Rules
 
 Do not edit generated files such as `merged_draft.md`, `publication_draft.md`,
-or checkpoint JSON. Edit the agent-owned artifacts and rerun validation.
+`base_document_sections.json`, publication outputs, or checkpoint JSON. Edit
+only the agent-owned artifacts allowed by the current harness stage and rerun
+validation.
 
 Avoid:
 
@@ -322,23 +325,32 @@ Before delivery, treat figure and format checks as hard gates:
 The built-in `CHINESE_ENGINEERING` guideline is selected by default for this
 profile.
 
-## Incremental Submission
+## Controlled Submission
 
 Preferred sequence:
 
-1. Write `claim_matrix.json`, then call `submit_claim_matrix(job_id=...)`.
-2. Write `outline.json`, then call `submit_outline(job_id=...)`.
-3. Write `structured_drafts.json` or `section_drafts/*.md` plus
-   `sentence_map.jsonl`, then call `submit_drafts(job_id=...)`.
-4. Optionally call `lint_agent_artifacts(job_id=...)` after edits or before
-   full validation to catch shape errors and ID drift early.
-5. For `engineering_lab_report`, call `run_engineering_audit(job_id=...)`
-   after drafts exist to check units, table-value support, measurement support, and simple
-   calculations.
-6. Call `submit_and_publish_report(job_id=...)`.
+1. Call `get_controlled_next_action(job_id=...)`.
+2. Read the returned `task_brief_path` and `read_first_paths`.
+3. Edit only files listed in `allowed_write_paths`.
+4. Call `submit_controlled_action(job_id=...)`.
+5. Repeat until the returned `status` is `completed`.
 
-Legacy two-step use is still supported: after prepare, create all artifacts and
-call `submit_and_publish_report` directly.
+When `submit_controlled_action` returns `validation_failed`, repair only
+`allowed_repair_paths` using `repair_context`. When it returns
+`scope_violation`, restore or isolate out-of-scope artifact changes and retry
+the same stage. Do not manually advance stages by editing
+`harness_manifest.json`.
+When it returns `blocked_non_author_repair`, inspect the evidence paths and
+stop editing author artifacts for that stage; the failure needs a workflow,
+source, environment, or deterministic-code fix outside the controlled authoring
+surface.
+
+Optionally call `lint_agent_artifacts(job_id=...)` after edits or before full
+validation to catch shape errors and ID drift early. For
+`engineering_lab_report`, call `run_engineering_audit(job_id=...)` after drafts
+exist to check units, table-value support, measurement support, and simple
+calculations. Call `submit_and_publish_report(job_id=...)` when the controlled
+harness reaches the publish stage or all required artifacts are already present.
 
 When `submit_and_publish_report` succeeds, use
 `post_render_layout_manifest_path` if you need evidence about final DOCX
@@ -347,6 +359,10 @@ structure. The same file is packaged under
 For delivery readiness, inspect `final_qa_summary_path` first. It is packaged
 with a Markdown sibling under `published/qa/final_qa_summary.json` and
 `published/qa/final_qa_summary.md`.
+For academic and engineering scholarly structure review, inspect
+`scholarly_quality_report_path`; the published package includes
+`published/qa/scholarly_quality_report.json` and
+`published/qa/scholarly_quality_report.md`.
 For chart readability review, inspect `figure_visual_quality_report_path`; the
 published package includes `published/qa/figure_visual_quality_report.json`.
 For template questions, inspect `template_style_map_path`; the published
@@ -360,8 +376,12 @@ For cover or fixed-template field questions, inspect
 ## Revise Existing
 
 In `revise_existing` mode, `section_drafts/*.md` are not merged into the final
-document. Write `revision_plan.json` with exact `original_text` spans and
-replacement text. Call `submit_revision_plan` before final publish.
+document. Use `get_controlled_next_action` until the harness returns the
+`revision_plan` stage, then write `revision_plan.json` with exact
+`original_text` spans and replacement text inside the allowed write scope.
+Use `preview_revision_diff` as an optional read-only check, then call
+`submit_controlled_action` to validate and advance. `submit_revision_plan`
+remains a compatibility helper, not the default authoring path.
 
 If a validation failure points to stale base-document content, invalidate caches
 through the CLI:

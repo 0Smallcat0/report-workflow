@@ -19,7 +19,11 @@ previews, related render QA report paths, and any render validation issues.
 At publish time, it also writes `final_qa_summary.json` and
 `final_qa_summary.md`, a delivery-level summary that links QA gate,
 factuality, artifact lint, engineering audit, chart visual-quality review, and
-render-layout evidence.
+scholarly-quality review, and render-layout evidence.
+For `academic_paper` and `engineering_lab_report`, validation writes
+`scholarly_quality_report.json` and `scholarly_quality_report.md` with
+review-grade checks for article spine, introduction flow, reproducible methods,
+figure/table scholarly expectations, and reference metadata quality.
 It writes `template_style_map.json` and `template_style_map.md` to explain the
 reference DOCX mode, renderer, applied-reference status, key style definitions,
 and rendered style usage.
@@ -134,9 +138,8 @@ rerun setup. Do not force-start by changing the decision record.
 <!-- report-workflow:tool-surface:start -->
 - `check_setup`
 - `start_report_task`
-- `submit_claim_matrix`
-- `submit_outline`
-- `submit_drafts`
+- `get_controlled_next_action`
+- `submit_controlled_action`
 - `lint_agent_artifacts`
 - `run_engineering_audit`
 - `submit_and_publish_report`
@@ -237,20 +240,29 @@ domain context, forbidden terms, or author metadata.
 
 ## Authoring Flow
 
-Use incremental submission by default:
+Use the controlled workflow by default:
 
-1. Read `agent_tasks/01_claim_plan.md`, write `claim_matrix.json`, call
-   `submit_claim_matrix`.
-2. Read `agent_tasks/02_outline_plan.md`, write `outline.json`, call
-   `submit_outline`.
-3. Read `agent_tasks/03_section_draft.md`, then write `structured_drafts.json`
-   by default and call `submit_drafts`.
-4. Optionally call `lint_agent_artifacts` after any artifact edit to get a
-   consolidated `artifact_lint_report.json` with JSON paths and repair hints.
-5. For `engineering_lab_report`, call `run_engineering_audit` after drafts
-   exist to inspect units, table-value support, measurement support, and simple
-   calculations.
-6. Call `submit_and_publish_report`.
+1. Call `get_controlled_next_action(job_id=...)`.
+2. Read the returned `task_brief_path` and `read_first_paths`.
+3. Edit only files listed in `allowed_write_paths`.
+4. Call `submit_controlled_action(job_id=...)`.
+5. Repeat until the returned `status` is `completed`.
+
+If `submit_controlled_action` returns `validation_failed`, repair only the
+returned `allowed_repair_paths` using `repair_context`. If it returns
+`scope_violation`, undo or isolate the out-of-scope artifact changes before
+retrying the same stage. The harness records `harness_manifest.json` in the run
+directory and prevents already-passed artifacts from drifting silently.
+If it returns `blocked_non_author_repair`, inspect the returned evidence paths;
+the failure is outside the current controlled authoring surface and should not
+be fixed by editing read-only workflow artifacts or the harness manifest.
+
+Optionally call `lint_agent_artifacts` after artifact edits to get a
+consolidated `artifact_lint_report.json` with JSON paths and repair hints.
+For `engineering_lab_report`, call `run_engineering_audit` after drafts exist
+to inspect units, table-value support, measurement support, and simple
+calculations. Call `submit_and_publish_report` when the controlled harness
+returns the publish stage or all required artifacts are already present.
 
 Every evidence-backed sentence in drafts must include `[CITE:<evidence_id>]`.
 When using `structured_drafts.json`, provide sentence `evidence_ids`; the
@@ -263,6 +275,9 @@ Use manual `section_drafts/*.md` plus `sentence_map.jsonl` only when the draft
 needs direct Markdown control or when repairing generated canonical drafts.
 Do not cite internal workflow files, evidence ledgers, claim matrices, or
 traceability appendices in the main report.
+Do not edit checkpoint snapshots, merged draft checkpoints, generated
+publication drafts, `base_document_sections.json`, or other workflow-owned
+artifacts as an authoring shortcut.
 
 Use `query_evidence(job_id=..., query="...")` for relevance-ranked evidence
 lookup instead of loading large ledgers into context. If you reuse artifacts
@@ -276,12 +291,15 @@ Use `task_intent="revise_existing"` only when a base document is supplied with
 role `base_document`. In this mode, `section_drafts/*.md` are not merged into
 the final document. Instead:
 
-1. Read `agent_tasks/04_revision_plan.md` and `base_document_sections.json`.
-2. Write `revision_plan.json` with exact `original_text` spans and replacement
-   text.
-3. Call `preview_revision_diff` for a read-only diff preview.
-4. Call `submit_revision_plan` to validate spans and conflicts before publish.
-5. Call `submit_and_publish_report` only after the revision plan validates.
+1. Call `get_controlled_next_action` until the harness returns the
+   `revision_plan` stage.
+2. Read `agent_tasks/04_revision_plan.md` and `base_document_sections.json`.
+3. Write `revision_plan.json` with exact `original_text` spans and replacement
+   text inside the returned `allowed_write_paths`.
+4. Optionally call `preview_revision_diff` for a read-only diff preview.
+5. Call `submit_controlled_action` to validate the revision plan and advance.
+   `submit_revision_plan` remains available only as a legacy compatibility
+   helper.
 
 ## Engineering Lab Reports
 
@@ -391,6 +409,7 @@ Chinese engineering publish checklist:
 - Template fields such as course, student ID, instructor, lab section, date,
   and department are supplied when the school/company template expects them.
 - Before delivery, inspect `final_qa_summary_path`, then
+  `scholarly_quality_report_path`,
   `template_field_fill_report_path`, `template_style_map_path`, and
   `post_render_layout_manifest_path` when those paths are returned.
 
@@ -408,14 +427,20 @@ Failure repair order:
   or `sentence_map.jsonl`; do not edit checkpoint JSON.
 - Engineering unit, table-value, or arithmetic concerns: inspect
   `engineering_audit_report.json` before changing claim text.
-- Revision failures: edit `revision_plan.json` exact spans, then rerun
-  `preview_revision_diff` and `submit_revision_plan`.
+- Revision failures: edit `revision_plan.json` exact spans inside the current
+  controlled repair scope, optionally rerun `preview_revision_diff`, then call
+  `submit_controlled_action`. Use `submit_revision_plan` only for legacy direct
+  validation.
 - Render failures: fix Markdown/table/figure/template artifacts, rerun
   validation, then render.
 
 For completed runs, inspect `final_qa_summary_path` or packaged
 `published/qa/final_qa_summary.json` first when reporting final delivery
 readiness; the Markdown sibling is packaged as `published/qa/final_qa_summary.md`.
+Inspect `scholarly_quality_report_path` or packaged
+`published/qa/scholarly_quality_report.json` when academic or engineering
+outputs need review against serious article structure, methods, figures, and
+reference quality expectations.
 Inspect `figure_visual_quality_report_path` or packaged
 `published/qa/figure_visual_quality_report.json` when chart readability needs
 review.

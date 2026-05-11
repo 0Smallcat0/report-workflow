@@ -23,6 +23,20 @@ from .figure_types import (
 logger = logging.getLogger(__name__)
 
 _SAFE_FILENAME_CHARS = re.compile(r"[^A-Za-z0-9._-]+")
+_COLORBLIND_SAFE_PALETTE = (
+    "#0072B2",
+    "#D55E00",
+    "#009E73",
+    "#CC79A7",
+    "#F0E442",
+    "#56B4E9",
+    "#E69F00",
+    "#000000",
+)
+
+
+def _palette_color(index: int) -> str:
+    return _COLORBLIND_SAFE_PALETTE[index % len(_COLORBLIND_SAFE_PALETTE)]
 
 # ------------------------------------------------------------------
 # Schema for figure_plan.json (what the agent must produce)
@@ -290,7 +304,13 @@ def _generate_bar(figure_id: str, title: str, data: dict, xlabel: str, ylabel: s
     for i, s in enumerate(series):
         values = s.get("values", [])
         offset = (i - len(series) / 2 + 0.5) * bar_width
-        ax.bar([xi + offset for xi in x], values, bar_width * 0.9, label=s.get("name", f"Series {i}"))
+        ax.bar(
+            [xi + offset for xi in x],
+            values,
+            bar_width * 0.9,
+            label=s.get("name", f"Series {i}"),
+            color=_palette_color(i),
+        )
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -320,7 +340,14 @@ def _generate_line(figure_id: str, title: str, data: dict, xlabel: str, ylabel: 
     for i, s in enumerate(series):
         values = s.get("values", [])
         x_vals = range(len(labels)) if labels else range(len(values))
-        ax.plot(x_vals, values, marker="o", linewidth=2, label=s.get("name", f"Series {i}"))
+        ax.plot(
+            x_vals,
+            values,
+            marker="o",
+            linewidth=2,
+            label=s.get("name", f"Series {i}"),
+            color=_palette_color(i),
+        )
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -346,7 +373,7 @@ def _generate_scatter(figure_id: str, title: str, data: dict, xlabel: str, ylabe
     y_vals = data.get("y", [])
 
     fig, ax = plt.subplots(figsize=(width, height), dpi=dpi)
-    ax.scatter(x_vals, y_vals, alpha=0.7, edgecolors="none")
+    ax.scatter(x_vals, y_vals, alpha=0.75, edgecolors="none", color=_palette_color(0))
 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -368,7 +395,13 @@ def _generate_pie(figure_id: str, title: str, data: dict,
     values = series[0].get("values", []) if series else []
 
     fig, ax = plt.subplots(figsize=(width, height), dpi=dpi)
-    ax.pie(values, labels=labels, autopct="%1.1f%%", startangle=140)
+    ax.pie(
+        values,
+        labels=labels,
+        autopct="%1.1f%%",
+        startangle=140,
+        colors=[_palette_color(index) for index, _ in enumerate(values)],
+    )
     ax.set_title(title)
     issues = _save_figure(fig, ax, figure_id, "pie", data, output_path, dpi)
     plt.close(fig)
@@ -415,7 +448,7 @@ def _generate_histogram(figure_id: str, title: str, data: dict, xlabel: str, yla
         bins = min(10, max(5, round(len(values) ** 0.5)))
 
     fig, ax = plt.subplots(figsize=(width, height), dpi=dpi)
-    ax.hist(values, bins=bins, edgecolor="white", color="#4C78A8")
+    ax.hist(values, bins=bins, edgecolor="white", color=_palette_color(0))
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel or "Frequency")
     ax.set_title(title)
@@ -437,9 +470,11 @@ def _generate_boxplot(figure_id: str, title: str, data: dict, xlabel: str, ylabe
 
     fig, ax = plt.subplots(figsize=(width, height), dpi=dpi)
     try:
-        ax.boxplot(values, tick_labels=labels, patch_artist=True)
+        box = ax.boxplot(values, tick_labels=labels, patch_artist=True)
     except TypeError:
-        ax.boxplot(values, labels=labels, patch_artist=True)
+        box = ax.boxplot(values, labels=labels, patch_artist=True)
+    for index, patch in enumerate(box.get("boxes", [])):
+        patch.set_facecolor(_palette_color(index))
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title)
@@ -471,7 +506,7 @@ def _generate_heatmap(figure_id: str, title: str, data: dict, xlabel: str, ylabe
         raise ValueError("data.y_labels length must match heatmap row count")
 
     fig, ax = plt.subplots(figsize=(width, height), dpi=dpi)
-    image = ax.imshow(matrix, aspect="auto", cmap="viridis")
+    image = ax.imshow(matrix, aspect="auto", cmap="cividis")
     fig.colorbar(image, ax=ax, label=str(data.get("colorbar_label") or ""))
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
@@ -514,6 +549,7 @@ def _generate_error_bar(figure_id: str, title: str, data: dict, xlabel: str, yla
             capsize=4,
             linewidth=1.8,
             label=item.get("name", f"Series {index + 1}"),
+            color=_palette_color(index),
         )
 
     ax.set_xlabel(xlabel)
@@ -546,7 +582,13 @@ def _generate_stacked_bar(figure_id: str, title: str, data: dict, xlabel: str, y
         values = _number_list(item.get("values", []), f"data.series[{index}].values")
         if len(values) != len(labels):
             raise ValueError("stacked_bar series values and labels must have matching lengths")
-        ax.bar(x, values, bottom=bottom, label=item.get("name", f"Series {index + 1}"))
+        ax.bar(
+            x,
+            values,
+            bottom=bottom,
+            label=item.get("name", f"Series {index + 1}"),
+            color=_palette_color(index),
+        )
         bottom = [base + value for base, value in zip(bottom, values)]
 
     ax.set_xlabel(xlabel)

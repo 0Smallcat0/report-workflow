@@ -31,7 +31,7 @@ Position: After MERGE_DRAFT, before FACTUALITY_CHECK in validate phase.
 """
 import json
 import re
-from datetime import datetime
+from datetime import date, datetime
 from pathlib import Path
 from typing import Optional
 
@@ -55,6 +55,28 @@ SOURCE_ROLE_CITATION_TYPE = {
     "research_document": "reference_entry",
     "primary_source": "reference_entry",
 }
+
+GBT_7714_2025_EFFECTIVE_DATE = date(2026, 7, 1)
+
+
+def default_gbt7714_standard(as_of: date | None = None) -> str:
+    """Return the default GB/T 7714 standard for a given date.
+
+    GB/T 7714-2025 has been issued but is not the default before its
+    2026-07-01 effective date. This function keeps that date boundary explicit
+    and testable.
+    """
+    current = as_of or date.today()
+    if current >= GBT_7714_2025_EFFECTIVE_DATE:
+        return "GB/T 7714-2025"
+    return "GB/T 7714-2015"
+
+
+def citation_style_for_profile(report_profile: str | None) -> str:
+    """Return the internal publication citation style for a report profile."""
+    if report_profile == "engineering_lab_report":
+        return "gb_t_7714_2015"
+    return "apa"
 
 
 def _split_cite_ids(raw: str) -> list[str]:
@@ -270,6 +292,48 @@ def _format_reference_entry(evidence: dict) -> Optional[str]:
     return None
 
 
+def _source_reference_key(evidence: dict) -> str:
+    return str(
+        evidence.get("source_id")
+        or evidence.get("source_file_name")
+        or evidence.get("evidence_id")
+        or "unknown"
+    )
+
+
+def _format_gbt7714_type_code(file_type: str) -> str:
+    normalized = str(file_type or "").lower()
+    if normalized in {"csv", "xlsx", "json"}:
+        return "DS"
+    if normalized in {"pdf", "docx", "txt", "md"}:
+        return "Z"
+    return "Z"
+
+
+def _format_gbt7714_reference_entry(evidence: dict, number: int, standard: str = "GB/T 7714-2015") -> str:
+    """Format a minimal GB/T 7714 numeric reference entry.
+
+    The workflow often receives local sources without full bibliographic
+    metadata, so this intentionally uses only available structured fields and
+    source filenames. The scholarly quality report separately flags
+    metadata-poor references for academic_paper.
+    """
+    metadata = evidence.get("source_metadata") if isinstance(evidence.get("source_metadata"), dict) else {}
+    file_name = str(evidence.get("source_file_name") or evidence.get("source_id") or "Unknown Source")
+    title = str(evidence.get("title") or metadata.get("title") or Path(file_name).stem or file_name).strip()
+    author = str(evidence.get("author") or metadata.get("author") or "").strip()
+    year = str(evidence.get("year") or metadata.get("year") or evidence.get("published_year") or "").strip()
+    type_code = _format_gbt7714_type_code(str(evidence.get("file_type") or metadata.get("file_type") or ""))
+    source_url = str(evidence.get("url") or evidence.get("source_url") or "").strip()
+
+    prefix = f"[{number}] "
+    author_part = f"{author}. " if author else ""
+    year_part = f" {year}." if year else ""
+    url_part = f" {source_url}" if source_url else ""
+    note = f" ({standard})"
+    return f"{prefix}{author_part}{title}[{type_code}].{year_part}{url_part}{note}".strip()
+
+
 # ------------------------------------------------------------------
 # Source Appendix builders
 # ------------------------------------------------------------------
@@ -439,6 +503,8 @@ def resolve_citations_publication(
     merged_md: str,
     evidence_ledger: list[dict],
     citation_audit: list[dict],
+    citation_style: str = "apa",
+    gbt7714_as_of: date | None = None,
 ) -> tuple[str, list[dict], list[str], list[str]]:
     """Resolve [CITE:cite_id] references to publication-ready citations.
 
@@ -459,6 +525,7 @@ def resolve_citations_publication(
     # Track literature references (unique)
     literature_refs: list[str] = []
     seen_refs: set[str] = set()
+    numeric_ref_numbers: dict[str, int] = {}
 
     # Track internal trace references
     internal_trace_refs: list[str] = []
@@ -489,14 +556,28 @@ def resolve_citations_publication(
                 source_role = evidence.get("source_role", "primary_source")
                 citation_type = SOURCE_ROLE_CITATION_TYPE.get(source_role, "reference_entry")
 
-                replacement = _format_in_text_citation(evidence)
+                if citation_style == "gb_t_7714_2015" and citation_type == "reference_entry":
+                    source_key = _source_reference_key(evidence)
+                    if source_key not in numeric_ref_numbers:
+                        numeric_ref_numbers[source_key] = len(numeric_ref_numbers) + 1
+                    number = numeric_ref_numbers[source_key]
+                    replacement = f"[{number}]"
+                else:
+                    replacement = _format_in_text_citation(evidence)
                 audit_entry["evidence_ids"] = [cite_id]
                 audit_entry["resolved"] = True
                 audit_entry["citation_type"] = citation_type
 
                 # Collect reference entries for literature sources
                 if citation_type == "reference_entry":
-                    ref_entry = _format_reference_entry(evidence)
+                    if citation_style == "gb_t_7714_2015":
+                        ref_entry = _format_gbt7714_reference_entry(
+                            evidence,
+                            numeric_ref_numbers[_source_reference_key(evidence)],
+                            default_gbt7714_standard(gbt7714_as_of),
+                        )
+                    else:
+                        ref_entry = _format_reference_entry(evidence)
                     if ref_entry and ref_entry not in seen_refs:
                         seen_refs.add(ref_entry)
                         literature_refs.append(ref_entry)
@@ -511,12 +592,26 @@ def resolve_citations_publication(
                 source_role = evidence.get("source_role", "primary_source")
                 citation_type = SOURCE_ROLE_CITATION_TYPE.get(source_role, "reference_entry")
 
-                replacement = _format_in_text_citation(evidence)
+                if citation_style == "gb_t_7714_2015" and citation_type == "reference_entry":
+                    source_key = _source_reference_key(evidence)
+                    if source_key not in numeric_ref_numbers:
+                        numeric_ref_numbers[source_key] = len(numeric_ref_numbers) + 1
+                    number = numeric_ref_numbers[source_key]
+                    replacement = f"[{number}]"
+                else:
+                    replacement = _format_in_text_citation(evidence)
                 audit_entry["resolved"] = True
                 audit_entry["citation_type"] = citation_type
 
                 if citation_type == "reference_entry":
-                    ref_entry = _format_reference_entry(evidence)
+                    if citation_style == "gb_t_7714_2015":
+                        ref_entry = _format_gbt7714_reference_entry(
+                            evidence,
+                            numeric_ref_numbers[_source_reference_key(evidence)],
+                            default_gbt7714_standard(gbt7714_as_of),
+                        )
+                    else:
+                        ref_entry = _format_reference_entry(evidence)
                     if ref_entry and ref_entry not in seen_refs:
                         seen_refs.add(ref_entry)
                         literature_refs.append(ref_entry)
@@ -683,8 +778,13 @@ def run_citation_bind(state: ReportState) -> ReportState:
     # ------------------------------------------------------------------
     # Layer 2: Publication citation resolution
     # ------------------------------------------------------------------
+    citation_style = citation_style_for_profile(state.spec.get("report_profile", ""))
     resolved_md, new_audit, literature_refs, internal_refs = resolve_citations_publication(
-        merged_md, evidence_ledger, citation_audit
+        merged_md,
+        evidence_ledger,
+        citation_audit,
+        citation_style=citation_style,
+        gbt7714_as_of=state.created_at.date(),
     )
 
     # ------------------------------------------------------------------
@@ -705,7 +805,11 @@ def run_citation_bind(state: ReportState) -> ReportState:
 
     # Build publication reference list (Markdown format)
     publication_refs_md = ""
-    if literature_refs:
+    if literature_refs and citation_style == "gb_t_7714_2015":
+        publication_refs_md = "## References\n\n"
+        for ref in literature_refs:
+            publication_refs_md += f"{ref.rstrip()}\n\n"
+    elif literature_refs:
         publication_refs_md = "## References\n\n"
         for ref in sorted(literature_refs):
             publication_refs_md += f"- {ref.rstrip()}\n\n"
@@ -760,6 +864,7 @@ def run_citation_bind(state: ReportState) -> ReportState:
     state.citations["internal_trace_path"] = trace_path
     state.citations["internal_source_appendix_path"] = str(source_appendix_path)
     state.citations["literature_reference_count"] = len(literature_refs)
+    state.citations["publication_citation_style"] = citation_style
     state.citations["internal_ref_count"] = len(internal_refs)
 
     return state

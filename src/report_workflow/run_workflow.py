@@ -1,6 +1,10 @@
 """Main workflow orchestrator."""
+from __future__ import annotations
+
 import json
 import sys
+from collections.abc import Callable
+from dataclasses import dataclass
 from pathlib import Path
 from .state import ReportState, run_dir_for
 from .errors import AgentWorkRequired, QAHardBlockError
@@ -14,20 +18,27 @@ from .nodes.corpus_build import run_corpus_build
 from .nodes.source_parse import run_source_parse
 from .nodes.evidence_normalize import run_evidence_normalize
 from .nodes.evidence_store import run_evidence_store
-from .nodes.figure_recommend import run_figure_plan_audit, run_figure_recommend
+from .nodes.figure_recommend import run_figure_recommend
+from .nodes.figure_plan_audit import run_figure_plan_audit
 from .nodes.notebook_sync import run_notebook_sync
 from .nodes.agent_tasks import run_agent_task_briefs
-from .nodes.agent_artifact_intake import run_agent_artifact_intake
-from .nodes.plan_freeze import run_plan_freeze
-from .nodes.doc_metadata_gate import run_doc_metadata_gate
+from .nodes.claim_plan import run_claim_plan
+from .nodes.outline_plan import run_outline_plan
+from .nodes.section_draft import run_section_draft
+from .nodes.paper_scope_freeze import run_paper_scope_freeze
+from .nodes.section_plan_freeze import run_section_plan_freeze
+from .nodes.front_matter_build import run_front_matter_build
+from .nodes.abstract_check import run_abstract_check
 from .nodes.figure_build import run_figure_build
 from .nodes.figure_quality import run_figure_quality
 from .nodes.methods_protocol_build import run_methods_protocol_build
-from .nodes.draft_assembly import run_draft_assembly
+from .nodes.revision_apply import run_revision_apply
+from .nodes.merge_draft import run_merge_draft
 from .nodes.project_identity_gate import run_project_identity_gate
 from .nodes.admissions_tone_gate import run_admissions_tone_gate
 from .nodes.section_role_check import run_section_role_check
-from .nodes.citation_layer import run_citation_layer
+from .nodes.citation_bind import run_citation_bind
+from .nodes.reference_verify import run_reference_verify
 from .nodes.factuality_check import run_factuality_check
 from .nodes.research_execute import run_research_execute
 from .nodes.claim_verify_execute import run_claim_verify_execute
@@ -35,6 +46,7 @@ from .nodes.consistency_check import run_consistency_check  # kept for explicit 
 from .nodes.guideline_check import run_guideline_check      # kept for explicit quality command
 from .nodes.base_document_parse import run_base_document_parse
 from .nodes.qa_gate import run_qa_gate
+from .nodes.scholarly_quality import run_scholarly_quality
 from .nodes.style_pass import run_style_pass
 from .nodes.publication_naturalness_pass import run_publication_naturalness_pass
 from .nodes.admissions_monograph_polish import run_admissions_monograph_polish
@@ -51,80 +63,202 @@ from .nodes.supplementary_package_build import run_supplementary_package_build
 from .nodes.artifacts import run_artifacts
 
 
+NodeFn = Callable[[ReportState], ReportState]
+
+
+@dataclass(frozen=True)
+class WorkflowStep:
+    """Internal workflow substep.
+
+    Steps preserve diagnostic precision without expanding the public DAG.
+    """
+
+    name: str
+    run: NodeFn
+
+
+@dataclass(frozen=True)
+class WorkflowStage:
+    """Public workflow stage checkpointed by the runner."""
+
+    name: str
+    steps: tuple[WorkflowStep, ...]
+
+    def run(self, state: ReportState, *, emit_events: bool = True) -> ReportState:
+        for step in self.steps:
+            step_name = f"{self.name}/{step.name}"
+            if emit_events:
+                append_job_event(state, step_name, "start", "running")
+            try:
+                state = step.run(state)
+                if emit_events:
+                    append_job_event(state, step_name, "success", state.status)
+            except AgentWorkRequired as exc:
+                if emit_events:
+                    append_job_event(
+                        state,
+                        step_name,
+                        "agent_work_required",
+                        "awaiting_agent_artifacts",
+                        {"missing_artifacts": exc.missing_artifacts},
+                    )
+                raise AgentWorkRequired(
+                    f"{step_name}: {exc}",
+                    exc.missing_artifacts,
+                ) from exc
+            except QAHardBlockError as exc:
+                if emit_events:
+                    append_job_event(state, step_name, "failure", "failed", {"error": str(exc)})
+                raise QAHardBlockError(f"{step_name}: {exc}", hint=getattr(exc, "hint", "")) from exc
+            except Exception as exc:
+                if emit_events:
+                    append_job_event(
+                        state,
+                        step_name,
+                        "failure",
+                        "failed",
+                        {"error": f"{type(exc).__name__}: {exc}"},
+                    )
+                raise RuntimeError(f"{step_name}: {type(exc).__name__}: {exc}") from exc
+        return state
+
+    def as_node(self) -> tuple[str, NodeFn]:
+        return self.name, self.run
+
+
+def _step(name: str, run: NodeFn) -> WorkflowStep:
+    return WorkflowStep(name, run)
+
+
+def _stage(name: str, *steps: WorkflowStep) -> WorkflowStage:
+    return WorkflowStage(name, tuple(steps))
+
+
 def workflow_nodes() -> list[tuple[str, object]]:
-    """Return the legacy full ordered workflow node list."""
+    """Return the ordered public workflow stage list."""
     return prepare_nodes() + validate_nodes() + render_nodes()
 
 
 def prepare_nodes() -> list[tuple[str, object]]:
-    """Return nodes that prepare deterministic source/evidence artifacts."""
+    """Return stages that prepare deterministic source/evidence artifacts."""
+    return [stage.as_node() for stage in prepare_stages()]
+
+
+def prepare_stages() -> list[WorkflowStage]:
     return [
-        ("INTAKE", run_intake),
-        ("GUIDELINE_SELECT", run_guideline_select),
-        ("BLUEPRINT_PLAN", run_blueprint_plan),
-        ("CORPUS_BUILD", run_corpus_build),
-        ("SOURCE_PARSE", run_source_parse),
-        ("BASE_DOCUMENT_PARSE", run_base_document_parse),
-        ("EVIDENCE_NORMALIZE", run_evidence_normalize),
-        ("EVIDENCE_STORE", run_evidence_store),
-        ("FIGURE_RECOMMEND", run_figure_recommend),
-        ("NOTEBOOK_SYNC", run_notebook_sync),
-        ("AGENT_TASKS", run_agent_task_briefs),
+        _stage(
+            "SPEC_PLAN",
+            _step("INTAKE", run_intake),
+            _step("GUIDELINE_SELECT", run_guideline_select),
+            _step("BLUEPRINT_PLAN", run_blueprint_plan),
+        ),
+        _stage(
+            "SOURCE_INGEST",
+            _step("CORPUS_BUILD", run_corpus_build),
+            _step("SOURCE_PARSE", run_source_parse),
+            _step("BASE_DOCUMENT_PARSE", run_base_document_parse),
+        ),
+        _stage(
+            "EVIDENCE_BUILD",
+            _step("EVIDENCE_NORMALIZE", run_evidence_normalize),
+            _step("EVIDENCE_STORE", run_evidence_store),
+        ),
+        _stage("FIGURE_RECOMMEND", _step("FIGURE_RECOMMEND", run_figure_recommend)),
+        _stage("NOTEBOOK_SYNC", _step("NOTEBOOK_SYNC", run_notebook_sync)),
+        _stage("AGENT_TASKS", _step("AGENT_TASKS", run_agent_task_briefs)),
     ]
 
 
 def validate_nodes() -> list[tuple[str, object]]:
-    """Return nodes that validate external agent-produced artifacts.
+    """Return stages that validate external agent-produced artifacts."""
+    return [stage.as_node() for stage in validate_stages()]
 
-    Simplified pipeline (post-retrospective refactor):
-    - AGENT_ARTIFACT_INTAKE: CLAIM_PLAN + OUTLINE_PLAN + SECTION_DRAFT combined
-    - PLAN_FREEZE: PAPER_SCOPE_FREEZE + SECTION_PLAN_FREEZE combined
-    - DOC_METADATA_GATE: FRONT_MATTER_BUILD + ABSTRACT_CHECK combined
-    - FIGURE_PLAN_AUDIT: audits chart-type choices before FIGURE_BUILD
-    - DRAFT_ASSEMBLY: REVISION_APPLY + MERGE_DRAFT combined
-      (MERGE_DRAFT absorbs: results_sanity_pass + main_text_artifact_filter)
-    - CITATION_LAYER: CITATION_BIND + REFERENCE_VERIFY combined
-    - FIGURE_QUALITY: absorbs caption_interpreter + figure_contract_check
-    - GUIDELINE_CHECK and CONSISTENCY_CHECK moved to explicit quality commands
-      (run via: report-workflow check-quality --job-id <id>)
-    """
+
+def validate_stages() -> list[WorkflowStage]:
     return [
-        ("AGENT_ARTIFACT_INTAKE", run_agent_artifact_intake),
-        ("PLAN_FREEZE", run_plan_freeze),
-        ("DOC_METADATA_GATE", run_doc_metadata_gate),
-        ("METHODS_PROTOCOL_BUILD", run_methods_protocol_build),
-        ("FIGURE_PLAN_AUDIT", run_figure_plan_audit),
-        ("FIGURE_BUILD", run_figure_build),
-        ("DRAFT_ASSEMBLY", run_draft_assembly),
-        ("PROJECT_IDENTITY_GATE", run_project_identity_gate),
-        ("ADMISSIONS_TONE_GATE", run_admissions_tone_gate),
-        ("SECTION_ROLE_CHECK", run_section_role_check),
-        ("CITATION_LAYER", run_citation_layer),
-        ("FACTUALITY_CHECK", run_factuality_check),
-        ("RESEARCH_EXECUTE", run_research_execute),
-        ("CLAIM_VERIFY_EXECUTE", run_claim_verify_execute),
-        ("FIGURE_QUALITY", run_figure_quality),
-        ("QA_GATE", run_qa_gate),
+        _stage(
+            "AGENT_ARTIFACTS",
+            _step("CLAIM_PLAN", run_claim_plan),
+            _step("OUTLINE_PLAN", run_outline_plan),
+            _step("SECTION_DRAFT", run_section_draft),
+        ),
+        _stage(
+            "PLAN_LOCK",
+            _step("PAPER_SCOPE_FREEZE", run_paper_scope_freeze),
+            _step("SECTION_PLAN_FREEZE", run_section_plan_freeze),
+        ),
+        _stage(
+            "METADATA_GATE",
+            _step("FRONT_MATTER_BUILD", run_front_matter_build),
+            _step("ABSTRACT_CHECK", run_abstract_check),
+        ),
+        _stage(
+            "CONTENT_ASSEMBLY",
+            _step("METHODS_PROTOCOL_BUILD", run_methods_protocol_build),
+            _step("FIGURE_PLAN_AUDIT", run_figure_plan_audit),
+            _step("FIGURE_BUILD", run_figure_build),
+            _step("REVISION_APPLY", run_revision_apply),
+            _step("MERGE_DRAFT", run_merge_draft),
+        ),
+        _stage(
+            "DRAFT_GATES",
+            _step("PROJECT_IDENTITY_GATE", run_project_identity_gate),
+            _step("ADMISSIONS_TONE_GATE", run_admissions_tone_gate),
+            _step("SECTION_ROLE_CHECK", run_section_role_check),
+        ),
+        _stage(
+            "EVIDENCE_AND_CLAIMS",
+            _step("CITATION_BIND", run_citation_bind),
+            _step("REFERENCE_VERIFY", run_reference_verify),
+            _step("FACTUALITY_CHECK", run_factuality_check),
+            _step("RESEARCH_EXECUTE", run_research_execute),
+            _step("CLAIM_VERIFY_EXECUTE", run_claim_verify_execute),
+        ),
+        _stage(
+            "FINAL_QA",
+            _step("FIGURE_QUALITY", run_figure_quality),
+            _step("SCHOLARLY_QUALITY", run_scholarly_quality),
+            _step("QA_GATE", run_qa_gate),
+        ),
     ]
 
 
 def render_nodes() -> list[tuple[str, object]]:
-    """Return nodes that render and package a validated workflow."""
+    """Return stages that render and package a validated workflow."""
+    return [stage.as_node() for stage in render_stages()]
+
+
+def render_stages() -> list[WorkflowStage]:
     return [
-        ("STYLE_PASS", run_style_pass),
-        ("PUBLICATION_NATURALNESS_PASS", run_publication_naturalness_pass),
-        ("ADMISSIONS_MONOGRAPH_POLISH", run_admissions_monograph_polish),
-        ("HEADING_CONTRACT_CHECK", run_heading_contract_check),
-        ("DOCX_RENDER", run_docx_render),
-        ("POST_RENDER_REPAIR", run_post_render_repair),
-        ("POST_RENDER_VALIDATE", run_post_render_validate),
-        ("VISUAL_RENDER_CHECK", run_visual_render_check),
-        ("REFERENCE_REALITY_CHECK", run_reference_reality_check),
-        ("REFERENCE_RELEVANCE_GATE", run_reference_relevance_gate),
-        ("SOURCE_APPENDIX_RENDER", run_source_appendix_render),
-        ("FINAL_PUBLISH", run_final_publish),
-        ("SUPPLEMENTARY_PACKAGE_BUILD", run_supplementary_package_build),
-        ("ARTIFACTS", run_artifacts),
+        _stage(
+            "TEXT_POLISH",
+            _step("STYLE_PASS", run_style_pass),
+            _step("PUBLICATION_NATURALNESS_PASS", run_publication_naturalness_pass),
+            _step("ADMISSIONS_MONOGRAPH_POLISH", run_admissions_monograph_polish),
+            _step("HEADING_CONTRACT_CHECK", run_heading_contract_check),
+        ),
+        _stage(
+            "DOCX_BUILD",
+            _step("DOCX_RENDER", run_docx_render),
+            _step("POST_RENDER_REPAIR", run_post_render_repair),
+        ),
+        _stage(
+            "RENDER_QA",
+            _step("POST_RENDER_VALIDATE", run_post_render_validate),
+            _step("VISUAL_RENDER_CHECK", run_visual_render_check),
+        ),
+        _stage(
+            "REFERENCE_QA",
+            _step("REFERENCE_REALITY_CHECK", run_reference_reality_check),
+            _step("REFERENCE_RELEVANCE_GATE", run_reference_relevance_gate),
+        ),
+        _stage(
+            "PUBLISH",
+            _step("SOURCE_APPENDIX_RENDER", run_source_appendix_render),
+            _step("FINAL_PUBLISH", run_final_publish),
+            _step("SUPPLEMENTARY_PACKAGE_BUILD", run_supplementary_package_build),
+            _step("ARTIFACTS", run_artifacts),
+        ),
     ]
 
 
@@ -140,7 +274,26 @@ def _start_index_for_resume(state: ReportState, nodes: list[tuple[str, object]])
     try:
         return names.index(current)
     except ValueError:
+        legacy_stage = _stage_name_for_legacy_node(current)
+        if legacy_stage in names:
+            return names.index(legacy_stage)
         return 0
+
+
+def _stage_name_for_legacy_node(node_name: str) -> str | None:
+    stage_aliases = {
+        "AGENT_ARTIFACT_INTAKE": "AGENT_ARTIFACTS",
+        "PLAN_FREEZE": "PLAN_LOCK",
+        "DOC_METADATA_GATE": "METADATA_GATE",
+        "DRAFT_ASSEMBLY": "CONTENT_ASSEMBLY",
+        "CITATION_LAYER": "EVIDENCE_AND_CLAIMS",
+    }
+    if node_name in stage_aliases:
+        return stage_aliases[node_name]
+    for stage in prepare_stages() + validate_stages() + render_stages():
+        if any(step.name == node_name for step in stage.steps):
+            return stage.name
+    return None
 
 
 def _run_nodes(state: ReportState, nodes: list[tuple[str, object]]) -> ReportState:
@@ -330,22 +483,22 @@ def validate_workflow_dry_run(job_id: str, *, deep_audit: bool = False, workspac
     # Work on a copy to avoid modifying the real state
     state_copy = deepcopy(state)
 
-    # Track which nodes would be run
-    nodes = validate_nodes()
-    print(f"[DRY-RUN] Simulating {len(nodes)} validate nodes for job {job_id} ...")
+    # Track which stages would be run
+    stages = validate_stages()
+    print(f"[DRY-RUN] Simulating {len(stages)} validate stages for job {job_id} ...")
 
     dry_run_errors = []
 
-    for node_name, node_fn in nodes:
+    for stage in stages:
         try:
-            state_copy = node_fn(state_copy)
-            print(f"  [PASS] {node_name}")
+            state_copy = stage.run(state_copy, emit_events=False)
+            print(f"  [PASS] {stage.name}")
         except QAHardBlockError as e:
-            print(f"  [FAIL] {node_name}: {e}")
-            dry_run_errors.append(f"{node_name}: {e}")
+            print(f"  [FAIL] {stage.name}: {e}")
+            dry_run_errors.append(f"{stage.name}: {e}")
         except Exception as e:
-            print(f"  [ERROR] {node_name}: {type(e).__name__}: {e}")
-            dry_run_errors.append(f"{node_name}: {type(e).__name__}: {e}")
+            print(f"  [ERROR] {stage.name}: {type(e).__name__}: {e}")
+            dry_run_errors.append(f"{stage.name}: {type(e).__name__}: {e}")
 
     if dry_run_errors:
         print(f"\n[DRY-RUN] Validation would fail with {len(dry_run_errors)} error(s)")
@@ -354,8 +507,8 @@ def validate_workflow_dry_run(job_id: str, *, deep_audit: bool = False, workspac
             hint="Run 'report-workflow diagnose --job-id <id>' to see full diagnostics"
         )
 
-    print(f"\n[DRY-RUN] All nodes would pass.")
-    print("  Note: This is a simulation - no checkpoint was written.")
+    print(f"\n[DRY-RUN] All stages would pass.")
+    print("  Note: This is a simulation - no checkpoint or job event was written.")
     return state_copy
 
 

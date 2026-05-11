@@ -8,11 +8,10 @@ from report_workflow.nodes.agent_tasks import write_agent_task_briefs
 from report_workflow.nodes.figure_build import _figure_visual_quality_issues, run_figure_build
 from report_workflow.nodes.figure_recommend import (
     MAX_TABLE_FIGURE_ROWS,
-    audit_figure_plan,
     recommend_figures_from_evidence,
-    run_figure_plan_audit,
     run_figure_recommend,
 )
+from report_workflow.nodes.figure_plan_audit import audit_figure_plan, run_figure_plan_audit
 from report_workflow.state import ReportState, run_dir_for
 
 

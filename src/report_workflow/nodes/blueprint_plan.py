@@ -22,7 +22,7 @@ def run_blueprint_plan(state: ReportState) -> ReportState:
     # CLI args (--title, --author, --affiliation, --correspondence,
     # --keyword) are stored in spec["front_matter"] but the blueprint's
     # front_matter template is all empty strings.  Without this merge,
-    # validate's DOC_METADATA_GATE reads empty values from
+    # validate's METADATA_GATE reads empty values from
     # plan["blueprint"]["front_matter"] and fails for academic reports.
     # ------------------------------------------------------------------
     spec_fm = state.spec.get("front_matter") or {}

@@ -281,12 +281,12 @@ def _print_state(state) -> None:
 
 
 def _verbose_validate(job_id: str, deep_audit: bool = False, workspace_root: str | None = None) -> ReportState:
-    """Run validate with per-node progress printed."""
+    """Run validate with per-stage progress printed."""
     state = ReportState.resume(job_id, workspace_root=workspace_root)
     if deep_audit:
         state.flags["deep_audit"] = True
     nodes = validate_nodes()
-    print(f"[VALIDATE] Running {len(nodes)} nodes for job {job_id} ...")
+    print(f"[VALIDATE] Running {len(nodes)} stages for job {job_id} ...")
 
     for node_name, node_fn in nodes:
         try:

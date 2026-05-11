@@ -63,38 +63,30 @@ reference-template behavior. The workflow DAG should remain stable; nodes read
 profile policy through `get_policy(state.spec.get("report_profile",
 "academic_paper"))`.
 
-## Node Lists
+## Stage Lists
 
-`src/report_workflow/run_workflow.py` owns the canonical node sequence. Keep
-this section synchronized when changing node lists.
+`src/report_workflow/run_workflow.py` owns the canonical stage sequence. Each
+stage contains deterministic substeps recorded in `job_events.jsonl` as
+`STAGE/SUBSTEP`. Keep this section synchronized when changing stage lists.
 
 Prepare:
 
 ```text
-INTAKE -> GUIDELINE_SELECT -> BLUEPRINT_PLAN -> CORPUS_BUILD ->
-SOURCE_PARSE -> BASE_DOCUMENT_PARSE -> EVIDENCE_NORMALIZE ->
-EVIDENCE_STORE -> FIGURE_RECOMMEND -> NOTEBOOK_SYNC -> AGENT_TASKS
+SPEC_PLAN -> SOURCE_INGEST -> EVIDENCE_BUILD -> FIGURE_RECOMMEND ->
+NOTEBOOK_SYNC -> AGENT_TASKS
 ```
 
 Validate:
 
 ```text
-AGENT_ARTIFACT_INTAKE -> PLAN_FREEZE -> DOC_METADATA_GATE ->
-METHODS_PROTOCOL_BUILD -> FIGURE_PLAN_AUDIT -> FIGURE_BUILD -> DRAFT_ASSEMBLY ->
-PROJECT_IDENTITY_GATE -> ADMISSIONS_TONE_GATE -> SECTION_ROLE_CHECK ->
-CITATION_LAYER -> FACTUALITY_CHECK -> RESEARCH_EXECUTE ->
-CLAIM_VERIFY_EXECUTE -> FIGURE_QUALITY -> QA_GATE
+AGENT_ARTIFACTS -> PLAN_LOCK -> METADATA_GATE -> CONTENT_ASSEMBLY ->
+DRAFT_GATES -> EVIDENCE_AND_CLAIMS -> FINAL_QA
 ```
 
 Render:
 
 ```text
-STYLE_PASS -> PUBLICATION_NATURALNESS_PASS ->
-ADMISSIONS_MONOGRAPH_POLISH -> HEADING_CONTRACT_CHECK -> DOCX_RENDER ->
-POST_RENDER_REPAIR -> POST_RENDER_VALIDATE -> VISUAL_RENDER_CHECK ->
-REFERENCE_REALITY_CHECK -> REFERENCE_RELEVANCE_GATE ->
-SOURCE_APPENDIX_RENDER -> FINAL_PUBLISH ->
-SUPPLEMENTARY_PACKAGE_BUILD -> ARTIFACTS
+TEXT_POLISH -> DOCX_BUILD -> RENDER_QA -> REFERENCE_QA -> PUBLISH
 ```
 
 `POST_RENDER_VALIDATE` writes both `post_render_validate_report.json` and
@@ -105,7 +97,7 @@ reports, and validation issues. `ARTIFACTS` packages it under `published/qa/`
 when present. `ARTIFACTS` also writes `final_qa_summary.json` and
 `final_qa_summary.md` as the delivery-level QA entry point, combining QA gate,
 factuality, artifact lint, engineering audit, chart visual-quality review, and
-render-layout evidence without adding a new hard gate.
+scholarly-quality review, and render-layout evidence without adding a new hard gate.
 It also writes `template_style_map.json` and `template_style_map.md`, explaining
 the reference DOCX mode, renderer, applied reference status, key style
 definitions, rendered style usage, and template-fidelity warnings.
@@ -147,9 +139,16 @@ For `engineering_lab_report`, use `run_engineering_audit` after drafts exist to
 write `engineering_audit_report.json` with measurement extraction,
 claim/evidence unit-support warnings, table-value support checks, unit notation
 warnings, missing-unit notes, and simple calculation checks.
+For `academic_paper` and `engineering_lab_report`, validation writes
+`scholarly_quality_report.json` and `scholarly_quality_report.md` with
+review-grade checks for article spine, introduction flow, methods
+reproducibility, role separation, figure/table scholarly expectations, and
+reference metadata quality.
 Completed publications include `published/qa/final_qa_summary.json` and
 `published/qa/final_qa_summary.md`; inspect those first when summarizing
 delivery readiness for a user.
+Use `published/qa/scholarly_quality_report.json` when the user asks whether an
+academic or Chinese engineering report reads like a serious scholarly article.
 Use `published/qa/figure_visual_quality_report.json` when the user asks about
 chart readability issues such as overlapping labels, legend placement, or dense
 heatmaps.
@@ -208,13 +207,13 @@ For abstract failures, fix the authored abstract draft. Common blockers are
 trailing ellipses, incomplete final sentences, leftover `[CITE:]` or `[Source:]`
 markers, placeholder text, and profile-specific word-count violations.
 
-## Adding A Node
+## Adding A Substep
 
 1. Add `src/report_workflow/nodes/<name>.py` with `run_<name>(state:
    ReportState) -> ReportState`.
 2. Import it in `src/report_workflow/run_workflow.py`.
-3. Insert the node into `prepare_nodes()`, `validate_nodes()`, or
-   `render_nodes()`.
+3. Insert it as a `WorkflowStep` inside the appropriate `prepare_stages()`,
+   `validate_stages()`, or `render_stages()` stage.
 4. Raise `QAHardBlockError` for hard gates so remediation and failed
    checkpoints are written.
-5. Update this file and `CLAUDE.md` if the canonical node sequence changes.
+5. Update this file and `CLAUDE.md` if the canonical stage sequence changes.

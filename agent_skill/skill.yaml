@@ -2,7 +2,7 @@ name: report-workflow
 description: >
   Generate publication-ready DOCX reports from source data using a
   deterministic prepare -> agent author -> validate -> render pipeline.
-  Supports 4-step incremental authoring, optional external research
+  Supports controlled staged authoring, legacy 4-step incremental authoring, optional external research
   via web backends (Tavily/Serper/SerpAPI), optional NotebookLM
   knowledge sync, report profiles, and Chinese engineering report guidelines.
 
@@ -196,43 +196,41 @@ tools:
           rendering when a critical render dependency such as pandoc is missing.
 
 
-  # Step 2: Validate claim_matrix.json (incremental)
-  - name: submit_claim_matrix
+  # Preferred controlled harness workflow
+  - name: get_controlled_next_action
     description: >
-      Validate the agent-authored claim_matrix.json. Call this after
-      creating claim_matrix.json in the agent_tasks directory.
-      Checkpoints on success so you can resume from here.
+      Return the current controlled authoring stage for a job, including the
+      task brief, read-first files, allowed write paths, validation tool, and
+      repair context from the previous failed attempt. Use this by default
+      after start_report_task before editing agent-authored artifacts.
     parameters:
       - name: job_id
         type: string
         required: true
         description: The job ID returned by start_report_task
+      - name: workspace_root
+        type: string
+        required: false
+        description: Optional output workspace root if the job is outside the default run registry
 
-  # Step 3: Validate outline.json (incremental)
-  - name: submit_outline
+  - name: submit_controlled_action
     description: >
-      Validate the agent-authored outline.json. Requires Step 2
-      (claim_matrix) to be complete. Checkpoints on success.
+      Submit the current controlled stage. Enforces the harness write scope
+      before running the stage validator, records evidence in
+      harness_manifest.json, advances only on pass, and returns repair context
+      without rerunning unrelated stages when validation fails. Returns
+      blocked_non_author_repair when a read-only stage fails without a legal
+      author-owned repair target.
     parameters:
       - name: job_id
         type: string
         required: true
         description: The job ID returned by start_report_task
-
-  # Step 4: Validate section drafts (incremental)
-  - name: submit_drafts
-    description: >
-      Validate draft artifacts. Accepts either canonical section_drafts/*.md
-      plus sentence_map.jsonl, or structured_drafts.json which the pipeline
-      compiles into those canonical artifacts. Requires Steps 2+3 to be
-      complete. Checkpoints on success.
-    parameters:
-      - name: job_id
+      - name: workspace_root
         type: string
-        required: true
-        description: The job ID returned by start_report_task
+        required: false
+        description: Optional output workspace root if the job is outside the default run registry
 
-  # Step 5: Full validate + render (can be used after steps 2-4, or directly)
   - name: lint_agent_artifacts
     description: >
       Read-only lint for agent-authored artifacts before full validation.
@@ -268,6 +266,8 @@ tools:
       On success, returns post_render_layout_manifest_path for render
       structure audit evidence plus final_qa_summary_path and
       final_qa_summary_md_path for delivery readiness review. Also returns
+      scholarly_quality_report_path/scholarly_quality_report_md_path for
+      article-structure and methods/figure/reference scholarly review,
       figure_visual_quality_report_path for chart readability review, plus
       template_style_map_path/template_style_map_md_path and
       template_field_fill_report_path/template_field_fill_report_md_path when
@@ -336,7 +336,10 @@ tools:
       Validate a revision_plan.json for revise_existing workflows.
       Pre-checks all changes against the base document: verifies
       original_text matches, detects conflicts, and returns a diff
-      preview. Call this before submit_and_publish_report.
+      preview. This remains available for legacy compatibility; the
+      default public flow should use get_controlled_next_action and
+      submit_controlled_action so revision_plan edits stay within the
+      harness write-scope contract.
     parameters:
       - name: job_id
         type: string

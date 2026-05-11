@@ -6,7 +6,7 @@ ACADEMIC MODE OVERRIDE (2026-04-19):
   Placeholder patterns: [Author Name], [email@...], [Department of...], etc.
   Previously this node only emitted warnings. Now it hard-blocks for academic mode.
 
-Sits between SECTION_PLAN_FREEZE and SECTION_DRAFT in the validate phase.
+Runs inside the METADATA_GATE stage after the plan is locked.
 For academic_paper family, front matter is REQUIRED.
 For other families, front matter is optional.
 
@@ -636,7 +636,7 @@ def _format_front_matter_markdown(front_matter: dict) -> str:
 def run_front_matter_build(state: ReportState) -> ReportState:
     """T_NEW: FRONT_MATTER_BUILD - assemble front matter for academic publication.
 
-    Position: After SECTION_PLAN_FREEZE, before SECTION_DRAFT.
+    Position: Inside METADATA_GATE.
 
     Reads:
       - state.plan["blueprint"] (for front_matter template)

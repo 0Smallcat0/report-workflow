@@ -1,19 +1,13 @@
-"""Agent wrapper entry points for the 4-step report workflow.
+"""Agent wrapper entry points for the controlled report workflow.
 
 Step 1: start_report_task        -> Prepare deterministic artifacts + task briefs
-Step 2: submit_claim_matrix      -> Validate claim_matrix.json (agent produces this)
-Step 3: submit_outline           -> Validate outline.json (agent produces this)
-Step 4: submit_drafts            -> Validate structured/canonical drafts
+Controlled: get_controlled_next_action / submit_controlled_action
 Optional: lint_agent_artifacts   -> Read-only artifact shape and ID lint report
-Step 5: submit_and_publish_report -> Full validate + render pipeline
+Publish: submit_and_publish_report -> Full validate + render pipeline
 
-The 4-step split (Steps 2-4) allows the agent to work on each artifact
-independently, checkpointing after each step. This prevents context window
-exhaustion that occurs when the agent must produce all artifacts in a single
-conversation turn.
-
-Legacy 2-step workflow (start + submit_and_publish) still works; the agent
-simply skips Steps 2-4 and goes directly from Step 1 to Step 5.
+The controlled harness is the recommended public surface for staged authoring.
+Legacy direct submit helpers remain for compatibility, but skill docs should
+route agents through submit_controlled_action.
 """
 
 from pathlib import Path
@@ -31,6 +25,11 @@ from report_workflow.state import ReportState, run_dir_for
 from report_workflow.runtime_support import load_jsonl
 from report_workflow.artifact_contract import remap_evidence_ids
 from report_workflow.artifact_lint import lint_agent_artifacts as run_artifact_lint
+from report_workflow.automation_harness import (
+    get_controlled_next_action as _get_controlled_next_action,
+    load_or_create_manifest,
+    run_controlled_stage,
+)
 from report_workflow.engineering_audit import run_engineering_audit as run_engineering_lab_audit
 from report_workflow.config import load_config, save_feature_flag
 from report_workflow.preflight import discover_features, check_preflight
@@ -286,6 +285,16 @@ def start_report_task(
         )
 
         warnings = state.runtime.get("warnings", [])
+        controlled_action = None
+        if state.status == "awaiting_agent_artifacts":
+            _controlled_state, controlled_run_dir, _manifest = load_or_create_manifest(
+                state.job_id,
+                workspace_root=state.output.get("workspace_root"),
+            )
+            controlled_action = _get_controlled_next_action(
+                state.job_id,
+                workspace_root=state.output.get("workspace_root"),
+            )
 
         if state.status == "awaiting_agent_artifacts":
             # Build message with feature status so the agent cannot miss it.
@@ -293,11 +302,10 @@ def start_report_task(
                 "Agent work required. Read task briefs at: "
                 + str(Path(state.runtime.get("agent_tasks_dir") or (run_dir_for(state) / "agent_tasks"))),
                 "",
-                "Submit artifacts step-by-step:",
-                "  1. Create claim_matrix.json, then call submit_claim_matrix",
-                "  2. Create outline.json, then call submit_outline",
-                "  3. Create structured_drafts.json or section_drafts/*.md + sentence_map.jsonl, then call submit_drafts",
-                "  4. Call submit_and_publish_report to render the final DOCX",
+                "Recommended controlled workflow:",
+                "  1. Call get_controlled_next_action to get the current stage and allowed write paths",
+                "  2. Write only those allowed paths, then call submit_controlled_action",
+                "  3. Repeat until status is completed",
                 "",
             ]
 
@@ -317,6 +325,12 @@ def start_report_task(
                 "status": "awaiting_agent_artifacts",
                 "job_id": state.job_id,
                 "message": "\n".join(msg_lines),
+                "controlled_next_action": controlled_action,
+                "harness_manifest_path": (
+                    controlled_action.get("harness_manifest_path")
+                    if isinstance(controlled_action, dict)
+                    else str(controlled_run_dir / "harness_manifest.json")
+                ),
                 "feature_discovery": discovery.as_dict(),
                 "config_summary": cfg.as_env_summary(),
             }
@@ -501,6 +515,8 @@ def submit_and_publish_report(job_id: str, workspace_root: str | None = None) ->
             "post_render_layout_manifest_path": state.output.get("post_render_layout_manifest_path", ""),
             "final_qa_summary_path": state.output.get("final_qa_summary_path", ""),
             "final_qa_summary_md_path": state.output.get("final_qa_summary_md_path", ""),
+            "scholarly_quality_report_path": state.output.get("scholarly_quality_report_path", ""),
+            "scholarly_quality_report_md_path": state.output.get("scholarly_quality_report_md_path", ""),
             "figure_visual_quality_report_path": state.output.get("figure_visual_quality_report_path", ""),
             "template_style_map_path": state.output.get("template_style_map_path", ""),
             "template_style_map_md_path": state.output.get("template_style_map_md_path", ""),
@@ -517,8 +533,8 @@ def submit_and_publish_report(job_id: str, workspace_root: str | None = None) ->
             "job_id": job_id,
             "message": (
                 "Missing agent artifacts. You must create all required files before submitting.\n"
-                "Consider using the step-by-step workflow:\n"
-                "  submit_claim_matrix -> submit_outline -> submit_drafts -> submit_and_publish_report"
+                "Use get_controlled_next_action, write only the allowed paths, "
+                "then call submit_controlled_action."
             ),
             "missing_artifacts": e.missing_artifacts,
         }
@@ -818,3 +834,33 @@ def preview_revision_diff(job_id: str, workspace_root: str | None = None) -> dic
 
     except Exception as e:
         return {"status": "failed", "error": str(e)}
+
+
+def get_controlled_next_action(job_id: str, workspace_root: str | None = None) -> dict:
+    """Return the next controlled authoring stage and its write scope.
+
+    This is the preferred Skill-facing entry point after ``start_report_task``.
+    It gives the agent a single current stage, task brief, read-first files,
+    allowed write paths, and any repair context from the previous failed
+    attempt.
+    """
+    try:
+        return _get_controlled_next_action(job_id, workspace_root=workspace_root)
+    except Exception as e:
+        return {"status": "failed", "job_id": job_id, "error": str(e)}
+
+
+def submit_controlled_action(job_id: str, workspace_root: str | None = None) -> dict:
+    """Validate the current controlled stage, enforcing harness write scope."""
+    validators = {
+        "claim_matrix": submit_claim_matrix,
+        "outline": submit_outline,
+        "drafts": submit_drafts,
+        "revision_plan": submit_revision_plan,
+        "artifact_lint": lint_agent_artifacts,
+        "publish": submit_and_publish_report,
+    }
+    try:
+        return run_controlled_stage(job_id, validators, workspace_root=workspace_root)
+    except Exception as e:
+        return {"status": "failed", "job_id": job_id, "error": str(e)}

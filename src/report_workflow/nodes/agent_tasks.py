@@ -356,6 +356,21 @@ Write `{run_dir / "outline.json"}` with this shape:
 {{
   "_contract": {contract_json},
   "results_mode": "empirical" | "architectural_characterization",
+  "paper_spine": {{
+    "problem": "For academic_paper: the concrete problem or phenomenon.",
+    "gap": "What prior work, current practice, or the source material leaves unresolved.",
+    "objective": "The specific aim of this paper.",
+    "contribution": "The main contribution the report can support with evidence.",
+    "method_basis": "The reproducible method or analysis basis.",
+    "main_limitation": "The main limitation that should temper the claim."
+  }},
+  "lab_spine": {{
+    "experiment_purpose": "For engineering_lab_report: what the experiment is meant to determine.",
+    "variables": "Independent/dependent/control variables and units.",
+    "apparatus_procedure_basis": "Which apparatus and procedure support the measurements.",
+    "measurement_basis": "Where measured/calculated values come from.",
+    "uncertainty_limitations": "Known uncertainty, assumptions, or measurement limits."
+  }},
   "sections": {{
     "results": {{
       "section_id": "results",
@@ -402,6 +417,9 @@ Use this deterministic chart-selection guidance when deciding `figure_ids` and f
 - Use only section IDs defined by the blueprint.
 - Use only claim IDs from `claim_matrix.json`.
 - `results_mode` must be set; choose empirical or architectural_characterization.
+- If `report_profile=academic_paper`, fill `paper_spine`; do not leave it as template text.
+- If `report_profile=engineering_lab_report`, fill `lab_spine`; do not leave it as template text.
+- The outline should create a real argument path: problem/gap/objective before methods, results before interpretation, and limitations before conclusion.
 """
 
     section_task = f"""# 03 Section Draft
@@ -533,6 +551,9 @@ Example `facts_freeze.json`:
 ## Academic-Style Methods Protocol Guidance
 
 Methods section describes **procedure** (what was done), NOT findings. Use past tense.
+Strong scholarly methods prose should identify the data/source basis, procedure,
+analysis parameters or software/instrument settings when applicable, and any
+exclusions, transformations, calibration, or filtering that affects results.
 
 **GOOD (protocol style):**
 - "We parsed the source code using an AST builder to extract function definitions..."
@@ -552,6 +573,9 @@ If `results_mode` is `architectural_characterization`: Describe structural prope
 ## Figure Guidance
 
 Reference figures by their number in the body text at the natural point of discussion (e.g. "as shown in Figure 2"). Do NOT dump all figures at the end of the document. The rendering pipeline will embed each figure after its first reference.
+Captions must be self-contained: a reader should understand what is plotted,
+the data basis, units or value scale, and what the visual comparison means
+without reading the surrounding paragraph first.
 
 {auto_figure_plan_guidance}
 
@@ -567,6 +591,8 @@ If `{figure_recommendations_path}` contains recommendations, use them to avoid o
 - Matrix-shaped numeric evidence should use `heatmap`.
 - Central values with SD/SE/CI/error columns should use `error_bar`.
 - Exact measurement/calculation values should stay as a table.
+- Error-bar charts must state what the bars mean (SD, SE, CI, or measurement uncertainty).
+- Dense category labels, unclear units, or mixed units on one axis should be resolved before submission.
 
 {recommended_figure_usage_map}
 
@@ -608,8 +634,9 @@ graph LR
 ```mermaid
 sequenceDiagram
     Agent->>Pipeline: start_report_task()
-    Pipeline-->>Agent: job_id + task briefs
-    Agent->>Pipeline: submit_claim_matrix()
+    Pipeline-->>Agent: job_id + controlled next action
+    Agent->>Pipeline: get_controlled_next_action()
+    Agent->>Pipeline: submit_controlled_action()
     Agent->>Pipeline: submit_and_publish_report()
     Pipeline-->>Agent: rendered_report.docx
 ```
@@ -620,10 +647,11 @@ These render poorly in DOCX and will be **hard-blocked** by the pre-render sanit
 
 ## Project Identity
 
-For academic `new_draft`, if `{run_dir / "project_identity.json"}` does not exist,
-review `{run_dir / "project_identity_candidate.json"}` and write a confirmed
-`project_identity.json` before final publication. Use it to keep the thesis from
-drifting into a topic-adjacent report.
+For academic `new_draft`, if `{run_dir / "project_identity_candidate.json"}` exists,
+use it as read-only drafting context to keep the thesis from drifting into a
+topic-adjacent report. Do not write `project_identity.json` during controlled
+authoring; pass an explicit `project_identity` to `start_report_task` when a
+fixed identity contract is required.
 """
 
     files: dict[str, str] = {

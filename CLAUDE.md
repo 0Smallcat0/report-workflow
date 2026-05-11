@@ -54,37 +54,29 @@ Built-in profile IDs:
 Profiles control blueprint, policy, aliases, strictness, and reference-template
 behavior. The workflow DAG should remain stable; nodes read profile policy.
 
-## Node Lists
+## Stage Lists
 
-`src/report_workflow/run_workflow.py` owns the canonical node sequence.
+`src/report_workflow/run_workflow.py` owns the canonical stage sequence.
+Substeps are recorded as `STAGE/SUBSTEP` job events.
 
 Prepare:
 
 ```text
-INTAKE -> GUIDELINE_SELECT -> BLUEPRINT_PLAN -> CORPUS_BUILD ->
-SOURCE_PARSE -> BASE_DOCUMENT_PARSE -> EVIDENCE_NORMALIZE ->
-EVIDENCE_STORE -> FIGURE_RECOMMEND -> NOTEBOOK_SYNC -> AGENT_TASKS
+SPEC_PLAN -> SOURCE_INGEST -> EVIDENCE_BUILD -> FIGURE_RECOMMEND ->
+NOTEBOOK_SYNC -> AGENT_TASKS
 ```
 
 Validate:
 
 ```text
-AGENT_ARTIFACT_INTAKE -> PLAN_FREEZE -> DOC_METADATA_GATE ->
-METHODS_PROTOCOL_BUILD -> FIGURE_PLAN_AUDIT -> FIGURE_BUILD -> DRAFT_ASSEMBLY ->
-PROJECT_IDENTITY_GATE -> ADMISSIONS_TONE_GATE -> SECTION_ROLE_CHECK ->
-CITATION_LAYER -> FACTUALITY_CHECK -> RESEARCH_EXECUTE ->
-CLAIM_VERIFY_EXECUTE -> FIGURE_QUALITY -> QA_GATE
+AGENT_ARTIFACTS -> PLAN_LOCK -> METADATA_GATE -> CONTENT_ASSEMBLY ->
+DRAFT_GATES -> EVIDENCE_AND_CLAIMS -> FINAL_QA
 ```
 
 Render:
 
 ```text
-STYLE_PASS -> PUBLICATION_NATURALNESS_PASS ->
-ADMISSIONS_MONOGRAPH_POLISH -> HEADING_CONTRACT_CHECK -> DOCX_RENDER ->
-POST_RENDER_REPAIR -> POST_RENDER_VALIDATE -> VISUAL_RENDER_CHECK ->
-REFERENCE_REALITY_CHECK -> REFERENCE_RELEVANCE_GATE ->
-SOURCE_APPENDIX_RENDER -> FINAL_PUBLISH ->
-SUPPLEMENTARY_PACKAGE_BUILD -> ARTIFACTS
+TEXT_POLISH -> DOCX_BUILD -> RENDER_QA -> REFERENCE_QA -> PUBLISH
 ```
 
 Keep documentation synchronized when changing these lists.
@@ -92,7 +84,7 @@ Keep documentation synchronized when changing these lists.
 `ARTIFACTS` packages delivery QA files under `published/qa/`, including
 `final_qa_summary.json` and `final_qa_summary.md`. These summarize QA gate,
 factuality, artifact lint, engineering audit, chart visual-quality review, and
-render-layout evidence without adding a hard gate.
+scholarly-quality review, and render-layout evidence without adding a hard gate.
 `template_style_map.json` and `template_style_map.md` explain reference-DOCX
 mode, renderer choice, applied-reference status, key style definitions, rendered
 style usage, and template-fidelity warnings.
@@ -105,7 +97,7 @@ fixed-template/front-matter field values in the final DOCX.
 `drafts`, `citations`, `qa`, `output`, `runtime`, `flags`, `knowledge_sync`, and
 `research`.
 
-Each node writes `checkpoint_<NODE>.json` and `checkpoint_latest.json` under:
+Each stage writes `checkpoint_<STAGE>.json` and `checkpoint_latest.json` under:
 
 ```text
 output/<slug>--<job_id>/
@@ -151,9 +143,8 @@ Reference DOCX behavior:
 <!-- report-workflow:tool-surface:start -->
 - `check_setup`
 - `start_report_task`
-- `submit_claim_matrix`
-- `submit_outline`
-- `submit_drafts`
+- `get_controlled_next_action`
+- `submit_controlled_action`
 - `lint_agent_artifacts`
 - `run_engineering_audit`
 - `submit_and_publish_report`

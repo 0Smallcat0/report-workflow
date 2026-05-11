@@ -115,11 +115,10 @@ The external agent reads the task briefs and writes:
 - `section_drafts/*.md`
 - `sentence_map.jsonl`
 
-Use the incremental validation tools when operating through the agent skill:
+Use the controlled harness when operating through the agent skill:
 
-- `submit_claim_matrix`
-- `submit_outline`
-- `submit_drafts`
+- `get_controlled_next_action`
+- `submit_controlled_action`
 
 ### 3. Validate and Render
 
@@ -137,7 +136,12 @@ output/<slug>--<job_id>/published/
 
 The published `qa/` directory includes `final_qa_summary.json` and
 `final_qa_summary.md`, which summarize QA gate status, factuality, artifact
-lint, engineering audit, and render-layout evidence for delivery review.
+lint, engineering audit, scholarly-quality review, chart visual-quality review,
+and render-layout evidence for delivery review.
+For academic and engineering reports, `scholarly_quality_report.json` and
+`scholarly_quality_report.md` provide review-grade checks for article spine,
+introduction flow, reproducible methods, figure/table scholarly expectations,
+and reference metadata quality.
 It also includes `template_style_map.json` and `template_style_map.md`, which
 explain reference-DOCX mode, renderer use, applied-reference status, and
 rendered style usage.
