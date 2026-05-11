@@ -496,6 +496,34 @@ class FigureRecommendationTests(unittest.TestCase):
             self.assertEqual(values[:3], [14.0, 13.0, 12.0])
             self.assertEqual(values[-1], 6.0)
 
+    def test_large_stacked_bar_top_n_other_bucket_preserves_each_series(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            rows = [["Category", "A amount", "B amount"]] + [
+                [f"C{index}", str(20 - index), str(index)]
+                for index in range(1, 15)
+            ]
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "allocation",
+                "source_file_name": "allocation.csv",
+                "granularity": "table",
+                "content": "Allocation breakdown amount by category",
+                "table_data": rows,
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "stacked_bar")
+            self.assertEqual(rec["data_transform"]["operations"], ["sort_desc", "top_n"])
+            labels = rec["figure_plan"]["data"]["labels"]
+            series = rec["figure_plan"]["data"]["series"]
+            self.assertEqual(labels[-1], "Other")
+            self.assertEqual(series[0]["values"][-1], 21.0)
+            self.assertEqual(series[1]["values"][-1], 39.0)
+            self.assertEqual(sum(series[0]["values"]), sum(20 - index for index in range(1, 15)))
+            self.assertEqual(sum(series[1]["values"]), sum(range(1, 15)))
+
     def test_large_response_composition_top_n_keeps_other_bucket(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             state = _state(tmpdir)

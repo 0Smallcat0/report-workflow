@@ -327,7 +327,15 @@ def _sort_and_top_n(rows: list[list[Any]], content: str, max_categories: int) ->
     if any(value is None for value in numeric_values):
         return rows, [], []
     paired = list(zip(rows[1:], [float(value) for value in numeric_values if value is not None]))
-    additive = _is_additive_measure(headers[1], content, [row[1] for row in rows[1:]])
+    numeric_indices = [
+        index for index in range(1, len(headers))
+        if _is_numeric_column(rows, index)
+    ]
+    additive_indices = [
+        index for index in numeric_indices
+        if _is_additive_measure(headers[index], content, _column_values(rows, index))
+    ]
+    additive = 1 in additive_indices
     limit = max(max_categories, 2)
     if not additive and len(paired) <= limit:
         return rows, [], []
@@ -342,9 +350,21 @@ def _sort_and_top_n(rows: list[list[Any]], content: str, max_categories: int) ->
         keep_count = limit - 1
         kept = paired[:keep_count]
         remainder = paired[keep_count:]
-        if all(value >= 0 for _, value in remainder):
-            other = ["Other", sum(value for _, value in remainder), *["" for _ in headers[2:]]]
-            output_rows = [row for row, _ in kept] + [other]
+        if set(numeric_indices) != set(additive_indices):
+            return rows, [], []
+        other: list[Any] = ["Other"]
+        for index in range(1, len(headers)):
+            if index not in additive_indices:
+                other.append("")
+                continue
+            values = [
+                _to_float(row[index] if index < len(row) else "")
+                for row, _ in remainder
+            ]
+            if any(value is None or value < 0 for value in values):
+                return rows, [], []
+            other.append(sum(float(value) for value in values if value is not None))
+        output_rows = [row for row, _ in kept] + [other]
         operations.append("top_n")
 
     if output_rows == rows[1:]:
