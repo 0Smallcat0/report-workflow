@@ -246,6 +246,40 @@ Avoid:
 - internal file paths in report prose
 - ASCII-art diagrams; use Mermaid or real image assets instead
 
+## Academic Figures vs Data Charts
+
+Separate three visual surfaces before drafting:
+
+- Data charts: use only accepted `source_data` values and the deterministic
+  path through `figure_recommendations.json`,
+  `section_drafts/figure_plan.json`, `FIGURE_PLAN_AUDIT`, and `FIGURE_BUILD`.
+  Do not replace these charts with AI-generated images.
+- Mermaid diagrams: use for editable flow/process/architecture/decision,
+  sequence, or state diagrams.
+- Academic illustrations: use image prompts only for non-quantitative assets
+  such as method pipeline overviews, scientific schematics, mechanism diagrams,
+  multi-condition schematics, graphical abstracts, or concept illustrations.
+
+AI academic illustrations are illustrative only. They must not invent numeric
+values, axes, tick marks, color-scale ranges, equations, experimental results,
+comparison outcomes, or source-backed claims. If the visual requires plotted
+measurements, use the deterministic chart path or keep the exact values in a
+table.
+
+Prompt pattern for a non-quantitative academic illustration:
+
+```text
+Goal/concept: <one-sentence concept the figure explains>
+Figure type: <method pipeline | scientific schematic | mechanism diagram |
+multi-condition schematic | graphical abstract | concept illustration>
+Required labels: <labels that are source-supported or explicitly requested>
+Source basis: <accepted source ids, user instructions, or "conceptual only">
+Forbidden content: no fabricated data, axes, color scales, equations,
+experimental results, or claims not present in the sources
+Style: white background, publication font, precise geometry, muted palette,
+3-4 colors maximum, readable in grayscale
+```
+
 ## Engineering Lab Report Notes
 
 For `engineering_lab_report`, treat SOPs, lab handouts, measurement sheets, and

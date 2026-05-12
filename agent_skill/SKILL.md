@@ -1,6 +1,6 @@
 ---
 name: report-workflow
-description: Use when Codex needs to generate, revise, validate, or publish evidence-backed DOCX reports with the local report_workflow pipeline. Supports report profiles, optional web research, optional NotebookLM sync, and Chinese engineering lab reports.
+description: Use when Codex needs to generate, revise, validate, or publish evidence-backed DOCX reports with the local report_workflow pipeline. Supports report profiles, academic figure and chart guidance, optional web research, optional NotebookLM sync, and Chinese engineering lab reports.
 ---
 
 # Report Workflow Skill
@@ -284,6 +284,40 @@ lookup instead of loading large ledgers into context. If you reuse artifacts
 from an older run, call `remap_agent_artifacts(job_id=..., previous_job_id=...)`
 first in dry-run mode, then rerun with `write=True` only after the mapping is
 reasonable.
+
+## Academic Figures vs Data Charts
+
+Keep deterministic data charts separate from illustrative academic figures:
+
+- Use the workflow chart path for any accepted `source_data` values:
+  `figure_recommendations.json`, `section_drafts/figure_plan.json`,
+  `FIGURE_PLAN_AUDIT`, and `FIGURE_BUILD`. No AI-generated image may replace a
+  source-data-backed chart or table.
+- Use Mermaid when the figure should stay editable as a flowchart, process,
+  decision tree, architecture, sequence, or state diagram.
+- Use academic image prompts only for non-quantitative visual assets such as a
+  method pipeline overview, scientific schematic, mechanism diagram,
+  multi-condition schematic, graphical abstract, or concept illustration.
+
+AI-generated academic figures are illustrative assets only. They must not
+invent numeric values, axes, tick marks, color-scale ranges, equations,
+experimental results, comparison outcomes, or source-backed claims. If the
+figure needs measurements or plotted values, use the deterministic chart path
+or keep the exact values in a table.
+
+Reusable prompt pattern for a non-quantitative academic illustration:
+
+```text
+Goal/concept: <one-sentence concept the figure explains>
+Figure type: <method pipeline | scientific schematic | mechanism diagram |
+multi-condition schematic | graphical abstract | concept illustration>
+Required labels: <labels that are source-supported or explicitly requested>
+Source basis: <accepted source ids, user instructions, or "conceptual only">
+Forbidden content: no fabricated data, axes, color scales, equations,
+experimental results, or claims not present in the sources
+Style: white background, publication font, precise geometry, muted palette,
+3-4 colors maximum, readable in grayscale
+```
 
 ## Revision Flow
 

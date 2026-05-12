@@ -892,7 +892,7 @@ class GateTests(unittest.TestCase):
     # F2: Provenance-driven wording strength (FD checker)
     # ------------------------------------------------------------------
     def test_fd_low_grade_blocks_measured_wording(self):
-        """low-grade evidence + wording_strength=measured ??blocked."""
+        """low-grade evidence + wording_strength=measured -> blocked."""
         sentence_map = [
             {
                 "sentence_id": "s1",
@@ -912,7 +912,7 @@ class GateTests(unittest.TestCase):
         self.assertIn("low", results[0]["reason"])
 
     def test_fd_medium_grade_allows_hedged(self):
-        """medium-grade evidence + wording_strength=hedged ??ok (not blocked)."""
+        """medium-grade evidence + wording_strength=hedged -> ok (not blocked)."""
         sentence_map = [
             {
                 "sentence_id": "s1",
@@ -930,7 +930,7 @@ class GateTests(unittest.TestCase):
         self.assertEqual(len(blocked), 0)
 
     def test_fd_high_grade_allows_measured(self):
-        """high-grade evidence + wording_strength=measured ??ok."""
+        """high-grade evidence + wording_strength=measured -> ok."""
         sentence_map = [
             {
                 "sentence_id": "s1",
@@ -948,7 +948,7 @@ class GateTests(unittest.TestCase):
         self.assertEqual(len(blocked), 0)
 
     def test_fd_unknown_wording_not_penalised(self):
-        """wording_strength value not in {measured,hedged,weak} ??not blocked."""
+        """wording_strength value not in {measured,hedged,weak} -> not blocked."""
         sentence_map = [
             {
                 "sentence_id": "s1",
@@ -1060,7 +1060,7 @@ class GateTests(unittest.TestCase):
             self.assertIn("banned phrases", "; ".join(result.qa["style_lint_warnings"]))
 
     def test_no_banned_phrase_passes(self):
-        """No banned phrases in merged draft ??QA gate passes."""
+        """No banned phrases in merged draft -> QA gate passes."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], "out")
             state.spec["report_profile"] = "academic_paper"
@@ -1208,7 +1208,7 @@ class GovernanceAndUtilityTests(unittest.TestCase):
 
 class ConsistencyCheckTests(unittest.TestCase):
     def test_numeric_contradiction_hard_fails(self):
-        """Same unit (%%) appears with same value but different notation ??hard_fail (notation_inconsistency).
+        """Same unit (%%) appears with same value but different notation -> hard_fail (notation_inconsistency).
 
         Note: The consistency checker flags SAME value written with different notation
         (e.g. "20%" vs "20 percent") as notation_inconsistency, because the semantic
@@ -1217,7 +1217,7 @@ class ConsistencyCheckTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
             merged = Path(tmpdir) / "merged.md"
-            # "20%" and "20 percent" = SAME value, DIFFERENT notation ??notation_inconsistency
+            # "20%" and "20 percent" = SAME value, DIFFERENT notation -> notation_inconsistency
             merged.write_text(
                 "# Results\n\nThe response rate was 20%.\n"
                 "# Discussion\n\nA 20 percent response rate was observed.\n",
@@ -1239,7 +1239,7 @@ class ConsistencyCheckTests(unittest.TestCase):
             self.assertIn("[numeric]", str(ctx.exception))
 
     def test_numeric_no_contradiction_passes(self):
-        """Same number appears consistently ??no numeric issue."""
+        """Same number appears consistently -> no numeric issue."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
             merged = Path(tmpdir) / "merged.md"
@@ -1265,7 +1265,7 @@ class ConsistencyCheckTests(unittest.TestCase):
             self.assertEqual(len(numeric_high), 0)
 
     def test_unit_notation_inconsistency_hard_fails(self):
-        """Same unit written as '%' and 'percent' ??high severity."""
+        """Same unit written as '%' and 'percent' -> high severity."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
             merged = Path(tmpdir) / "merged.md"
@@ -1287,7 +1287,7 @@ class ConsistencyCheckTests(unittest.TestCase):
             self.assertIn("written multiple ways", str(ctx.exception))
 
     def test_unit_notation_consistent_passes(self):
-        """'%' used consistently throughout ??no unit issue."""
+        """'%' used consistently throughout -> no unit issue."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
             merged = Path(tmpdir) / "merged.md"
@@ -1310,7 +1310,7 @@ class ConsistencyCheckTests(unittest.TestCase):
             self.assertEqual(len(high), 0)
 
     def test_missing_merged_draft_skips_gracefully(self):
-        """No merged draft path ??skips, doesn't crash."""
+        """No merged draft path -> skips, doesn't crash."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
             state.drafts["merged_draft_md"] = ""
@@ -1320,11 +1320,11 @@ class ConsistencyCheckTests(unittest.TestCase):
             self.assertEqual(result.qa.get("consistency_report_path"), "")
 
     def test_numeric_20_vs_20point0_no_false_positive(self):
-        """'20' and '20.0' are the same number ??no contradiction."""
+        """'20' and '20.0' are the same number -> no contradiction."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
             merged = Path(tmpdir) / "merged.md"
-            # Same unit (%) with "20" and "20.0" ??these are the same value
+            # Same unit (%) with "20" and "20.0" -> these are the same value
             merged.write_text(
                 "# Results\n\nThe yield was 20%.\n"
                 "# Methods\n\nThe yield was 20.0%.\n",
@@ -1340,7 +1340,7 @@ class ConsistencyCheckTests(unittest.TestCase):
             state.plan["claim_matrix"] = {
                 "claims": [{"claim_id": "c1", "claim_text": "yield", "evidence_ids": ["e1"]}]
             }
-            # Should NOT raise ??float("20") == float("20.0")
+            # Should NOT raise -> float("20") == float("20.0")
             result = run_consistency_check(state)
             report = json.loads(Path(result.qa["consistency_report_path"]).read_text(encoding="utf-8"))
             self.assertEqual(report["high_severity"], 0)
@@ -1367,7 +1367,7 @@ class ConsistencyCheckTests(unittest.TestCase):
             self.assertEqual(report["job_id"], state.job_id)
 
     def test_consistency_high_severity_raises_hard_block(self):
-        """Any high-severity consistency issue ??QAHardBlockError."""
+        """Any high-severity consistency issue -> QAHardBlockError."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
             merged = Path(tmpdir) / "merged.md"
@@ -1387,7 +1387,7 @@ class ConsistencyCheckTests(unittest.TestCase):
                 run_consistency_check(state)
 
     def test_consistency_low_severity_passes(self):
-        """No high-severity issues ??no hard block."""
+        """No high-severity issues -> no hard block."""
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
             merged = Path(tmpdir) / "merged.md"
@@ -1412,7 +1412,7 @@ class ConsistencyCheckTests(unittest.TestCase):
 
 class GuidelineCheckTests(unittest.TestCase):
     def test_prisma_hard_violation_hard_fails(self):
-        """PRISMA hard item not found in draft ??QAHardBlockError."""
+        """PRISMA hard item not found in draft -> QAHardBlockError."""
         state = ReportState.new("report", [], "out")
         with tempfile.TemporaryDirectory() as tmpdir:
             merged = Path(tmpdir) / "merged.md"
@@ -1426,7 +1426,7 @@ class GuidelineCheckTests(unittest.TestCase):
             self.assertIn("PRISMA_1a", str(ctx.exception))
 
     def test_prisma_hard_item_found_passes(self):
-        """PRISMA hard item with matching keywords found ??no hard fail.
+        """PRISMA hard item with matching keywords found -> no hard fail.
 
         Uses _check_guideline directly (no full node) to avoid needing
         all PRISMA hard items satisfied simultaneously.
@@ -1447,10 +1447,10 @@ class GuidelineCheckTests(unittest.TestCase):
         }
         sections = {"intro": "This methodology section explains the approach."}
         hard, soft, warn = _check_guideline(guideline, sections)
-        self.assertEqual(len(hard), 0)  # found ??no hard violation
+        self.assertEqual(len(hard), 0)  # found -> no hard violation
 
     def test_no_selected_guidelines_skips(self):
-        """No selected guidelines ??passthrough."""
+        """No selected guidelines -> passthrough."""
         state = ReportState.new("report", [], "out")
         state.spec["selected_guidelines"] = []
         result = run_guideline_check(state)
@@ -1477,7 +1477,7 @@ class GuidelineCheckTests(unittest.TestCase):
             state.drafts["merged_draft_md"] = str(merged)
             state.spec["selected_guidelines"] = ["PRISMA"]
             state.plan["outline"] = {"sections": {"title": {}}}
-            # Expect hard violation ??but report should still be written first
+            # Expect hard violation -> but report should still be written first
             with self.assertRaises(QAHardBlockError):
                 run_guideline_check(state)
             # Check report was written despite the exception
@@ -1534,14 +1534,14 @@ class FigureContractCheckTests(unittest.TestCase):
         )
 
     def test_figure_with_placeholder_prose_and_caption_passes(self):
-        """All three contract elements present ??no issues."""
+        """All three contract elements present -> no issues."""
         text = "# Results\n\n[FIGURE:1]\n\nFigure 1: This is a chart.\n\nThe results are shown (see Figure 1).\n"
         issues = _check_figure_contract(text, ["1"])
         all_issues = [i for i in issues if i.get("issues")]
         self.assertEqual(len(all_issues), 0)
 
     def test_missing_caption_reported(self):
-        """Figure placeholder but no caption ??soft issue."""
+        """Figure placeholder but no caption -> soft issue."""
         text = "# Results\n\n[FIGURE:1]\n\nThe results are shown (see Figure 1).\n"
         issues = _check_figure_contract(text, ["1"])
         caption_issues = [
@@ -1552,7 +1552,7 @@ class FigureContractCheckTests(unittest.TestCase):
         self.assertEqual(len(caption_issues), 1)
 
     def test_missing_prose_reference_reported(self):
-        """Figure placeholder but no prose reference ??soft issue."""
+        """Figure placeholder but no prose reference -> soft issue."""
         text = "# Results\n\n[FIGURE:1]\n\nFigure 1: This is a chart.\n"
         issues = _check_figure_contract(text, ["1"])
         prose_issues = [
@@ -1689,7 +1689,7 @@ class FigureContractCheckTests(unittest.TestCase):
     # Fix #3: academic_paper flat hard issues must enter hard_issues
     # ------------------------------------------------------------------
     def test_no_audit_tables_in_academic_main_text_passes(self):
-        """academic_paper with no forbidden markdown audit tables ??no issue raised."""
+        """academic_paper with no forbidden markdown audit tables -> no issue raised."""
         state = ReportState.new("report", [], "out")
         with tempfile.TemporaryDirectory() as tmpdir:
             merged = Path(tmpdir) / "merged.md"
@@ -1708,7 +1708,7 @@ class FigureContractCheckTests(unittest.TestCase):
             self.assertNotEqual(result.qa.get("figure_quality_report_path", ""), "")
 
     def test_academic_paper_table_found_passes(self):
-        """academic_paper with all three required tables ??no hard issue."""
+        """academic_paper with all three required tables -> no hard issue."""
         state = ReportState.new("report", [], "out")
         with tempfile.TemporaryDirectory() as tmpdir:
             merged = Path(tmpdir) / "merged.md"
@@ -1738,7 +1738,7 @@ class FigureContractCheckTests(unittest.TestCase):
 
 class FigureBuildTests(unittest.TestCase):
     def test_missing_figure_plan_skips(self):
-        """No figure_plan.json ??skips gracefully, no crash."""
+        """No figure_plan.json -> skips gracefully, no crash."""
         state = ReportState.new("report", [], "out")
         with tempfile.TemporaryDirectory() as tmpdir:
             section_drafts_dir = Path(tmpdir) / "section_drafts"
@@ -1750,7 +1750,7 @@ class FigureBuildTests(unittest.TestCase):
             self.assertEqual(result.output.get("figure_manifest_path", ""), "")
 
     def test_malformed_figure_plan_skips(self):
-        """Malformed figure_plan.json ??skips gracefully."""
+        """Malformed figure_plan.json -> skips gracefully."""
         state = ReportState.new("report", [], "out")
         with tempfile.TemporaryDirectory() as tmpdir:
             section_drafts_dir = Path(tmpdir) / "section_drafts"
@@ -1763,7 +1763,7 @@ class FigureBuildTests(unittest.TestCase):
             self.assertEqual(result.output.get("figure_manifest_path", ""), "")
 
     def test_empty_figures_list_skips(self):
-        """figure_plan.json with empty figures list ??skips gracefully."""
+        """figure_plan.json with empty figures list -> skips gracefully."""
         state = ReportState.new("report", [], "out")
         with tempfile.TemporaryDirectory() as tmpdir:
             section_drafts_dir = Path(tmpdir) / "section_drafts"
@@ -1801,13 +1801,13 @@ class EvidenceNormalizeNewFieldsTests(unittest.TestCase):
         self.assertIn("comparative", tags)
 
     def test_topic_tags_no_match(self):
-        """No keyword match ??empty list."""
+        """No keyword match -> empty list."""
         from report_workflow.nodes.evidence_normalize import determine_topic_tags
         tags = determine_topic_tags("The document was uploaded on 2024-01-01.")
         self.assertEqual(tags, [])
 
     def test_topic_tags_deduplicated(self):
-        """Same tag matched by multiple keywords ??deduplicated."""
+        """Same tag matched by multiple keywords -> deduplicated."""
         from report_workflow.nodes.evidence_normalize import determine_topic_tags
         tags = determine_topic_tags(
             "The method methodology procedure protocol was used in this study."
@@ -1935,7 +1935,7 @@ class SourceParseNewTypesTests(unittest.TestCase):
 
 class DiversityGateTests(unittest.TestCase):
     def test_evidence_count_below_5_hard_fails(self):
-        """academic_paper with < 5 evidence entries ??hard fail."""
+        """academic_paper with < 5 evidence entries -> hard fail."""
         from report_workflow.nodes.qa_gate import _source_diversity_reasons
         state = ReportState.new("report", [], "out")
         state.spec["report_profile"] = "academic_paper"
@@ -1955,7 +1955,7 @@ class DiversityGateTests(unittest.TestCase):
         from report_workflow.nodes.qa_gate import _source_diversity_reasons
         state = ReportState.new("report", [], "out")
         state.spec["report_profile"] = "academic_paper"
-        # 12 entries all primary_source ??no code_artifact role
+        # 12 entries all primary_source -> no code_artifact role
         evidence_entries = [
             {"evidence_id": f"e{i}", "source_role": "primary_source"}
             for i in range(12)
@@ -1973,7 +1973,7 @@ class DiversityGateTests(unittest.TestCase):
 
 class CitationBindTests(unittest.TestCase):
     def test_resolve_citations_no_double_brackets(self):
-        """graph_analysis citation resolved ??single brackets, not double."""
+        """graph_analysis citation resolved -> single brackets, not double."""
         evidence_ledger = [
             {
                 "evidence_id": "g1",
@@ -1991,7 +1991,7 @@ class CitationBindTests(unittest.TestCase):
         self.assertIn("[Source: graphify:GRAPH_REPORT.md]", resolved)
 
     def test_resolve_citations_code_artifact_no_double_brackets(self):
-        """code_artifact citation resolved ??single brackets."""
+        """code_artifact citation resolved -> single brackets."""
         evidence_ledger = [
             {
                 "evidence_id": "c1",
@@ -2007,7 +2007,7 @@ class CitationBindTests(unittest.TestCase):
         self.assertIn("[Source: model.py]", resolved)
 
     def test_resolve_citations_research_document_apa(self):
-        """research_document citation ??APA in brackets (already correct)."""
+        """research_document citation -> APA in brackets (already correct)."""
         evidence_ledger = [
             {
                 "evidence_id": "r1",
@@ -2020,7 +2020,7 @@ class CitationBindTests(unittest.TestCase):
         merged = "Previous work [CITE:r1] shows..."
         resolved, audit = resolve_citations(merged, evidence_ledger, [])
         # APA citation is wrapped in [] by format_apa_citation; resolve wraps in [] again
-        # So this will be [[Author, Year]] ??this is existing behavior for research_document
+        # So this will be [[Author, Year]] -> this is existing behavior for research_document
         # The Fix #4 only fixes code_artifact/graph_analysis which we already control
         self.assertNotIn("[[Source:", resolved)
 

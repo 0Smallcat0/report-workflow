@@ -2,9 +2,10 @@ name: report-workflow
 description: >
   Generate publication-ready DOCX reports from source data using a
   deterministic prepare -> agent author -> validate -> render pipeline.
-  Supports controlled staged authoring, legacy 4-step incremental authoring, optional external research
-  via web backends (Tavily/Serper/SerpAPI), optional NotebookLM
-  knowledge sync, report profiles, and Chinese engineering report guidelines.
+  Supports controlled staged authoring, legacy 4-step incremental authoring,
+  academic figure and chart guidance, optional external research via web
+  backends (Tavily/Serper/SerpAPI), optional NotebookLM knowledge sync, report
+  profiles, and Chinese engineering report guidelines.
 
 version: "4.0"
 

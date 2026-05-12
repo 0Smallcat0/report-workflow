@@ -213,7 +213,7 @@ class FeatureDiscovery:
                                 "hint_en": "Provide your Tavily API key (recommended, sign up at tavily.com)",
                                 "env_var": "TAVILY_API_KEY",
                                 "save_to": ".env",
-                                "example": "tvly-xxxxxxxxxx",
+                                "example": "<tavily-api-key>",
                             }
                         ],
                         "action": (
@@ -324,7 +324,7 @@ def discover_features(
     if not has_any_key:
         research_missing.append("至少一個搜尋 API key (TAVILY_API_KEY 建議)")
         research_install.append(
-            '將 API key 寫入 .env 檔案：TAVILY_API_KEY=tvly-xxxxx  '
+            '將 API key 寫入 .env 檔案：TAVILY_API_KEY=<tavily-api-key>  '
             '(或設定環境變數)'
         )
 
@@ -454,4 +454,3 @@ def run_preflight_checks(state: ReportState) -> ReportState:
     parts.append("local setup command: pip install -r requirements.txt")
 
     raise QAHardBlockError("Preflight failed: " + "; ".join(parts))
-
