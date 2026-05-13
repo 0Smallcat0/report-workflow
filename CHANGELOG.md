@@ -10,6 +10,18 @@
 - Added academic figure guidance that separates deterministic source-data
   charts, Mermaid diagrams, and non-quantitative AI-assisted scholarly
   illustrations.
+- Updated non-quantitative figure guidance so suitable engineering schematics,
+  method diagrams, and concept illustrations are proactively considered instead
+  of only allowed on request.
+- Expanded the compact visual taxonomy for proactive non-quantitative
+  academic, engineering, and business-report/corporate-report schematic assets.
+- Clarified generated illustration insertion rules and business-report trigger
+  wording so direct image assets do not conflict with figure manifests.
+- Narrowed schematic guidance wording so business visuals remain report-bound
+  and standalone image/diagram work routes to visual skills instead.
+- Fixed controlled authoring so deterministic starter chart plans generated
+  during prepare do not trigger future-stage scope violations, while manually
+  preloaded future-stage figure plans remain blocked.
 - Added generic guidance for external reference/database lookup: keep external
   references separate from measured/source data, record source/input units and
   assumptions, label derived values as estimates, avoid aggregating per-unit

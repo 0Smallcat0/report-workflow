@@ -47,6 +47,21 @@ def _prepare(tmpdir: str, profile: str = "academic_paper") -> ReportState:
         )
 
 
+def _prepare_with_chart_recommendation(tmpdir: str) -> ReportState:
+    src = Path(tmpdir) / "measurements.csv"
+    src.write_text(
+        "condition,pressure_kpa\nA,118\nB,82\nC,96\n",
+        encoding="utf-8",
+    )
+    with patch("report_workflow.preflight.importlib.util.find_spec", side_effect=_all_packages_present):
+        return prepare_workflow(
+            "write a compact report with a source-backed chart",
+            [str(src)],
+            str(Path(tmpdir) / "out"),
+            report_profile="custom",
+        )
+
+
 def _fake_validators() -> dict:
     return {
         "claim_matrix": lambda _job_id, _workspace_root=None: {"status": "ok"},
@@ -177,6 +192,9 @@ class AutomationHarnessTests(unittest.TestCase):
             (run_dir / "claim_matrix.json").write_text("{}", encoding="utf-8")
             (run_dir / "outline.json").write_text("{}", encoding="utf-8")
             (run_dir / "structured_drafts.json").write_text("{}", encoding="utf-8")
+            figure_dir = run_dir / "section_drafts"
+            figure_dir.mkdir()
+            (figure_dir / "figure_plan.json").write_text('{"figures":[]}', encoding="utf-8")
 
             result = run_controlled_stage(state.job_id, _fake_validators(), workspace_root=workspace_root)
 
@@ -184,8 +202,27 @@ class AutomationHarnessTests(unittest.TestCase):
             self.assertEqual(result["stage"], "claim_matrix")
             self.assertEqual(
                 {violation["relative_path"] for violation in result["violations"]},
-                {"outline.json", "structured_drafts.json"},
+                {"outline.json", "structured_drafts.json", "section_drafts/figure_plan.json"},
             )
+
+    def test_generated_starter_figure_plan_does_not_block_claim_stage(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _prepare_with_chart_recommendation(tmpdir)
+            workspace_root = state.output["workspace_root"]
+            run_dir = run_dir_for(state)
+            plan_path = run_dir / "section_drafts" / "figure_plan.json"
+
+            self.assertTrue(plan_path.exists())
+            self.assertEqual(state.runtime["auto_figure_plan"]["status"], "generated")
+
+            action = get_controlled_next_action(state.job_id, workspace_root=workspace_root)
+            self.assertEqual(action["stage"], "claim_matrix")
+
+            (run_dir / "claim_matrix.json").write_text("{}", encoding="utf-8")
+            result = run_controlled_stage(state.job_id, _fake_validators(), workspace_root=workspace_root)
+
+            self.assertEqual(result["status"], "passed")
+            self.assertEqual(result["next_stage"], "outline")
 
     def test_revise_existing_adds_revision_plan_stage(self):
         with tempfile.TemporaryDirectory() as tmpdir:

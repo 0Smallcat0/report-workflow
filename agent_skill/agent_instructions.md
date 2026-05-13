@@ -246,38 +246,103 @@ Avoid:
 - internal file paths in report prose
 - ASCII-art diagrams; use Mermaid or real image assets instead
 
-## Academic Figures vs Data Charts
+## Non-Quantitative Figures vs Data Charts
 
-Separate three visual surfaces before drafting:
+This guidance applies only while generating or revising a report with
+`report-workflow`. For standalone image, diagram, or slide requests, use the
+appropriate visual skill directly instead of broadening this workflow.
 
-- Data charts: use only accepted `source_data` values and the deterministic
-  path through `figure_recommendations.json`,
+Actively choose the visual surface before drafting. Do not wait for the user to
+ask for a figure when a non-quantitative visual would make a method, mechanism,
+setup, workflow, architecture, or concept easier to understand.
+
+- Data charts: use only accepted `source_data` values, plotted comparisons,
+  scored matrices, axes, or source-backed quantitative claims and the
+  deterministic path through `figure_recommendations.json`,
   `section_drafts/figure_plan.json`, `FIGURE_PLAN_AUDIT`, and `FIGURE_BUILD`.
-  Do not replace these charts with AI-generated images.
+  Do not replace source-data-backed charts, tables, plotted values, materiality
+  matrices, rankings, or quantitative comparisons with AI-generated images.
 - Mermaid diagrams: use for editable flow/process/architecture/decision,
   sequence, or state diagrams.
-- Academic illustrations: use image prompts only for non-quantitative assets
-  such as method pipeline overviews, scientific schematics, mechanism diagrams,
-  multi-condition schematics, graphical abstracts, or concept illustrations.
+- Academic, engineering, or corporate illustrations: use image generation or
+  request an illustration asset when the report needs a polished
+  non-quantitative schematic rather than an editable diagram.
 
-AI academic illustrations are illustrative only. They must not invent numeric
-values, axes, tick marks, color-scale ranges, equations, experimental results,
-comparison outcomes, or source-backed claims. If the visual requires plotted
-measurements, use the deterministic chart path or keep the exact values in a
-table.
+Compact taxonomy for non-quantitative illustration assets:
 
-Prompt pattern for a non-quantitative academic illustration:
+- Academic/scientific: graphical abstract, method pipeline, mechanism/pathway,
+  multi-scale or nested view, lifecycle/cycle, qualitative condition comparison,
+  or conceptual framework.
+- Engineering: apparatus/test setup, system or control architecture, test bench
+  workflow, device/material cross-section, or safety/operation concept.
+- Business-report/corporate-report: value chain, value creation model, business
+  model or capability map, process map/swimlane/BPMN-lite,
+  stakeholder/ecosystem map, roadmap/change journey, or qualitative
+  risk/control/materiality map.
+
+Profile defaults:
+
+- `engineering_lab_report`: use non-quantitative illustrations selectively for
+  apparatus/setup, experiment workflow, control/system architecture, test bench
+  workflow, cross-section, safety concept, or operation concept.
+- `business_report`, `proposal`, `admissions_report`,
+  `admissions_project_report`, and `custom`: proactively consider 1-2 value
+  chain, concept map, roadmap, stakeholder/ecosystem, process overview, or
+  operating-model visuals when they improve readability and do not claim data.
+- `academic_paper`: use only publication-style graphical abstract, method,
+  mechanism, conceptual, or multi-scale figures that do not imply unsupported
+  results.
+
+When Codex image generation or the `imagegen` skill is available and the user
+expects a complete report, generate the non-quantitative illustration asset
+instead of leaving only a prompt. If image generation is unavailable, write the
+reusable prompt and mark the figure as pending external asset creation.
+
+Generated illustration insertion contract:
+
+- Save or copy generated PNG assets into the current run directory under
+  `figures/<descriptive_slug>.png`; leave the original generated image in place.
+- Embed these assets directly in the relevant `section_drafts/*.md` with
+  Markdown image syntax such as
+  `![Schematic - Apparatus setup](figures/apparatus_setup.png)`.
+- Do not add direct imagegen assets to `section_drafts/figure_plan.json`,
+  outline `figure_ids`, or `[FIGURE:<id>]` placeholders. Those are for
+  deterministic `FIGURE_BUILD` manifest-backed charts unless the workflow
+  explicitly produced a matching manifest entry.
+- Avoid numbered prose references such as "Figure 1" for direct imagegen assets
+  unless they are backed by an existing outline/manifest figure ID. Use nearby
+  wording such as "the schematic below" plus a short unnumbered caption.
+
+AI academic, engineering, or corporate illustrations are illustrative only. They
+must not invent numeric values, axes, tick marks, color-scale ranges, equations,
+measured outcomes, comparison results, rankings, scores, experimental results,
+or source-backed claims. If the visual requires plotted measurements, scored
+positions, or evidence-backed priorities, use the deterministic chart path or
+keep the exact values in a table.
+
+Prompt pattern for a non-quantitative illustration:
 
 ```text
 Goal/concept: <one-sentence concept the figure explains>
-Figure type: <method pipeline | scientific schematic | mechanism diagram |
-multi-condition schematic | graphical abstract | concept illustration>
+Visual family: <academic/scientific | engineering | business-report/corporate-report>
+Figure type (examples, non-exhaustive): <apparatus setup | test bench workflow |
+device/material cross-section | safety/operation concept | method pipeline |
+system/control architecture | scientific schematic | mechanism/pathway |
+multi-scale/nested view | lifecycle/cycle | graphical abstract | value chain |
+value creation model | business model/capability map |
+process map/swimlane/BPMN-lite | stakeholder/ecosystem map |
+roadmap/change journey | qualitative risk/control/materiality map |
+concept illustration>
+Layout style: <linear | circular | parallel | nested | storyboard | map/network>
+Audience: <technical reviewers | lab instructor | executives | admissions reviewers>
 Required labels: <labels that are source-supported or explicitly requested>
 Source basis: <accepted source ids, user instructions, or "conceptual only">
-Forbidden content: no fabricated data, axes, color scales, equations,
+Evidence boundary: <what the visual may explain, and what it must not claim>
+Forbidden content: no fabricated data, axes, tick marks, color scales,
+equations, measured outcomes, rankings, scores, comparison results,
 experimental results, or claims not present in the sources
 Style: white background, publication font, precise geometry, muted palette,
-3-4 colors maximum, readable in grayscale
+3-4 colors maximum, clear visual hierarchy, readable in grayscale
 ```
 
 ## Engineering Lab Report Notes
