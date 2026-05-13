@@ -1,0 +1,106 @@
+{
+  "thesis_statement": "The structured workflow pilot demonstrates that evidence handling, QA thinking, controlled procedure, and explicit quality boundaries can support a serious but bounded report-generation project.",
+  "sections": {
+    "abstract": {
+      "section_id": "abstract",
+      "title": "Abstract",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "introduction": {
+      "section_id": "introduction",
+      "title": "Introduction",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "methods": {
+      "section_id": "methods",
+      "title": "Methods",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "results": {
+      "section_id": "results",
+      "title": "Results",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": [
+        "figrec_1",
+        "figrec_2",
+        "figrec_3",
+        "figrec_4",
+        "figrec_5"
+      ]
+    },
+    "discussion": {
+      "section_id": "discussion",
+      "title": "Discussion",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "recommendations": {
+      "section_id": "recommendations",
+      "title": "Recommendations",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "references": {
+      "section_id": "references",
+      "title": "References",
+      "claim_ids": [],
+      "figure_ids": []
+    },
+    "appendix": {
+      "section_id": "appendix",
+      "title": "Appendix",
+      "claim_ids": [],
+      "figure_ids": []
+    }
+  },
+  "_contract": {
+    "job_id": "run_27e75580",
+    "evidence_ledger_hash": "05209a560a242545",
+    "source_registry_hash": "2942fc6fdb9ed54f"
+  }
+}

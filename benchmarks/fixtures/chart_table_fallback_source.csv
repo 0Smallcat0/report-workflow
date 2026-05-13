@@ -1,0 +1,4 @@
+parameter,value,unit
+onboarding_sessions,2,count
+shadow_period,1,week
+setup_cost,4800,USD

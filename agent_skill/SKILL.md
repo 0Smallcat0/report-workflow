@@ -177,6 +177,47 @@ Built-in profiles:
 - `custom`
 
 Do not use `report_family`, `--family`, `--detail`, variant, or subtype naming.
+For `custom`, choose one dominant report convention from the prompt and source
+material, then use any secondary conventions only as supporting cues. Do not
+blend every built-in profile into one report shape.
+
+## Benchmark-First Optimization
+
+Use this section only when improving `report-workflow` itself. Ordinary report
+generation should continue through the normal start, author, validate, render,
+and publish flow.
+
+When asked to improve report quality across report types, start from the
+repo-local benchmark contract before changing the skill or Python pipeline:
+
+1. Read `benchmarks/README.md`, `benchmarks/report_quality_matrix.md`, and
+   `benchmarks/findings.json`.
+2. Select the matching `benchmarks/profile_cases/<report_profile>.md` packet.
+3. Treat public sample reports and rubrics as reference-only quality context.
+   Do not copy their prose, headings, layout, figures, or style as a universal
+   template.
+4. Run or design a small controlled report case using the active
+   `report_profile`; for full built-in profile coverage, run
+   `python scripts/run_report_benchmarks.py`. The full benchmark uses both the
+   shared text fixture and `benchmarks/fixtures/chart_*.csv`, so it checks
+   deterministic bar, line, scatter, boxplot, and table-fallback figure
+   guidance as well as prose quality. Use
+   `python scripts/run_report_benchmarks.py --check` to validate archived
+   benchmark evidence without rerunning the workflow. Inspect
+   `final_qa_summary`, `scholarly_quality_report`,
+   `figure_visual_quality_report`, `template_style_map`, and any
+   profile-specific QA artifacts.
+5. Classify every gap using only the categories in `benchmarks/findings.json`:
+   `skill_guidance_gap`, `profile_policy_gap`,
+   `deterministic_pipeline_gap`, `render_template_gap`,
+   `agent_authoring_gap`, or `external_reference_gap`.
+6. Implement only high-confidence improvements after benchmark evidence exists.
+   Prefer `agent_skill` guidance, profile packets, and tests before modifying
+   deterministic workflow nodes or adding hard gates.
+
+Preserve `report_profile` as the only public report-shape selector. Do not add
+`report_family`, detail, subtype, variant, or sample-specific selectors from
+benchmark work.
 
 ## Start a Run
 
@@ -236,7 +277,14 @@ For school/company fixed templates, pass `template_fields` for fields such as
 `department`.
 
 Use `project_identity` when a report must preserve specific project terms,
-domain context, forbidden terms, or author metadata.
+domain context, forbidden terms, or author metadata. For admissions profiles,
+pass explicit `project_identity` when the report must retain named project
+terms; do not infer a project spine from a previous benchmark or unrelated
+project. Keep the supplied identity terms visible in the title/thesis,
+introduction, and conclusion.
+Keep admissions evidence anchored to the supplied source record: research fit,
+readiness, project significance, and contribution claims need concrete source
+support, not committee flattery or unsupported autobiography.
 
 ## Authoring Flow
 
@@ -275,6 +323,11 @@ Use manual `section_drafts/*.md` plus `sentence_map.jsonl` only when the draft
 needs direct Markdown control or when repairing generated canonical drafts.
 Do not cite internal workflow files, evidence ledgers, claim matrices, or
 traceability appendices in the main report.
+For `academic_paper` and `engineering_lab_report`, make Methods/Procedure
+reproducible: name the source or sample basis, procedure, parameters or
+instrument/software settings, and supported inclusion, exclusion, calibration,
+normalization, or transform rules. In academic introductions, explicitly signal
+the problem or gap, objective, and contribution before moving to results.
 Do not edit checkpoint snapshots, merged draft checkpoints, generated
 publication drafts, `base_document_sections.json`, or other workflow-owned
 artifacts as an authoring shortcut.

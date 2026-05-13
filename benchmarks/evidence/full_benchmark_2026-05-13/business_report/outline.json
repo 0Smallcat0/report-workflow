@@ -1,0 +1,61 @@
+{
+  "thesis_statement": "The structured workflow pilot demonstrates that evidence handling, QA thinking, controlled procedure, and explicit quality boundaries can support a serious but bounded report-generation project.",
+  "sections": {
+    "executive_summary": {
+      "section_id": "executive_summary",
+      "title": "Executive Summary",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "findings": {
+      "section_id": "findings",
+      "title": "Key Findings",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": [
+        "figrec_1",
+        "figrec_2",
+        "figrec_3",
+        "figrec_4",
+        "figrec_5"
+      ]
+    },
+    "recommendations": {
+      "section_id": "recommendations",
+      "title": "Recommendations",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "appendix": {
+      "section_id": "appendix",
+      "title": "Appendix",
+      "claim_ids": [],
+      "figure_ids": []
+    }
+  },
+  "_contract": {
+    "job_id": "run_436fe1f7",
+    "evidence_ledger_hash": "c5fc6e98a9fa3e7f",
+    "source_registry_hash": "af34b4055f57fe6c"
+  }
+}

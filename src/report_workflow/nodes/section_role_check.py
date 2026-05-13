@@ -47,24 +47,6 @@ INTRODUCTION_INTRUSION_PATTERNS = [
 ]
 
 
-# Thesis-spine tokens that must appear in Introduction for academic_paper /
-# admissions_report. This is the `_THESIS_ALIGNED_KEYWORDS` contract mirrored
-# at the prose level: if Introduction fails to mention the deterministic-
-# compilation / IR / AST / orthogonal-gates / constrained-LLM story, the draft
-# has drifted into a generic architecture summary.
-_THESIS_SPINE_TOKENS = [
-    r"deterministic compilation",
-    r"strategy\s*ir",
-    r"domain[- ]specific intermediate representation",
-    r"abstract syntax tree",
-    r"\bast\b",
-    r"orthogonal (?:quality )?gates?",
-    r"orthogonal validation",
-    r"constrained (?:large )?language model",
-    r"constrained llm",
-    r"strategy verification",
-]
-
 # Paper-roadmap sentence (only required for non-admissions academic_paper).
 # Admissions mode intentionally strips the roadmap to keep the project-
 # monograph tone.
@@ -135,10 +117,9 @@ def _check_section(section_name: str, content: str, patterns: list) -> list[dict
 def _check_thesis_spine(state: ReportState, intro_content: str) -> list[dict]:
     """Flag Introductions that drift away from the thesis spine.
 
-    For academic_paper + admissions_report + new_draft we require the
-    Introduction to name at least two thesis-spine concepts (deterministic
-    compilation, StrategyIR/IR, AST, orthogonal gates, constrained LLM).
-    revise_existing preserves the base document, so this guard is skipped.
+    For admissions_report + new_draft, use explicit project_identity terms when
+    present. revise_existing preserves the base document, so this guard is
+    skipped. No project-specific default terms are applied here.
     """
     issues: list[dict] = []
     profile = state.spec.get("report_profile", "")
@@ -149,20 +130,32 @@ def _check_thesis_spine(state: ReportState, intro_content: str) -> list[dict]:
     if intent != "new_draft":
         return issues
 
-    lowered = intro_content.lower()
-    hit_tokens = [
-        tok for tok in _THESIS_SPINE_TOKENS
-        if re.search(tok, lowered)
-    ]
+    identity = state.plan.get("project_identity") or state.spec.get("project_identity") or {}
+    if not isinstance(identity, dict):
+        return issues
+    terms: list[str] = []
+    for key in ("required_terms", "required_context_terms", "canonical_title_terms"):
+        terms.extend(str(term).strip() for term in identity.get(key, []) or [] if str(term).strip())
+    if not terms:
+        return issues
+
+    def term_present(term: str) -> bool:
+        if re.fullmatch(r"[A-Za-z0-9_]+", term):
+            return bool(re.search(rf"\b{re.escape(term)}\b", intro_content, re.IGNORECASE))
+        parts = [part for part in re.split(r"[\s-]+", term) if part]
+        if len(parts) > 1 and all(re.fullmatch(r"[A-Za-z0-9_]+", part) for part in parts):
+            pattern = r"\b" + r"[\s-]+".join(re.escape(part) for part in parts) + r"\b"
+            return bool(re.search(pattern, intro_content, re.IGNORECASE))
+        return bool(re.search(re.escape(term), intro_content, re.IGNORECASE))
+
+    hit_tokens = [term for term in terms if term_present(term)]
     if len(hit_tokens) < 2:
         issues.append({
             "section": "introduction",
             "intrusion_type": "thesis_spine_missing",
             "detail": (
                 f"Introduction mentions only {len(hit_tokens)} thesis-spine concept(s); "
-                "admissions-facing academic reports must name at least two of: "
-                "deterministic compilation, StrategyIR / IR, AST compilation, "
-                "orthogonal quality gates, constrained LLM."
+                "admissions-facing academic reports must retain at least two explicit project identity terms."
             ),
             "matched_tokens": hit_tokens,
             "severity": "hard",

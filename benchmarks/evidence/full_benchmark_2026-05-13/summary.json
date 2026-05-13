@@ -1,0 +1,1063 @@
+{
+  "generated_at": "2026-05-13T18:55:37",
+  "fixture": "benchmarks\\fixtures\\controlled_source.md",
+  "fixtures": [
+    "benchmarks\\fixtures\\controlled_source.md",
+    "benchmarks\\fixtures\\chart_source.csv",
+    "benchmarks\\fixtures\\chart_line_source.csv",
+    "benchmarks\\fixtures\\chart_scatter_source.csv",
+    "benchmarks\\fixtures\\chart_boxplot_source.csv",
+    "benchmarks\\fixtures\\chart_table_fallback_source.csv"
+  ],
+  "public_interface_selector": "report_profile",
+  "gap_categories": [
+    "agent_authoring_gap",
+    "deterministic_pipeline_gap",
+    "external_reference_gap",
+    "profile_policy_gap",
+    "render_template_gap",
+    "skill_guidance_gap"
+  ],
+  "profiles": [
+    {
+      "report_profile": "engineering_lab_report",
+      "prompt": "Write an engineering lab report about the structured workflow pilot.",
+      "fixture": "benchmarks\\fixtures\\controlled_source.md",
+      "chart_fixtures": [
+        "benchmarks\\fixtures\\chart_source.csv",
+        "benchmarks\\fixtures\\chart_line_source.csv",
+        "benchmarks\\fixtures\\chart_scatter_source.csv",
+        "benchmarks\\fixtures\\chart_boxplot_source.csv",
+        "benchmarks\\fixtures\\chart_table_fallback_source.csv"
+      ],
+      "status": "pass",
+      "gap_classification": null,
+      "job_id": "run_0ce5189c",
+      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Laboratory Report--run_0ce5189c",
+      "prepare_status": "awaiting_agent_artifacts",
+      "agent_artifacts": {
+        "claim_count": 6,
+        "evidence_count": 37,
+        "section_count": 13,
+        "figure_ids": [
+          "figrec_1",
+          "figrec_2",
+          "figrec_3",
+          "figrec_4",
+          "figrec_5"
+        ],
+        "figure_section": "data"
+      },
+      "validate_status": "validated",
+      "render_status": "completed",
+      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Laboratory Report--run_0ce5189c\\final.docx",
+      "qa_digest": {
+        "qa_decision": "pass",
+        "hard_fail_reasons": [],
+        "scholarly_quality": {
+          "status": "passed",
+          "issue_count": 0,
+          "hard_issue_count": 0,
+          "issues": []
+        },
+        "figure_visual_quality": {
+          "status": "passed",
+          "issue_count": 0
+        },
+        "final_qa_summary_status": "completed",
+        "figure_recommendations": {
+          "status": "available",
+          "recommendation_count": 5,
+          "recommended_types": [
+            "bar",
+            "line",
+            "scatter",
+            "boxplot",
+            "table"
+          ]
+        },
+        "figure_plan_audit": {
+          "status": "passed",
+          "figure_count": 5,
+          "planned_types": [
+            "bar",
+            "line",
+            "scatter",
+            "boxplot",
+            "table"
+          ],
+          "hard_issue_count": 0
+        }
+      },
+      "snapshots": [
+        {
+          "role": "qa_summary.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\qa_summary.json"
+        },
+        {
+          "role": "factuality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\factuality_report.json"
+        },
+        {
+          "role": "scholarly_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\scholarly_quality_report.json"
+        },
+        {
+          "role": "scholarly_quality_report.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\scholarly_quality_report.md"
+        },
+        {
+          "role": "figure_visual_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\figure_visual_quality_report.json"
+        },
+        {
+          "role": "figure_plan_audit_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\figure_plan_audit_report.json"
+        },
+        {
+          "role": "section_role_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\section_role_report.json"
+        },
+        {
+          "role": "reference_verify_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\reference_verify_report.json"
+        },
+        {
+          "role": "post_render_validate_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\post_render_validate_report.json"
+        },
+        {
+          "role": "published/final_qa_summary.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\published_final_qa_summary.json"
+        },
+        {
+          "role": "published/final_qa_summary.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\published_final_qa_summary.md"
+        },
+        {
+          "role": "published/template_style_map.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\published_template_style_map.json"
+        },
+        {
+          "role": "published/template_style_map.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\published_template_style_map.md"
+        },
+        {
+          "role": "published/figure_visual_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\published_figure_visual_quality_report.json"
+        },
+        {
+          "role": "published/scholarly_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\published_scholarly_quality_report.json"
+        },
+        {
+          "role": "claim_matrix.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\claim_matrix.json"
+        },
+        {
+          "role": "outline.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\outline.json"
+        },
+        {
+          "role": "structured_drafts.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\engineering_lab_report\\structured_drafts.json"
+        }
+      ]
+    },
+    {
+      "report_profile": "academic_paper",
+      "prompt": "Write an academic paper about the structured workflow pilot.",
+      "fixture": "benchmarks\\fixtures\\controlled_source.md",
+      "chart_fixtures": [
+        "benchmarks\\fixtures\\chart_source.csv",
+        "benchmarks\\fixtures\\chart_line_source.csv",
+        "benchmarks\\fixtures\\chart_scatter_source.csv",
+        "benchmarks\\fixtures\\chart_boxplot_source.csv",
+        "benchmarks\\fixtures\\chart_table_fallback_source.csv"
+      ],
+      "status": "pass",
+      "gap_classification": null,
+      "job_id": "run_f1d7a71f",
+      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_f1d7a71f",
+      "prepare_status": "awaiting_agent_artifacts",
+      "agent_artifacts": {
+        "claim_count": 6,
+        "evidence_count": 37,
+        "section_count": 9,
+        "figure_ids": [
+          "figrec_1",
+          "figrec_2",
+          "figrec_3",
+          "figrec_4",
+          "figrec_5"
+        ],
+        "figure_section": "results"
+      },
+      "validate_status": "validated",
+      "render_status": "completed",
+      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_f1d7a71f\\final.docx",
+      "qa_digest": {
+        "qa_decision": "pass",
+        "hard_fail_reasons": [],
+        "scholarly_quality": {
+          "status": "passed",
+          "issue_count": 0,
+          "hard_issue_count": 0,
+          "issues": []
+        },
+        "figure_visual_quality": {
+          "status": "passed",
+          "issue_count": 0
+        },
+        "final_qa_summary_status": "completed",
+        "figure_recommendations": {
+          "status": "available",
+          "recommendation_count": 5,
+          "recommended_types": [
+            "bar",
+            "line",
+            "scatter",
+            "boxplot",
+            "table"
+          ]
+        },
+        "figure_plan_audit": {
+          "status": "passed",
+          "figure_count": 5,
+          "planned_types": [
+            "bar",
+            "line",
+            "scatter",
+            "boxplot",
+            "table"
+          ],
+          "hard_issue_count": 0
+        }
+      },
+      "snapshots": [
+        {
+          "role": "qa_summary.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\qa_summary.json"
+        },
+        {
+          "role": "factuality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\factuality_report.json"
+        },
+        {
+          "role": "scholarly_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\scholarly_quality_report.json"
+        },
+        {
+          "role": "scholarly_quality_report.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\scholarly_quality_report.md"
+        },
+        {
+          "role": "figure_visual_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\figure_visual_quality_report.json"
+        },
+        {
+          "role": "figure_plan_audit_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\figure_plan_audit_report.json"
+        },
+        {
+          "role": "section_role_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\section_role_report.json"
+        },
+        {
+          "role": "reference_verify_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\reference_verify_report.json"
+        },
+        {
+          "role": "post_render_validate_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\post_render_validate_report.json"
+        },
+        {
+          "role": "published/final_qa_summary.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\published_final_qa_summary.json"
+        },
+        {
+          "role": "published/final_qa_summary.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\published_final_qa_summary.md"
+        },
+        {
+          "role": "published/template_style_map.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\published_template_style_map.json"
+        },
+        {
+          "role": "published/template_style_map.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\published_template_style_map.md"
+        },
+        {
+          "role": "published/figure_visual_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\published_figure_visual_quality_report.json"
+        },
+        {
+          "role": "published/scholarly_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\published_scholarly_quality_report.json"
+        },
+        {
+          "role": "claim_matrix.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\claim_matrix.json"
+        },
+        {
+          "role": "outline.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\outline.json"
+        },
+        {
+          "role": "structured_drafts.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\academic_paper\\structured_drafts.json"
+        }
+      ]
+    },
+    {
+      "report_profile": "business_report",
+      "prompt": "Write a business report about the structured workflow pilot.",
+      "fixture": "benchmarks\\fixtures\\controlled_source.md",
+      "chart_fixtures": [
+        "benchmarks\\fixtures\\chart_source.csv",
+        "benchmarks\\fixtures\\chart_line_source.csv",
+        "benchmarks\\fixtures\\chart_scatter_source.csv",
+        "benchmarks\\fixtures\\chart_boxplot_source.csv",
+        "benchmarks\\fixtures\\chart_table_fallback_source.csv"
+      ],
+      "status": "pass",
+      "gap_classification": null,
+      "job_id": "run_436fe1f7",
+      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_436fe1f7",
+      "prepare_status": "awaiting_agent_artifacts",
+      "agent_artifacts": {
+        "claim_count": 6,
+        "evidence_count": 37,
+        "section_count": 4,
+        "figure_ids": [
+          "figrec_1",
+          "figrec_2",
+          "figrec_3",
+          "figrec_4",
+          "figrec_5"
+        ],
+        "figure_section": "findings"
+      },
+      "validate_status": "validated",
+      "render_status": "completed",
+      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_436fe1f7\\final.docx",
+      "qa_digest": {
+        "qa_decision": "pass",
+        "hard_fail_reasons": [],
+        "scholarly_quality": {
+          "status": "skipped",
+          "issue_count": 0,
+          "hard_issue_count": 0,
+          "issues": []
+        },
+        "figure_visual_quality": {
+          "status": "passed",
+          "issue_count": 0
+        },
+        "final_qa_summary_status": "completed",
+        "figure_recommendations": {
+          "status": "available",
+          "recommendation_count": 5,
+          "recommended_types": [
+            "bar",
+            "line",
+            "scatter",
+            "boxplot",
+            "table"
+          ]
+        },
+        "figure_plan_audit": {
+          "status": "passed",
+          "figure_count": 5,
+          "planned_types": [
+            "bar",
+            "line",
+            "scatter",
+            "boxplot",
+            "table"
+          ],
+          "hard_issue_count": 0
+        }
+      },
+      "snapshots": [
+        {
+          "role": "qa_summary.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\qa_summary.json"
+        },
+        {
+          "role": "factuality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\factuality_report.json"
+        },
+        {
+          "role": "scholarly_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\scholarly_quality_report.json"
+        },
+        {
+          "role": "scholarly_quality_report.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\scholarly_quality_report.md"
+        },
+        {
+          "role": "figure_visual_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\figure_visual_quality_report.json"
+        },
+        {
+          "role": "figure_plan_audit_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\figure_plan_audit_report.json"
+        },
+        {
+          "role": "section_role_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\section_role_report.json"
+        },
+        {
+          "role": "reference_verify_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\reference_verify_report.json"
+        },
+        {
+          "role": "post_render_validate_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\post_render_validate_report.json"
+        },
+        {
+          "role": "published/final_qa_summary.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\published_final_qa_summary.json"
+        },
+        {
+          "role": "published/final_qa_summary.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\published_final_qa_summary.md"
+        },
+        {
+          "role": "published/template_style_map.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\published_template_style_map.json"
+        },
+        {
+          "role": "published/template_style_map.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\published_template_style_map.md"
+        },
+        {
+          "role": "published/figure_visual_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\published_figure_visual_quality_report.json"
+        },
+        {
+          "role": "published/scholarly_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\published_scholarly_quality_report.json"
+        },
+        {
+          "role": "claim_matrix.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\claim_matrix.json"
+        },
+        {
+          "role": "outline.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\outline.json"
+        },
+        {
+          "role": "structured_drafts.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\business_report\\structured_drafts.json"
+        }
+      ]
+    },
+    {
+      "report_profile": "proposal",
+      "prompt": "Write a proposal for adopting the structured workflow pilot.",
+      "fixture": "benchmarks\\fixtures\\controlled_source.md",
+      "chart_fixtures": [
+        "benchmarks\\fixtures\\chart_source.csv",
+        "benchmarks\\fixtures\\chart_line_source.csv",
+        "benchmarks\\fixtures\\chart_scatter_source.csv",
+        "benchmarks\\fixtures\\chart_boxplot_source.csv",
+        "benchmarks\\fixtures\\chart_table_fallback_source.csv"
+      ],
+      "status": "pass",
+      "gap_classification": null,
+      "job_id": "run_a28272e6",
+      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_a28272e6",
+      "prepare_status": "awaiting_agent_artifacts",
+      "agent_artifacts": {
+        "claim_count": 6,
+        "evidence_count": 37,
+        "section_count": 10,
+        "figure_ids": [
+          "figrec_1",
+          "figrec_2",
+          "figrec_3",
+          "figrec_4",
+          "figrec_5"
+        ],
+        "figure_section": "evaluation"
+      },
+      "validate_status": "validated",
+      "render_status": "completed",
+      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_a28272e6\\final.docx",
+      "qa_digest": {
+        "qa_decision": "pass",
+        "hard_fail_reasons": [],
+        "scholarly_quality": {
+          "status": "skipped",
+          "issue_count": 0,
+          "hard_issue_count": 0,
+          "issues": []
+        },
+        "figure_visual_quality": {
+          "status": "passed",
+          "issue_count": 0
+        },
+        "final_qa_summary_status": "completed",
+        "figure_recommendations": {
+          "status": "available",
+          "recommendation_count": 5,
+          "recommended_types": [
+            "bar",
+            "line",
+            "scatter",
+            "boxplot",
+            "table"
+          ]
+        },
+        "figure_plan_audit": {
+          "status": "passed",
+          "figure_count": 5,
+          "planned_types": [
+            "bar",
+            "line",
+            "scatter",
+            "boxplot",
+            "table"
+          ],
+          "hard_issue_count": 0
+        }
+      },
+      "snapshots": [
+        {
+          "role": "qa_summary.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\qa_summary.json"
+        },
+        {
+          "role": "factuality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\factuality_report.json"
+        },
+        {
+          "role": "scholarly_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\scholarly_quality_report.json"
+        },
+        {
+          "role": "scholarly_quality_report.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\scholarly_quality_report.md"
+        },
+        {
+          "role": "figure_visual_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\figure_visual_quality_report.json"
+        },
+        {
+          "role": "figure_plan_audit_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\figure_plan_audit_report.json"
+        },
+        {
+          "role": "section_role_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\section_role_report.json"
+        },
+        {
+          "role": "reference_verify_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\reference_verify_report.json"
+        },
+        {
+          "role": "post_render_validate_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\post_render_validate_report.json"
+        },
+        {
+          "role": "published/final_qa_summary.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\published_final_qa_summary.json"
+        },
+        {
+          "role": "published/final_qa_summary.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\published_final_qa_summary.md"
+        },
+        {
+          "role": "published/template_style_map.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\published_template_style_map.json"
+        },
+        {
+          "role": "published/template_style_map.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\published_template_style_map.md"
+        },
+        {
+          "role": "published/figure_visual_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\published_figure_visual_quality_report.json"
+        },
+        {
+          "role": "published/scholarly_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\published_scholarly_quality_report.json"
+        },
+        {
+          "role": "claim_matrix.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\claim_matrix.json"
+        },
+        {
+          "role": "outline.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\outline.json"
+        },
+        {
+          "role": "structured_drafts.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\proposal\\structured_drafts.json"
+        }
+      ]
+    },
+    {
+      "report_profile": "admissions_report",
+      "prompt": "Write an admissions-facing scholarly report about the structured workflow project.",
+      "fixture": "benchmarks\\fixtures\\controlled_source.md",
+      "chart_fixtures": [
+        "benchmarks\\fixtures\\chart_source.csv",
+        "benchmarks\\fixtures\\chart_line_source.csv",
+        "benchmarks\\fixtures\\chart_scatter_source.csv",
+        "benchmarks\\fixtures\\chart_boxplot_source.csv",
+        "benchmarks\\fixtures\\chart_table_fallback_source.csv"
+      ],
+      "status": "pass",
+      "gap_classification": null,
+      "job_id": "run_0846ddea",
+      "run_dir": "output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_0846ddea",
+      "prepare_status": "awaiting_agent_artifacts",
+      "agent_artifacts": {
+        "claim_count": 6,
+        "evidence_count": 37,
+        "section_count": 9,
+        "figure_ids": [
+          "figrec_1",
+          "figrec_2",
+          "figrec_3",
+          "figrec_4",
+          "figrec_5"
+        ],
+        "figure_section": "results"
+      },
+      "validate_status": "validated",
+      "render_status": "completed",
+      "final_docx_path": "output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_0846ddea\\final.docx",
+      "qa_digest": {
+        "qa_decision": "pass",
+        "hard_fail_reasons": [],
+        "scholarly_quality": {
+          "status": "skipped",
+          "issue_count": 0,
+          "hard_issue_count": 0,
+          "issues": []
+        },
+        "figure_visual_quality": {
+          "status": "passed",
+          "issue_count": 0
+        },
+        "final_qa_summary_status": "completed",
+        "figure_recommendations": {
+          "status": "available",
+          "recommendation_count": 5,
+          "recommended_types": [
+            "bar",
+            "line",
+            "scatter",
+            "boxplot",
+            "table"
+          ]
+        },
+        "figure_plan_audit": {
+          "status": "passed",
+          "figure_count": 5,
+          "planned_types": [
+            "bar",
+            "line",
+            "scatter",
+            "boxplot",
+            "table"
+          ],
+          "hard_issue_count": 0
+        }
+      },
+      "snapshots": [
+        {
+          "role": "qa_summary.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\qa_summary.json"
+        },
+        {
+          "role": "factuality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\factuality_report.json"
+        },
+        {
+          "role": "scholarly_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\scholarly_quality_report.json"
+        },
+        {
+          "role": "scholarly_quality_report.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\scholarly_quality_report.md"
+        },
+        {
+          "role": "figure_visual_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\figure_visual_quality_report.json"
+        },
+        {
+          "role": "figure_plan_audit_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\figure_plan_audit_report.json"
+        },
+        {
+          "role": "section_role_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\section_role_report.json"
+        },
+        {
+          "role": "admissions_tone_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\admissions_tone_report.json"
+        },
+        {
+          "role": "project_identity_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\project_identity_report.json"
+        },
+        {
+          "role": "reference_verify_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\reference_verify_report.json"
+        },
+        {
+          "role": "reference_relevance_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\reference_relevance_report.json"
+        },
+        {
+          "role": "post_render_validate_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\post_render_validate_report.json"
+        },
+        {
+          "role": "published/final_qa_summary.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\published_final_qa_summary.json"
+        },
+        {
+          "role": "published/final_qa_summary.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\published_final_qa_summary.md"
+        },
+        {
+          "role": "published/template_style_map.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\published_template_style_map.json"
+        },
+        {
+          "role": "published/template_style_map.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\published_template_style_map.md"
+        },
+        {
+          "role": "published/figure_visual_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\published_figure_visual_quality_report.json"
+        },
+        {
+          "role": "published/scholarly_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\published_scholarly_quality_report.json"
+        },
+        {
+          "role": "claim_matrix.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\claim_matrix.json"
+        },
+        {
+          "role": "outline.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\outline.json"
+        },
+        {
+          "role": "structured_drafts.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_report\\structured_drafts.json"
+        }
+      ]
+    },
+    {
+      "report_profile": "admissions_project_report",
+      "prompt": "Write an admissions-facing project report about the structured workflow project.",
+      "fixture": "benchmarks\\fixtures\\controlled_source.md",
+      "chart_fixtures": [
+        "benchmarks\\fixtures\\chart_source.csv",
+        "benchmarks\\fixtures\\chart_line_source.csv",
+        "benchmarks\\fixtures\\chart_scatter_source.csv",
+        "benchmarks\\fixtures\\chart_boxplot_source.csv",
+        "benchmarks\\fixtures\\chart_table_fallback_source.csv"
+      ],
+      "status": "pass",
+      "gap_classification": null,
+      "job_id": "run_8e799de4",
+      "run_dir": "output\\benchmark_runs\\Evidence-Bounded Workflow Project Report--run_8e799de4",
+      "prepare_status": "awaiting_agent_artifacts",
+      "agent_artifacts": {
+        "claim_count": 6,
+        "evidence_count": 37,
+        "section_count": 9,
+        "figure_ids": [
+          "figrec_1",
+          "figrec_2",
+          "figrec_3",
+          "figrec_4",
+          "figrec_5"
+        ],
+        "figure_section": "results"
+      },
+      "validate_status": "validated",
+      "render_status": "completed",
+      "final_docx_path": "output\\benchmark_runs\\Evidence-Bounded Workflow Project Report--run_8e799de4\\final.docx",
+      "qa_digest": {
+        "qa_decision": "pass",
+        "hard_fail_reasons": [],
+        "scholarly_quality": {
+          "status": "skipped",
+          "issue_count": 0,
+          "hard_issue_count": 0,
+          "issues": []
+        },
+        "figure_visual_quality": {
+          "status": "passed",
+          "issue_count": 0
+        },
+        "final_qa_summary_status": "completed",
+        "figure_recommendations": {
+          "status": "available",
+          "recommendation_count": 5,
+          "recommended_types": [
+            "bar",
+            "line",
+            "scatter",
+            "boxplot",
+            "table"
+          ]
+        },
+        "figure_plan_audit": {
+          "status": "passed",
+          "figure_count": 5,
+          "planned_types": [
+            "bar",
+            "line",
+            "scatter",
+            "boxplot",
+            "table"
+          ],
+          "hard_issue_count": 0
+        }
+      },
+      "snapshots": [
+        {
+          "role": "qa_summary.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\qa_summary.json"
+        },
+        {
+          "role": "factuality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\factuality_report.json"
+        },
+        {
+          "role": "scholarly_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\scholarly_quality_report.json"
+        },
+        {
+          "role": "scholarly_quality_report.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\scholarly_quality_report.md"
+        },
+        {
+          "role": "figure_visual_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\figure_visual_quality_report.json"
+        },
+        {
+          "role": "figure_plan_audit_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\figure_plan_audit_report.json"
+        },
+        {
+          "role": "section_role_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\section_role_report.json"
+        },
+        {
+          "role": "project_identity_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\project_identity_report.json"
+        },
+        {
+          "role": "reference_verify_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\reference_verify_report.json"
+        },
+        {
+          "role": "reference_relevance_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\reference_relevance_report.json"
+        },
+        {
+          "role": "post_render_validate_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\post_render_validate_report.json"
+        },
+        {
+          "role": "published/final_qa_summary.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\published_final_qa_summary.json"
+        },
+        {
+          "role": "published/final_qa_summary.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\published_final_qa_summary.md"
+        },
+        {
+          "role": "published/template_style_map.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\published_template_style_map.json"
+        },
+        {
+          "role": "published/template_style_map.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\published_template_style_map.md"
+        },
+        {
+          "role": "published/figure_visual_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\published_figure_visual_quality_report.json"
+        },
+        {
+          "role": "published/scholarly_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\published_scholarly_quality_report.json"
+        },
+        {
+          "role": "claim_matrix.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\claim_matrix.json"
+        },
+        {
+          "role": "outline.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\outline.json"
+        },
+        {
+          "role": "structured_drafts.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\admissions_project_report\\structured_drafts.json"
+        }
+      ]
+    },
+    {
+      "report_profile": "custom",
+      "prompt": "Write a custom hybrid report about the structured workflow pilot.",
+      "fixture": "benchmarks\\fixtures\\controlled_source.md",
+      "chart_fixtures": [
+        "benchmarks\\fixtures\\chart_source.csv",
+        "benchmarks\\fixtures\\chart_line_source.csv",
+        "benchmarks\\fixtures\\chart_scatter_source.csv",
+        "benchmarks\\fixtures\\chart_boxplot_source.csv",
+        "benchmarks\\fixtures\\chart_table_fallback_source.csv"
+      ],
+      "status": "pass",
+      "gap_classification": null,
+      "job_id": "run_27e75580",
+      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_27e75580",
+      "prepare_status": "awaiting_agent_artifacts",
+      "agent_artifacts": {
+        "claim_count": 6,
+        "evidence_count": 37,
+        "section_count": 8,
+        "figure_ids": [
+          "figrec_1",
+          "figrec_2",
+          "figrec_3",
+          "figrec_4",
+          "figrec_5"
+        ],
+        "figure_section": "results"
+      },
+      "validate_status": "validated",
+      "render_status": "completed",
+      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_27e75580\\final.docx",
+      "qa_digest": {
+        "qa_decision": "pass",
+        "hard_fail_reasons": [],
+        "scholarly_quality": {
+          "status": "skipped",
+          "issue_count": 0,
+          "hard_issue_count": 0,
+          "issues": []
+        },
+        "figure_visual_quality": {
+          "status": "passed",
+          "issue_count": 0
+        },
+        "final_qa_summary_status": "completed",
+        "figure_recommendations": {
+          "status": "available",
+          "recommendation_count": 5,
+          "recommended_types": [
+            "bar",
+            "line",
+            "scatter",
+            "boxplot",
+            "table"
+          ]
+        },
+        "figure_plan_audit": {
+          "status": "passed",
+          "figure_count": 5,
+          "planned_types": [
+            "bar",
+            "line",
+            "scatter",
+            "boxplot",
+            "table"
+          ],
+          "hard_issue_count": 0
+        }
+      },
+      "snapshots": [
+        {
+          "role": "qa_summary.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\qa_summary.json"
+        },
+        {
+          "role": "factuality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\factuality_report.json"
+        },
+        {
+          "role": "scholarly_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\scholarly_quality_report.json"
+        },
+        {
+          "role": "scholarly_quality_report.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\scholarly_quality_report.md"
+        },
+        {
+          "role": "figure_visual_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\figure_visual_quality_report.json"
+        },
+        {
+          "role": "figure_plan_audit_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\figure_plan_audit_report.json"
+        },
+        {
+          "role": "section_role_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\section_role_report.json"
+        },
+        {
+          "role": "reference_verify_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\reference_verify_report.json"
+        },
+        {
+          "role": "post_render_validate_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\post_render_validate_report.json"
+        },
+        {
+          "role": "published/final_qa_summary.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\published_final_qa_summary.json"
+        },
+        {
+          "role": "published/final_qa_summary.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\published_final_qa_summary.md"
+        },
+        {
+          "role": "published/template_style_map.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\published_template_style_map.json"
+        },
+        {
+          "role": "published/template_style_map.md",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\published_template_style_map.md"
+        },
+        {
+          "role": "published/figure_visual_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\published_figure_visual_quality_report.json"
+        },
+        {
+          "role": "published/scholarly_quality_report.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\published_scholarly_quality_report.json"
+        },
+        {
+          "role": "claim_matrix.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\claim_matrix.json"
+        },
+        {
+          "role": "outline.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\outline.json"
+        },
+        {
+          "role": "structured_drafts.json",
+          "path": "benchmarks\\evidence\\full_benchmark_2026-05-13\\custom\\structured_drafts.json"
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "total": 7,
+    "pass": 7,
+    "failed": 0
+  }
+}

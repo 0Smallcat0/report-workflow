@@ -1,0 +1,21 @@
+{
+  "job_id": "run_f1d7a71f",
+  "status": "passed",
+  "report_profile": "academic_paper",
+  "issue_count": 0,
+  "hard_issue_count": 0,
+  "review_issue_count": 0,
+  "checks": {
+    "spine": "pass",
+    "introduction": "pass",
+    "methods": "pass",
+    "abstract_title": "pass",
+    "figures": "pass",
+    "references": "pass"
+  },
+  "issues": [],
+  "contract": {
+    "blocking_behavior": "review_grade_v1",
+    "public_selector": "report_profile"
+  }
+}

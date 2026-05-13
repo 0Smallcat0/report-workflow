@@ -1,0 +1,266 @@
+{
+  "generated_by": "scripts.run_report_benchmarks",
+  "benchmark_fixture": "benchmarks\\fixtures\\controlled_source.md",
+  "sections": {
+    "abstract": {
+      "title": "Abstract",
+      "sentences": [
+        {
+          "text": "## Background\nDocument intake work often loses traceability when source notes, claims, and final prose are reviewed as separate products. The controlled pilot examined a small academic-lab intake workflow where notes were normalized into evidence-bounded report artifacts.\n## Objective\nThe objective was to assess whether a structured workflow could preserve auditability while improving practical review signals for processing, errors, reviewer confidence, and future adoption planning.\n## Methods\nThe same participant notes were processed through a baseline manual condition and a structured_workflow condition, then compared on median_processing_minutes, error_rate_percent, and reviewer_satisfaction_percent. The procedure also recorded constraints that limit generalization.\n## Principal Findings\nThe measurement table records a more favorable structured_workflow row than baseline_manual for processing and error fields, while reviewer_satisfaction_percent also favors the structured condition. Reviewer satisfaction is still supportive rather than primary evidence, and proposal inputs add adoption context through effort, cost, training risk, and onboarding mitigation.\n## Significance\nThe benchmark supports using evidence boundaries, explicit methods, adoption assumptions, and limitation statements as quality controls for report generation research. Its value is methodological: it creates a controlled profile comparison without converting one sample report into a universal template.",
+          "claim_ids": [
+            "c_context",
+            "c_method",
+            "c_measurement",
+            "c_limit",
+            "c_satisfaction",
+            "c_proposal"
+          ],
+          "evidence_ids": [
+            "E_008e37b3_a0b704073e",
+            "E_008e37b3_f53a1af205",
+            "E_008e37b3_89df080b3c",
+            "E_008e37b3_9282996369",
+            "E_008e37b3_68b58d5305",
+            "E_008e37b3_9214dbc338"
+          ],
+          "citation_ids": [
+            "E_008e37b3_a0b704073e",
+            "E_008e37b3_f53a1af205",
+            "E_008e37b3_89df080b3c",
+            "E_008e37b3_9282996369",
+            "E_008e37b3_68b58d5305",
+            "E_008e37b3_9214dbc338"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "introduction": {
+      "title": "Introduction",
+      "sentences": [
+        {
+          "text": "The gap addressed by this benchmark is the limited visibility between source intake notes, claim selection, and final report prose in small evidence-handling workflows. The objective is to evaluate a controlled structured workflow pilot using the same source data, procedure, quality criteria, and report-profile comparison across every run. The contribution is a reproducible source-to-report case that demonstrates how evidence boundaries, deterministic chart guidance, and QA artifacts can be assessed without treating one reference report as a universal template.",
+          "claim_ids": [
+            "c_context",
+            "c_method",
+            "c_measurement",
+            "c_limit"
+          ],
+          "evidence_ids": [
+            "E_008e37b3_a0b704073e",
+            "E_008e37b3_f53a1af205",
+            "E_008e37b3_89df080b3c",
+            "E_008e37b3_9282996369"
+          ],
+          "citation_ids": [
+            "E_008e37b3_a0b704073e",
+            "E_008e37b3_f53a1af205",
+            "E_008e37b3_89df080b3c",
+            "E_008e37b3_9282996369"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "research_scope": {
+      "title": "Research Scope and Design Framing",
+      "sentences": [
+        {
+          "text": "The controlled scope keeps the project tied to the tested intake workflow, the same participant-note procedure, and explicit limits on generalization.",
+          "claim_ids": [
+            "c_method",
+            "c_limit"
+          ],
+          "evidence_ids": [
+            "E_008e37b3_f53a1af205",
+            "E_008e37b3_9282996369"
+          ],
+          "citation_ids": [
+            "E_008e37b3_f53a1af205",
+            "E_008e37b3_9282996369"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "methods": {
+      "title": "Methods",
+      "sentences": [
+        {
+          "text": "The methods used the controlled source dataset as the sample basis, processed the same 42 participant notes once with the baseline manual procedure and once with the structured workflow, applied the fixture tables as the software-free comparison criteria, and used no exclusions beyond the documented pilot scope; deterministic chart transforms were kept in figure metadata rather than recomputed in prose.",
+          "claim_ids": [
+            "c_method",
+            "c_measurement",
+            "c_limit"
+          ],
+          "evidence_ids": [
+            "E_008e37b3_f53a1af205",
+            "E_008e37b3_89df080b3c",
+            "E_008e37b3_9282996369"
+          ],
+          "citation_ids": [
+            "E_008e37b3_f53a1af205",
+            "E_008e37b3_89df080b3c",
+            "E_008e37b3_9282996369"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "results": {
+      "title": "Results",
+      "sentences": [
+        {
+          "text": "The measurement table records structured_workflow as lower than baseline_manual on median_processing_minutes and error_rate_percent while reviewer_satisfaction_percent is higher for the structured condition.",
+          "claim_ids": [
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_008e37b3_89df080b3c"
+          ],
+          "citation_ids": [
+            "E_008e37b3_89df080b3c"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure figrec_1 uses a deterministic bar view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_1]\n\nFigure figrec_1: Bar view of chart_source.",
+          "claim_ids": [
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_008e37b3_89df080b3c"
+          ],
+          "citation_ids": [
+            "E_008e37b3_89df080b3c"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure figrec_2 uses a deterministic line view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_2]\n\nFigure figrec_2: Line view of chart_line_source.",
+          "claim_ids": [
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_008e37b3_89df080b3c"
+          ],
+          "citation_ids": [
+            "E_008e37b3_89df080b3c"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure figrec_3 uses a deterministic scatter view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_3]\n\nFigure figrec_3: Scatter view of chart_scatter_source.",
+          "claim_ids": [
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_008e37b3_89df080b3c"
+          ],
+          "citation_ids": [
+            "E_008e37b3_89df080b3c"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure figrec_4 uses a deterministic boxplot view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_4]\n\nFigure figrec_4: Boxplot view of chart_boxplot_source.",
+          "claim_ids": [
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_008e37b3_89df080b3c"
+          ],
+          "citation_ids": [
+            "E_008e37b3_89df080b3c"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure figrec_5 uses a deterministic table view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_5]\n\nFigure figrec_5: Table view of chart_table_fallback_source after sort desc.",
+          "claim_ids": [
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_008e37b3_89df080b3c"
+          ],
+          "citation_ids": [
+            "E_008e37b3_89df080b3c"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "discussion": {
+      "title": "Discussion",
+      "sentences": [
+        {
+          "text": "The result pattern is useful for decision-making because it combines practical review signals with a clear warning that the pilot should not be generalized beyond the tested workflow.",
+          "claim_ids": [
+            "c_measurement",
+            "c_limit"
+          ],
+          "evidence_ids": [
+            "E_008e37b3_89df080b3c",
+            "E_008e37b3_9282996369"
+          ],
+          "citation_ids": [
+            "E_008e37b3_89df080b3c",
+            "E_008e37b3_9282996369"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "limitations": {
+      "title": "Limitations",
+      "sentences": [
+        {
+          "text": "The study remains a pilot, and reviewer satisfaction should be interpreted as supportive evidence rather than the primary basis for adoption.",
+          "claim_ids": [
+            "c_limit",
+            "c_satisfaction"
+          ],
+          "evidence_ids": [
+            "E_008e37b3_9282996369",
+            "E_008e37b3_68b58d5305"
+          ],
+          "citation_ids": [
+            "E_008e37b3_9282996369",
+            "E_008e37b3_68b58d5305"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "conclusion": {
+      "title": "Conclusion",
+      "sentences": [
+        {
+          "text": "Overall, the pilot supports cautious workflow adoption and further study because its favorable review signals remain bounded by a small synthetic source fixture.",
+          "claim_ids": [
+            "c_measurement",
+            "c_limit"
+          ],
+          "evidence_ids": [
+            "E_008e37b3_89df080b3c",
+            "E_008e37b3_9282996369"
+          ],
+          "citation_ids": [
+            "E_008e37b3_89df080b3c",
+            "E_008e37b3_9282996369"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "references": {
+      "title": "References",
+      "sentences": []
+    }
+  },
+  "_contract": {
+    "job_id": "run_f1d7a71f",
+    "evidence_ledger_hash": "4356e8af4ce52d20",
+    "source_registry_hash": "e77ffd794c6ab0b6"
+  }
+}

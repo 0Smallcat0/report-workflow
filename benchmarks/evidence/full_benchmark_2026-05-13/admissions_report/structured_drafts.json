@@ -1,0 +1,269 @@
+{
+  "generated_by": "scripts.run_report_benchmarks",
+  "benchmark_fixture": "benchmarks\\fixtures\\controlled_source.md",
+  "sections": {
+    "abstract": {
+      "title": "Abstract",
+      "sentences": [
+        {
+          "text": "This report presents a structured workflow project as evidence of graduate-study readiness, technical judgment, and reflective quality assurance practice. The project converted ambiguous intake notes into auditable artifacts, processed the same notes through baseline and structured conditions, and compared processing, repair, and reviewer response signals without treating the pilot as broadly generalizable. The strongest admissions-facing contribution is not a claim of universal performance; it is the demonstrated habit of drawing boundaries around evidence, selecting claims that can be supported, and naming limits before interpretation. The project also shows practical implementation awareness because proposal inputs identify effort, setup cost, reviewer training risk, and onboarding mitigation. For programs in human-centered computing, technical communication, or applied information systems, the work illustrates how reliability, source discipline, and communication design can be joined in a small but auditable project. It also shows the applicant can separate supportive satisfaction evidence from primary measured evidence.",
+          "claim_ids": [
+            "c_context",
+            "c_method",
+            "c_limit",
+            "c_proposal"
+          ],
+          "evidence_ids": [
+            "E_521d86ce_b7fae7f3b0",
+            "E_521d86ce_b09d6430d8",
+            "E_521d86ce_3328e3f92c",
+            "E_521d86ce_62fb8c55eb"
+          ],
+          "citation_ids": [
+            "E_521d86ce_b7fae7f3b0",
+            "E_521d86ce_b09d6430d8",
+            "E_521d86ce_3328e3f92c",
+            "E_521d86ce_62fb8c55eb"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "introduction": {
+      "title": "Introduction",
+      "sentences": [
+        {
+          "text": "The structured workflow pilot is best read as a bounded evidence-handling and QA thinking project: it converted intake notes into auditable report artifacts, compared a controlled procedure, recorded measurement signals, bounded its claims, treated satisfaction as supportive evidence, and named adoption assumptions.",
+          "claim_ids": [
+            "c_context",
+            "c_method",
+            "c_measurement",
+            "c_limit",
+            "c_satisfaction",
+            "c_proposal"
+          ],
+          "evidence_ids": [
+            "E_521d86ce_b7fae7f3b0",
+            "E_521d86ce_b09d6430d8",
+            "E_521d86ce_ead8c24bf6",
+            "E_521d86ce_3328e3f92c",
+            "E_521d86ce_f17da0ea15",
+            "E_521d86ce_62fb8c55eb"
+          ],
+          "citation_ids": [
+            "E_521d86ce_b7fae7f3b0",
+            "E_521d86ce_b09d6430d8",
+            "E_521d86ce_ead8c24bf6",
+            "E_521d86ce_3328e3f92c",
+            "E_521d86ce_f17da0ea15",
+            "E_521d86ce_62fb8c55eb"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "research_scope": {
+      "title": "Research Scope and Design Framing",
+      "sentences": [
+        {
+          "text": "The controlled scope keeps the project tied to the tested intake workflow, the same participant-note procedure, and explicit limits on generalization.",
+          "claim_ids": [
+            "c_method",
+            "c_limit"
+          ],
+          "evidence_ids": [
+            "E_521d86ce_b09d6430d8",
+            "E_521d86ce_3328e3f92c"
+          ],
+          "citation_ids": [
+            "E_521d86ce_b09d6430d8",
+            "E_521d86ce_3328e3f92c"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "methods": {
+      "title": "Methods",
+      "sentences": [
+        {
+          "text": "The methods used the controlled source dataset as the sample basis, processed the same 42 participant notes once with the baseline manual procedure and once with the structured workflow, applied the fixture tables as the software-free comparison criteria, and used no exclusions beyond the documented pilot scope; deterministic chart transforms were kept in figure metadata rather than recomputed in prose.",
+          "claim_ids": [
+            "c_method",
+            "c_measurement",
+            "c_limit"
+          ],
+          "evidence_ids": [
+            "E_521d86ce_b09d6430d8",
+            "E_521d86ce_ead8c24bf6",
+            "E_521d86ce_3328e3f92c"
+          ],
+          "citation_ids": [
+            "E_521d86ce_b09d6430d8",
+            "E_521d86ce_ead8c24bf6",
+            "E_521d86ce_3328e3f92c"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "results": {
+      "title": "Results",
+      "sentences": [
+        {
+          "text": "The measurement table records structured_workflow as lower than baseline_manual on median_processing_minutes and error_rate_percent while reviewer_satisfaction_percent is higher for the structured condition.",
+          "claim_ids": [
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_521d86ce_ead8c24bf6"
+          ],
+          "citation_ids": [
+            "E_521d86ce_ead8c24bf6"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure figrec_1 uses a deterministic bar view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_1]\n\nFigure figrec_1: Bar view of chart_source.",
+          "claim_ids": [
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_521d86ce_ead8c24bf6"
+          ],
+          "citation_ids": [
+            "E_521d86ce_ead8c24bf6"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure figrec_2 uses a deterministic line view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_2]\n\nFigure figrec_2: Line view of chart_line_source.",
+          "claim_ids": [
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_521d86ce_ead8c24bf6"
+          ],
+          "citation_ids": [
+            "E_521d86ce_ead8c24bf6"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure figrec_3 uses a deterministic scatter view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_3]\n\nFigure figrec_3: Scatter view of chart_scatter_source.",
+          "claim_ids": [
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_521d86ce_ead8c24bf6"
+          ],
+          "citation_ids": [
+            "E_521d86ce_ead8c24bf6"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure figrec_4 uses a deterministic boxplot view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_4]\n\nFigure figrec_4: Boxplot view of chart_boxplot_source.",
+          "claim_ids": [
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_521d86ce_ead8c24bf6"
+          ],
+          "citation_ids": [
+            "E_521d86ce_ead8c24bf6"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure figrec_5 uses a deterministic table view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_5]\n\nFigure figrec_5: Table view of chart_table_fallback_source after sort desc.",
+          "claim_ids": [
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_521d86ce_ead8c24bf6"
+          ],
+          "citation_ids": [
+            "E_521d86ce_ead8c24bf6"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "discussion": {
+      "title": "Discussion",
+      "sentences": [
+        {
+          "text": "The result pattern is useful for decision-making because it combines practical review signals with a clear warning that the pilot should not be generalized beyond the tested workflow.",
+          "claim_ids": [
+            "c_measurement",
+            "c_limit"
+          ],
+          "evidence_ids": [
+            "E_521d86ce_ead8c24bf6",
+            "E_521d86ce_3328e3f92c"
+          ],
+          "citation_ids": [
+            "E_521d86ce_ead8c24bf6",
+            "E_521d86ce_3328e3f92c"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "limitations": {
+      "title": "Limitations",
+      "sentences": [
+        {
+          "text": "The study remains a pilot, and reviewer satisfaction should be interpreted as supportive evidence rather than the primary basis for adoption.",
+          "claim_ids": [
+            "c_limit",
+            "c_satisfaction"
+          ],
+          "evidence_ids": [
+            "E_521d86ce_3328e3f92c",
+            "E_521d86ce_f17da0ea15"
+          ],
+          "citation_ids": [
+            "E_521d86ce_3328e3f92c",
+            "E_521d86ce_f17da0ea15"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "conclusion": {
+      "title": "Conclusion",
+      "sentences": [
+        {
+          "text": "The project demonstrates evidence handling, workflow design, QA thinking, and the discipline to keep learning claims within the tested source boundaries.",
+          "claim_ids": [
+            "c_context",
+            "c_limit",
+            "c_satisfaction"
+          ],
+          "evidence_ids": [
+            "E_521d86ce_b7fae7f3b0",
+            "E_521d86ce_3328e3f92c",
+            "E_521d86ce_f17da0ea15"
+          ],
+          "citation_ids": [
+            "E_521d86ce_b7fae7f3b0",
+            "E_521d86ce_3328e3f92c",
+            "E_521d86ce_f17da0ea15"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "references": {
+      "title": "References",
+      "sentences": []
+    }
+  },
+  "_contract": {
+    "job_id": "run_0846ddea",
+    "evidence_ledger_hash": "8121231e98ebe1ab",
+    "source_registry_hash": "cff515fb313fc77b"
+  }
+}

@@ -1,0 +1,46 @@
+{
+  "job_id": "run_8e799de4",
+  "status": "passed",
+  "identity": {
+    "required_terms": [
+      "structured workflow",
+      "evidence handling",
+      "QA thinking"
+    ],
+    "required_context_terms": [
+      "auditable artifacts",
+      "graduate study",
+      "technical communication"
+    ],
+    "forbidden_terms": [],
+    "canonical_title_terms": [
+      "workflow",
+      "evidence"
+    ],
+    "domain_context": "Structured workflow project for graduate admissions readiness in human-centered computing, technical communication, or applied information systems.",
+    "author_metadata": {}
+  },
+  "issues": [],
+  "hits": {
+    "title": [
+      "workflow",
+      "evidence"
+    ],
+    "thesis": [
+      "structured workflow",
+      "evidence handling",
+      "QA thinking"
+    ],
+    "abstract": [
+      "structured workflow",
+      "auditable artifacts",
+      "graduate study",
+      "technical communication"
+    ],
+    "introduction": [
+      "structured workflow",
+      "evidence handling",
+      "QA thinking"
+    ]
+  }
+}

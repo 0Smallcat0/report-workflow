@@ -1,0 +1,49 @@
+{
+  "job_id": "run_a28272e6",
+  "status": "passed",
+  "generated_count": 5,
+  "issue_count": 0,
+  "issues": [],
+  "figures": [
+    {
+      "figure_id": "figrec_1",
+      "figure_type": "bar",
+      "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_a28272e6\\figures\\figrec_1.png",
+      "status": "passed",
+      "issue_count": 0,
+      "issues": []
+    },
+    {
+      "figure_id": "figrec_2",
+      "figure_type": "line",
+      "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_a28272e6\\figures\\figrec_2.png",
+      "status": "passed",
+      "issue_count": 0,
+      "issues": []
+    },
+    {
+      "figure_id": "figrec_3",
+      "figure_type": "scatter",
+      "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_a28272e6\\figures\\figrec_3.png",
+      "status": "passed",
+      "issue_count": 0,
+      "issues": []
+    },
+    {
+      "figure_id": "figrec_4",
+      "figure_type": "boxplot",
+      "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_a28272e6\\figures\\figrec_4.png",
+      "status": "passed",
+      "issue_count": 0,
+      "issues": []
+    },
+    {
+      "figure_id": "figrec_5",
+      "figure_type": "table",
+      "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_a28272e6\\figures\\figrec_5.png",
+      "status": "passed",
+      "issue_count": 0,
+      "issues": []
+    }
+  ]
+}

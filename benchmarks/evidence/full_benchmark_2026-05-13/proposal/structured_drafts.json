@@ -1,0 +1,272 @@
+{
+  "generated_by": "scripts.run_report_benchmarks",
+  "benchmark_fixture": "benchmarks\\fixtures\\controlled_source.md",
+  "sections": {
+    "executive_summary": {
+      "title": "Executive Summary",
+      "sentences": [
+        {
+          "text": "The structured workflow pilot is best read as a bounded evidence-handling and QA thinking project: it converted intake notes into auditable report artifacts, compared a controlled procedure, recorded measurement signals, bounded its claims, treated satisfaction as supportive evidence, and named adoption assumptions.",
+          "claim_ids": [
+            "c_context",
+            "c_method",
+            "c_measurement",
+            "c_limit",
+            "c_satisfaction",
+            "c_proposal"
+          ],
+          "evidence_ids": [
+            "E_db84c9e6_7eece7cffc",
+            "E_db84c9e6_60717a16c7",
+            "E_db84c9e6_261b443b27",
+            "E_db84c9e6_0e7148d7fd",
+            "E_db84c9e6_e8e550d370",
+            "E_db84c9e6_abc4e4b9a2"
+          ],
+          "citation_ids": [
+            "E_db84c9e6_7eece7cffc",
+            "E_db84c9e6_60717a16c7",
+            "E_db84c9e6_261b443b27",
+            "E_db84c9e6_0e7148d7fd",
+            "E_db84c9e6_e8e550d370",
+            "E_db84c9e6_abc4e4b9a2"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "problem_statement": {
+      "title": "Problem Statement",
+      "sentences": [
+        {
+          "text": "The controlled scope keeps the project tied to the tested intake workflow, the same participant-note procedure, and explicit limits on generalization.",
+          "claim_ids": [
+            "c_method",
+            "c_limit"
+          ],
+          "evidence_ids": [
+            "E_db84c9e6_60717a16c7",
+            "E_db84c9e6_0e7148d7fd"
+          ],
+          "citation_ids": [
+            "E_db84c9e6_60717a16c7",
+            "E_db84c9e6_0e7148d7fd"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "objectives": {
+      "title": "Objectives",
+      "sentences": [
+        {
+          "text": "The controlled scope keeps the project tied to the tested intake workflow, the same participant-note procedure, and explicit limits on generalization.",
+          "claim_ids": [
+            "c_method",
+            "c_limit"
+          ],
+          "evidence_ids": [
+            "E_db84c9e6_60717a16c7",
+            "E_db84c9e6_0e7148d7fd"
+          ],
+          "citation_ids": [
+            "E_db84c9e6_60717a16c7",
+            "E_db84c9e6_0e7148d7fd"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "proposed_approach": {
+      "title": "Proposed Approach",
+      "sentences": [
+        {
+          "text": "The methods used the controlled source dataset as the sample basis, processed the same 42 participant notes once with the baseline manual procedure and once with the structured workflow, applied the fixture tables as the software-free comparison criteria, and used no exclusions beyond the documented pilot scope; deterministic chart transforms were kept in figure metadata rather than recomputed in prose.",
+          "claim_ids": [
+            "c_method",
+            "c_measurement",
+            "c_limit"
+          ],
+          "evidence_ids": [
+            "E_db84c9e6_60717a16c7",
+            "E_db84c9e6_261b443b27",
+            "E_db84c9e6_0e7148d7fd"
+          ],
+          "citation_ids": [
+            "E_db84c9e6_60717a16c7",
+            "E_db84c9e6_261b443b27",
+            "E_db84c9e6_0e7148d7fd"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "scope_deliverables": {
+      "title": "Scope and Deliverables",
+      "sentences": [
+        {
+          "text": "The proposal inputs define implementation effort, setup cost, reviewer training risk, onboarding mitigation, and a limited adoption scope.",
+          "claim_ids": [
+            "c_proposal"
+          ],
+          "evidence_ids": [
+            "E_db84c9e6_abc4e4b9a2"
+          ],
+          "citation_ids": [
+            "E_db84c9e6_abc4e4b9a2"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "timeline": {
+      "title": "Timeline",
+      "sentences": [
+        {
+          "text": "The proposal inputs define implementation effort, setup cost, reviewer training risk, onboarding mitigation, and a limited adoption scope.",
+          "claim_ids": [
+            "c_proposal"
+          ],
+          "evidence_ids": [
+            "E_db84c9e6_abc4e4b9a2"
+          ],
+          "citation_ids": [
+            "E_db84c9e6_abc4e4b9a2"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "budget_resources": {
+      "title": "Budget and Resources",
+      "sentences": [
+        {
+          "text": "The proposal inputs define implementation effort, setup cost, reviewer training risk, onboarding mitigation, and a limited adoption scope.",
+          "claim_ids": [
+            "c_proposal"
+          ],
+          "evidence_ids": [
+            "E_db84c9e6_abc4e4b9a2"
+          ],
+          "citation_ids": [
+            "E_db84c9e6_abc4e4b9a2"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "risks": {
+      "title": "Risks and Mitigations",
+      "sentences": [
+        {
+          "text": "The proposal inputs define implementation effort, setup cost, reviewer training risk, onboarding mitigation, and a limited adoption scope.",
+          "claim_ids": [
+            "c_proposal"
+          ],
+          "evidence_ids": [
+            "E_db84c9e6_abc4e4b9a2"
+          ],
+          "citation_ids": [
+            "E_db84c9e6_abc4e4b9a2"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "evaluation": {
+      "title": "Evaluation Plan",
+      "sentences": [
+        {
+          "text": "A cautious next step is to evaluate adoption with reviewer training, onboarding sessions, and the same evidence-boundary discipline used in the pilot.",
+          "claim_ids": [
+            "c_proposal",
+            "c_satisfaction"
+          ],
+          "evidence_ids": [
+            "E_db84c9e6_abc4e4b9a2",
+            "E_db84c9e6_e8e550d370"
+          ],
+          "citation_ids": [
+            "E_db84c9e6_abc4e4b9a2",
+            "E_db84c9e6_e8e550d370"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure figrec_1 uses a deterministic bar view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_1]\n\nFigure figrec_1: Bar view of chart_source.",
+          "claim_ids": [
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_db84c9e6_261b443b27"
+          ],
+          "citation_ids": [
+            "E_db84c9e6_261b443b27"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure figrec_2 uses a deterministic line view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_2]\n\nFigure figrec_2: Line view of chart_line_source.",
+          "claim_ids": [
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_db84c9e6_261b443b27"
+          ],
+          "citation_ids": [
+            "E_db84c9e6_261b443b27"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure figrec_3 uses a deterministic scatter view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_3]\n\nFigure figrec_3: Scatter view of chart_scatter_source.",
+          "claim_ids": [
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_db84c9e6_261b443b27"
+          ],
+          "citation_ids": [
+            "E_db84c9e6_261b443b27"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure figrec_4 uses a deterministic boxplot view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_4]\n\nFigure figrec_4: Boxplot view of chart_boxplot_source.",
+          "claim_ids": [
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_db84c9e6_261b443b27"
+          ],
+          "citation_ids": [
+            "E_db84c9e6_261b443b27"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure figrec_5 uses a deterministic table view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_5]\n\nFigure figrec_5: Table view of chart_table_fallback_source after sort desc.",
+          "claim_ids": [
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_db84c9e6_261b443b27"
+          ],
+          "citation_ids": [
+            "E_db84c9e6_261b443b27"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "appendix": {
+      "title": "Appendix",
+      "sentences": []
+    }
+  },
+  "_contract": {
+    "job_id": "run_a28272e6",
+    "evidence_ledger_hash": "e81292fd08df6ed6",
+    "source_registry_hash": "b2c92d7ad3e8c34b"
+  }
+}

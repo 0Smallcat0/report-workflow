@@ -91,6 +91,36 @@ Built-in profiles:
 The pipeline infers a profile from the prompt unless `--profile` or
 `report_profile` is provided.
 
+## Benchmark-Driven Optimization
+
+Use the `benchmarks/` directory when improving report quality across profiles.
+It contains one benchmark packet per built-in `report_profile`, a shared source
+fixture, a report quality matrix, and structured findings.
+Run `python scripts/run_report_benchmarks.py` for the controlled seven-profile
+prepare-author-validate-render benchmark; it uses both the shared report source
+fixture and small CSV chart fixtures covering bar, line, scatter, boxplot, and
+table-fallback figure paths. Compact evidence is archived under
+`benchmarks/evidence/full_benchmark_2026-05-13/`. Run
+`python scripts/run_report_benchmarks.py --check` to validate archived evidence
+without rerunning the workflow.
+
+Benchmark references are rubric context only. They should help classify quality
+gaps, not become copied prose, universal section headings, or new public report
+selectors. Preserve `report_profile` as the only report-shape selector.
+
+Before changing workflow behavior, classify findings as one of:
+
+- `skill_guidance_gap`
+- `profile_policy_gap`
+- `deterministic_pipeline_gap`
+- `render_template_gap`
+- `agent_authoring_gap`
+- `external_reference_gap`
+
+High-confidence improvements should usually start in `agent_skill/` guidance
+and benchmark tests. Add deterministic Python gates only after benchmark
+evidence shows that existing QA artifacts cannot express the failure.
+
 ## Workflow
 
 ### 1. Prepare

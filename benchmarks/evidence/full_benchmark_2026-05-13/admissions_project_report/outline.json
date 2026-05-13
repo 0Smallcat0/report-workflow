@@ -1,0 +1,126 @@
+{
+  "thesis_statement": "The structured workflow pilot demonstrates that evidence handling, QA thinking, controlled procedure, and explicit quality boundaries can support a serious but bounded report-generation project.",
+  "sections": {
+    "abstract": {
+      "section_id": "abstract",
+      "title": "Abstract",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "introduction": {
+      "section_id": "introduction",
+      "title": "Introduction",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "research_scope": {
+      "section_id": "research_scope",
+      "title": "Research Scope and Design Framing",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "methods": {
+      "section_id": "methods",
+      "title": "Methods",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "results": {
+      "section_id": "results",
+      "title": "Results",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": [
+        "figrec_1",
+        "figrec_2",
+        "figrec_3",
+        "figrec_4",
+        "figrec_5"
+      ]
+    },
+    "discussion": {
+      "section_id": "discussion",
+      "title": "Discussion",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "limitations": {
+      "section_id": "limitations",
+      "title": "Limitations",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "conclusion": {
+      "section_id": "conclusion",
+      "title": "Conclusion",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "references": {
+      "section_id": "references",
+      "title": "References",
+      "claim_ids": [],
+      "figure_ids": []
+    }
+  },
+  "_contract": {
+    "job_id": "run_8e799de4",
+    "evidence_ledger_hash": "7f27979ae5dcd572",
+    "source_registry_hash": "e3d609c51360762b"
+  }
+}

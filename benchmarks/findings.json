@@ -1,0 +1,447 @@
+{
+  "schema_version": 2,
+  "research_snapshot_date": "2026-05-13",
+  "public_interface_selector": "report_profile",
+  "forbidden_public_selectors": [
+    "report_family",
+    "family",
+    "detail",
+    "subtype",
+    "variant"
+  ],
+  "gap_categories": [
+    "skill_guidance_gap",
+    "profile_policy_gap",
+    "deterministic_pipeline_gap",
+    "render_template_gap",
+    "agent_authoring_gap",
+    "external_reference_gap"
+  ],
+  "source_policy": {
+    "accepted_reference_types": [
+      "university writing center guidance",
+      "journal author instructions",
+      "government or public institutional report guidance",
+      "open technical writing textbooks",
+      "credible admissions guidance"
+    ],
+    "reference_use": "Rubric extraction only; do not copy report prose, headings, template layout, figures, or unsupported claims.",
+    "source_data_boundary": "Benchmark references are reference-only quality context and must not be passed as source_data for a user report."
+  },
+  "prepare_smoke": {
+    "status": "pass",
+    "date": "2026-05-13",
+    "evidence_path": "prepare_smoke.md",
+    "scope": "prepare workflow only; preserved as a cheap smoke check",
+    "expected_workflow_status": "awaiting_agent_artifacts"
+  },
+  "full_benchmark": {
+    "status": "pass",
+    "date": "2026-05-13",
+    "runner": "scripts/run_report_benchmarks.py",
+    "fixture": "fixtures/controlled_source.md",
+    "fixtures": [
+      "fixtures/controlled_source.md",
+      "fixtures/chart_source.csv",
+      "fixtures/chart_line_source.csv",
+      "fixtures/chart_scatter_source.csv",
+      "fixtures/chart_boxplot_source.csv",
+      "fixtures/chart_table_fallback_source.csv"
+    ],
+    "summary_path": "evidence/full_benchmark_2026-05-13/summary.json",
+    "markdown_summary_path": "evidence/full_benchmark_2026-05-13/summary.md",
+    "check_command": "python scripts/run_report_benchmarks.py --check",
+    "profiles_total": 7,
+    "profiles_passed": 7,
+    "profiles_failed": 0,
+    "chart_coverage": {
+      "status": "pass",
+      "fixtures": [
+        "fixtures/chart_source.csv",
+        "fixtures/chart_line_source.csv",
+        "fixtures/chart_scatter_source.csv",
+        "fixtures/chart_boxplot_source.csv",
+        "fixtures/chart_table_fallback_source.csv"
+      ],
+      "expected_recommendation_types": [
+        "bar",
+        "line",
+        "scatter",
+        "boxplot",
+        "table"
+      ],
+      "profiles_with_figure_recommendations": 7,
+      "profiles_with_full_type_coverage": [
+        "engineering_lab_report",
+        "academic_paper",
+        "business_report",
+        "proposal",
+        "admissions_report",
+        "admissions_project_report",
+        "custom"
+      ],
+      "profiles_with_passing_figure_visual_quality": 7
+    },
+    "qa_snapshot_roles": [
+      "final_qa_summary.json",
+      "scholarly_quality_report.json",
+      "figure_visual_quality_report.json",
+      "template_style_map.json",
+      "profile-specific QA reports"
+    ]
+  },
+  "profiles": [
+    {
+      "report_profile": "engineering_lab_report",
+      "benchmark_status": "full_benchmark_passed",
+      "benchmark_case": "profile_cases/engineering_lab_report.md",
+      "fixture": "fixtures/controlled_source.md",
+      "chart_fixtures": [
+        "fixtures/chart_source.csv",
+        "fixtures/chart_line_source.csv",
+        "fixtures/chart_scatter_source.csv",
+        "fixtures/chart_boxplot_source.csv",
+        "fixtures/chart_table_fallback_source.csv"
+      ],
+      "latest_evidence_path": "evidence/full_benchmark_2026-05-13/engineering_lab_report",
+      "rubric_sources": [
+        "https://opentextbc.ca/technicalwritingh5p/chapter/lab-reports/",
+        "https://writingcenter.gmu.edu/writing-resources/imrad/writing-an-imrad-report"
+      ],
+      "qa_artifacts": [
+        "engineering_audit_report.json",
+        "scholarly_quality_report.json",
+        "figure_visual_quality_report.json",
+        "final_qa_summary.json"
+      ],
+      "initial_gaps": [
+        {
+          "category": "skill_guidance_gap",
+          "severity": "medium",
+          "finding": "Report-type benchmark expectations were not captured as reusable repo artifacts.",
+          "action": "Add profile benchmark packet and benchmark-first skill guidance.",
+          "status": "implemented"
+        },
+        {
+          "category": "agent_authoring_gap",
+          "severity": "low",
+          "finding": "Earlier full benchmark passed but review-flagged methods reproducibility and certainty language in the controlled draft; the current benchmark now clears scholarly QA with no review issues.",
+          "action": "Strengthen benchmark-authored methods, figure labels, and evidence-calibrated wording without adding a hard gate from one synthetic fixture.",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "report_profile": "academic_paper",
+      "benchmark_status": "full_benchmark_passed",
+      "benchmark_case": "profile_cases/academic_paper.md",
+      "fixture": "fixtures/controlled_source.md",
+      "chart_fixtures": [
+        "fixtures/chart_source.csv",
+        "fixtures/chart_line_source.csv",
+        "fixtures/chart_scatter_source.csv",
+        "fixtures/chart_boxplot_source.csv",
+        "fixtures/chart_table_fallback_source.csv"
+      ],
+      "latest_evidence_path": "evidence/full_benchmark_2026-05-13/academic_paper",
+      "rubric_sources": [
+        "https://owl.purdue.edu/owl/graduate_writing/graduate_writing_topics/graduate_writing_organization_structure_new.html",
+        "https://www.nature.com/srep/author-instructions/submission-guidelines",
+        "https://mitcommlab.mit.edu/be/commkit/journal-article-methods/",
+        "https://mitcommlab.mit.edu/eecs/commkit/journal-article-results/"
+      ],
+      "qa_artifacts": [
+        "scholarly_quality_report.json",
+        "reference_reality_report.json",
+        "figure_visual_quality_report.json",
+        "final_qa_summary.json"
+      ],
+      "initial_gaps": [
+        {
+          "category": "skill_guidance_gap",
+          "severity": "medium",
+          "finding": "The skill did not explicitly route benchmark-derived academic quality criteria through a profile packet before code changes.",
+          "action": "Add benchmark-first guidance and academic profile packet.",
+          "status": "implemented"
+        },
+        {
+          "category": "agent_authoring_gap",
+          "severity": "low",
+          "finding": "Earlier full benchmark passed but review-flagged weak introduction gap/contribution signaling and methods reproducibility cues; the current benchmark now clears scholarly QA with no review issues.",
+          "action": "Strengthen benchmark-authored introduction and methods realism; keep deterministic hard gates unchanged.",
+          "status": "implemented"
+        },
+        {
+          "category": "external_reference_gap",
+          "severity": "low",
+          "finding": "Venue-specific metadata such as data availability or competing interests requires user or venue input.",
+          "action": "Keep as rubric context, not a universal hard gate.",
+          "status": "not_recommended"
+        }
+      ]
+    },
+    {
+      "report_profile": "business_report",
+      "benchmark_status": "full_benchmark_passed",
+      "benchmark_case": "profile_cases/business_report.md",
+      "fixture": "fixtures/controlled_source.md",
+      "chart_fixtures": [
+        "fixtures/chart_source.csv",
+        "fixtures/chart_line_source.csv",
+        "fixtures/chart_scatter_source.csv",
+        "fixtures/chart_boxplot_source.csv",
+        "fixtures/chart_table_fallback_source.csv"
+      ],
+      "latest_evidence_path": "evidence/full_benchmark_2026-05-13/business_report",
+      "rubric_sources": [
+        "https://www.monash.edu/student-academic-success/excel-at-writing/annotated-assessment-samples/business-and-economics/buseco-report-writing",
+        "https://opentextbc.ca/technicalwritingh5p/chapter/long-reports-recommendation-reports-and-feasibility-studies/"
+      ],
+      "qa_artifacts": [
+        "final_qa_summary.json",
+        "figure_visual_quality_report.json",
+        "template_style_map.json"
+      ],
+      "initial_gaps": [
+        {
+          "category": "skill_guidance_gap",
+          "severity": "medium",
+          "finding": "Business-report benchmark expectations for executive summary and recommendations were implicit.",
+          "action": "Add matrix and case packet guidance.",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "report_profile": "proposal",
+      "benchmark_status": "full_benchmark_passed",
+      "benchmark_case": "profile_cases/proposal.md",
+      "fixture": "fixtures/controlled_source.md",
+      "chart_fixtures": [
+        "fixtures/chart_source.csv",
+        "fixtures/chart_line_source.csv",
+        "fixtures/chart_scatter_source.csv",
+        "fixtures/chart_boxplot_source.csv",
+        "fixtures/chart_table_fallback_source.csv"
+      ],
+      "latest_evidence_path": "evidence/full_benchmark_2026-05-13/proposal",
+      "rubric_sources": [
+        "https://opentextbc.ca/technicalwritingh5p/chapter/proposals/"
+      ],
+      "qa_artifacts": [
+        "final_qa_summary.json",
+        "figure_visual_quality_report.json",
+        "template_style_map.json"
+      ],
+      "initial_gaps": [
+        {
+          "category": "skill_guidance_gap",
+          "severity": "medium",
+          "finding": "Proposal-specific feasibility, budget, timeline, and risk expectations were not benchmarked separately from generic business reports.",
+          "action": "Add dedicated proposal packet and full benchmark coverage.",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "report_profile": "admissions_report",
+      "benchmark_status": "full_benchmark_passed",
+      "benchmark_case": "profile_cases/admissions_report.md",
+      "fixture": "fixtures/controlled_source.md",
+      "chart_fixtures": [
+        "fixtures/chart_source.csv",
+        "fixtures/chart_line_source.csv",
+        "fixtures/chart_scatter_source.csv",
+        "fixtures/chart_boxplot_source.csv",
+        "fixtures/chart_table_fallback_source.csv"
+      ],
+      "latest_evidence_path": "evidence/full_benchmark_2026-05-13/admissions_report",
+      "rubric_sources": [
+        "https://gsas.harvard.edu/apply/applying-degree-programs/statement-purpose-personal-statement-and-writing-sample",
+        "https://seas.harvard.edu/news/what-know-you-apply-graduate-school-computer-science"
+      ],
+      "qa_artifacts": [
+        "scholarly_quality_report.json",
+        "admissions_tone_report.json",
+        "project_identity_report.json",
+        "final_qa_summary.json"
+      ],
+      "initial_gaps": [
+        {
+          "category": "skill_guidance_gap",
+          "severity": "medium",
+          "finding": "Admissions-facing quality was not explicitly benchmarked around research potential and focused fit.",
+          "action": "Add admissions benchmark packet and skill guidance.",
+          "status": "implemented"
+        },
+        {
+          "category": "profile_policy_gap",
+          "severity": "high",
+          "finding": "Admissions tone and section role checks were hardcoded to one prior deterministic-compilation project, which blocked unrelated admissions reports.",
+          "action": "Use explicit project_identity terms when supplied; do not apply project-specific defaults to generic admissions_report.",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "report_profile": "admissions_project_report",
+      "benchmark_status": "full_benchmark_passed",
+      "benchmark_case": "profile_cases/admissions_project_report.md",
+      "fixture": "fixtures/controlled_source.md",
+      "chart_fixtures": [
+        "fixtures/chart_source.csv",
+        "fixtures/chart_line_source.csv",
+        "fixtures/chart_scatter_source.csv",
+        "fixtures/chart_boxplot_source.csv",
+        "fixtures/chart_table_fallback_source.csv"
+      ],
+      "latest_evidence_path": "evidence/full_benchmark_2026-05-13/admissions_project_report",
+      "rubric_sources": [
+        "https://gsas.harvard.edu/apply/applying-degree-programs/statement-purpose-personal-statement-and-writing-sample",
+        "https://seas.harvard.edu/news/what-know-you-apply-graduate-school-computer-science"
+      ],
+      "qa_artifacts": [
+        "reference_relevance_report.json",
+        "project_identity_report.json",
+        "final_qa_summary.json"
+      ],
+      "initial_gaps": [
+        {
+          "category": "skill_guidance_gap",
+          "severity": "medium",
+          "finding": "Admissions project reports needed a benchmark that values concrete project evidence without forcing publication metadata.",
+          "action": "Add dedicated profile packet.",
+          "status": "implemented"
+        },
+        {
+          "category": "deterministic_pipeline_gap",
+          "severity": "high",
+          "finding": "Project identity validation ignored outline thesis when WorkReport-policy profiles did not freeze thesis into state.plan.thesis_statement.",
+          "action": "Fall back to outline thesis before primary_contribution in project_identity_gate.",
+          "status": "implemented"
+        }
+      ]
+    },
+    {
+      "report_profile": "custom",
+      "benchmark_status": "full_benchmark_passed",
+      "benchmark_case": "profile_cases/custom.md",
+      "fixture": "fixtures/controlled_source.md",
+      "chart_fixtures": [
+        "fixtures/chart_source.csv",
+        "fixtures/chart_line_source.csv",
+        "fixtures/chart_scatter_source.csv",
+        "fixtures/chart_boxplot_source.csv",
+        "fixtures/chart_table_fallback_source.csv"
+      ],
+      "latest_evidence_path": "evidence/full_benchmark_2026-05-13/custom",
+      "rubric_sources": [
+        "https://writingcenter.gmu.edu/writing-resources/different-genres/white-papers",
+        "https://opentextbc.ca/technicalwritingh5p/chapter/long-reports-recommendation-reports-and-feasibility-studies/"
+      ],
+      "qa_artifacts": [
+        "final_qa_summary.json",
+        "figure_visual_quality_report.json",
+        "template_style_map.json"
+      ],
+      "initial_gaps": [
+        {
+          "category": "skill_guidance_gap",
+          "severity": "medium",
+          "finding": "Custom reports needed an explicit dominant-rubric rule to avoid incoherent mixtures of all profile conventions.",
+          "action": "Add custom benchmark packet.",
+          "status": "implemented"
+        },
+        {
+          "category": "profile_policy_gap",
+          "severity": "low",
+          "finding": "Sample-specific style variants are not needed for custom reports when a dominant rubric is chosen.",
+          "action": "Do not add report subtype selectors from sample-specific style differences.",
+          "status": "not_recommended"
+        }
+      ]
+    }
+  ],
+  "ranked_actions": [
+    {
+      "rank": 1,
+      "category": "agent_authoring_gap",
+      "title": "Run full controlled publish benchmarks and archive QA summaries",
+      "status": "implemented",
+      "evidence_profiles": [
+        "engineering_lab_report",
+        "academic_paper",
+        "business_report",
+        "proposal",
+        "admissions_report",
+        "admissions_project_report",
+        "custom"
+      ],
+      "evidence_path": "evidence/full_benchmark_2026-05-13/summary.json"
+    },
+    {
+      "rank": 2,
+      "category": "profile_policy_gap",
+      "title": "Remove project-specific hardcoded admissions identity requirements",
+      "status": "implemented",
+      "evidence_profiles": [
+        "admissions_report"
+      ]
+    },
+    {
+      "rank": 3,
+      "category": "deterministic_pipeline_gap",
+      "title": "Use outline thesis for project identity validation on admissions project reports",
+      "status": "implemented",
+      "evidence_profiles": [
+        "admissions_project_report"
+      ]
+    },
+    {
+      "rank": 4,
+      "category": "deterministic_pipeline_gap",
+      "title": "Fix internal-only admissions reference relevance NameError path",
+      "status": "implemented",
+      "evidence_profiles": [
+        "admissions_report",
+        "admissions_project_report"
+      ]
+    },
+    {
+      "rank": 5,
+      "category": "skill_guidance_gap",
+      "title": "Strengthen academic/engineering benchmark authoring for methods reproducibility, introduction spine cues, figure labels, and calibrated wording",
+      "status": "implemented",
+      "evidence_profiles": [
+        "engineering_lab_report",
+        "academic_paper"
+      ],
+      "evidence": "Both scholarly_quality_report.json snapshots now have status passed and issue_count 0."
+    },
+    {
+      "rank": 6,
+      "category": "deterministic_pipeline_gap",
+      "title": "Expand chart fixture coverage and benchmark evidence check mode",
+      "status": "implemented",
+      "evidence_profiles": [
+        "engineering_lab_report",
+        "academic_paper",
+        "business_report",
+        "proposal",
+        "admissions_report",
+        "admissions_project_report",
+        "custom"
+      ],
+      "evidence": "Every profile now records bar, line, scatter, boxplot, and table recommendations plus audited figure plans."
+    },
+    {
+      "rank": 7,
+      "category": "profile_policy_gap",
+      "title": "Do not add report subtype selectors from sample-specific style differences",
+      "status": "not_recommended",
+      "evidence_profiles": [
+        "custom"
+      ]
+    }
+  ]
+}

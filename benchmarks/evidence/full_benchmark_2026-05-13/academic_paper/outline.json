@@ -1,0 +1,134 @@
+{
+  "thesis_statement": "The structured workflow pilot demonstrates that evidence handling, QA thinking, controlled procedure, and explicit quality boundaries can support a serious but bounded report-generation project.",
+  "sections": {
+    "abstract": {
+      "section_id": "abstract",
+      "title": "Abstract",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "introduction": {
+      "section_id": "introduction",
+      "title": "Introduction",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "research_scope": {
+      "section_id": "research_scope",
+      "title": "Research Scope and Design Framing",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "methods": {
+      "section_id": "methods",
+      "title": "Methods",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "results": {
+      "section_id": "results",
+      "title": "Results",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": [
+        "figrec_1",
+        "figrec_2",
+        "figrec_3",
+        "figrec_4",
+        "figrec_5"
+      ]
+    },
+    "discussion": {
+      "section_id": "discussion",
+      "title": "Discussion",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "limitations": {
+      "section_id": "limitations",
+      "title": "Limitations",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "conclusion": {
+      "section_id": "conclusion",
+      "title": "Conclusion",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "references": {
+      "section_id": "references",
+      "title": "References",
+      "claim_ids": [],
+      "figure_ids": []
+    }
+  },
+  "paper_spine": {
+    "problem": "Document intake reports can lose traceability between sources, claims, and final prose.",
+    "gap": "Small report workflows often lack a benchmark that connects controlled source data to review-grade output quality.",
+    "objective": "Evaluate a synthetic structured workflow pilot using evidence-bounded report-generation criteria.",
+    "contribution": "Provide a controlled source-to-report case for comparing profile behavior and QA artifacts.",
+    "method_basis": "Use the same fixture, evidence ledger, controlled claims, outline, and section drafts for every profile.",
+    "main_limitation": "The source is synthetic and supports workflow-quality conclusions only within the tested pilot."
+  },
+  "_contract": {
+    "job_id": "run_f1d7a71f",
+    "evidence_ledger_hash": "4356e8af4ce52d20",
+    "source_registry_hash": "e77ffd794c6ab0b6"
+  }
+}

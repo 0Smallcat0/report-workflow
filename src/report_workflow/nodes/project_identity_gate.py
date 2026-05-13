@@ -82,8 +82,6 @@ def _load_project_identity(state: ReportState) -> dict | None:
         identity = _normalize_identity(merged)
     elif file_identity:
         identity = _normalize_identity(file_identity)
-    elif state.spec.get("report_profile") == "admissions_report":
-        identity = _normalize_identity(DEFAULT_ADMISSIONS_PROJECT_IDENTITY)
     else:
         return None
 
@@ -100,6 +98,10 @@ def _term_present(text: str, term: str) -> bool:
     flags = re.IGNORECASE
     if re.fullmatch(r"[A-Za-z0-9_]+", term):
         return bool(re.search(rf"\b{re.escape(term)}\b", text, flags))
+    parts = [part for part in re.split(r"[\s-]+", term.strip()) if part]
+    if len(parts) > 1 and all(re.fullmatch(r"[A-Za-z0-9_]+", part) for part in parts):
+        pattern = r"\b" + r"[\s-]+".join(re.escape(part) for part in parts) + r"\b"
+        return bool(re.search(pattern, text, flags))
     return bool(re.search(re.escape(term), text, flags))
 
 
@@ -164,8 +166,15 @@ def run_project_identity_gate(state: ReportState) -> ReportState:
     draft_path = state.drafts.get("merged_draft_md") or state.drafts.get("publication_style_draft")
     markdown = Path(draft_path).read_text(encoding="utf-8") if draft_path and Path(draft_path).exists() else ""
     front_matter = state.plan.get("front_matter") or {}
+    outline = state.plan.get("outline") if isinstance(state.plan.get("outline"), dict) else {}
     title = str(front_matter.get("title") or "")
-    thesis = str(state.plan.get("thesis_statement") or state.plan.get("primary_contribution") or "")
+    thesis = str(
+        state.plan.get("thesis_statement")
+        or outline.get("thesis_statement")
+        or outline.get("primary_contribution")
+        or state.plan.get("primary_contribution")
+        or ""
+    )
     abstract = _section_content(markdown, "abstract")
     introduction = _section_content(markdown, "introduction")
     full_text = "\n".join([title, thesis, abstract, introduction, markdown])

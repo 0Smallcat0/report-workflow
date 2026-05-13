@@ -120,7 +120,7 @@ def run_reference_relevance_gate(state: ReportState) -> ReportState:
         if not relevant:
             issues.append(f"reference is not project-bearing: {ref_text[:120]}")
 
-    if refs and publication_grade_count == 0 and state.spec.get("task_intent") == "new_draft" and detail != "admissions_project_report":
+    if refs and publication_grade_count == 0 and state.spec.get("task_intent") == "new_draft" and profile != "admissions_project_report":
         issues.append("new_draft references are all internal/excluded; bibliography is not publication-bearing")
 
     report = {

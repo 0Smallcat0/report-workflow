@@ -1,0 +1,178 @@
+{
+  "thesis_statement": "The structured workflow pilot demonstrates that evidence handling, QA thinking, controlled procedure, and explicit quality boundaries can support a serious but bounded report-generation project.",
+  "sections": {
+    "cover": {
+      "section_id": "cover",
+      "title": "\u5c01\u9762",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "abstract": {
+      "section_id": "abstract",
+      "title": "\u6458\u8981",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "objectives": {
+      "section_id": "objectives",
+      "title": "\u5be6\u9a57\u76ee\u7684",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "requirements": {
+      "section_id": "requirements",
+      "title": "\u9700\u6c42\u8207\u898f\u683c\u77e9\u9663",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "theory": {
+      "section_id": "theory",
+      "title": "\u539f\u7406\u8207\u516c\u5f0f",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "apparatus": {
+      "section_id": "apparatus",
+      "title": "\u5100\u5668\u8207\u6750\u6599",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "procedure": {
+      "section_id": "procedure",
+      "title": "\u5be6\u9a57\u6b65\u9a5f",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "data": {
+      "section_id": "data",
+      "title": "\u539f\u59cb\u8cc7\u6599\u8207\u5716\u8868",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": [
+        "figrec_1",
+        "figrec_2",
+        "figrec_3",
+        "figrec_4",
+        "figrec_5"
+      ]
+    },
+    "calculations": {
+      "section_id": "calculations",
+      "title": "\u8a08\u7b97\u8207\u55ae\u4f4d\u6aa2\u6838",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "results_discussion": {
+      "section_id": "results_discussion",
+      "title": "\u7d50\u679c\u8207\u8a0e\u8ad6",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "conclusion": {
+      "section_id": "conclusion",
+      "title": "\u7d50\u8ad6",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "references": {
+      "section_id": "references",
+      "title": "\u53c3\u8003\u8cc7\u6599",
+      "claim_ids": [],
+      "figure_ids": []
+    },
+    "appendix": {
+      "section_id": "appendix",
+      "title": "\u9644\u9304",
+      "claim_ids": [],
+      "figure_ids": []
+    }
+  },
+  "lab_spine": {
+    "experiment_purpose": "Determine whether structured evidence handling can strengthen a pilot intake reporting workflow.",
+    "variables": "Condition is baseline_manual versus structured_workflow; outcomes are processing, repair, and satisfaction fields.",
+    "apparatus_procedure_basis": "The apparatus is the documented intake workflow fixture and the same-note comparison procedure.",
+    "measurement_basis": "Measurements come from the fixture's comparison table and documented procedure.",
+    "uncertainty_limitations": "The fixture is synthetic, small, and not generalizable beyond the tested intake workflow."
+  },
+  "_contract": {
+    "job_id": "run_0ce5189c",
+    "evidence_ledger_hash": "83335f7e18e94c4a",
+    "source_registry_hash": "721c981d5c023e13"
+  }
+}

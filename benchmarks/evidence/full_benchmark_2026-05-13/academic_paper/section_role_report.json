@@ -1,0 +1,14 @@
+{
+  "job_id": "run_f1d7a71f",
+  "total_issues": 1,
+  "hard_issues": 0,
+  "soft_issues": 1,
+  "issues": [
+    {
+      "section": "introduction",
+      "intrusion_type": "missing_paper_roadmap",
+      "detail": "Introduction has no paper-roadmap sentence (\"The remainder of this report is organized as follows ...\").",
+      "severity": "soft"
+    }
+  ]
+}

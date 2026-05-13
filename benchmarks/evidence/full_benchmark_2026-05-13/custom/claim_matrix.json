@@ -1,0 +1,91 @@
+{
+  "claims": [
+    {
+      "claim_id": "c_context",
+      "claim_text": "The pilot converted intake notes into a structured evidence ledger, a claim matrix, and a final DOCX report package.",
+      "claim_type": "factual",
+      "claim_role": "supporting",
+      "status": "supported",
+      "evidence_ids": [
+        "E_ac6ab279_8a5d834518"
+      ],
+      "topic_tags": [
+        "workflow design",
+        "evidence handling"
+      ]
+    },
+    {
+      "claim_id": "c_method",
+      "claim_text": "The procedure processed the same participant notes through both baseline manual and structured workflow methods before comparison.",
+      "claim_type": "factual",
+      "claim_role": "supporting",
+      "status": "supported",
+      "evidence_ids": [
+        "E_ac6ab279_a4377b7a96"
+      ],
+      "topic_tags": [
+        "method",
+        "controlled comparison"
+      ]
+    },
+    {
+      "claim_id": "c_measurement",
+      "claim_text": "The measurement table records structured_workflow as lower than baseline_manual on median_processing_minutes and error_rate_percent, with higher reviewer_satisfaction_percent.",
+      "claim_type": "factual",
+      "claim_role": "primary",
+      "status": "supported",
+      "evidence_ids": [
+        "E_ac6ab279_caff3c4804"
+      ],
+      "topic_tags": [
+        "pilot outcome",
+        "measurement"
+      ]
+    },
+    {
+      "claim_id": "c_limit",
+      "claim_text": "The study is a pilot that should not be generalized beyond the tested intake workflow.",
+      "claim_type": "factual",
+      "claim_role": "background",
+      "status": "supported",
+      "evidence_ids": [
+        "E_ac6ab279_0cfdaf4a92"
+      ],
+      "topic_tags": [
+        "limitation"
+      ]
+    },
+    {
+      "claim_id": "c_satisfaction",
+      "claim_text": "Reviewer satisfaction was collected as supportive rather than primary evidence.",
+      "claim_type": "factual",
+      "claim_role": "supporting",
+      "status": "supported",
+      "evidence_ids": [
+        "E_ac6ab279_68fa756359"
+      ],
+      "topic_tags": [
+        "reviewer evidence"
+      ]
+    },
+    {
+      "claim_id": "c_proposal",
+      "claim_text": "The proposal inputs identify six weeks of implementation effort, a USD setup cost, reviewer training risk, and onboarding mitigation.",
+      "claim_type": "factual",
+      "claim_role": "background",
+      "status": "supported",
+      "evidence_ids": [
+        "E_ac6ab279_af4e67d850"
+      ],
+      "topic_tags": [
+        "proposal",
+        "implementation"
+      ]
+    }
+  ],
+  "_contract": {
+    "job_id": "run_27e75580",
+    "evidence_ledger_hash": "05209a560a242545",
+    "source_registry_hash": "2942fc6fdb9ed54f"
+  }
+}

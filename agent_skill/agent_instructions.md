@@ -59,6 +59,52 @@ render QA expectations. They do not change the deterministic DAG shape.
 `custom` is intentionally medium strictness: evidence-backed claims and section
 contracts are required, while citation style, word-count, and figure rules stay
 lenient unless the user supplies a stricter structure.
+Choose one dominant report convention from the prompt and sources, then use any
+secondary conventions only as supporting cues. Do not blend every built-in
+profile into one report shape.
+
+## Benchmark-First Optimization
+
+Use this workflow only when the task is to improve `report-workflow` itself.
+Do not use it as an extra burden during ordinary report generation.
+
+When evaluating quality improvements across report types:
+
+1. Read `benchmarks/README.md`, `benchmarks/report_quality_matrix.md`, and
+   `benchmarks/findings.json`.
+2. Read the profile packet under `benchmarks/profile_cases/` for the active
+   `report_profile`.
+3. Use public report examples, rubrics, journal instructions, and admissions or
+   business guidance only to extract quality criteria. They are reference-only
+   context, never `source_data`, and they must not be copied into generated
+   reports as prose, headings, page design, figures, or universal style rules.
+4. Run or design one controlled case per profile. Use
+   `benchmarks/fixtures/controlled_source.md` for smoke coverage when no user
+   source exists. For full built-in profile coverage, run
+   `python scripts/run_report_benchmarks.py` and preserve useful QA evidence
+   outside ignored runtime folders before changing behavior. The full benchmark
+   also uses `benchmarks/fixtures/chart_*.csv` to exercise deterministic bar,
+   line, scatter, boxplot, and table-fallback source-data figure guidance. Use
+   `python scripts/run_report_benchmarks.py --check` to validate archived
+   benchmark evidence without rerunning the workflow.
+5. Inspect the relevant QA artifacts for the profile: `final_qa_summary`,
+   `scholarly_quality_report`, `figure_visual_quality_report`,
+   `template_style_map`, and profile-specific reports such as
+   `engineering_audit_report`, `admissions_tone_report`, or
+   `reference_relevance_report`.
+6. Classify every finding with exactly one of the benchmark categories:
+   `skill_guidance_gap`, `profile_policy_gap`,
+   `deterministic_pipeline_gap`, `render_template_gap`,
+   `agent_authoring_gap`, or `external_reference_gap`.
+7. Implement only high-confidence changes after the benchmark evidence is
+   written. Prefer `agent_skill` guidance, benchmark artifacts, and regression
+   tests before Python pipeline changes. Add or tighten deterministic hard
+   gates only when repeated benchmark evidence shows the current QA artifacts
+   cannot express the quality failure.
+
+Keep `report_profile` as the only public report-shape selector. Benchmark work
+must not introduce `report_family`, subtype, detail, variant, or
+sample-specific public options.
 
 ## Template Priority
 
@@ -130,6 +176,14 @@ start_report_task(
 If `report_profile` is omitted, the workflow infers it from the prompt and
 source context. Use explicit profile IDs when the user has already chosen the
 report type.
+For admissions profiles, pass explicit `project_identity` when the report must
+preserve named project terms, domain context, forbidden drift terms, or author
+metadata. Do not infer an admissions project spine from a previous benchmark or
+unrelated project; keep the supplied identity terms visible in the title/thesis,
+introduction, and conclusion.
+Keep admissions evidence anchored to the supplied source record: research fit,
+readiness, project significance, and contribution claims need concrete source
+support, not committee flattery or unsupported autobiography.
 
 When scanned PDFs or reference images need manual transcription, create a
 Markdown or text transcription and pass it as `role: "source_data"`. Source-data
@@ -245,6 +299,12 @@ Avoid:
 - raw evidence IDs outside `[CITE:]`
 - internal file paths in report prose
 - ASCII-art diagrams; use Mermaid or real image assets instead
+
+For `academic_paper` and `engineering_lab_report`, make Methods/Procedure
+reproducible: name the source or sample basis, procedure, parameters or
+instrument/software settings, and supported inclusion, exclusion, calibration,
+normalization, or transform rules. In academic introductions, explicitly signal
+the problem or gap, objective, and contribution before moving to results.
 
 ## Non-Quantitative Figures vs Data Charts
 

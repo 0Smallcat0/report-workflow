@@ -1,0 +1,51 @@
+{
+  "claims": [
+    {
+      "claim_id": "c_context",
+      "status": "verified",
+      "checker": "FA",
+      "reason": "Claim/evidence/sentence linkage confirmed"
+    },
+    {
+      "claim_id": "c_method",
+      "status": "verified",
+      "checker": "FA",
+      "reason": "Claim/evidence/sentence linkage confirmed"
+    },
+    {
+      "claim_id": "c_measurement",
+      "status": "verified",
+      "checker": "FA",
+      "reason": "Claim/evidence/sentence linkage confirmed"
+    },
+    {
+      "claim_id": "c_limit",
+      "status": "verified",
+      "checker": "FA",
+      "reason": "Claim/evidence/sentence linkage confirmed"
+    },
+    {
+      "claim_id": "c_satisfaction",
+      "status": "verified",
+      "checker": "FA",
+      "reason": "Claim/evidence/sentence linkage confirmed"
+    },
+    {
+      "claim_id": "c_proposal",
+      "status": "verified",
+      "checker": "FA",
+      "reason": "Claim/evidence/sentence linkage confirmed"
+    }
+  ],
+  "advisory": [],
+  "blocked_count": 0,
+  "verified_count": 6,
+  "sidecars_consumed": {
+    "claim_matrix": true,
+    "sentence_map": true,
+    "evidence_ledger": true,
+    "outline": true
+  },
+  "deep_audit": false,
+  "revision_sidecar_mode": false
+}

@@ -1,0 +1,139 @@
+{
+  "thesis_statement": "The structured workflow pilot demonstrates that evidence handling, QA thinking, controlled procedure, and explicit quality boundaries can support a serious but bounded report-generation project.",
+  "sections": {
+    "executive_summary": {
+      "section_id": "executive_summary",
+      "title": "Executive Summary",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "problem_statement": {
+      "section_id": "problem_statement",
+      "title": "Problem Statement",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "objectives": {
+      "section_id": "objectives",
+      "title": "Objectives",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "proposed_approach": {
+      "section_id": "proposed_approach",
+      "title": "Proposed Approach",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "scope_deliverables": {
+      "section_id": "scope_deliverables",
+      "title": "Scope and Deliverables",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "timeline": {
+      "section_id": "timeline",
+      "title": "Timeline",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "budget_resources": {
+      "section_id": "budget_resources",
+      "title": "Budget and Resources",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "risks": {
+      "section_id": "risks",
+      "title": "Risks and Mitigations",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "evaluation": {
+      "section_id": "evaluation",
+      "title": "Evaluation Plan",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": [
+        "figrec_1",
+        "figrec_2",
+        "figrec_3",
+        "figrec_4",
+        "figrec_5"
+      ]
+    },
+    "appendix": {
+      "section_id": "appendix",
+      "title": "Appendix",
+      "claim_ids": [],
+      "figure_ids": []
+    }
+  },
+  "_contract": {
+    "job_id": "run_a28272e6",
+    "evidence_ledger_hash": "e81292fd08df6ed6",
+    "source_registry_hash": "b2c92d7ad3e8c34b"
+  }
+}

@@ -1,0 +1,263 @@
+{
+  "job_id": "run_436fe1f7",
+  "created_at": "2026-05-13T18:55:21.993306",
+  "status": "pass",
+  "report_profile": "business_report",
+  "reference_template_mode": "style_reference",
+  "renderer_used": "pandoc",
+  "reference_docx_applied": true,
+  "reference_docx": {
+    "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\src\\report_workflow\\templates\\reference.docx",
+    "exists": true,
+    "load_error": "",
+    "paragraph_count": 23,
+    "table_count": 1,
+    "paragraph_style_counts": {
+      "Title": 1,
+      "Subtitle": 1,
+      "Author": 1,
+      "Date": 1,
+      "Abstract": 1,
+      "Heading 1": 1,
+      "Heading 2": 1,
+      "Heading 3": 1,
+      "Heading 4": 1,
+      "Heading 5": 1,
+      "Heading 6": 1,
+      "Heading 7": 1,
+      "Heading 8": 1,
+      "Heading 9": 1,
+      "First Paragraph": 1,
+      "Body Text": 1,
+      "Block Text": 1,
+      "Table Caption": 1,
+      "Image Caption": 1,
+      "Definition Term": 2,
+      "Definition": 2
+    },
+    "table_style_counts": {
+      "Table": 1
+    },
+    "paragraph_style_names": [
+      "Abstract",
+      "Abstract Title",
+      "Author",
+      "Bibliography",
+      "Block Text",
+      "Body Text",
+      "Caption",
+      "Captioned Figure",
+      "Compact",
+      "Date",
+      "Definition",
+      "Definition Term",
+      "Figure",
+      "First Paragraph",
+      "Footnote Block Text",
+      "Footnote Text",
+      "Heading 1",
+      "Heading 2",
+      "Heading 3",
+      "Heading 4",
+      "Heading 5",
+      "Heading 6",
+      "Heading 7",
+      "Heading 8",
+      "Heading 9",
+      "Image Caption",
+      "Normal",
+      "Subtitle",
+      "TOC Heading",
+      "Table Caption",
+      "Title"
+    ],
+    "table_style_names": [
+      "Table"
+    ],
+    "key_styles": {
+      "Normal": {
+        "font_name": "Times New Roman",
+        "font_size_pt": 12.0,
+        "bold": null,
+        "italic": null
+      },
+      "Title": {
+        "font_name": "Times New Roman",
+        "font_size_pt": 18.0,
+        "bold": true,
+        "italic": null
+      },
+      "Subtitle": {
+        "font_name": "",
+        "font_size_pt": 14.0,
+        "bold": null,
+        "italic": null
+      },
+      "Heading 1": {
+        "font_name": "Times New Roman",
+        "font_size_pt": 16.0,
+        "bold": true,
+        "italic": null
+      },
+      "Heading 2": {
+        "font_name": "Times New Roman",
+        "font_size_pt": 14.0,
+        "bold": true,
+        "italic": null
+      },
+      "Heading 3": {
+        "font_name": "Times New Roman",
+        "font_size_pt": 12.0,
+        "bold": true,
+        "italic": null
+      },
+      "Body Text": {
+        "font_name": "",
+        "font_size_pt": null,
+        "bold": null,
+        "italic": null
+      },
+      "Caption": {
+        "font_name": "",
+        "font_size_pt": null,
+        "bold": null,
+        "italic": true
+      }
+    },
+    "sections": [
+      {
+        "page_width_inches": 8.27,
+        "page_height_inches": 11.69,
+        "top_margin_inches": 1.0,
+        "bottom_margin_inches": 1.0,
+        "left_margin_inches": 1.0,
+        "right_margin_inches": 1.0
+      }
+    ]
+  },
+  "rendered_docx": {
+    "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_436fe1f7\\final.docx",
+    "exists": true,
+    "load_error": "",
+    "paragraph_count": 26,
+    "table_count": 0,
+    "paragraph_style_counts": {
+      "Heading 1": 5,
+      "First Paragraph": 5,
+      "Body Text": 14,
+      "Heading 2": 1,
+      "Normal": 1
+    },
+    "table_style_counts": {},
+    "paragraph_style_names": [
+      "Abstract",
+      "Abstract Title",
+      "Author",
+      "Bibliography",
+      "Block Text",
+      "Body Text",
+      "Caption",
+      "Captioned Figure",
+      "Compact",
+      "Date",
+      "Definition",
+      "Definition Term",
+      "Figure",
+      "First Paragraph",
+      "Footnote Block Text",
+      "Footnote Text",
+      "Heading 1",
+      "Heading 2",
+      "Heading 3",
+      "Heading 4",
+      "Heading 5",
+      "Heading 6",
+      "Heading 7",
+      "Heading 8",
+      "Heading 9",
+      "Image Caption",
+      "Normal",
+      "Source Code",
+      "Subtitle",
+      "TOC Heading",
+      "Table Caption",
+      "Title"
+    ],
+    "table_style_names": [
+      "Table"
+    ],
+    "key_styles": {
+      "Normal": {
+        "font_name": "Times New Roman",
+        "font_size_pt": 12.0,
+        "bold": null,
+        "italic": null
+      },
+      "Title": {
+        "font_name": "Times New Roman",
+        "font_size_pt": 18.0,
+        "bold": true,
+        "italic": null
+      },
+      "Subtitle": {
+        "font_name": "",
+        "font_size_pt": 14.0,
+        "bold": null,
+        "italic": null
+      },
+      "Heading 1": {
+        "font_name": "Times New Roman",
+        "font_size_pt": 16.0,
+        "bold": true,
+        "italic": null
+      },
+      "Heading 2": {
+        "font_name": "Times New Roman",
+        "font_size_pt": 14.0,
+        "bold": true,
+        "italic": null
+      },
+      "Heading 3": {
+        "font_name": "Times New Roman",
+        "font_size_pt": 12.0,
+        "bold": true,
+        "italic": null
+      },
+      "Body Text": {
+        "font_name": "",
+        "font_size_pt": null,
+        "bold": null,
+        "italic": null
+      },
+      "Caption": {
+        "font_name": "",
+        "font_size_pt": null,
+        "bold": null,
+        "italic": true
+      }
+    },
+    "sections": [
+      {
+        "page_width_inches": 8.27,
+        "page_height_inches": 11.69,
+        "top_margin_inches": 1.0,
+        "bottom_margin_inches": 1.0,
+        "left_margin_inches": 1.0,
+        "right_margin_inches": 1.0
+      }
+    ]
+  },
+  "style_comparison": {
+    "rendered_styles_defined_in_reference": [
+      "Body Text",
+      "First Paragraph",
+      "Heading 1",
+      "Heading 2",
+      "Normal"
+    ],
+    "rendered_styles_not_defined_in_reference": [],
+    "reference_paragraph_style_count": 31,
+    "rendered_paragraph_style_count": 5
+  },
+  "warnings": []
+}

@@ -36,6 +36,17 @@ from report_workflow.errors import QAHardBlockError
 from report_workflow.state import ReportState, WORKFLOW_RUNS_DIR
 
 
+def _strategy_project_identity():
+    return {
+        "required_terms": ["deterministic compilation", "StrategyIR", "AST", "Taiwan equities"],
+        "required_context_terms": ["compiler architecture", "domain-specific intermediate representation"],
+        "forbidden_terms": ["U.S. equity markets", "StrategySpec JSON"],
+        "canonical_title_terms": ["deterministic", "compilation", "StrategyIR", "compiler"],
+        "domain_context": "Taiwan equities",
+        "author_metadata": {},
+    }
+
+
 class MarkdownBaseDocumentParseTests(unittest.TestCase):
     def test_markdown_base_document_sections_are_extracted(self):
         md = """# Project Title
@@ -581,6 +592,7 @@ class QualityGateContractTests(unittest.TestCase):
         state.spec["report_profile"] = "academic_paper"
         state.spec["report_profile"] = "admissions_report"
         state.spec["task_intent"] = "new_draft"
+        state.spec["project_identity"] = _strategy_project_identity()
         state.plan["front_matter"] = {
             "title": "A Trustworthy Verification Framework for LLM-Assisted Quantitative Strategy Generation in U.S. Equity Markets"
         }
@@ -601,6 +613,7 @@ class QualityGateContractTests(unittest.TestCase):
         state.spec["report_profile"] = "academic_paper"
         state.spec["report_profile"] = "admissions_report"
         state.spec["task_intent"] = "new_draft"
+        state.spec["project_identity"] = _strategy_project_identity()
         state.plan["front_matter"] = {
             "title": "Deterministic Compilation Architecture for StrategyIR Trading Systems"
         }
@@ -613,6 +626,37 @@ class QualityGateContractTests(unittest.TestCase):
             draft.write_text(
                 "# Abstract\n\nDeterministic compilation uses StrategyIR and AST construction for Taiwan equities.\n\n"
                 "# Introduction\n\nThe project centers on compiler architecture, StrategyIR, and Taiwan equities verification.\n",
+                encoding="utf-8",
+            )
+            state.drafts["merged_draft_md"] = str(draft)
+            result = run_project_identity_gate(state)
+        self.assertTrue(result.runtime["project_identity_report_path"])
+
+    def test_project_identity_gate_uses_outline_thesis_when_scope_freeze_does_not_set_one(self):
+        state = ReportState.new("write admissions project report", [], "out")
+        state.spec["report_profile"] = "admissions_project_report"
+        state.spec["task_intent"] = "new_draft"
+        state.spec["project_identity"] = {
+            "required_terms": ["structured workflow", "evidence handling", "QA thinking"],
+            "required_context_terms": ["auditable artifacts"],
+            "forbidden_terms": [],
+            "canonical_title_terms": ["workflow"],
+            "domain_context": "structured workflow",
+            "author_metadata": {},
+        }
+        state.plan["front_matter"] = {"title": "Structured Workflow Evidence Project"}
+        state.plan["outline"] = {
+            "thesis_statement": (
+                "The structured workflow demonstrates evidence handling and QA thinking "
+                "through auditable artifacts."
+            )
+        }
+        state.plan["primary_contribution"] = "A measured outcome claim without the identity spine."
+        with tempfile.TemporaryDirectory() as tmpdir:
+            draft = Path(tmpdir) / "draft.md"
+            draft.write_text(
+                "# Abstract\n\nThe structured workflow turns evidence handling and QA thinking into auditable artifacts.\n\n"
+                "# Introduction\n\nThe structured workflow project centers evidence handling, QA thinking, and auditable artifacts.\n",
                 encoding="utf-8",
             )
             state.drafts["merged_draft_md"] = str(draft)
@@ -676,6 +720,27 @@ class QualityGateContractTests(unittest.TestCase):
             with self.assertRaises(QAHardBlockError):
                 run_admissions_tone_gate(state)
 
+    def test_admissions_tone_gate_uses_project_identity_instead_of_hardcoded_project_terms(self):
+        state = ReportState.new("report", [], "out")
+        state.spec["report_profile"] = "admissions_report"
+        state.spec["task_intent"] = "new_draft"
+        state.plan["project_identity"] = {
+            "required_terms": ["structured workflow", "evidence handling", "QA thinking"],
+            "required_context_terms": ["auditable artifacts"],
+            "canonical_title_terms": ["workflow"],
+            "domain_context": "technical communication project",
+        }
+        with tempfile.TemporaryDirectory() as tmpdir:
+            draft = Path(tmpdir) / "draft.md"
+            draft.write_text(
+                "# Conclusion\n\nThe project demonstrates evidence handling, QA thinking, "
+                "and structured workflow judgment through auditable artifacts.\n",
+                encoding="utf-8",
+            )
+            state.drafts["publication_style_draft"] = str(draft)
+            result = run_admissions_tone_gate(state)
+        self.assertTrue(result.runtime["admissions_tone_report_path"])
+
     def test_reference_relevance_gate_blocks_generic_reference(self):
         state = ReportState.new("report", [], "out")
         state.spec["report_profile"] = "admissions_report"
@@ -724,6 +789,25 @@ class QualityGateContractTests(unittest.TestCase):
             state.runtime["reference_verify_report_path"] = str(report)
             result = run_reference_relevance_gate(state)
         self.assertTrue(result.runtime["reference_relevance_report_path"])
+
+    def test_reference_relevance_gate_blocks_internal_only_admissions_without_name_error(self):
+        state = ReportState.new("report", [], "out")
+        state.spec["report_profile"] = "admissions_report"
+        state.spec["task_intent"] = "new_draft"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            report = Path(tmpdir) / "reference_verify_report.json"
+            report.write_text(json.dumps({
+                "references": [{
+                    "ref_id": "Internal project note.",
+                    "raw": "Internal project note.",
+                    "status": "excluded",
+                    "checks": [{"type": "internal"}],
+                }]
+            }), encoding="utf-8")
+            state.runtime["reference_verify_report_path"] = str(report)
+            with self.assertRaises(QAHardBlockError) as raised:
+                run_reference_relevance_gate(state)
+        self.assertIn("bibliography is not publication-bearing", str(raised.exception))
 
 
 if __name__ == "__main__":
