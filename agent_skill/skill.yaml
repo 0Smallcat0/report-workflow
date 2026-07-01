@@ -7,7 +7,8 @@ description: >
   engineering schematics/concept illustrations, report-contained
   business-report schematics, optional external research via web backends
   (Tavily/Serper/SerpAPI), optional NotebookLM knowledge sync, report profiles,
-  and Chinese engineering report guidelines.
+  exact fixed-template/cover preservation QA, and Chinese engineering report
+  guidelines.
 
 version: "4.0"
 

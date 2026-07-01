@@ -1,20 +1,52 @@
 # AGENTS.md
 
-This file gives repository-specific guidance to agents working on
-`report-workflow`. Start with `AGENT_ONBOARDING.md` for the conceptual model and
-`agent_skill/agent_instructions.md` for the skill operating procedure.
+Authoritative repository guide for agents developing `report-workflow`. This is
+the single source of truth for the repo's development contract: concepts, layout,
+commands, stage lists, artifact contract, hard gates, and extension points.
 
-## Project Overview
+- Operating the skill to generate a report → `agent_skill/SKILL.md` and its
+  `reference/` files.
+- Human-facing overview and install → `README.md`.
+- `CLAUDE.md` and `AGENT_ONBOARDING.md` are thin entry points that defer here.
 
-`report-workflow` is a deterministic source-to-report pipeline for
-evidence-backed DOCX reports. The Python package does not call an LLM provider.
-It owns parsing, evidence normalization, artifact contracts, validation gates,
-DOCX rendering, checkpoints, and published package assembly. The external agent
-owns judgment, claim selection, outlining, and drafting.
+## Concepts
 
-The installed package lives under `src/report_workflow/`; `pyproject.toml`
-uses `package-dir = {"" = "src"}`. Keep edits inside `src/report_workflow/`
-unless the task explicitly targets docs, tests, packaging, or skill metadata.
+`report-workflow` is a deterministic source-to-report pipeline for evidence-backed
+DOCX reports. The Python package does not call an LLM. It owns parsing, evidence
+normalization, artifact contracts, validation gates, DOCX rendering, checkpoints,
+and published package assembly. The external agent owns judgment, claim
+selection, outlining, and drafting.
+
+Three phases:
+
+1. **Prepare** — parse sources, normalize evidence, select/freeze a report
+   profile, load a blueprint, and write agent task briefs.
+2. **Author** — the agent writes `claim_matrix.json`, `outline.json`, drafts
+   (`structured_drafts.json` or `section_drafts/*.md`), and `sentence_map.jsonl`.
+3. **Validate + Render** — the pipeline validates artifacts, resolves citations,
+   checks factuality and profile contracts, renders DOCX, and packages outputs
+   with QA artifacts under `published/qa/`.
+
+## Project Layout
+
+The installed package lives under `src/report_workflow/`; `pyproject.toml` uses
+`package-dir = {"" = "src"}`. Keep edits inside `src/report_workflow/` unless the
+task explicitly targets docs, tests, packaging, or skill metadata.
+
+Key files:
+
+- `src/report_workflow/profiles.py`: profile registry, aliases, inference, and
+  reference-template mode selection.
+- `src/report_workflow/blueprints/*.yaml`: profile-specific section structures.
+- `src/report_workflow/policies/policy_pack.py`: profile policy objects used by
+  validation gates.
+- `src/report_workflow/nodes/intake.py`: intake, profile selection, and frozen
+  `report_profile.json` creation.
+- `src/report_workflow/nodes/blueprint_plan.py`: blueprint loading from the
+  selected profile.
+- `src/report_workflow/run_workflow.py`: canonical prepare/validate/render node
+  lists.
+- `src/report_workflow/agent_wrapper.py`: agent-skill entry points.
 
 ## Commands
 
@@ -39,15 +71,18 @@ report-workflow invalidate-cache --job-id <id> [--sources] [--drafts]
 
 `--source PATH:ROLE` may be repeated. Valid artifact roles are `source_data`
 and `base_document`. The role suffix is parsed only when the trailing token is
-one of those roles, so Windows paths such as `C:\path\to.txt` are safe.
+one of those roles, so Windows paths such as `C:\path\to.txt` are safe. CLI
+`prepare` requires the same explicit user preflight decision record as the
+agent-skill entry point; a recorded `install`/`installed` choice does not
+override a still-missing dependency.
 
 CLI exit codes: `0` success, `1` crash, `2` hard-block failure, `3` waiting for
 agent-authored artifacts.
 
 ## Public Contract
 
-`report_profile` is the only public report-shape selector. Do not add or
-document alternate public selectors. Built-in profile IDs:
+`report_profile` is the only public report-shape selector. Do not add or document
+alternate public selectors, subtypes, or detail levels. Built-in profile IDs:
 
 - `engineering_lab_report`
 - `academic_paper`
@@ -60,8 +95,8 @@ document alternate public selectors. Built-in profile IDs:
 Profiles control blueprint selection, policy strictness, aliases, front matter,
 abstract rules, citation behavior, figure/table contracts, tone rules, and
 reference-template behavior. The workflow DAG should remain stable; nodes read
-profile policy through `get_policy(state.spec.get("report_profile",
-"academic_paper"))`.
+profile policy through `get_policy(...)`. Profile descriptions for operators live
+in `agent_skill/reference/profiles.md`.
 
 ## Stage Lists
 
@@ -89,34 +124,42 @@ Render:
 TEXT_POLISH -> DOCX_BUILD -> RENDER_QA -> REFERENCE_QA -> PUBLISH
 ```
 
-`POST_RENDER_VALIDATE` writes both `post_render_validate_report.json` and
-`post_render_layout_manifest.json`. The layout manifest is an audit artifact
-for rendered DOCX structure: renderer used, file size, paragraph/table/figure
-counts, heading summary, table previews, front-matter preview, related render QA
-reports, and validation issues. `ARTIFACTS` packages it under `published/qa/`
-when present. `ARTIFACTS` also writes `final_qa_summary.json` and
-`final_qa_summary.md` as the delivery-level QA entry point, combining QA gate,
-factuality, artifact lint, engineering audit, chart visual-quality review, and
-scholarly-quality review, and render-layout evidence without adding a new hard gate.
-It also writes `template_style_map.json` and `template_style_map.md`, explaining
-the reference DOCX mode, renderer, applied reference status, key style
-definitions, rendered style usage, and template-fidelity warnings.
-For fixed-template metadata, `ARTIFACTS` writes
-`template_field_fill_report.json` and `template_field_fill_report.md`, showing
-which structured fields were rendered into the final DOCX.
+`POST_RENDER_VALIDATE` writes `post_render_validate_report.json` and
+`post_render_layout_manifest.json` (an audit artifact for rendered DOCX
+structure: renderer used, file size, paragraph/table/figure counts, heading
+summary, table previews, front-matter preview, related render QA reports, and
+issues). `ARTIFACTS` packages QA files under `published/qa/`, including
+`final_qa_summary.json`/`.md` (the delivery-level QA entry point combining QA
+gate, factuality, artifact lint, engineering audit, chart visual-quality review,
+and scholarly-quality review, and render-layout evidence),
+`template_style_map.json`/`.md` (reference-DOCX mode, renderer, applied-reference
+status, key styles, rendered style usage, template-fidelity warnings), and
+`template_field_fill_report.json`/`.md` (which structured fields were rendered
+into the final DOCX). These summaries do not add new hard gates.
 
-Explicit quality commands, when implemented for a workflow branch, should stay
-outside the default validate path unless the product contract changes.
+## State and Persistence
+
+`ReportState` is the source of truth. It carries `spec`, `plan`, `sources`,
+`drafts`, `citations`, `qa`, `output`, `runtime`, `flags`, `knowledge_sync`, and
+`research`. Each stage writes `checkpoint_<STAGE>.json` and
+`checkpoint_latest.json` under `output/<slug>--<job_id>/`.
+
+## Blueprints and Policies
+
+`BLUEPRINT_PLAN` loads the YAML file declared by the frozen profile contract.
+`section_order` is authoritative for required `outline.json` and
+`section_drafts/*.md` coverage. Use profile policy instead of string-branching:
+
+```python
+from ..policies import get_policy
+
+policy = get_policy(state.spec.get("report_profile", "academic_paper"))
+```
 
 ## Agent Artifact Contract
 
-Prepare writes task briefs under:
-
-```text
-output/<slug>--<job_id>/agent_tasks/
-```
-
-The agent writes into the run directory:
+Prepare writes task briefs under `output/<slug>--<job_id>/agent_tasks/`. The agent
+writes into the run directory:
 
 - `claim_matrix.json`
 - `outline.json`
@@ -126,44 +169,33 @@ The agent writes into the run directory:
 - `revision_plan.json` for `task_intent=revise_existing`
 
 Every evidence-backed sentence in section drafts must include
-`[CITE:<evidence_id>]`, and those IDs must match `sentence_map.jsonl`.
-When `structured_drafts.json` is supplied and canonical draft artifacts are
-missing, `SECTION_DRAFT` compiles it into Markdown section drafts and
-`sentence_map.jsonl`.
-Use `query_evidence` for ledger lookup instead of loading huge ledgers into
-context.
-Use `lint_agent_artifacts` after creating or changing agent-owned artifacts to
-write `artifact_lint_report.json` with artifact names, JSON paths, severity,
-messages, and repair hints before running the full validate/render path.
-For `engineering_lab_report`, use `run_engineering_audit` after drafts exist to
-write `engineering_audit_report.json` with measurement extraction,
-claim/evidence unit-support warnings, table-value support checks, unit notation
-warnings, missing-unit notes, and simple calculation checks.
+`[CITE:<evidence_id>]`, and those IDs must match `sentence_map.jsonl`. When
+`structured_drafts.json` is supplied and canonical draft artifacts are missing,
+`SECTION_DRAFT` compiles it into Markdown section drafts and `sentence_map.jsonl`.
+
+Read-only helpers: `query_evidence` for ledger lookup instead of loading huge
+ledgers into context; `lint_agent_artifacts` to write `artifact_lint_report.json`
+(artifact names, JSON paths, severity, messages, repair hints) before the full
+validate/render path; `run_engineering_audit` (for `engineering_lab_report`) to
+write `engineering_audit_report.json` with measurement extraction, unit-support
+warnings, table-value support checks, and simple calculation checks.
+
 For `academic_paper` and `engineering_lab_report`, validation writes
-`scholarly_quality_report.json` and `scholarly_quality_report.md` with
-review-grade checks for article spine, introduction flow, methods
-reproducibility, role separation, figure/table scholarly expectations, and
-reference metadata quality.
-Completed publications include `published/qa/final_qa_summary.json` and
-`published/qa/final_qa_summary.md`; inspect those first when summarizing
-delivery readiness for a user.
-Use `published/qa/scholarly_quality_report.json` when the user asks whether an
-academic or Chinese engineering report reads like a serious scholarly article.
-Use `published/qa/figure_visual_quality_report.json` when the user asks about
-chart readability issues such as overlapping labels, legend placement, or dense
-heatmaps.
-Use `published/qa/template_style_map.json` when the user asks how the reference
-DOCX/template influenced the final render.
-Use `published/qa/template_field_fill_report.json` when the user asks whether
-cover or fixed-template fields were filled.
+`scholarly_quality_report.json`/`.md` with review-grade checks for article spine,
+introduction flow, methods reproducibility, role separation, figure/table
+scholarly expectations, and reference metadata quality. When summarizing delivery
+readiness, inspect `published/qa/final_qa_summary.json` first, then the
+scholarly-quality, figure-visual-quality, template-style-map, and
+template-field-fill reports as the user's question requires. Operator-facing
+inspection order and the engineering publish checklist live in
+`agent_skill/reference/engineering-lab.md`.
 
 ## Revision Mode
 
-For `task_intent=revise_existing`, `BASE_DOCUMENT_PARSE` extracts sections from
-the single `base_document` source into `base_document_sections.json`.
-`REVISION_APPLY` reads that file plus `revision_plan.json` and writes the
-merged draft. `section_drafts/*.md` are not merged into the final document in
-this mode.
+For `task_intent=revise_existing`, `BASE_DOCUMENT_PARSE` extracts sections from the
+single `base_document` source into `base_document_sections.json`.
+`REVISION_APPLY` reads that file plus `revision_plan.json` and writes the merged
+draft. `section_drafts/*.md` are not merged into the final document in this mode.
 
 Do not edit `base_document_sections.json`, generated draft files, or checkpoint
 JSON directly as an authoring shortcut. If disk artifacts are intentionally
@@ -189,21 +221,14 @@ report-workflow invalidate-cache --job-id <id> --sources --drafts
 
 ## Debugging Guidance
 
-For factuality failures, inspect the fresh `factuality_report.json` from the
-run directory. The factuality checker reads canonical disk artifacts:
-
-- `claim_matrix.json`
-- `evidence_ledger.jsonl`
-- `sentence_map.jsonl`
-
-Editing checkpoint snapshots does not affect factuality checks.
-For artifact-shape failures, run `lint_agent_artifacts` first and inspect
-`artifact_lint_report.json`; it centralizes missing files, malformed JSON,
-unknown section/claim/evidence IDs, and citation marker drift.
-For engineering unit or calculation questions, inspect
+For factuality failures, inspect the fresh `factuality_report.json` from the run
+directory. The factuality checker reads canonical disk artifacts (`claim_matrix.json`,
+`evidence_ledger.jsonl`, `sentence_map.jsonl`); editing checkpoint snapshots does
+not affect factuality checks. For artifact-shape failures, run
+`lint_agent_artifacts` first and inspect `artifact_lint_report.json`. For
+engineering unit or calculation questions, inspect
 `engineering_audit_report.json` before changing claim text or calculation prose.
-
-For abstract failures, fix the authored abstract draft. Common blockers are
+For abstract failures, fix the authored abstract draft; common blockers are
 trailing ellipses, incomplete final sentences, leftover `[CITE:]` or `[Source:]`
 markers, placeholder text, and profile-specific word-count violations.
 
@@ -214,6 +239,29 @@ markers, placeholder text, and profile-specific word-count violations.
 2. Import it in `src/report_workflow/run_workflow.py`.
 3. Insert it as a `WorkflowStep` inside the appropriate `prepare_stages()`,
    `validate_stages()`, or `render_stages()` stage.
-4. Raise `QAHardBlockError` for hard gates so remediation and failed
-   checkpoints are written.
-5. Update this file and `CLAUDE.md` if the canonical stage sequence changes.
+4. Raise `QAHardBlockError` for hard gates so remediation and failed checkpoints
+   are written.
+5. Update the Stage Lists section above if the canonical stage sequence changes.
+
+## Git Hygiene
+
+This repo may start dirty. Do not revert changes you did not make. Before
+committing, verify that the diff boundary is clean and that unrelated dirty files
+or generated output are not included.
+
+## Verification
+
+Before claiming a change is complete, run:
+
+```powershell
+python -m compileall -q src tests
+python -m unittest discover -s tests -v
+```
+
+If a change touches profile behavior or skill docs, also run the documentation
+contract tests:
+
+```powershell
+python -m unittest tests.test_roadmap_contracts.DocumentationContractTests -v
+python scripts/render_skill_docs.py --check
+```

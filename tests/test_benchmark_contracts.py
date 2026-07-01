@@ -83,12 +83,14 @@ class BenchmarkContractTests(unittest.TestCase):
             self.assertIn(category, self.matrix)
 
         skill = (ROOT / "agent_skill" / "SKILL.md").read_text(encoding="utf-8")
-        instructions = (ROOT / "agent_skill" / "agent_instructions.md").read_text(encoding="utf-8")
+        benchmarking = (
+            ROOT / "agent_skill" / "reference" / "benchmarking.md"
+        ).read_text(encoding="utf-8")
         self.assertIn("Benchmark-First Optimization", skill)
-        self.assertIn("Benchmark-First Optimization", instructions)
-        self.assertIn("benchmarks/findings.json", instructions)
+        self.assertIn("Benchmark-First Optimization", benchmarking)
+        self.assertIn("benchmarks/findings.json", benchmarking)
         self.assertIn("scripts/run_report_benchmarks.py --check", skill)
-        self.assertIn("scripts/run_report_benchmarks.py --check", instructions)
+        self.assertIn("scripts/run_report_benchmarks.py --check", benchmarking)
 
     def test_prepare_smoke_is_recorded_without_claiming_full_publish(self):
         smoke = self.findings["prepare_smoke"]

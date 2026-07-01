@@ -829,32 +829,59 @@ class DocumentationContractTests(unittest.TestCase):
             with self.subTest(tool=tool_name):
                 self.assertIn(f"`{tool_name}`", skill_text)
 
-    def test_short_skill_documents_operational_guardrails(self):
+    def test_short_skill_points_to_reference_library(self):
         skill_text = Path("agent_skill/SKILL.md").read_text(encoding="utf-8")
 
-        expected_phrases = [
-            "## Preflight Decision Examples",
-            "allow_degraded_render=True",
-            '"pandoc": "accept_degraded"',
-            "enable_research=True",
-            "notebooklm_notebook_id=\"notebook-id-from-user\"",
-            "`structured_drafts.json`",
-            "Call `submit_and_publish_report` when the controlled harness",
-            "Use manual `section_drafts/*.md` plus `sentence_map.jsonl` only",
-            "remap_agent_artifacts(job_id=..., previous_job_id=...)",
-            "## Revision Flow",
-            "`preview_revision_diff`",
-            "`submit_revision_plan`",
-            "Chinese engineering publish checklist",
-            "`template_field_fill_report_path`",
-            "Failure repair order",
-            "`final_qa_summary_path`",
+        # SKILL.md stays a lean hub that links every reference file one level deep.
+        skill_pointers = [
+            "## Reference Library",
+            "reference/setup-and-preflight.md",
+            "reference/profiles.md",
+            "reference/tools.md",
+            "reference/authoring.md",
+            "reference/figures.md",
+            "reference/engineering-lab.md",
+            "reference/revision.md",
+            "reference/benchmarking.md",
             "python scripts/render_skill_docs.py --check",
             "python scripts/sync_codex_skill.py --write",
         ]
-        for phrase in expected_phrases:
-            with self.subTest(phrase=phrase):
-                self.assertIn(phrase, skill_text)
+        for pointer in skill_pointers:
+            with self.subTest(pointer=pointer):
+                self.assertIn(pointer, skill_text)
+
+    def test_reference_files_document_operational_guardrails(self):
+        reference = Path("agent_skill/reference")
+
+        # Detailed guardrails live in one-level-deep reference files, not SKILL.md.
+        expected = {
+            "setup-and-preflight.md": [
+                "## Preflight Decision Examples",
+                "allow_degraded_render=True",
+                '"pandoc": "accept_degraded"',
+                "enable_research=True",
+                'notebooklm_notebook_id="notebook-id-from-user"',
+            ],
+            "authoring.md": [
+                "`structured_drafts.json`",
+                "remap_agent_artifacts(job_id=..., previous_job_id=...)",
+                "Validation Failure Repair",
+            ],
+            "revision.md": [
+                "`preview_revision_diff`",
+                "`submit_revision_plan`",
+            ],
+            "engineering-lab.md": [
+                "Chinese Engineering Publish Checklist",
+                "`template_field_fill_report_path`",
+                "`final_qa_summary_path`",
+            ],
+        }
+        for file_name, phrases in expected.items():
+            text = (reference / file_name).read_text(encoding="utf-8")
+            for phrase in phrases:
+                with self.subTest(file=file_name, phrase=phrase):
+                    self.assertIn(phrase, text)
 
     def test_generated_skill_doc_blocks_are_current(self):
         script_path = Path("scripts/render_skill_docs.py")
@@ -880,17 +907,25 @@ class DocumentationContractTests(unittest.TestCase):
             dest_dir = Path(tmpdir) / "report-workflow"
 
             dry_run_ops = module.sync_skill(Path("agent_skill"), dest_dir, write=False)
-            self.assertEqual(len(dry_run_ops), 3)
+            # SKILL.md + skill.yaml + every reference/ file.
+            self.assertGreaterEqual(len(dry_run_ops), 3)
             self.assertFalse(dest_dir.exists())
 
             write_ops = module.sync_skill(Path("agent_skill"), dest_dir, write=True)
-            self.assertEqual(len(write_ops), 3)
+            self.assertEqual(len(write_ops), len(dry_run_ops))
             for source, dest in write_ops:
                 self.assertTrue(dest.exists())
                 self.assertEqual(
                     source.read_text(encoding="utf-8"),
                     dest.read_text(encoding="utf-8"),
                 )
+
+            synced_names = {dest.name for _, dest in write_ops}
+            self.assertIn("SKILL.md", synced_names)
+            self.assertIn("skill.yaml", synced_names)
+            self.assertIn("tools.md", synced_names)
+            self.assertTrue((dest_dir / "reference" / "tools.md").exists())
+            self.assertFalse((dest_dir / "agent_instructions.md").exists())
 
 
 if __name__ == "__main__":

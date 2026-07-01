@@ -4,6 +4,26 @@
 
 ### Changed
 
+- Restructured the agent skill for progressive disclosure and multi-harness use.
+  `agent_skill/SKILL.md` is now a ~220-line navigation hub (down from ~628) that
+  links one-level-deep `agent_skill/reference/` files
+  (`setup-and-preflight`, `profiles`, `tools`, `authoring`, `figures`,
+  `engineering-lab`, `revision`, `benchmarking`), matching Anthropic's Agent
+  Skills 500-line and single-source-of-truth guidance. Removed the duplicated
+  `agent_skill/agent_instructions.md`; its content now lives once in the
+  reference files. Made the skill harness-neutral (Codex, Claude Code, or any
+  shell agent) with an explicit "Invoking the Tools" section and a
+  harness-neutral `description`, and generate `reference/tools.md` from
+  `skill.yaml` via `scripts/render_skill_docs.py`. Updated `sync_codex_skill.py`
+  to sync the `reference/` tree and refreshed documentation contract tests.
+- Consolidated the repository docs to a single source of truth. `AGENTS.md` is
+  now the authoritative development guide (concepts, layout, commands, stage
+  lists, artifact contract, hard gates, extension points); `CLAUDE.md` and
+  `AGENT_ONBOARDING.md` are thin pointers to it, and `README.md` was trimmed to a
+  human-facing overview that links `AGENTS.md` and the skill. Removed the
+  duplicated profile/stage/gate copies across those files (top-level docs
+  ~817 -> ~450 lines) and dropped `CLAUDE.md` from the generated tool-surface
+  targets.
 - Hardened report-workflow skill guidance for source-role boundaries,
   exact-template visual QA, figure-caption validation, and final DOCX scans for
   internal provenance leaks and user-provided forbidden phrases.

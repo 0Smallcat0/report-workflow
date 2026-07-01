@@ -1,4 +1,8 @@
-"""Sync the repo-local report-workflow skill into a Codex skills directory."""
+"""Sync the repo-local report-workflow skill into a Codex skills directory.
+
+Copies the harness-neutral skill payload: SKILL.md, skill.yaml, and the entire
+reference/ tree (progressive-disclosure detail loaded on demand).
+"""
 
 from __future__ import annotations
 
@@ -8,7 +12,7 @@ import shutil
 from pathlib import Path
 
 
-SKILL_FILES = ("SKILL.md", "skill.yaml", "agent_instructions.md")
+TOP_LEVEL_SKILL_FILES = ("SKILL.md", "skill.yaml")
 
 
 def default_codex_home() -> Path:
@@ -19,17 +23,28 @@ def repo_root_from_script() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
+def _iter_skill_relative_paths(source_dir: Path) -> list[Path]:
+    """Return skill payload paths relative to source_dir, deterministically ordered."""
+    relative_paths = [Path(name) for name in TOP_LEVEL_SKILL_FILES]
+    reference_dir = source_dir / "reference"
+    if reference_dir.is_dir():
+        for path in sorted(reference_dir.rglob("*")):
+            if path.is_file():
+                relative_paths.append(path.relative_to(source_dir))
+    return relative_paths
+
+
 def sync_skill(source_dir: Path, dest_dir: Path, write: bool) -> list[tuple[Path, Path]]:
     operations: list[tuple[Path, Path]] = []
-    for file_name in SKILL_FILES:
-        source = source_dir / file_name
+    for relative in _iter_skill_relative_paths(source_dir):
+        source = source_dir / relative
         if not source.exists():
             raise FileNotFoundError(f"missing source skill file: {source}")
-        operations.append((source, dest_dir / file_name))
+        operations.append((source, dest_dir / relative))
 
     if write:
-        dest_dir.mkdir(parents=True, exist_ok=True)
         for source, dest in operations:
+            dest.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, dest)
 
     return operations

@@ -9,6 +9,11 @@ It owns source parsing, evidence normalization, artifact contracts, validation
 gates, DOCX rendering, and traceability packaging. The external agent owns
 judgment and drafting by reading task briefs and producing required artifacts.
 
+- **Operating the skill to generate a report** → `agent_skill/SKILL.md` and its
+  `reference/` files.
+- **Developing this repository** → [AGENTS.md](AGENTS.md) (authoritative
+  contract: layout, stage lists, artifact contract, hard gates, extension points).
+
 ## Install
 
 ```powershell
@@ -68,146 +73,62 @@ CLI exit codes:
 
 ## Report Profiles
 
-`report_profile` is the public report-shape contract. It replaces the old
-`report_family` and detail/subtype model.
+`report_profile` is the only public report-shape selector. Built-in profiles:
+`engineering_lab_report`, `academic_paper`, `business_report`, `proposal`,
+`admissions_report`, `admissions_project_report`, and `custom`. The pipeline
+infers a profile from the prompt unless `--profile` or `report_profile` is given.
 
-Built-in profiles:
-
-- `engineering_lab_report`: engineering experiment reports, including Chinese
-  engineering report requirements, requirement matrices, formula/unit audits,
-  calculation audits, figure/table contracts, and render QA.
-- `academic_paper`: IMRaD-style academic papers with strict abstract,
-  front-matter, citation, and reference expectations.
-- `business_report`: executive/work reports with findings and recommendations.
-- `proposal`: proposals with problem, objectives, approach, scope, timeline,
-  budget/resources, risks, and evaluation sections.
-- `admissions_report`: admissions-facing scholarly reports.
-- `admissions_project_report`: admissions-facing project reports with relaxed
-  publication metadata requirements.
-- `custom`: user-defined or mixed reports with medium strictness. Claims and
-  section contracts remain evidence-backed; citation format, word counts, and
-  figure rules default to lenient.
-
-The pipeline infers a profile from the prompt unless `--profile` or
-`report_profile` is provided.
-
-## Benchmark-Driven Optimization
-
-Use the `benchmarks/` directory when improving report quality across profiles.
-It contains one benchmark packet per built-in `report_profile`, a shared source
-fixture, a report quality matrix, and structured findings.
-Run `python scripts/run_report_benchmarks.py` for the controlled seven-profile
-prepare-author-validate-render benchmark; it uses both the shared report source
-fixture and small CSV chart fixtures covering bar, line, scatter, boxplot, and
-table-fallback figure paths. Compact evidence is archived under
-`benchmarks/evidence/full_benchmark_2026-05-13/`. Run
-`python scripts/run_report_benchmarks.py --check` to validate archived evidence
-without rerunning the workflow.
-
-Benchmark references are rubric context only. They should help classify quality
-gaps, not become copied prose, universal section headings, or new public report
-selectors. Preserve `report_profile` as the only report-shape selector.
-
-Before changing workflow behavior, classify findings as one of:
-
-- `skill_guidance_gap`
-- `profile_policy_gap`
-- `deterministic_pipeline_gap`
-- `render_template_gap`
-- `agent_authoring_gap`
-- `external_reference_gap`
-
-High-confidence improvements should usually start in `agent_skill/` guidance
-and benchmark tests. Add deterministic Python gates only after benchmark
-evidence shows that existing QA artifacts cannot express the failure.
+Profile purposes and strictness are documented in
+`agent_skill/reference/profiles.md`; the registry lives in
+`src/report_workflow/profiles.py`.
 
 ## Workflow
 
-### 1. Prepare
+1. **Prepare** parses sources and writes deterministic artifacts (`report_spec.json`,
+   `report_profile.json`, `blueprint.json`, `source_registry.json`,
+   `evidence_ledger.jsonl`, and `agent_tasks/*.md`).
+2. **Author** — the external agent writes `claim_matrix.json`, `outline.json`,
+   `section_drafts/*.md` (or `structured_drafts.json`), and `sentence_map.jsonl`.
+3. **Validate and render** checks artifact completeness, section contracts,
+   citation linkage, factuality, profile policy, figure contracts, and QA gates,
+   then renders. `render` runs only after the validated checkpoint records
+   `qa_decision=pass`, a passing `qa_summary.json`, a clean
+   `factuality_report.json`, and no unresolved citation audit entries.
 
-`prepare` parses sources and writes deterministic artifacts:
-
-- `report_spec.json`
-- `report_profile.json`
-- `blueprint.json`
-- `source_registry.json`
-- `evidence_ledger.jsonl`
-- `agent_tasks/01_claim_plan.md`
-- `agent_tasks/02_outline_plan.md`
-- `agent_tasks/03_section_draft.md`
-
-### 2. Agent Authoring
-
-The external agent reads the task briefs and writes:
-
-- `claim_matrix.json`
-- `outline.json`
-- `section_drafts/*.md`
-- `sentence_map.jsonl`
-
-Use the controlled harness when operating through the agent skill:
-
-- `get_controlled_next_action`
-- `submit_controlled_action`
-
-### 3. Validate and Render
-
-`validate` checks artifact completeness, section contracts, citation linkage,
-factuality, profile policy, figure contracts, and QA gates. `render` runs only
-after the validated checkpoint records `qa_decision=pass`, a passing
-`qa_summary.json`, a clean `factuality_report.json`, and no unresolved citation
-audit entries.
-
-Final artifacts are packaged under:
-
-```text
-output/<slug>--<job_id>/published/
-```
-
-The published `qa/` directory includes `final_qa_summary.json` and
-`final_qa_summary.md`, which summarize QA gate status, factuality, artifact
-lint, engineering audit, scholarly-quality review, chart visual-quality review,
-and render-layout evidence for delivery review.
-For academic and engineering reports, `scholarly_quality_report.json` and
-`scholarly_quality_report.md` provide review-grade checks for article spine,
-introduction flow, reproducible methods, figure/table scholarly expectations,
-and reference metadata quality.
-It also includes `template_style_map.json` and `template_style_map.md`, which
-explain reference-DOCX mode, renderer use, applied-reference status, and
-rendered style usage.
-For fixed-template reports, `template_field_fill_report.json` and
-`template_field_fill_report.md` show whether structured cover/front-matter
-fields such as course, student ID, instructor, date, or department were found in
-the final DOCX.
+Final artifacts are packaged under `output/<slug>--<job_id>/published/`, with
+delivery QA in `published/qa/` (`final_qa_summary.json`/`.md`, plus scholarly,
+figure-visual, template-style-map, and template-field-fill reports where they
+apply). See [AGENTS.md](AGENTS.md) for the canonical stage lists and the full QA
+artifact contract.
 
 ## Reference Templates
 
-Profiles control reference-template behavior.
-
-- Default mode is `style_reference`: use a DOCX as a style/layout reference.
-- If the user explicitly asks to exactly preserve cover or format, the workflow
-  upgrades to `fixed_template`.
-- A profile contract has priority over prompt and template hints.
-
-For `engineering_lab_report`, the profile remains the highest-priority semantic
-contract even when a school/company template DOCX is supplied.
+Profiles control reference-template behavior. The default mode is
+`style_reference` (use a DOCX as a style/layout reference); if the user asks to
+exactly preserve the cover or format, the workflow upgrades to `fixed_template`.
+A profile contract has priority over prompt and template hints. Engineering
+exact-cover handling is detailed in
+`agent_skill/reference/engineering-lab.md`.
 
 ## Quality Gates
 
-The core hard gates are:
+Core hard gates: sources must register and parse; the evidence ledger must be
+non-empty; claims must cite valid evidence IDs; claim status cannot be `blocked`,
+`unverified`, or `disputed`; evidence-backed sentences must contain matching
+`[CITE:<id>]` placeholders; citation audits must resolve; placeholder prose and
+fake metadata are blocked; and render requires `qa_decision=pass`. Profile
+policies adjust strictness for front matter, abstract structure, citation style,
+reference verification, and figure/table contracts. The authoritative gate list
+lives in [AGENTS.md](AGENTS.md).
 
-- Sources must register and parse.
-- Evidence ledger must be non-empty.
-- Claims must cite valid evidence IDs.
-- Claim status cannot be `blocked`, `unverified`, or `disputed`.
-- Evidence-backed sentences must contain matching `[CITE:<id>]` placeholders.
-- Citation audit entries must resolve.
-- Placeholder prose and template metadata are blocked.
-- Render requires `qa_decision=pass`, a passing `qa_summary.json`, a clean
-  `factuality_report.json`, and no unresolved citation audit entries.
+## Benchmarks
 
-Profile policies adjust strictness for front matter, abstract structure, citation
-style, reference verification, figure/table contracts, and section roles.
+Use `benchmarks/` when improving report quality across profiles. Run
+`python scripts/run_report_benchmarks.py` for the seven-profile
+prepare-author-validate-render benchmark, or
+`python scripts/run_report_benchmarks.py --check` to validate archived evidence
+without rerunning. The benchmark-first optimization method and gap taxonomy are
+documented in `agent_skill/reference/benchmarking.md`.
 
 ## Tests
 
