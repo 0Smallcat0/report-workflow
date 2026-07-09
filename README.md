@@ -26,6 +26,8 @@ document.
 The gate is real code, not a description. This demo runs the exact factuality
 checkers the pipeline uses against a tiny evidence ledger — no LLM, no network:
 
+![Anti-hallucination gate demo — an honest draft passes every check; a hallucinated draft with an invented statistic and a fabricated citation is each hard-blocked, tagged with the gate that caught it.](docs/demo.svg)
+
 ```bash
 python examples/anti_hallucination_gate.py
 ```
