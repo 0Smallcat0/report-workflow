@@ -28,11 +28,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
 
-      # Pandoc is the required DOCX renderer; preflight checks for it, so it must
-      # be present for the end-to-end workflow tests (rendering itself is mocked).
-      - name: Install pandoc
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends pandoc
-
+      # No external tools required: rendering is mocked and the readiness-dependent
+      # workflow test is hermetic, so every check below is deterministic and offline.
       - name: Byte-compile sources and tests
         run: python -m compileall -q src tests
 

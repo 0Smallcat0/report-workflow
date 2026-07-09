@@ -161,7 +161,12 @@ class AutomationHarnessTests(unittest.TestCase):
 
             src = Path(tmpdir) / "source.txt"
             src.write_text("The pilot enrolled 42 participants.", encoding="utf-8")
-            with patch("report_workflow.preflight.importlib.util.find_spec", side_effect=_all_packages_present):
+            # Keep this unit test hermetic: mock both Python-package detection and
+            # external-tool (pandoc/mmdc) detection so start readiness does not depend
+            # on what happens to be installed on the runner. Real-tool coverage lives
+            # in the end-to-end benchmark, not here.
+            with patch("report_workflow.preflight.importlib.util.find_spec", side_effect=_all_packages_present), \
+                 patch("report_workflow.preflight._find_executable", return_value="/usr/bin/tool"):
                 result = start_report_task(
                     "write an academic report",
                     [str(src)],
