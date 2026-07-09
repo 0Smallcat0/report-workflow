@@ -79,6 +79,11 @@ Each report is packaged with its QA pack (`final_qa_summary`, factuality,
 scholarly-quality, figure-visual, template-style, and render-layout reports) so
 the publish decision is auditable after the fact, not just asserted.
 
+Pages from a rendered engineering lab report produced by that benchmark — table of
+contents, title and abstract, and a figure derived from the source data:
+
+![Three pages of a pipeline-rendered DOCX report: a table of contents, a title-and-abstract page, and a page with a line chart derived from the source data.](docs/sample_report.png)
+
 ## How it works
 
 ```mermaid
