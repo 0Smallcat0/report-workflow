@@ -872,8 +872,11 @@ def check_existing_summary() -> list[str]:
     if summary.get("public_interface_selector") != "report_profile":
         issues.append("public_interface_selector must remain report_profile")
 
-    fixtures = set(summary.get("fixtures", []))
-    expected_fixtures = {_rel(path) for path in SOURCE_FIXTURES}
+    # Archived summary.json may store paths with either separator (evidence is
+    # commonly generated on Windows); normalize to POSIX before comparing so
+    # `--check` is portable across operating systems.
+    fixtures = {str(item).replace("\\", "/") for item in summary.get("fixtures", [])}
+    expected_fixtures = {_rel(path).replace("\\", "/") for path in SOURCE_FIXTURES}
     if not expected_fixtures.issubset(fixtures):
         issues.append(f"missing benchmark fixtures: {sorted(expected_fixtures - fixtures)}")
 
@@ -923,7 +926,8 @@ def check_existing_summary() -> list[str]:
         for item in profile.get("snapshots", []):
             if not isinstance(item, dict) or not item.get("path"):
                 continue
-            if not (ROOT / str(item["path"])).exists():
+            snapshot_path = ROOT / str(item["path"]).replace("\\", "/")
+            if not snapshot_path.exists():
                 issues.append(f"{report_profile}: missing snapshot file {item['path']}")
 
     return issues
