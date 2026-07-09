@@ -26,27 +26,11 @@ document.
 The gate is real code, not a description. This demo runs the exact factuality
 checkers the pipeline uses against a tiny evidence ledger — no LLM, no network:
 
-![Anti-hallucination gate demo — an honest draft passes every check; a hallucinated draft with an invented statistic and a fabricated citation is each hard-blocked, tagged with the gate that caught it.](docs/demo.svg)
-
 ```bash
 python examples/anti_hallucination_gate.py
 ```
 
-```text
-RUN 1 - HONEST DRAFT
-  [PASS ] c_processing   (FA+FB)
-  [PASS ] c_error        (FA+FB)
-  [PASS ] c_scope        (FA)
-  -> 3 verified, 0 blocked.
-
-RUN 2 - HALLUCINATED DRAFT (invented statistic + fabricated citation)
-  [PASS ] c_processing       (FA+FB)
-  [BLOCK] c_error_inflated   (FE)  reason: Claim number '0.2'% not found in
-                                   evidence content (evidence has: 3.5%, 9.0%)
-  [BLOCK] c_ghost_audit      (FA)  reason: Claim references unknown evidence:
-                                   ev_external_audit
-  -> 1 verified, 2 blocked.
-```
+![Anti-hallucination gate demo — an honest draft passes every check; a hallucinated draft with an invented statistic and a fabricated citation is each hard-blocked, tagged with the gate that caught it.](docs/demo.svg)
 
 Two failure modes an LLM ships silently — an **invented statistic** that cites
 real evidence, and a **fabricated citation** to a source that does not exist —
