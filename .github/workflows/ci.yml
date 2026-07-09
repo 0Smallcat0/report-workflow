@@ -28,8 +28,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
 
-      # Pandoc is the render-time DOCX backend; the test suite mocks it, so CI
-      # does not install it. The checks below are deterministic and offline.
+      # Pandoc is the required DOCX renderer; preflight checks for it, so it must
+      # be present for the end-to-end workflow tests (rendering itself is mocked).
+      - name: Install pandoc
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends pandoc
+
       - name: Byte-compile sources and tests
         run: python -m compileall -q src tests
 
