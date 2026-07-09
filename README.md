@@ -1,18 +1,129 @@
 # Report Workflow
 
-Report Workflow is a deterministic source-to-report pipeline for evidence-backed
-DOCX reports. It is designed to run inside an agent environment such as Codex,
-Claude Code, or Hermes.
+[![CI](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue)
+![Tests](https://img.shields.io/badge/tests-332%20passing-brightgreen)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-The Python package does not call an LLM provider and does not require an API key.
-It owns source parsing, evidence normalization, artifact contracts, validation
-gates, DOCX rendering, and traceability packaging. The external agent owns
-judgment and drafting by reading task briefs and producing required artifacts.
+**A deterministic verification layer that lets an LLM draft a report but refuses
+to publish any claim it cannot trace to registered evidence.**
 
-- **Operating the skill to generate a report** → `agent_skill/SKILL.md` and its
-  `reference/` files.
-- **Developing this repository** → [AGENTS.md](AGENTS.md) (authoritative
-  contract: layout, stage lists, artifact contract, hard gates, extension points).
+An LLM writes fluent prose and, every so often, invents a number, misquotes a
+source, or cites a study that does not exist. That is fine for a chat reply and
+unacceptable in a lab report, a client memo, or an admissions document. Report
+Workflow puts a checkable boundary between *drafting* and *publishing*: the model
+proposes, and a deterministic pipeline decides what is allowed to ship.
+
+The Python package **does not call an LLM and needs no API key.** It owns source
+parsing, the evidence ledger, artifact contracts, validation gates, DOCX
+rendering, and traceability packaging. The external agent (Codex, Claude Code,
+Hermes, …) owns judgment and drafting. Every publishable claim must be linked to
+evidence that actually supports it, or it is hard-blocked before it reaches the
+document.
+
+## See it in 30 seconds
+
+The gate is real code, not a description. This demo runs the exact factuality
+checkers the pipeline uses against a tiny evidence ledger — no LLM, no network:
+
+```bash
+python examples/anti_hallucination_gate.py
+```
+
+```text
+RUN 1 - HONEST DRAFT
+  [PASS ] c_processing   (FA+FB)
+  [PASS ] c_error        (FA+FB)
+  [PASS ] c_scope        (FA)
+  -> 3 verified, 0 blocked.
+
+RUN 2 - HALLUCINATED DRAFT (invented statistic + fabricated citation)
+  [PASS ] c_processing       (FA+FB)
+  [BLOCK] c_error_inflated   (FE)  reason: Claim number '0.2'% not found in
+                                   evidence content (evidence has: 3.5%, 9.0%)
+  [BLOCK] c_ghost_audit      (FA)  reason: Claim references unknown evidence:
+                                   ev_external_audit
+  -> 1 verified, 2 blocked.
+```
+
+Two failure modes an LLM ships silently — an **invented statistic** that cites
+real evidence, and a **fabricated citation** to a source that does not exist —
+are both caught with the specific gate and reason that stopped them. The honest,
+well-grounded claim passes untouched, so the gate is discriminating, not merely
+strict. Source: [`examples/anti_hallucination_gate.py`](examples/anti_hallucination_gate.py).
+
+## Evidence it runs end-to-end
+
+The seven-profile benchmark prepares, authors (with a deterministic synthetic
+author), validates, and renders a report for every built-in profile from one
+controlled source. The archived run is reproducible and machine-checkable:
+
+```bash
+python scripts/run_report_benchmarks.py --check   # validate archived evidence
+python scripts/run_report_benchmarks.py           # regenerate from scratch
+```
+
+Archived results ([`benchmarks/evidence/full_benchmark_2026-05-13/summary.md`](benchmarks/evidence/full_benchmark_2026-05-13/summary.md)):
+
+| Metric | Result |
+| --- | --- |
+| Profiles passing end-to-end | **7 / 7** |
+| Claims verified against evidence | **42** (6 per profile), **0 blocked** |
+| Unresolved citation-audit entries | **0** |
+| Delivery QA decision | `pass` on every profile |
+| Unit tests | **332 passing** |
+
+Each report is packaged with its QA pack (`final_qa_summary`, factuality,
+scholarly-quality, figure-visual, template-style, and render-layout reports) so
+the publish decision is auditable after the fact, not just asserted.
+
+## How it works
+
+```mermaid
+flowchart LR
+    SRC[Sources<br/>text - csv - pdf - docx] --> PREP
+
+    subgraph PREP[1 - Prepare - deterministic]
+        EV[Evidence ledger]
+        TB[Agent task briefs]
+    end
+
+    PREP --> AUTH
+
+    subgraph AUTH[2 - Author - external LLM agent]
+        CM[claim_matrix]
+        DR[section drafts +<br/>sentence_map]
+    end
+
+    AUTH --> VAL
+
+    subgraph VAL[3 - Validate and Render - deterministic gates]
+        G1[Citation linkage]
+        G2[Factuality FA FB FE FD]
+        G3[Profile + QA gates]
+    end
+
+    VAL -->|qa_decision = pass| PUB[Published DOCX<br/>+ traceability pack]
+    VAL -->|claim not grounded| BLK[Hard block]
+```
+
+1. **Prepare** parses sources and writes deterministic artifacts
+   (`report_spec.json`, `report_profile.json`, `blueprint.json`,
+   `source_registry.json`, `evidence_ledger.jsonl`, and `agent_tasks/*.md`).
+2. **Author** — the external agent writes `claim_matrix.json`, `outline.json`,
+   `section_drafts/*.md` (or `structured_drafts.json`), and `sentence_map.jsonl`.
+3. **Validate and render** checks artifact completeness, section contracts,
+   citation linkage, factuality, profile policy, figure contracts, and QA gates,
+   then renders. `render` runs only after the validated checkpoint records
+   `qa_decision=pass`, a passing `qa_summary.json`, a clean
+   `factuality_report.json`, and no unresolved citation audit entries.
+
+The factuality gate is layered: **FA** confirms claim/evidence/sentence linkage
+and rejects fabricated citations; **FB** requires quantitative evidence for
+statistical claims; **FE** (deep-audit) compares claim content against evidence
+content and catches invented numbers and quoted phrases that are not in the
+source; **FD** checks wording strength against evidence grade. See
+[`src/report_workflow/nodes/factuality_check.py`](src/report_workflow/nodes/factuality_check.py).
 
 ## Install
 
@@ -21,15 +132,15 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-Required external tool:
+Required external tool for full-fidelity rendering:
 
 ```powershell
 pandoc --version
 ```
 
-Pandoc 3.x is the primary DOCX renderer. Without pandoc, the workflow falls
-back to a limited `python-docx` renderer and the output may have degraded table,
-list, and layout fidelity.
+Pandoc 3.x is the primary DOCX renderer. Without pandoc, the workflow falls back
+to a limited `python-docx` renderer and output may have degraded table, list, and
+layout fidelity.
 
 Optional integrations:
 
@@ -71,7 +182,7 @@ CLI exit codes:
 - `2`: hard-block validation failure
 - `3`: waiting for user decisions or agent-authored artifacts
 
-## Report Profiles
+## Report profiles
 
 `report_profile` is the only public report-shape selector. Built-in profiles:
 `engineering_lab_report`, `academic_paper`, `business_report`, `proposal`,
@@ -82,35 +193,15 @@ Profile purposes and strictness are documented in
 `agent_skill/reference/profiles.md`; the registry lives in
 `src/report_workflow/profiles.py`.
 
-## Workflow
-
-1. **Prepare** parses sources and writes deterministic artifacts (`report_spec.json`,
-   `report_profile.json`, `blueprint.json`, `source_registry.json`,
-   `evidence_ledger.jsonl`, and `agent_tasks/*.md`).
-2. **Author** — the external agent writes `claim_matrix.json`, `outline.json`,
-   `section_drafts/*.md` (or `structured_drafts.json`), and `sentence_map.jsonl`.
-3. **Validate and render** checks artifact completeness, section contracts,
-   citation linkage, factuality, profile policy, figure contracts, and QA gates,
-   then renders. `render` runs only after the validated checkpoint records
-   `qa_decision=pass`, a passing `qa_summary.json`, a clean
-   `factuality_report.json`, and no unresolved citation audit entries.
-
-Final artifacts are packaged under `output/<slug>--<job_id>/published/`, with
-delivery QA in `published/qa/` (`final_qa_summary.json`/`.md`, plus scholarly,
-figure-visual, template-style-map, and template-field-fill reports where they
-apply). See [AGENTS.md](AGENTS.md) for the canonical stage lists and the full QA
-artifact contract.
-
-## Reference Templates
+## Reference templates
 
 Profiles control reference-template behavior. The default mode is
 `style_reference` (use a DOCX as a style/layout reference); if the user asks to
 exactly preserve the cover or format, the workflow upgrades to `fixed_template`.
 A profile contract has priority over prompt and template hints. Engineering
-exact-cover handling is detailed in
-`agent_skill/reference/engineering-lab.md`.
+exact-cover handling is detailed in `agent_skill/reference/engineering-lab.md`.
 
-## Quality Gates
+## Quality gates
 
 Core hard gates: sources must register and parse; the evidence ledger must be
 non-empty; claims must cite valid evidence IDs; claim status cannot be `blocked`,
@@ -136,3 +227,32 @@ documented in `agent_skill/reference/benchmarking.md`.
 python -m compileall -q src tests
 python -m unittest discover -s tests -v
 ```
+
+## Design philosophy
+
+Report Workflow is one instance of a general idea: **evidence-bounded
+generation.** Wherever a claim must trace to a source — an engineering lab
+report, a financial memo where every number cites a filing, a regulatory
+document, an admissions essay grounded in a real project — the trustworthy part
+is not the fluent draft but the layer that can *prove* each statement and refuse
+the ones it cannot. Keeping that layer deterministic (no LLM in the checker)
+makes the verdict reproducible and auditable rather than another probabilistic
+opinion.
+
+This repository was specified, integrated, and verified by its author with heavy
+use of coding agents for implementation. The deterministic gates and the
+benchmark harness exist precisely so that the human, not the model, holds the
+final "is this correct?" decision — the same principle the tool enforces on the
+documents it produces.
+
+## Repository guide
+
+- **Operating the skill to generate a report** → [`agent_skill/SKILL.md`](agent_skill/SKILL.md)
+  and its `reference/` files.
+- **Developing this repository** → [AGENTS.md](AGENTS.md) (authoritative contract:
+  layout, stage lists, artifact contract, hard gates, extension points).
+- **Contributor entry point** → [AGENT_ONBOARDING.md](AGENT_ONBOARDING.md).
+
+Final artifacts are packaged under `output/<slug>--<job_id>/published/`, with
+delivery QA in `published/qa/`. See [AGENTS.md](AGENTS.md) for the canonical stage
+lists and the full QA artifact contract.
