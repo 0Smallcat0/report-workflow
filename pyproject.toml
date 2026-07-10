@@ -22,9 +22,11 @@ dependencies = [
 
 [project.optional-dependencies]
 notebook = ["notebooklm-py>=0.1.0"]
+mcp = ["mcp>=1.2"]
 
 [project.scripts]
 report-workflow = "report_workflow.cli:main"
+report-workflow-mcp = "report_workflow.mcp_server:main"
 
 [tool.setuptools]
 package-dir = {"" = "src"}
