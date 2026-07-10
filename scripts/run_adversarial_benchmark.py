@@ -182,7 +182,8 @@ def _case(
 
 
 # --- Corpus -------------------------------------------------------------------
-# 19 honest controls + 35 hallucinated cases across 12 attack families.
+# 19 honest controls + 35 hallucinated cases across 11 attack families
+# plus 7 documented evasion variants.
 # ``expected`` records what the current gate stack actually does; hallucinated
 # cases with ``expected="published"`` are the documented evasions.
 CASES: list[dict[str, Any]] = [
