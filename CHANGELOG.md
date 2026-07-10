@@ -1,6 +1,35 @@
 # Changelog
 
-## Unreleased
+## 4.1.0 - 2026-07-10
+
+### Added
+
+- Adversarial anti-hallucination benchmark
+  (`scripts/run_adversarial_benchmark.py`): a 54-case hand-audited corpus
+  (19 honest controls, 35 hallucinated claims across 11 attack families plus
+  7 documented evasion variants) run through the exact factuality gate stack
+  (FA/FB/FE/FD). Reports 80% recall at a 0% false-positive rate, catch rate
+  per attack family, two baselines on the same corpus (`no_gate`,
+  `citation_presence`), and a sha256 determinism proof. Archived evidence
+  lives under `benchmarks/evidence/adversarial_2026-07-10/`; `--check`
+  re-runs everything from source and fails on any drift (also used as the
+  regression gate in CI). Documented evasions (bare numbers without units,
+  negation flips, within-tolerance precision fudging, sub-10-character
+  quotes, hedged reinterpretation, value misattribution, cross-language
+  citations) are kept in the corpus as the measured residual-risk boundary.
+- MCP server (`report-workflow-mcp`, `src/report_workflow/mcp_server.py`)
+  exposing the deterministic gates to any MCP-capable agent: `verify_claims`
+  (full FA/FB/FE/FD verdicts with the gate and reason per claim),
+  `list_report_profiles`, and `get_workflow_status`. Installed via the new
+  optional extra `report-workflow[mcp]`; documented in `docs/mcp.md`.
+- Design document (`docs/DESIGN.md`): hallucination threat model mapped to
+  gates, architecture rationale, measured evaluation results, determinism
+  properties, and an honest limitations section derived from the documented
+  evasions.
+- Zero-install entry points: a GitHub Codespaces dev container
+  (`.devcontainer/devcontainer.json`, installs pandoc and runs the gate demo
+  on create) and a Google Colab quickstart notebook
+  (`docs/quickstart_demo.ipynb`).
 
 ### Changed
 

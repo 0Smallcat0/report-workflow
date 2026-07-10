@@ -26,7 +26,7 @@ jobs:
       - name: Install package
         run: |
           python -m pip install --upgrade pip
-          pip install -e .
+          pip install -e .[mcp]
 
       # No external tools required: rendering is mocked and the readiness-dependent
       # workflow test is hermetic, so every check below is deterministic and offline.
@@ -38,6 +38,9 @@ jobs:
 
       - name: Benchmark evidence check (7 profiles)
         run: python scripts/run_report_benchmarks.py --check
+
+      - name: Adversarial benchmark check (catch rate + determinism)
+        run: python scripts/run_adversarial_benchmark.py --check
 
       - name: Unit tests
         run: python -m unittest discover -s tests -v
