@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-332%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-351%20passing-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **A deterministic verification layer that lets an LLM draft a report but refuses
@@ -38,6 +38,41 @@ are both caught with the specific gate and reason that stopped them. The honest,
 well-grounded claim passes untouched, so the gate is discriminating, not merely
 strict. Source: [`examples/anti_hallucination_gate.py`](examples/anti_hallucination_gate.py).
 
+No local install needed:
+[![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/0Smallcat0/report-workflow/blob/master/docs/quickstart_demo.ipynb)
+runs the gate in the browser, or open the repo in GitHub Codespaces (the
+[dev container](.devcontainer/devcontainer.json) installs everything and runs
+the demo on create).
+
+## Red-team evidence: the catch rate is measured, not asserted
+
+A gate that only sees honest drafts proves nothing. The adversarial benchmark
+runs **54 hand-audited cases** — 19 honest controls and 35 hallucinated claims
+across 11 attack families (fabricated citations, invented statistics, unit
+swaps, fabricated quotes, off-topic citations, status laundering, Chinese-text
+fabrication, overclaiming, …) — through the exact gate stack, and compares two
+baselines on the same corpus:
+
+| Checker | Recall (hallucinations blocked) | False positives (honest blocked) | Precision |
+| --- | --- | --- | --- |
+| No gate (publish everything) | 0.0% | 0.0% | — |
+| Citation-presence check (shallow RAG-style) | 11.4% | 0.0% | 100% |
+| **Full deterministic gate stack** | **80.0%** (28/35) | **0.0%** (0/19) | **100%** |
+
+All 11 targeted attack families are caught at 100%, with zero honest claims
+wrongly blocked. The remaining 7 misses are **documented evasions** (negation
+flips, bare numbers without units, within-tolerance precision fudging, …) kept
+in the corpus deliberately as the measured residual-risk boundary — see the
+limitations section of [`docs/DESIGN.md`](docs/DESIGN.md). The corpus doubles
+as a regression suite: expected verdicts are asserted in CI, and a sha256
+verdict hash proves the stack is deterministic and reproduces cross-platform.
+
+```bash
+python scripts/run_adversarial_benchmark.py --check   # re-run from source, diff vs archive
+```
+
+Full tables: [`benchmarks/evidence/adversarial_2026-07-10/summary.md`](benchmarks/evidence/adversarial_2026-07-10/summary.md).
+
 ## Evidence it runs end-to-end
 
 The seven-profile benchmark prepares, authors (with a deterministic synthetic
@@ -57,7 +92,7 @@ Archived results ([`benchmarks/evidence/full_benchmark_2026-05-13/summary.md`](b
 | Claims verified against evidence | **42** (6 per profile), **0 blocked** |
 | Unresolved citation-audit entries | **0** |
 | Delivery QA decision | `pass` on every profile |
-| Unit tests | **332 passing** |
+| Unit tests | **351 passing** |
 
 Each report is packaged with its QA pack (`final_qa_summary`, factuality,
 scholarly-quality, figure-visual, template-style, and render-layout reports) so
@@ -138,6 +173,7 @@ Optional integrations:
 - `mmdc` (`npm install -g @mermaid-js/mermaid-cli`) for Mermaid diagrams.
 - `TAVILY_API_KEY`, `SERPER_API_KEY`, or `SERPAPI_API_KEY` for optional web research.
 - `notebooklm-py` for optional NotebookLM sync.
+- `pip install -e .[mcp]` for the MCP server (`report-workflow-mcp`).
 
 ## CLI
 
@@ -172,6 +208,21 @@ CLI exit codes:
 - `1`: crash
 - `2`: hard-block validation failure
 - `3`: waiting for user decisions or agent-authored artifacts
+
+## MCP server
+
+Any MCP-capable agent (Claude Code, Codex, Cursor, custom harnesses) can call
+the same deterministic gates as tools — draft with its own judgment, then ask
+`verify_claims` whether each claim is allowed to ship:
+
+```bash
+pip install "report-workflow[mcp] @ git+https://github.com/0Smallcat0/report-workflow"
+claude mcp add report-workflow -- report-workflow-mcp
+```
+
+Tools: `verify_claims` (per-claim verdict with the gate and reason),
+`list_report_profiles`, `get_workflow_status`. Details and payload examples:
+[`docs/mcp.md`](docs/mcp.md).
 
 ## Report profiles
 
@@ -209,8 +260,10 @@ Use `benchmarks/` when improving report quality across profiles. Run
 `python scripts/run_report_benchmarks.py` for the seven-profile
 prepare-author-validate-render benchmark, or
 `python scripts/run_report_benchmarks.py --check` to validate archived evidence
-without rerunning. The benchmark-first optimization method and gap taxonomy are
-documented in `agent_skill/reference/benchmarking.md`.
+without rerunning. `python scripts/run_adversarial_benchmark.py` regenerates
+the adversarial catch-rate evidence (`--check` verifies it from source). The
+benchmark-first optimization method and gap taxonomy are documented in
+`agent_skill/reference/benchmarking.md`.
 
 ## Tests
 
@@ -238,6 +291,8 @@ documents it produces.
 
 ## Repository guide
 
+- **Why it is built this way + measured limits** → [`docs/DESIGN.md`](docs/DESIGN.md)
+  (threat model, architecture rationale, evaluation, honest limitations).
 - **Operating the skill to generate a report** → [`agent_skill/SKILL.md`](agent_skill/SKILL.md)
   and its `reference/` files.
 - **Developing this repository** → [AGENTS.md](AGENTS.md) (authoritative contract:

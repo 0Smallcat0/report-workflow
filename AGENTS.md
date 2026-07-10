@@ -47,6 +47,9 @@ Key files:
 - `src/report_workflow/run_workflow.py`: canonical prepare/validate/render node
   lists.
 - `src/report_workflow/agent_wrapper.py`: agent-skill entry points.
+- `src/report_workflow/mcp_server.py`: MCP server (`report-workflow-mcp`,
+  optional `[mcp]` extra) exposing `verify_claims`, `list_report_profiles`,
+  and `get_workflow_status`; see `docs/mcp.md`.
 
 ## Commands
 
@@ -265,3 +268,15 @@ contract tests:
 python -m unittest tests.test_roadmap_contracts.DocumentationContractTests -v
 python scripts/render_skill_docs.py --check
 ```
+
+If a change touches the factuality gates (`nodes/factuality_check.py`), also
+re-verify the archived benchmark evidence (CI runs both):
+
+```powershell
+python scripts/run_report_benchmarks.py --check
+python scripts/run_adversarial_benchmark.py --check
+```
+
+If gate behavior changed intentionally, regenerate the adversarial archive
+(`python scripts/run_adversarial_benchmark.py`) and review the diff — corpus
+expectations are assertions, so unexplained verdict drift is a regression.

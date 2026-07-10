@@ -1,0 +1,197 @@
+# Design: Evidence-Bounded Report Generation
+
+*A deterministic verification layer that lets an LLM draft a report but refuses
+to publish any claim it cannot trace to registered evidence.*
+
+This document explains **why** the system is built the way it is and **what its
+verification layer measurably does and does not catch**. The development-facing
+contract (stage lists, artifact schema, full gate list) lives in
+[AGENTS.md](../AGENTS.md); operating instructions live in
+[`agent_skill/SKILL.md`](../agent_skill/SKILL.md).
+
+## 1. Problem
+
+LLMs write fluent prose and, at some rate, invent numbers, misquote sources,
+and cite studies that do not exist. In a chat reply that is a nuisance; in a
+lab report, a financial memo, or a regulatory document it is disqualifying.
+
+Two common mitigations are insufficient:
+
+- **Retrieval + citation formatting.** Attaching a citation ID to a sentence
+  proves the citation *exists*, not that the sentence *says what the source
+  says*. On this project's adversarial corpus, that level of checking catches
+  11.4% of hallucinations (see §4).
+- **LLM-as-judge.** Asking a second model "is this grounded?" produces a
+  probabilistic opinion: the verdict can change between runs, cannot be
+  audited mechanically, and inherits the failure mode it is supposed to
+  detect. This project deliberately avoids it — the checker contains no model
+  at all, so a verdict is a pure function of (claim, evidence) and is
+  reproducible byte-for-byte (§5).
+
+The design bet: **separate drafting from publishing.** The model proposes; a
+deterministic pipeline holds the publish decision and can prove, after the
+fact, why every published sentence was allowed to ship.
+
+## 2. Threat model: how a draft lies
+
+The unit of verification is a **claim** — a checkable statement extracted from
+the draft, typed (`factual`, `statistical`, `qualitative`, `methodological`,
+`contextual`) and linked to entries in an **evidence ledger** built
+deterministically from the user's sources. The adversarial corpus (§4)
+enumerates the attack families; each maps to the gate designed to stop it:
+
+| Attack family | Example | Gate |
+| --- | --- | --- |
+| Fabricated citation | cites `ev_external_audit`, which does not exist | FA |
+| Missing evidence | confident claim with no evidence mapped | FA |
+| Dangling claim | in the claim matrix but never anchored in the draft | FA |
+| Status laundering | claim internally marked `disputed`/`unverified` is pushed anyway | FA |
+| Type mismatch | `statistical` claim resting on qualitative prose | FA/FB |
+| Invented statistic | evidence says 3.5%, claim says 0.2% | FE |
+| Unit mismatch | 7.8 *minutes* becomes 7.8 *hours* | FE |
+| Fabricated quote | quotation marks around words the source never said | FE |
+| Off-topic citation | real evidence ID laundering an unrelated claim | FE |
+| CJK fabrication | Chinese claim not grounded in Chinese evidence | FE |
+| Wording-grade violation | "measured" certainty on low-grade evidence | FD |
+
+The gate stack, in pipeline order
+([`src/report_workflow/nodes/factuality_check.py`](../src/report_workflow/nodes/factuality_check.py)):
+
+- **FA — linkage.** Every claim must have a publishable status, map to
+  evidence IDs that exist, appear in the sentence map, and carry a claim type
+  the cited evidence is allowed to support.
+- **FB — statistical backing.** A `statistical` claim must cite at least one
+  piece of quantitative evidence. (FA's per-evidence type check subsumes FB on
+  most inputs; FB stays as a belt-and-suspenders re-check.)
+- **FE — deep-audit content overlap.** Compares claim *content* against
+  evidence *content*: numbers with units must appear in the cited evidence
+  within a 1% tolerance; quoted phrases (10+ chars) must appear verbatim; key
+  terms must reach coverage thresholds (40% English terms, 25% CJK bigrams).
+- **FD — provenance-weighted wording.** Sentence wording strength
+  (`measured` / `hedged` / `weak`) must be permitted by the weakest evidence
+  grade backing it: high-grade evidence permits measured assertions;
+  low-grade evidence permits hedged wording only.
+
+Beyond the factuality stack, profile policies and QA gates (front matter,
+section contracts, citation audits, figure contracts, placeholder and
+fake-metadata scans) also hard-block; `render` runs only after the validated
+checkpoint records `qa_decision=pass`. See AGENTS.md for the full list.
+
+## 3. Architecture rationale
+
+```
+sources ──> [prepare: deterministic]  evidence ledger + task briefs
+                     │
+                     v
+            [author: external LLM agent]  claim matrix + drafts + sentence map
+                     │
+                     v
+            [validate + render: deterministic]  gates ──> publish | hard block
+```
+
+- **The package never calls an LLM.** Parsing, the evidence ledger, artifact
+  contracts, gates, rendering, and traceability packaging are all
+  deterministic Python. The external agent (Claude Code, Codex, any harness)
+  owns judgment and drafting. This split is what makes the verdict auditable:
+  there is no prompt whose phrasing changes the outcome.
+- **Artifacts, not conversations, are the interface.** The agent hands over
+  `claim_matrix.json`, drafts, and `sentence_map.jsonl`; the pipeline replies
+  with machine-readable reports (`factuality_report.json`, `qa_summary.json`).
+  Every publish decision is reconstructable from files on disk.
+- **Fail closed.** Anything unverifiable is blocked, not warned about. The
+  cost of that choice is measured as the false-positive rate in §4 (0% on the
+  corpus's honest controls, by construction of the authoring guidance: claims
+  must reuse the evidence's own numbers and vocabulary).
+- **Same gates, three surfaces.** CLI (`report-workflow validate`), agent
+  skill, and MCP server (`report-workflow-mcp`, [docs/mcp.md](mcp.md)) all
+  call the same checker functions, so measured behavior transfers.
+
+## 4. Measured behavior (adversarial benchmark)
+
+Happy-path evidence: the seven-profile benchmark renders a full report for
+every built-in profile from one controlled source, 42 claims verified, QA
+`pass` everywhere (`python scripts/run_report_benchmarks.py --check`).
+
+Adversarial evidence
+([`benchmarks/evidence/adversarial_2026-07-10/summary.md`](../benchmarks/evidence/adversarial_2026-07-10/summary.md),
+reproducible via `python scripts/run_adversarial_benchmark.py --check`):
+54 hand-audited cases — 19 honest controls, 35 hallucinated claims across the
+11 attack families above plus 7 documented evasion variants.
+
+| Checker | Recall | False-positive rate | Precision |
+| --- | --- | --- | --- |
+| `no_gate` (publish everything) | 0.0% | 0.0% | — |
+| `citation_presence` (shallow RAG-style check) | 11.4% | 0.0% | 100% |
+| **full gate stack (FA/FB/FE/FD)** | **80.0%** (28/35) | **0.0%** (0/19) | **100%** |
+
+Every one of the 11 targeted attack families is caught at 100%. The missing
+20% is not noise — it is seven *documented evasions*, each kept in the corpus
+deliberately (§6). The corpus doubles as a regression suite: every case's
+expected verdict is asserted in CI, so a gate regression fails the build.
+
+## 5. Determinism as a feature
+
+The checkers are pure functions: no model, no network, no randomness, no
+global state. The benchmark exploits that:
+
+- five consecutive runs must produce identical verdicts (sha256 over all
+  verdicts), and
+- CI re-runs the whole corpus from source on Linux and compares against the
+  archive generated on Windows — the verdict hash is a cross-platform
+  reproducibility check, not just a stability check.
+
+Practical consequences: verdicts can be cached, diffed, and litigated
+("*which* gate blocked this claim, for *what* reason"); a blocked claim is
+re-testable after editing the draft; and the verification layer adds no token
+cost and no privacy exposure at check time.
+
+## 6. Limitations (measured, not hypothetical)
+
+The evasion rows in the adversarial corpus define the current boundary of
+lexical/structural checking. Each is a real, reproducible miss:
+
+| Evasion | Why it slips |
+| --- | --- |
+| Bare number without unit ("increased to 99.") | FE's numeric extractor requires a number+unit pair |
+| Negation flip ("results generalized" vs "should **not** be generalized") | term overlap cannot see polarity |
+| Precision fudge (3.53% vs 3.5%) | inside the 1% numeric tolerance |
+| Short fabricated quote ("audited") | quote checker scans quotes of 10+ characters |
+| Hedged reinterpretation | invented interpretation reusing enough source vocabulary |
+| Value misattribution (real 9.0% assigned to the wrong condition) | needs relational semantics, not term matching |
+| Cross-language citation (English claim on Chinese evidence) | CJK path has no English terms to compare |
+
+Structural limitations worth stating plainly:
+
+- **The gates check grounding, not truth.** If the source itself is wrong,
+  a faithfully grounded report reproduces the error. Garbage in, verified
+  garbage out.
+- **Claims are the unit of trust.** The agent chooses what to claim; a
+  draft that asserts things *outside* any claim would be caught by the
+  citation-placeholder and sentence-map gates, but adversarial phrasing
+  inside a single anchored sentence is bounded by FE's lexical checks.
+- **Conjunction claims are conservative.** FE checks a claim's numbers
+  against *each* cited evidence row, so a claim aggregating two sources
+  should be split into two claims — a strictness quirk, documented rather
+  than hidden.
+- **Thresholds are tunable, not learned.** The 40%/25% coverage thresholds
+  and 1% numeric tolerance were set by inspection; the corpus exists so any
+  retuning shows its effect immediately.
+
+The honest framing: deterministic gates raise the floor — the classes of
+hallucination that empirically dominate careless drafting (fabricated
+citations, invented statistics, wrong units, fabricated quotes) go from
+"ships silently" to "cannot ship." They do not solve semantic entailment.
+Closing the negation/misattribution gap would require an NLI-style semantic
+checker, which would reintroduce a probabilistic component; the design keeps
+that trade-off explicit instead of blending the two.
+
+## 7. Generalization
+
+Report generation is one instance of **evidence-bounded generation**: wherever
+a claim must trace to a source — a financial memo where every number cites a
+filing, a regulatory submission, an admissions document grounded in a real
+project — the trustworthy part is not the fluent draft but the layer that can
+prove each statement and refuse the ones it cannot. The pattern (deterministic
+evidence registry → model proposes typed claims → deterministic verifier holds
+the publish decision → auditable QA pack) transfers unchanged; only the source
+parsers and rendering targets are domain-specific.
