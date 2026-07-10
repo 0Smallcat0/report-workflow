@@ -22,6 +22,7 @@ venv/
 output/
 out/
 custom-out/
+benchmarks/evidence/*/partial/
 reports/
 tmp/
 workflow_output*/

@@ -1,0 +1,1679 @@
+{
+  "generated_at": "2026-07-10T09:56:20",
+  "corpus": {
+    "total_cases": 54,
+    "honest_cases": 19,
+    "hallucinated_cases": 35,
+    "attack_families": [
+      "cjk_fabrication",
+      "dangling_claim",
+      "fabricated_citation",
+      "fabricated_quote",
+      "invented_statistic",
+      "missing_evidence",
+      "off_topic_citation",
+      "status_laundering",
+      "type_mismatch",
+      "unit_mismatch",
+      "wording_grade_violation"
+    ],
+    "documented_evasions": 7,
+    "evidence_rows": 11,
+    "corpus_hash": "65a66671db5d86202b949aae4bd1f6f801f0bc903fde64a23500db39a29ca217"
+  },
+  "checkers": {
+    "no_gate": {
+      "cases": [
+        {
+          "case_id": "h01",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h02",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h03",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h04",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h05",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h06",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h07",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h08",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h09",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h10",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h11",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h12",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h13",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h14",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h15",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h16",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h17",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h18",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h19",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "a01",
+          "family": "fabricated_citation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "a02",
+          "family": "fabricated_citation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "a03",
+          "family": "fabricated_citation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "b01",
+          "family": "missing_evidence",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "b02",
+          "family": "dangling_claim",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "c01",
+          "family": "status_laundering",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "c02",
+          "family": "status_laundering",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "d01",
+          "family": "type_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "d02",
+          "family": "type_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "e01",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "e02",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "e03",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "e04",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "e05",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "e06",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "e07",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "f01",
+          "family": "unit_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "f02",
+          "family": "unit_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "f03",
+          "family": "unit_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "g01",
+          "family": "fabricated_quote",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "g02",
+          "family": "fabricated_quote",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "i01",
+          "family": "off_topic_citation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "i02",
+          "family": "off_topic_citation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "j01",
+          "family": "cjk_fabrication",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "j02",
+          "family": "cjk_fabrication",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "k01",
+          "family": "wording_grade_violation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "k02",
+          "family": "wording_grade_violation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "k03",
+          "family": "wording_grade_violation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x01",
+          "family": "evasion_bare_number",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x02",
+          "family": "evasion_negation_flip",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x03",
+          "family": "evasion_precision_fudge",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x04",
+          "family": "evasion_short_quote",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x05",
+          "family": "evasion_hedged_interpretation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x06",
+          "family": "evasion_value_misattribution",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x07",
+          "family": "evasion_cross_language",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        }
+      ],
+      "metrics": {
+        "true_positives": 0,
+        "false_negatives": 35,
+        "false_positives": 0,
+        "true_negatives": 19,
+        "recall": 0.0,
+        "false_positive_rate": 0.0,
+        "precision": 0.0
+      }
+    },
+    "citation_presence": {
+      "cases": [
+        {
+          "case_id": "h01",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h02",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h03",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h04",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h05",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h06",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h07",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h08",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h09",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h10",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h11",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h12",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h13",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h14",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h15",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h16",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h17",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h18",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h19",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "a01",
+          "family": "fabricated_citation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "blocked",
+          "blocked_by": "citation_presence",
+          "reason": "unknown evidence ids: ev_external_audit"
+        },
+        {
+          "case_id": "a02",
+          "family": "fabricated_citation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "blocked",
+          "blocked_by": "citation_presence",
+          "reason": "unknown evidence ids: ev_ghost_stats"
+        },
+        {
+          "case_id": "a03",
+          "family": "fabricated_citation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "blocked",
+          "blocked_by": "citation_presence",
+          "reason": "unknown evidence ids: ev_audit_2026"
+        },
+        {
+          "case_id": "b01",
+          "family": "missing_evidence",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "blocked",
+          "blocked_by": "citation_presence",
+          "reason": "claim cites no evidence"
+        },
+        {
+          "case_id": "b02",
+          "family": "dangling_claim",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "c01",
+          "family": "status_laundering",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "c02",
+          "family": "status_laundering",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "d01",
+          "family": "type_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "d02",
+          "family": "type_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "e01",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "e02",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "e03",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "e04",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "e05",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "e06",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "e07",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "f01",
+          "family": "unit_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "f02",
+          "family": "unit_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "f03",
+          "family": "unit_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "g01",
+          "family": "fabricated_quote",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "g02",
+          "family": "fabricated_quote",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "i01",
+          "family": "off_topic_citation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "i02",
+          "family": "off_topic_citation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "j01",
+          "family": "cjk_fabrication",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "j02",
+          "family": "cjk_fabrication",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "k01",
+          "family": "wording_grade_violation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "k02",
+          "family": "wording_grade_violation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "k03",
+          "family": "wording_grade_violation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x01",
+          "family": "evasion_bare_number",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x02",
+          "family": "evasion_negation_flip",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x03",
+          "family": "evasion_precision_fudge",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x04",
+          "family": "evasion_short_quote",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x05",
+          "family": "evasion_hedged_interpretation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x06",
+          "family": "evasion_value_misattribution",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x07",
+          "family": "evasion_cross_language",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        }
+      ],
+      "metrics": {
+        "true_positives": 4,
+        "false_negatives": 31,
+        "false_positives": 0,
+        "true_negatives": 19,
+        "recall": 0.1143,
+        "false_positive_rate": 0.0,
+        "precision": 1.0
+      }
+    },
+    "full_gate_stack": {
+      "cases": [
+        {
+          "case_id": "h01",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h02",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h03",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h04",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h05",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h06",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h07",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h08",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h09",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h10",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h11",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h12",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h13",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h14",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h15",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h16",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h17",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h18",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h19",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "a01",
+          "family": "fabricated_citation",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FA",
+          "reason": "Claim references unknown evidence: ev_external_audit; Sentence map references unknown evidence: ev_external_audit"
+        },
+        {
+          "case_id": "a02",
+          "family": "fabricated_citation",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FA",
+          "reason": "Claim references unknown evidence: ev_ghost_stats; Sentence map references unknown evidence: ev_ghost_stats"
+        },
+        {
+          "case_id": "a03",
+          "family": "fabricated_citation",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FA",
+          "reason": "Claim references unknown evidence: ev_audit_2026; Sentence map references unknown evidence: ev_audit_2026"
+        },
+        {
+          "case_id": "b01",
+          "family": "missing_evidence",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FA",
+          "reason": "No evidence mapped to claim"
+        },
+        {
+          "case_id": "b02",
+          "family": "dangling_claim",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FA",
+          "reason": "Claim does not appear in sentence_map; Sentence map does not link claim to its evidence"
+        },
+        {
+          "case_id": "c01",
+          "family": "status_laundering",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FA",
+          "reason": "Claim status is not publishable: disputed"
+        },
+        {
+          "case_id": "c02",
+          "family": "status_laundering",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FA",
+          "reason": "Claim status is not publishable: unverified"
+        },
+        {
+          "case_id": "d01",
+          "family": "type_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FA",
+          "reason": "Claim type 'statistical' is not allowed by evidence: ev_zh_review"
+        },
+        {
+          "case_id": "d02",
+          "family": "type_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FA",
+          "reason": "Claim type 'statistical' is not allowed by evidence: ev_scope"
+        },
+        {
+          "case_id": "e01",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Claim number '0.2'% not found in evidence content (evidence has: 3.5%, 9.0%). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+        },
+        {
+          "case_id": "e02",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Claim number '2.1'minutes not found in evidence content (evidence has: 12.4minutes, 7.8minutes). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+        },
+        {
+          "case_id": "e03",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Claim number '9,900'for not found in evidence content (evidence has: 4,800for). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+        },
+        {
+          "case_id": "e04",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Claim number '99'% not found in evidence content (evidence has: 86%). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+        },
+        {
+          "case_id": "e05",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Claim number '168'participants not found in evidence content (evidence has: 42participants). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+        },
+        {
+          "case_id": "e06",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Claim number '0.9'% not found in evidence content (evidence has: 12.4分鐘, 7.8分鐘, 3.5%). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+        },
+        {
+          "case_id": "e07",
+          "family": "invented_statistic",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Claim number '1.2'分鐘 not found in evidence content (evidence has: 12.4分鐘, 7.8分鐘, 3.5%). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+        },
+        {
+          "case_id": "f01",
+          "family": "unit_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Claim number '7.8'hours not found in evidence content (evidence has: 12.4minutes, 7.8minutes). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+        },
+        {
+          "case_id": "f02",
+          "family": "unit_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Claim number '3.5'points not found in evidence content (evidence has: 3.5%, 9.0%). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+        },
+        {
+          "case_id": "f03",
+          "family": "unit_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Claim number '42'sessions not found in evidence content (evidence has: 42participants). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+        },
+        {
+          "case_id": "g01",
+          "family": "fabricated_quote",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Quoted phrase 'eliminated every manual verification step' not found verbatim in evidence"
+        },
+        {
+          "case_id": "g02",
+          "family": "fabricated_quote",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Quoted phrase 'was certified for regulatory submission' not found verbatim in evidence; Claim key terms not in evidence (33% coverage, threshold=40%): certified, regulatory, submission, according"
+        },
+        {
+          "case_id": "i01",
+          "family": "off_topic_citation",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Claim key terms not in evidence (0% coverage, threshold=40%): deployment, cloud, hosting, expenses, dramatically"
+        },
+        {
+          "case_id": "i02",
+          "family": "off_topic_citation",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Claim key terms not in evidence (20% coverage, threshold=40%): national, innovation, award, automation"
+        },
+        {
+          "case_id": "j01",
+          "family": "cjk_fabrication",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Chinese claim terms not in evidence (21% bigram coverage, threshold=25%): 並全, 人工, 代人, 全面, 取代"
+        },
+        {
+          "case_id": "j02",
+          "family": "cjk_fabrication",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Chinese claim terms not in evidence (17% bigram coverage, threshold=25%): 一致, 全面, 即全, 同意, 員一"
+        },
+        {
+          "case_id": "k01",
+          "family": "wording_grade_violation",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FD",
+          "reason": "Wording strength 'measured' is not allowed for evidence_grade='medium' (allowed: hedged, weak)"
+        },
+        {
+          "case_id": "k02",
+          "family": "wording_grade_violation",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FD",
+          "reason": "Wording strength 'measured' is not allowed for evidence_grade='low' (allowed: hedged)"
+        },
+        {
+          "case_id": "k03",
+          "family": "wording_grade_violation",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FD",
+          "reason": "Wording strength 'weak' is not allowed for evidence_grade='low' (allowed: hedged)"
+        },
+        {
+          "case_id": "x01",
+          "family": "evasion_bare_number",
+          "is_hallucination": true,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x02",
+          "family": "evasion_negation_flip",
+          "is_hallucination": true,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x03",
+          "family": "evasion_precision_fudge",
+          "is_hallucination": true,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x04",
+          "family": "evasion_short_quote",
+          "is_hallucination": true,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x05",
+          "family": "evasion_hedged_interpretation",
+          "is_hallucination": true,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x06",
+          "family": "evasion_value_misattribution",
+          "is_hallucination": true,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "x07",
+          "family": "evasion_cross_language",
+          "is_hallucination": true,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        }
+      ],
+      "metrics": {
+        "true_positives": 28,
+        "false_negatives": 7,
+        "false_positives": 0,
+        "true_negatives": 19,
+        "recall": 0.8,
+        "false_positive_rate": 0.0,
+        "precision": 1.0
+      },
+      "family_breakdown": [
+        {
+          "family": "cjk_fabrication",
+          "cases": 2,
+          "caught": 2,
+          "gates": [
+            "FE"
+          ],
+          "catch_rate": 1.0
+        },
+        {
+          "family": "dangling_claim",
+          "cases": 1,
+          "caught": 1,
+          "gates": [
+            "FA"
+          ],
+          "catch_rate": 1.0
+        },
+        {
+          "family": "evasion_bare_number",
+          "cases": 1,
+          "caught": 0,
+          "gates": [],
+          "catch_rate": 0.0
+        },
+        {
+          "family": "evasion_cross_language",
+          "cases": 1,
+          "caught": 0,
+          "gates": [],
+          "catch_rate": 0.0
+        },
+        {
+          "family": "evasion_hedged_interpretation",
+          "cases": 1,
+          "caught": 0,
+          "gates": [],
+          "catch_rate": 0.0
+        },
+        {
+          "family": "evasion_negation_flip",
+          "cases": 1,
+          "caught": 0,
+          "gates": [],
+          "catch_rate": 0.0
+        },
+        {
+          "family": "evasion_precision_fudge",
+          "cases": 1,
+          "caught": 0,
+          "gates": [],
+          "catch_rate": 0.0
+        },
+        {
+          "family": "evasion_short_quote",
+          "cases": 1,
+          "caught": 0,
+          "gates": [],
+          "catch_rate": 0.0
+        },
+        {
+          "family": "evasion_value_misattribution",
+          "cases": 1,
+          "caught": 0,
+          "gates": [],
+          "catch_rate": 0.0
+        },
+        {
+          "family": "fabricated_citation",
+          "cases": 3,
+          "caught": 3,
+          "gates": [
+            "FA"
+          ],
+          "catch_rate": 1.0
+        },
+        {
+          "family": "fabricated_quote",
+          "cases": 2,
+          "caught": 2,
+          "gates": [
+            "FE"
+          ],
+          "catch_rate": 1.0
+        },
+        {
+          "family": "invented_statistic",
+          "cases": 7,
+          "caught": 7,
+          "gates": [
+            "FE"
+          ],
+          "catch_rate": 1.0
+        },
+        {
+          "family": "missing_evidence",
+          "cases": 1,
+          "caught": 1,
+          "gates": [
+            "FA"
+          ],
+          "catch_rate": 1.0
+        },
+        {
+          "family": "off_topic_citation",
+          "cases": 2,
+          "caught": 2,
+          "gates": [
+            "FE"
+          ],
+          "catch_rate": 1.0
+        },
+        {
+          "family": "status_laundering",
+          "cases": 2,
+          "caught": 2,
+          "gates": [
+            "FA"
+          ],
+          "catch_rate": 1.0
+        },
+        {
+          "family": "type_mismatch",
+          "cases": 2,
+          "caught": 2,
+          "gates": [
+            "FA"
+          ],
+          "catch_rate": 1.0
+        },
+        {
+          "family": "unit_mismatch",
+          "cases": 3,
+          "caught": 3,
+          "gates": [
+            "FE"
+          ],
+          "catch_rate": 1.0
+        },
+        {
+          "family": "wording_grade_violation",
+          "cases": 3,
+          "caught": 3,
+          "gates": [
+            "FD"
+          ],
+          "catch_rate": 1.0
+        }
+      ]
+    }
+  },
+  "expected_mismatches": [],
+  "determinism": {
+    "runs": 5,
+    "verdict_hash": "317f775f85cb64315b6e1ff5e57553d9cae776a2060ee6983927ca0db7e2bbff",
+    "identical": true
+  }
+}
