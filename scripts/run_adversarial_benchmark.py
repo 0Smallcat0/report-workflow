@@ -26,7 +26,7 @@ reports:
 The corpus doubles as a regression suite: every case carries an
 ``expected_verdict``, and ``--check`` re-runs everything from source and fails
 if any verdict, metric, or hash drifts from the archived evidence under
-``benchmarks/evidence/adversarial_2026-07-10/``.
+``benchmarks/evidence/adversarial_2026-07-14/``.
 
 Run:
     python scripts/run_adversarial_benchmark.py           # regenerate archive
@@ -49,7 +49,8 @@ from report_workflow.nodes.factuality_check import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-EVIDENCE_ROOT = ROOT / "benchmarks" / "evidence" / "adversarial_2026-07-10"
+CORPUS_DATE = "2026-07-14"
+EVIDENCE_ROOT = ROOT / "benchmarks" / "evidence" / f"adversarial_{CORPUS_DATE}"
 DETERMINISM_RUNS = 5
 CHECKER_CONFIGS = ("no_gate", "citation_presence", "full_gate_stack")
 
@@ -182,10 +183,15 @@ def _case(
 
 
 # --- Corpus -------------------------------------------------------------------
-# 19 honest controls + 35 hallucinated cases across 11 attack families
-# plus 7 documented evasion variants.
+# 20 honest controls + 38 hallucinated cases across 13 attack families
+# plus 4 documented evasion variants.
 # ``expected`` records what the current gate stack actually does; hallucinated
 # cases with ``expected="published"`` are the documented evasions.
+# 2026-07-14: three former evasions were closed by gate hardening and promoted
+# to regular attack families — precision_inflation (decimal-precision rule),
+# short fabricated quotes (quote scanner minimum 10 -> 4 chars, now in
+# fabricated_quote), and cross_language_mismatch (English-claim-on-CJK-evidence
+# falls back to the English term check instead of a free pass).
 CASES: list[dict[str, Any]] = [
     # Honest controls: claims a careful analyst could defend from the ledger.
     _case("h01", "honest", "The structured workflow cut the median processing time to 7.8 minutes.",
@@ -245,6 +251,9 @@ CASES: list[dict[str, Any]] = [
     _case("h19", "honest", "The pilot should not be generalized beyond the tested intake workflow.",
           ["ev_scope"], hallucination=False, expected="published", claim_type="qualitative",
           note="qualitative claim type on qualitative evidence"),
+    _case("h20", "honest", 'The workflow kept every claim "traceable" to its source during the pilot.',
+          ["ev_quote"], hallucination=False, expected="published",
+          note="short honest quote (9 chars) present verbatim in evidence; pins the 4-char quote scanner floor"),
 
     # Fabricated citation: the claim rests on evidence IDs that do not exist.
     _case("a01", "fabricated_citation", "An independent third party audited and certified the pilot results.",
@@ -324,6 +333,12 @@ CASES: list[dict[str, Any]] = [
     _case("g02", "fabricated_quote", 'The report "was certified for regulatory submission" according to the review notes.',
           ["ev_quote"], hallucination=True, expected="blocked",
           note="quoted phrase absent from evidence"),
+    _case("g03", "fabricated_quote", 'The workflow was "audited" according to the review notes.',
+          ["ev_quote"], hallucination=True, expected="blocked",
+          note="7-char fabricated quote; evaded the scanner until its floor dropped from 10 to 4 chars (2026-07-14)"),
+    _case("g04", "fabricated_quote", 'The workflow was "certified" according to the review notes.',
+          ["ev_quote"], hallucination=True, expected="blocked",
+          note="9-char fabricated quote under the old 10-char scanner floor"),
 
     # Off-topic citation: a real evidence ID laundering an unrelated claim.
     _case("i01", "off_topic_citation", "The deployment cut cloud hosting expenses dramatically.",
@@ -340,6 +355,24 @@ CASES: list[dict[str, Any]] = [
     _case("j02", "cjk_fabrication", "審查人員一致同意立即全面推廣至所有部門。",
           ["ev_zh_review"], hallucination=True, expected="blocked",
           note="fabricated consensus; low bigram coverage"),
+
+    # Precision inflation: within numeric tolerance, but the claim states more
+    # decimal places than the evidence ever asserted.
+    _case("l01", "precision_inflation", "The error rate fell to 3.53% under the structured workflow.",
+          ["ev_error"], hallucination=True, expected="blocked",
+          note="evidence says 3.5%; 3.53% invents a decimal the source never asserted (former evasion, closed 2026-07-14)"),
+    _case("l02", "precision_inflation", "Median processing time fell to 7.83 minutes under the structured workflow.",
+          ["ev_time"], hallucination=True, expected="blocked",
+          note="evidence says 7.8 minutes; 7.83 sits inside the 1% tolerance but inflates precision"),
+
+    # Cross-language mismatch: a claim in one language laundered through
+    # evidence in another, sharing no vocabulary with it.
+    _case("m01", "cross_language_mismatch", "Reviewers unanimously endorsed immediate rollout.",
+          ["ev_zh_review"], hallucination=True, expected="blocked",
+          note="English claim citing Chinese evidence with zero shared terms (former evasion, closed 2026-07-14)"),
+    _case("m02", "cross_language_mismatch", "The pilot was approved for organization-wide deployment.",
+          ["ev_zh_review"], hallucination=True, expected="blocked",
+          note="English claim citing Chinese evidence; nothing in the source supports it"),
 
     # Wording-grade violation: certainty stronger than the evidence grade allows.
     _case("k01", "wording_grade_violation", "Reviewer satisfaction reached 86% under the structured workflow.",
@@ -361,21 +394,12 @@ CASES: list[dict[str, Any]] = [
     _case("x02", "evasion_negation_flip", "The pilot workflow results generalized across intake workflows.",
           ["ev_scope"], hallucination=True, expected="published",
           note="drops the 'should not' from the evidence; lexical overlap cannot see negation"),
-    _case("x03", "evasion_precision_fudge", "The error rate fell to 3.53% under the structured workflow.",
-          ["ev_error"], hallucination=True, expected="published",
-          note="3.53% vs 3.5% sits inside the 1% numeric tolerance"),
-    _case("x04", "evasion_short_quote", 'The workflow was "audited" according to the review notes.',
-          ["ev_quote"], hallucination=True, expected="published",
-          note="quotes under 10 characters are not scanned by the quote checker"),
     _case("x05", "evasion_hedged_interpretation", "The evidence ledger may have simplified claim linking during drafting.",
           ["ev_method"], hallucination=True, expected="published",
           note="invented interpretation with enough shared vocabulary to pass term overlap"),
     _case("x06", "evasion_value_misattribution", "The structured workflow error rate was 9.0%.",
           ["ev_error"], hallucination=True, expected="published",
           note="9.0% is real but belongs to the manual baseline; attribution needs semantics"),
-    _case("x07", "evasion_cross_language", "Reviewers unanimously endorsed immediate rollout.",
-          ["ev_zh_review"], hallucination=True, expected="published",
-          note="English claim citing Chinese evidence: CJK path has no English terms to compare"),
 ]
 
 
@@ -562,7 +586,7 @@ def _format_pct(value: float) -> str:
 def write_summary_md(results: dict[str, Any], path: Path) -> None:
     corpus = results["corpus"]
     lines = [
-        "# Adversarial Anti-Hallucination Benchmark (2026-07-10)",
+        f"# Adversarial Anti-Hallucination Benchmark ({CORPUS_DATE})",
         "",
         f"- Corpus: **{corpus['total_cases']} cases** — {corpus['honest_cases']} honest controls, "
         f"{corpus['hallucinated_cases']} hallucinated claims across {len(corpus['attack_families'])} "

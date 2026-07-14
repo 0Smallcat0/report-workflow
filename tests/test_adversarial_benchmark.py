@@ -3,7 +3,7 @@
 The corpus in ``scripts/run_adversarial_benchmark.py`` doubles as a regression
 suite for the factuality gate stack: every case records the verdict the gates
 are expected to produce, and the archived evidence under
-``benchmarks/evidence/adversarial_2026-07-10/`` must be reproducible from
+``benchmarks/evidence/adversarial_2026-07-14/`` must be reproducible from
 source. These tests re-run the benchmark in-process (it is fast, offline, and
 deterministic) and hold both properties.
 """
@@ -15,7 +15,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = ROOT / "scripts" / "run_adversarial_benchmark.py"
-EVIDENCE_ROOT = ROOT / "benchmarks" / "evidence" / "adversarial_2026-07-10"
+EVIDENCE_ROOT = ROOT / "benchmarks" / "evidence" / "adversarial_2026-07-14"
 
 
 def _load_module():
@@ -77,7 +77,9 @@ class AdversarialBenchmarkTests(unittest.TestCase):
         }
         self.assertEqual(recalls["no_gate"], 0.0)
         self.assertLess(recalls["citation_presence"], recalls["full_gate_stack"])
-        self.assertGreaterEqual(recalls["full_gate_stack"], 0.75)
+        # Ratchet: 0.75 before the 2026-07-14 gate hardening, 0.85 after it.
+        # Raise this floor whenever a gate improvement lifts measured recall.
+        self.assertGreaterEqual(recalls["full_gate_stack"], 0.85)
 
     def test_targeted_families_are_fully_caught(self):
         for entry in self.results["checkers"]["full_gate_stack"]["family_breakdown"]:

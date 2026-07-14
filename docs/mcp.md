@@ -110,4 +110,4 @@ and the agent skill (see [`agent_skill/SKILL.md`](../agent_skill/SKILL.md)) —
 those steps need files on disk and explicit preflight decisions, which are
 better handled by the harness's own tools. The measured behavior of the gates
 this server exposes is documented in
-[`benchmarks/evidence/adversarial_2026-07-10/summary.md`](../benchmarks/evidence/adversarial_2026-07-10/summary.md).
+[`benchmarks/evidence/adversarial_2026-07-14/summary.md`](../benchmarks/evidence/adversarial_2026-07-14/summary.md).

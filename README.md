@@ -47,21 +47,25 @@ the demo on create).
 ## Red-team evidence: the catch rate is measured, not asserted
 
 A gate that only sees honest drafts proves nothing. The adversarial benchmark
-runs **54 hand-audited cases** — 19 honest controls and 35 hallucinated claims
-across 11 attack families (fabricated citations, invented statistics, unit
-swaps, fabricated quotes, off-topic citations, status laundering, Chinese-text
-fabrication, overclaiming, …) — through the exact gate stack, and compares two
-baselines on the same corpus:
+runs **58 hand-audited cases** — 20 honest controls and 38 hallucinated claims
+across 13 attack families (fabricated citations, invented statistics, unit
+swaps, fabricated quotes, precision inflation, cross-language laundering,
+off-topic citations, status laundering, Chinese-text fabrication,
+overclaiming, …) — through the exact gate stack, and compares two baselines on
+the same corpus:
 
 | Checker | Recall (hallucinations blocked) | False positives (honest blocked) | Precision |
 | --- | --- | --- | --- |
 | No gate (publish everything) | 0.0% | 0.0% | — |
-| Citation-presence check (shallow RAG-style) | 11.4% | 0.0% | 100% |
-| **Full deterministic gate stack** | **80.0%** (28/35) | **0.0%** (0/19) | **100%** |
+| Citation-presence check (shallow RAG-style) | 10.5% | 0.0% | 100% |
+| **Full deterministic gate stack** | **89.5%** (34/38) | **0.0%** (0/20) | **100%** |
 
-All 11 targeted attack families are caught at 100%, with zero honest claims
-wrongly blocked. The remaining 7 misses are **documented evasions** (negation
-flips, bare numbers without units, within-tolerance precision fudging, …) kept
+All 13 targeted attack families are caught at 100%, with zero honest claims
+wrongly blocked. The 2026-07-14 gate hardening closed three formerly documented
+evasions (within-tolerance precision fudging, sub-10-character fabricated
+quotes, cross-language citation laundering) and promoted them to regular attack
+families. The remaining 4 misses are **documented evasions** (negation flips,
+bare numbers without units, hedged reinterpretation, value misattribution) kept
 in the corpus deliberately as the measured residual-risk boundary — see the
 limitations section of [`docs/DESIGN.md`](docs/DESIGN.md). The corpus doubles
 as a regression suite: expected verdicts are asserted in CI, and a sha256
@@ -71,7 +75,7 @@ verdict hash proves the stack is deterministic and reproduces cross-platform.
 python scripts/run_adversarial_benchmark.py --check   # re-run from source, diff vs archive
 ```
 
-Full tables: [`benchmarks/evidence/adversarial_2026-07-10/summary.md`](benchmarks/evidence/adversarial_2026-07-10/summary.md).
+Full tables: [`benchmarks/evidence/adversarial_2026-07-14/summary.md`](benchmarks/evidence/adversarial_2026-07-14/summary.md).
 
 ## Evidence it runs end-to-end
 

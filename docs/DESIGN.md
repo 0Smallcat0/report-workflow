@@ -20,7 +20,7 @@ Two common mitigations are insufficient:
 - **Retrieval + citation formatting.** Attaching a citation ID to a sentence
   proves the citation *exists*, not that the sentence *says what the source
   says*. On this project's adversarial corpus, that level of checking catches
-  11.4% of hallucinations (see §4).
+  10.5% of hallucinations (see §4).
 - **LLM-as-judge.** Asking a second model "is this grounded?" produces a
   probabilistic opinion: the verdict can change between runs, cannot be
   audited mechanically, and inherits the failure mode it is supposed to
@@ -48,10 +48,12 @@ enumerates the attack families; each maps to the gate designed to stop it:
 | Status laundering | claim internally marked `disputed`/`unverified` is pushed anyway | FA |
 | Type mismatch | `statistical` claim resting on qualitative prose | FA/FB |
 | Invented statistic | evidence says 3.5%, claim says 0.2% | FE |
+| Precision inflation | evidence says 3.5%, claim says 3.53% — a decimal the source never asserted | FE |
 | Unit mismatch | 7.8 *minutes* becomes 7.8 *hours* | FE |
-| Fabricated quote | quotation marks around words the source never said | FE |
+| Fabricated quote | quotation marks around words the source never said (4+ chars) | FE |
 | Off-topic citation | real evidence ID laundering an unrelated claim | FE |
 | CJK fabrication | Chinese claim not grounded in Chinese evidence | FE |
+| Cross-language mismatch | English claim citing Chinese evidence it shares no vocabulary with | FE |
 | Wording-grade violation | "measured" certainty on low-grade evidence | FD |
 
 The gate stack, in pipeline order
@@ -65,8 +67,12 @@ The gate stack, in pipeline order
   most inputs; FB stays as a belt-and-suspenders re-check.)
 - **FE — deep-audit content overlap.** Compares claim *content* against
   evidence *content*: numbers with units must appear in the cited evidence
-  within a 1% tolerance; quoted phrases (10+ chars) must appear verbatim; key
-  terms must reach coverage thresholds (40% English terms, 25% CJK bigrams).
+  within a 1% tolerance — and may not state more decimal places than the
+  evidence itself provides; quoted phrases (4+ chars) must appear verbatim;
+  key terms must reach coverage thresholds (40% English terms, 25% CJK
+  bigrams). A non-CJK claim citing CJK-heavy evidence falls back to the
+  English term check instead of passing unexamined, so cross-language
+  citations must share vocabulary (bilingual evidence rows qualify) or block.
 - **FD — provenance-weighted wording.** Sentence wording strength
   (`measured` / `hedged` / `weak`) must be permitted by the weakest evidence
   grade backing it: high-grade evidence permits measured assertions;
@@ -113,21 +119,24 @@ every built-in profile from one controlled source, 42 claims verified, QA
 `pass` everywhere (`python scripts/run_report_benchmarks.py --check`).
 
 Adversarial evidence
-([`benchmarks/evidence/adversarial_2026-07-10/summary.md`](../benchmarks/evidence/adversarial_2026-07-10/summary.md),
+([`benchmarks/evidence/adversarial_2026-07-14/summary.md`](../benchmarks/evidence/adversarial_2026-07-14/summary.md),
 reproducible via `python scripts/run_adversarial_benchmark.py --check`):
-54 hand-audited cases — 19 honest controls, 35 hallucinated claims across the
-11 attack families above plus 7 documented evasion variants.
+58 hand-audited cases — 20 honest controls, 38 hallucinated claims across the
+13 attack families above plus 4 documented evasion variants.
 
 | Checker | Recall | False-positive rate | Precision |
 | --- | --- | --- | --- |
 | `no_gate` (publish everything) | 0.0% | 0.0% | — |
-| `citation_presence` (shallow RAG-style check) | 11.4% | 0.0% | 100% |
-| **full gate stack (FA/FB/FE/FD)** | **80.0%** (28/35) | **0.0%** (0/19) | **100%** |
+| `citation_presence` (shallow RAG-style check) | 10.5% | 0.0% | 100% |
+| **full gate stack (FA/FB/FE/FD)** | **89.5%** (34/38) | **0.0%** (0/20) | **100%** |
 
-Every one of the 11 targeted attack families is caught at 100%. The missing
-20% is not noise — it is seven *documented evasions*, each kept in the corpus
-deliberately (§6). The corpus doubles as a regression suite: every case's
-expected verdict is asserted in CI, so a gate regression fails the build.
+Every one of the 13 targeted attack families is caught at 100%. The missing
+10.5% is not noise — it is four *documented evasions*, each kept in the corpus
+deliberately (§6). The 2026-07-14 hardening closed three former evasions
+(precision fudging, short fabricated quotes, cross-language laundering) and
+promoted them to attack families; the corpus records which rule closed each.
+The corpus doubles as a regression suite: every case's expected verdict is
+asserted in CI, so a gate regression fails the build.
 
 ## 5. Determinism as a feature
 
@@ -154,11 +163,23 @@ lexical/structural checking. Each is a real, reproducible miss:
 | --- | --- |
 | Bare number without unit ("increased to 99.") | FE's numeric extractor requires a number+unit pair |
 | Negation flip ("results generalized" vs "should **not** be generalized") | term overlap cannot see polarity |
-| Precision fudge (3.53% vs 3.5%) | inside the 1% numeric tolerance |
-| Short fabricated quote ("audited") | quote checker scans quotes of 10+ characters |
 | Hedged reinterpretation | invented interpretation reusing enough source vocabulary |
 | Value misattribution (real 9.0% assigned to the wrong condition) | needs relational semantics, not term matching |
-| Cross-language citation (English claim on Chinese evidence) | CJK path has no English terms to compare |
+
+Three evasions documented in earlier revisions of this corpus were closed by
+the 2026-07-14 gate hardening and now live as regular attack families:
+precision fudging (a claim may no longer state more decimal places than the
+evidence asserts), short fabricated quotes (the quote scanner floor dropped
+from 10 to 4 characters), and cross-language citation laundering (a non-CJK
+claim citing CJK-heavy evidence now runs the English term check instead of
+passing unexamined).
+
+The cross-language closure has a deliberate cost: under deep audit, an honest
+claim *translated* from its evidence shares no vocabulary with it and is
+blocked — deterministic lexical checking cannot verify translation, and the
+fail-closed rule wins. The supported pattern is same-language or bilingual
+evidence rows (their embedded English terms satisfy the check); a translation
+gate would need the semantic layer discussed below.
 
 Structural limitations worth stating plainly:
 

@@ -1,25 +1,27 @@
 {
-  "generated_at": "2026-07-10T09:56:20",
+  "generated_at": "2026-07-14T20:38:13",
   "corpus": {
-    "total_cases": 54,
-    "honest_cases": 19,
-    "hallucinated_cases": 35,
+    "total_cases": 58,
+    "honest_cases": 20,
+    "hallucinated_cases": 38,
     "attack_families": [
       "cjk_fabrication",
+      "cross_language_mismatch",
       "dangling_claim",
       "fabricated_citation",
       "fabricated_quote",
       "invented_statistic",
       "missing_evidence",
       "off_topic_citation",
+      "precision_inflation",
       "status_laundering",
       "type_mismatch",
       "unit_mismatch",
       "wording_grade_violation"
     ],
-    "documented_evasions": 7,
+    "documented_evasions": 4,
     "evidence_rows": 11,
-    "corpus_hash": "65a66671db5d86202b949aae4bd1f6f801f0bc903fde64a23500db39a29ca217"
+    "corpus_hash": "69b8a099fada7cb5ba07b6b0e3826a2ac091c0992e7c1d8908c32e13bd9dfd61"
   },
   "checkers": {
     "no_gate": {
@@ -188,6 +190,15 @@
         },
         {
           "case_id": "h19",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h20",
           "family": "honest",
           "is_hallucination": false,
           "expected_verdict": null,
@@ -385,6 +396,24 @@
           "reason": ""
         },
         {
+          "case_id": "g03",
+          "family": "fabricated_quote",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "g04",
+          "family": "fabricated_quote",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
           "case_id": "i01",
           "family": "off_topic_citation",
           "is_hallucination": true,
@@ -414,6 +443,42 @@
         {
           "case_id": "j02",
           "family": "cjk_fabrication",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "l01",
+          "family": "precision_inflation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "l02",
+          "family": "precision_inflation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "m01",
+          "family": "cross_language_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "m02",
+          "family": "cross_language_mismatch",
           "is_hallucination": true,
           "expected_verdict": null,
           "verdict": "published",
@@ -466,24 +531,6 @@
           "reason": ""
         },
         {
-          "case_id": "x03",
-          "family": "evasion_precision_fudge",
-          "is_hallucination": true,
-          "expected_verdict": null,
-          "verdict": "published",
-          "blocked_by": null,
-          "reason": ""
-        },
-        {
-          "case_id": "x04",
-          "family": "evasion_short_quote",
-          "is_hallucination": true,
-          "expected_verdict": null,
-          "verdict": "published",
-          "blocked_by": null,
-          "reason": ""
-        },
-        {
           "case_id": "x05",
           "family": "evasion_hedged_interpretation",
           "is_hallucination": true,
@@ -500,22 +547,13 @@
           "verdict": "published",
           "blocked_by": null,
           "reason": ""
-        },
-        {
-          "case_id": "x07",
-          "family": "evasion_cross_language",
-          "is_hallucination": true,
-          "expected_verdict": null,
-          "verdict": "published",
-          "blocked_by": null,
-          "reason": ""
         }
       ],
       "metrics": {
         "true_positives": 0,
-        "false_negatives": 35,
+        "false_negatives": 38,
         "false_positives": 0,
-        "true_negatives": 19,
+        "true_negatives": 20,
         "recall": 0.0,
         "false_positive_rate": 0.0,
         "precision": 0.0
@@ -687,6 +725,15 @@
         },
         {
           "case_id": "h19",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h20",
           "family": "honest",
           "is_hallucination": false,
           "expected_verdict": null,
@@ -884,6 +931,24 @@
           "reason": ""
         },
         {
+          "case_id": "g03",
+          "family": "fabricated_quote",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "g04",
+          "family": "fabricated_quote",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
           "case_id": "i01",
           "family": "off_topic_citation",
           "is_hallucination": true,
@@ -913,6 +978,42 @@
         {
           "case_id": "j02",
           "family": "cjk_fabrication",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "l01",
+          "family": "precision_inflation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "l02",
+          "family": "precision_inflation",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "m01",
+          "family": "cross_language_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "m02",
+          "family": "cross_language_mismatch",
           "is_hallucination": true,
           "expected_verdict": null,
           "verdict": "published",
@@ -965,24 +1066,6 @@
           "reason": ""
         },
         {
-          "case_id": "x03",
-          "family": "evasion_precision_fudge",
-          "is_hallucination": true,
-          "expected_verdict": null,
-          "verdict": "published",
-          "blocked_by": null,
-          "reason": ""
-        },
-        {
-          "case_id": "x04",
-          "family": "evasion_short_quote",
-          "is_hallucination": true,
-          "expected_verdict": null,
-          "verdict": "published",
-          "blocked_by": null,
-          "reason": ""
-        },
-        {
           "case_id": "x05",
           "family": "evasion_hedged_interpretation",
           "is_hallucination": true,
@@ -999,23 +1082,14 @@
           "verdict": "published",
           "blocked_by": null,
           "reason": ""
-        },
-        {
-          "case_id": "x07",
-          "family": "evasion_cross_language",
-          "is_hallucination": true,
-          "expected_verdict": null,
-          "verdict": "published",
-          "blocked_by": null,
-          "reason": ""
         }
       ],
       "metrics": {
         "true_positives": 4,
-        "false_negatives": 31,
+        "false_negatives": 34,
         "false_positives": 0,
-        "true_negatives": 19,
-        "recall": 0.1143,
+        "true_negatives": 20,
+        "recall": 0.1053,
         "false_positive_rate": 0.0,
         "precision": 1.0
       }
@@ -1186,6 +1260,15 @@
         },
         {
           "case_id": "h19",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "h20",
           "family": "honest",
           "is_hallucination": false,
           "expected_verdict": "published",
@@ -1383,6 +1466,24 @@
           "reason": "Quoted phrase 'was certified for regulatory submission' not found verbatim in evidence; Claim key terms not in evidence (33% coverage, threshold=40%): certified, regulatory, submission, according"
         },
         {
+          "case_id": "g03",
+          "family": "fabricated_quote",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Quoted phrase 'audited' not found verbatim in evidence"
+        },
+        {
+          "case_id": "g04",
+          "family": "fabricated_quote",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Quoted phrase 'certified' not found verbatim in evidence"
+        },
+        {
           "case_id": "i01",
           "family": "off_topic_citation",
           "is_hallucination": true,
@@ -1417,6 +1518,42 @@
           "verdict": "blocked",
           "blocked_by": "FE",
           "reason": "Chinese claim terms not in evidence (17% bigram coverage, threshold=25%): 一致, 全面, 即全, 同意, 員一"
+        },
+        {
+          "case_id": "l01",
+          "family": "precision_inflation",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Claim number '3.53'% asserts more decimal precision than the evidence value '3.5'% supports"
+        },
+        {
+          "case_id": "l02",
+          "family": "precision_inflation",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Claim number '7.83'minutes asserts more decimal precision than the evidence value '7.8'minutes supports"
+        },
+        {
+          "case_id": "m01",
+          "family": "cross_language_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Cross-language claim terms not in evidence (0% coverage, threshold=40%): reviewers, unanimously, endorsed, immediate, rollout"
+        },
+        {
+          "case_id": "m02",
+          "family": "cross_language_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Cross-language claim terms not in evidence (0% coverage, threshold=40%): pilot, approved, organization, deployment"
         },
         {
           "case_id": "k01",
@@ -1464,24 +1601,6 @@
           "reason": ""
         },
         {
-          "case_id": "x03",
-          "family": "evasion_precision_fudge",
-          "is_hallucination": true,
-          "expected_verdict": "published",
-          "verdict": "published",
-          "blocked_by": null,
-          "reason": ""
-        },
-        {
-          "case_id": "x04",
-          "family": "evasion_short_quote",
-          "is_hallucination": true,
-          "expected_verdict": "published",
-          "verdict": "published",
-          "blocked_by": null,
-          "reason": ""
-        },
-        {
           "case_id": "x05",
           "family": "evasion_hedged_interpretation",
           "is_hallucination": true,
@@ -1498,29 +1617,29 @@
           "verdict": "published",
           "blocked_by": null,
           "reason": ""
-        },
-        {
-          "case_id": "x07",
-          "family": "evasion_cross_language",
-          "is_hallucination": true,
-          "expected_verdict": "published",
-          "verdict": "published",
-          "blocked_by": null,
-          "reason": ""
         }
       ],
       "metrics": {
-        "true_positives": 28,
-        "false_negatives": 7,
+        "true_positives": 34,
+        "false_negatives": 4,
         "false_positives": 0,
-        "true_negatives": 19,
-        "recall": 0.8,
+        "true_negatives": 20,
+        "recall": 0.8947,
         "false_positive_rate": 0.0,
         "precision": 1.0
       },
       "family_breakdown": [
         {
           "family": "cjk_fabrication",
+          "cases": 2,
+          "caught": 2,
+          "gates": [
+            "FE"
+          ],
+          "catch_rate": 1.0
+        },
+        {
+          "family": "cross_language_mismatch",
           "cases": 2,
           "caught": 2,
           "gates": [
@@ -1545,13 +1664,6 @@
           "catch_rate": 0.0
         },
         {
-          "family": "evasion_cross_language",
-          "cases": 1,
-          "caught": 0,
-          "gates": [],
-          "catch_rate": 0.0
-        },
-        {
           "family": "evasion_hedged_interpretation",
           "cases": 1,
           "caught": 0,
@@ -1560,20 +1672,6 @@
         },
         {
           "family": "evasion_negation_flip",
-          "cases": 1,
-          "caught": 0,
-          "gates": [],
-          "catch_rate": 0.0
-        },
-        {
-          "family": "evasion_precision_fudge",
-          "cases": 1,
-          "caught": 0,
-          "gates": [],
-          "catch_rate": 0.0
-        },
-        {
-          "family": "evasion_short_quote",
           "cases": 1,
           "caught": 0,
           "gates": [],
@@ -1597,8 +1695,8 @@
         },
         {
           "family": "fabricated_quote",
-          "cases": 2,
-          "caught": 2,
+          "cases": 4,
+          "caught": 4,
           "gates": [
             "FE"
           ],
@@ -1624,6 +1722,15 @@
         },
         {
           "family": "off_topic_citation",
+          "cases": 2,
+          "caught": 2,
+          "gates": [
+            "FE"
+          ],
+          "catch_rate": 1.0
+        },
+        {
+          "family": "precision_inflation",
           "cases": 2,
           "caught": 2,
           "gates": [
@@ -1673,7 +1780,7 @@
   "expected_mismatches": [],
   "determinism": {
     "runs": 5,
-    "verdict_hash": "317f775f85cb64315b6e1ff5e57553d9cae776a2060ee6983927ca0db7e2bbff",
+    "verdict_hash": "3a4761bf3dd87184006f5ae5aeb4f220154fb37d999e97acacde7ab08d156971",
     "identical": true
   }
 }
