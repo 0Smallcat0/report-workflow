@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-351%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-368%20passing-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **A deterministic verification layer that lets an LLM draft a report but refuses
@@ -20,6 +20,31 @@ rendering, and traceability packaging. The external agent (Codex, Claude Code,
 Hermes, …) owns judgment and drafting. Every publishable claim must be linked to
 evidence that actually supports it, or it is hard-blocked before it reaches the
 document.
+
+## Verify any LLM answer in five lines
+
+No pipeline, no schema, no API key — pass the answer and the source text it
+was supposed to be grounded in:
+
+```python
+from report_workflow import verify
+
+result = verify(
+    answer="The error rate fell to 0.2% [1].",
+    sources={"1": "The error rate fell to 3.5% under the structured workflow."},
+)
+result["publishable"]                      # False
+result["sentence_results"][0]["checker"]   # "FE"
+result["sentence_results"][0]["reason"]    # "Claim number '0.2'% not found in evidence content (evidence has: 3.5%)..."
+```
+
+`verify()` splits the answer into sentences (English and CJK), scopes each one
+to the sources its `[id]` markers cite (a marker that matches no source is a
+fabricated citation and blocks), tests unmarked sentences against every source
+and passes them when any single source fully grounds them, and fails closed on
+everything else. Same deterministic gate stack as the full pipeline and the
+MCP server: a pure function of `(answer, sources)` — same verdict every run,
+zero tokens, works offline and in CI.
 
 ## See it in 30 seconds
 

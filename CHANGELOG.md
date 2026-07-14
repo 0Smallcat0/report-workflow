@@ -1,5 +1,26 @@
 # Changelog
 
+## 4.3.0 - 2026-07-14
+
+### Added
+
+- Zero-schema verification adapter `report_workflow.verify(answer, sources)`
+  (`src/report_workflow/verify.py`): pass a plain LLM answer string plus plain
+  source texts (a string, a list, or an `{id: text}` mapping) and get
+  per-sentence deterministic verdicts from the same FA/FB/FE gate stack the
+  pipeline enforces — no claim matrix, no sentence map, no evidence ledger to
+  author. Sentence splitting handles English and CJK terminators, bullets, and
+  newlines; `[id]` / `[CITE:id]` markers scope a sentence to the cited
+  sources; a marker with no matching source hard-blocks as a fabricated
+  citation; unmarked sentences are verified when any single source fully
+  grounds them and fail closed otherwise. This is the RAG-answer use case in
+  five lines, aimed at CI checks and agent loops that cannot afford
+  LLM-as-judge costs or nondeterminism.
+- `report_workflow.__version__` now tracks the package version (was stale at
+  4.0.0) and `verify` is exported at package top level.
+- The Colab quickstart notebook now demos `verify()` instead of the
+  structured-claims payload, matching what a first-time user has in hand.
+
 ## 4.2.0 - 2026-07-14
 
 ### Changed
