@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-368%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-378%20passing-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **A deterministic verification layer that lets an LLM draft a report but refuses
@@ -101,6 +101,38 @@ python scripts/run_adversarial_benchmark.py --check   # re-run from source, diff
 ```
 
 Full tables: [`benchmarks/evidence/adversarial_2026-07-14/summary.md`](benchmarks/evidence/adversarial_2026-07-14/summary.md).
+
+### Out-of-domain: HaluEval QA, 10,000 pairs nobody here wrote
+
+The corpus above was authored for this project. To measure behavior on data
+nobody here controls, `verify()` runs over the public
+[HaluEval](https://github.com/RUCAIBox/HaluEval) QA benchmark (Li et al.,
+EMNLP 2023): 10,000 knowledge-grounded pairs, each with one right and one
+hallucinated answer — 20,000 verdicts, zero tokens.
+
+| Metric | Value |
+| --- | --- |
+| False-positive rate (right answers blocked) | **0.06%** (6/10,000) |
+| Precision of a block verdict | **99.7%** |
+| Recall — all hallucinations | 23.2% (2,320/10,000) |
+| Recall — numeric subset (answers carrying a number+unit) | 66.7% |
+
+Read it honestly: HaluEval hallucinations are open-domain *entity swaps*
+engineered to reuse the passage's own vocabulary — the class
+[`docs/DESIGN.md`](docs/DESIGN.md) explicitly places outside deterministic
+lexical checking. The out-of-domain claim is the **discipline**, not the
+recall: the gates almost never cry wolf (all six false positives are
+characterized in the archive — film titles and street addresses whose leading
+numeral parses as a measurement), and every block they issue is near-certain
+to be a real hallucination. A linter does not catch every bug; it must not
+lie about the ones it flags.
+
+```bash
+python scripts/run_external_benchmark.py --download   # fetch + sha256-verify the dataset (6 MB)
+python scripts/run_external_benchmark.py --check      # recompute all 20,000 verdicts, diff vs archive
+```
+
+Full analysis: [`benchmarks/evidence/halueval_qa_2026-07-15/summary.md`](benchmarks/evidence/halueval_qa_2026-07-15/summary.md).
 
 ## Evidence it runs end-to-end
 
