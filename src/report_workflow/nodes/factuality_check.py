@@ -231,7 +231,9 @@ def run_factuality_check_fe(
     Fix #5: Uses _check_content_overlap() to catch:
     - claims citing numbers/terms absent from evidence
     - statistical claims whose numeric values differ from evidence
-    - quoted text not appearing verbatim in evidence
+    - claims stating more decimal precision than the evidence provides
+    - quoted text (4+ chars) not appearing verbatim in evidence
+    - non-CJK claims citing CJK-only evidence with no shared vocabulary
     """
     evidence_by_id = {
         ev.get("evidence_id"): ev
@@ -337,6 +339,13 @@ def _normalize_number_str(s: str) -> float:
     return float(s)
 
 
+def _decimal_places(num_str: str) -> int:
+    """Count the decimal places a number string explicitly states."""
+    s = num_str.lstrip("~").replace(",", "")
+    mantissa = re.split(r"[eE]", s, maxsplit=1)[0]
+    return len(mantissa.split(".", 1)[1]) if "." in mantissa else 0
+
+
 _UNIT_ALIASES = {
     "percent": "%",
     "\u516c\u5206": "cm",
@@ -387,6 +396,50 @@ def _cjk_bigrams(chars: list[str]) -> set[str]:
         "".join(chars[index:index + 2])
         for index in range(max(0, len(chars) - 1))
     }
+
+
+def _check_term_overlap(
+    claim_text: str,
+    evidence_content: str,
+    source_role: str,
+    *,
+    cross_language: bool = False,
+) -> list[str]:
+    """English key-term coverage of the claim against evidence content.
+
+    With ``cross_language=True`` the same check runs for a non-CJK claim that
+    cites CJK-heavy evidence: bilingual evidence rows can still satisfy it via
+    their embedded English terms, but a claim sharing no vocabulary with its
+    citation is reported instead of silently passing.
+    """
+    term_re = re.compile(r"\b[a-zA-Z]{5,}\b")
+    claim_terms = term_re.findall(claim_text.lower())
+    stopwords = {
+        "should", "would", "could", "might", "must", "shall", "which",
+        "where", "when", "while", "there", "their", "these", "those",
+        "however", "therefore", "because", "result", "results", "study",
+        "analysis", "method", "methods", "paper", "research", "report",
+    }
+    key_terms = [t for t in claim_terms if t not in stopwords]
+    if not key_terms:
+        return []
+    evidence_lower = evidence_content.lower()
+    matched = sum(1 for t in key_terms if t in evidence_lower)
+    coverage = matched / len(key_terms)
+    # Use lower threshold for code evidence (code vocab ≠ academic vocab)
+    threshold = 0.20 if source_role == "code_artifact" else 0.40
+    if coverage >= threshold:
+        return []
+    missing = [t for t in key_terms if t not in evidence_lower]
+    label = (
+        "Cross-language claim terms not in evidence"
+        if cross_language
+        else "Claim key terms not in evidence"
+    )
+    return [
+        f"{label} ({coverage:.0%} coverage, "
+        f"threshold={threshold:.0%}): {', '.join(missing[:5])}"
+    ]
 
 
 def _check_cjk_overlap(claim_text: str, evidence_content: str) -> list[str]:
@@ -441,7 +494,9 @@ def _check_content_overlap(
 
     # 1. Quote overlap check — look for "quoted text" patterns in claim
     #    e.g., 'The system "compiles ASTs" is key' → check "compiles ASTs" in evidence
-    quoted_phrases = re.findall(r'"([^"]{10,200})"', claim_text)
+    #    Minimum length 4: short fabricated quotes ("audited") must not slip
+    #    under the scanner; anything shorter is punctuation-level noise.
+    quoted_phrases = re.findall(r'"([^"]{4,200})"', claim_text)
     for phrase in quoted_phrases:
         # Strip trailing punctuation for matching
         phrase_stripped = phrase.rstrip('.,;:')
@@ -461,35 +516,50 @@ def _check_content_overlap(
         # Search for same value in evidence (with same unit)
         evidence_numbers = _extract_numbers_with_unit(evidence_content)
         found = False
+        inflated_match: tuple[str, str] | None = None
         for ev_num, ev_unit in evidence_numbers:
             # Units must match (after normalization)
             if not _units_match(unit, ev_unit):
                 continue
             try:
                 ev_val = _normalize_number_str(ev_num)
-                # Allow 1% tolerance for floating point
-                if abs(claim_val - ev_val) <= abs(claim_val * 0.01) + 1e-9:
-                    found = True
-                    break
             except ValueError:
                 continue
+            # Allow 1% tolerance for floating point
+            if abs(claim_val - ev_val) > abs(claim_val * 0.01) + 1e-9:
+                continue
+            if claim_val != ev_val and _decimal_places(num_str) > _decimal_places(ev_num):
+                # Within tolerance, but the claim states more decimal places
+                # than the evidence provides: "3.53%" is not a rounding of
+                # "3.5%", it is precision the source never asserted.
+                inflated_match = (ev_num, ev_unit)
+                continue
+            found = True
+            break
 
-        if not found and claim_numbers:
-            # Show what was found in evidence to help debugging
-            ev_nums_str = ", ".join(f"{n}{u}" for n, u in evidence_numbers) or "(none)"
-            reasons.append(
-                f"Claim number {num_str!r}{unit} not found in evidence content "
-                f"(evidence has: {ev_nums_str}). "
-                f"Note: numeric extractor supports both spaced and compact "
-                f"unit forms, such as '226 edges' and '226edges'."
-            )
+        if not found:
+            if inflated_match:
+                reasons.append(
+                    f"Claim number {num_str!r}{unit} asserts more decimal "
+                    f"precision than the evidence value "
+                    f"{inflated_match[0]!r}{inflated_match[1]} supports"
+                )
+            else:
+                # Show what was found in evidence to help debugging
+                ev_nums_str = ", ".join(f"{n}{u}" for n, u in evidence_numbers) or "(none)"
+                reasons.append(
+                    f"Claim number {num_str!r}{unit} not found in evidence content "
+                    f"(evidence has: {ev_nums_str}). "
+                    f"Note: numeric extractor supports both spaced and compact "
+                    f"unit forms, such as '226 edges' and '226edges'."
+                )
 
-    # 3. Term overlap — key terms from claim should appear in evidence
-    #    Skip this check when evidence content is primarily non-ASCII (e.g., Chinese).
-    #    The term-overlap checker compares English claim terms against evidence
-    #    text; corrupted/mixed-encoding evidence (e.g., Big5→UTF-8 decode errors)
-    #    produces garbled output that always fails coverage thresholds.
-    #    Quote and numeric checks still run regardless of encoding.
+    # 3. Term overlap — key terms from claim should appear in evidence.
+    #    CJK-heavy evidence takes the bigram path for CJK claims. A non-CJK
+    #    claim citing CJK-heavy evidence no longer gets a free pass: it falls
+    #    back to the English term check (bilingual evidence rows still pass
+    #    via their embedded English terms; garbled or purely-CJK evidence
+    #    cannot ground an English claim, so it is reported).
     def _is_likely_non_ascii(text: str) -> bool:
         """Return True if text is >30% non-ASCII (CJK, Arabic, etc.)."""
         if not text:
@@ -498,33 +568,18 @@ def _check_content_overlap(
         total = len(text)
         return total > 0 and (total - ascii_chars) / total > 0.3
 
+    source_role = evidence.get("source_role", "primary_source")
     if _is_likely_non_ascii(evidence_content):
-        reasons.extend(_check_cjk_overlap(claim_text, evidence_content))
-    else:
-        term_re = re.compile(r"\b[a-zA-Z]{5,}\b")
-        claim_terms = term_re.findall(claim_text.lower())
-        # Filter stopwords
-        stopwords = {
-            "should", "would", "could", "might", "must", "shall", "which",
-            "where", "when", "while", "there", "their", "these", "those",
-            "however", "therefore", "because", "result", "results", "study",
-            "analysis", "method", "methods", "paper", "research", "report",
-        }
-        key_terms = [t for t in claim_terms if t not in stopwords]
-        if key_terms:
-            # Count how many key terms appear in evidence
-            evidence_lower = evidence_content.lower()
-            matched = sum(1 for t in key_terms if t in evidence_lower)
-            coverage = matched / len(key_terms) if key_terms else 1.0
-            # Use lower threshold for code evidence (code vocab ≠ academic vocab)
-            source_role = evidence.get("source_role", "primary_source")
-            threshold = 0.20 if source_role == "code_artifact" else 0.40
-            if coverage < threshold:
-                missing = [t for t in key_terms if t not in evidence_lower]
-                reasons.append(
-                    f"Claim key terms not in evidence ({coverage:.0%} coverage, "
-                    f"threshold={threshold:.0%}): {', '.join(missing[:5])}"
+        if len(_cjk_chars(claim_text)) >= 4:
+            reasons.extend(_check_cjk_overlap(claim_text, evidence_content))
+        else:
+            reasons.extend(
+                _check_term_overlap(
+                    claim_text, evidence_content, source_role, cross_language=True
                 )
+            )
+    else:
+        reasons.extend(_check_term_overlap(claim_text, evidence_content, source_role))
 
     return reasons
 

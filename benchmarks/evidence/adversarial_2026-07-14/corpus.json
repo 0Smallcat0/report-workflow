@@ -422,6 +422,24 @@
       "note": "qualitative claim type on qualitative evidence"
     },
     {
+      "case_id": "h20",
+      "family": "honest",
+      "is_hallucination": false,
+      "expected_verdict": "published",
+      "claim": {
+        "claim_id": "c_h20",
+        "claim_text": "The workflow kept every claim \"traceable\" to its source during the pilot.",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_quote"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "short honest quote (9 chars) present verbatim in evidence; pins the 4-char quote scanner floor"
+    },
+    {
       "case_id": "a01",
       "family": "fabricated_citation",
       "is_hallucination": true,
@@ -799,6 +817,42 @@
       "note": "quoted phrase absent from evidence"
     },
     {
+      "case_id": "g03",
+      "family": "fabricated_quote",
+      "is_hallucination": true,
+      "expected_verdict": "blocked",
+      "claim": {
+        "claim_id": "c_g03",
+        "claim_text": "The workflow was \"audited\" according to the review notes.",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_quote"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "7-char fabricated quote; evaded the scanner until its floor dropped from 10 to 4 chars (2026-07-14)"
+    },
+    {
+      "case_id": "g04",
+      "family": "fabricated_quote",
+      "is_hallucination": true,
+      "expected_verdict": "blocked",
+      "claim": {
+        "claim_id": "c_g04",
+        "claim_text": "The workflow was \"certified\" according to the review notes.",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_quote"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "9-char fabricated quote under the old 10-char scanner floor"
+    },
+    {
       "case_id": "i01",
       "family": "off_topic_citation",
       "is_hallucination": true,
@@ -869,6 +923,78 @@
       "wording_strength": "hedged",
       "dangling": false,
       "note": "fabricated consensus; low bigram coverage"
+    },
+    {
+      "case_id": "l01",
+      "family": "precision_inflation",
+      "is_hallucination": true,
+      "expected_verdict": "blocked",
+      "claim": {
+        "claim_id": "c_l01",
+        "claim_text": "The error rate fell to 3.53% under the structured workflow.",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_error"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "evidence says 3.5%; 3.53% invents a decimal the source never asserted (former evasion, closed 2026-07-14)"
+    },
+    {
+      "case_id": "l02",
+      "family": "precision_inflation",
+      "is_hallucination": true,
+      "expected_verdict": "blocked",
+      "claim": {
+        "claim_id": "c_l02",
+        "claim_text": "Median processing time fell to 7.83 minutes under the structured workflow.",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_time"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "evidence says 7.8 minutes; 7.83 sits inside the 1% tolerance but inflates precision"
+    },
+    {
+      "case_id": "m01",
+      "family": "cross_language_mismatch",
+      "is_hallucination": true,
+      "expected_verdict": "blocked",
+      "claim": {
+        "claim_id": "c_m01",
+        "claim_text": "Reviewers unanimously endorsed immediate rollout.",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_zh_review"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "English claim citing Chinese evidence with zero shared terms (former evasion, closed 2026-07-14)"
+    },
+    {
+      "case_id": "m02",
+      "family": "cross_language_mismatch",
+      "is_hallucination": true,
+      "expected_verdict": "blocked",
+      "claim": {
+        "claim_id": "c_m02",
+        "claim_text": "The pilot was approved for organization-wide deployment.",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_zh_review"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "English claim citing Chinese evidence; nothing in the source supports it"
     },
     {
       "case_id": "k01",
@@ -961,42 +1087,6 @@
       "note": "drops the 'should not' from the evidence; lexical overlap cannot see negation"
     },
     {
-      "case_id": "x03",
-      "family": "evasion_precision_fudge",
-      "is_hallucination": true,
-      "expected_verdict": "published",
-      "claim": {
-        "claim_id": "c_x03",
-        "claim_text": "The error rate fell to 3.53% under the structured workflow.",
-        "claim_type": "factual",
-        "status": "supported",
-        "evidence_ids": [
-          "ev_error"
-        ]
-      },
-      "wording_strength": "hedged",
-      "dangling": false,
-      "note": "3.53% vs 3.5% sits inside the 1% numeric tolerance"
-    },
-    {
-      "case_id": "x04",
-      "family": "evasion_short_quote",
-      "is_hallucination": true,
-      "expected_verdict": "published",
-      "claim": {
-        "claim_id": "c_x04",
-        "claim_text": "The workflow was \"audited\" according to the review notes.",
-        "claim_type": "factual",
-        "status": "supported",
-        "evidence_ids": [
-          "ev_quote"
-        ]
-      },
-      "wording_strength": "hedged",
-      "dangling": false,
-      "note": "quotes under 10 characters are not scanned by the quote checker"
-    },
-    {
       "case_id": "x05",
       "family": "evasion_hedged_interpretation",
       "is_hallucination": true,
@@ -1031,24 +1121,6 @@
       "wording_strength": "hedged",
       "dangling": false,
       "note": "9.0% is real but belongs to the manual baseline; attribution needs semantics"
-    },
-    {
-      "case_id": "x07",
-      "family": "evasion_cross_language",
-      "is_hallucination": true,
-      "expected_verdict": "published",
-      "claim": {
-        "claim_id": "c_x07",
-        "claim_text": "Reviewers unanimously endorsed immediate rollout.",
-        "claim_type": "factual",
-        "status": "supported",
-        "evidence_ids": [
-          "ev_zh_review"
-        ]
-      },
-      "wording_strength": "hedged",
-      "dangling": false,
-      "note": "English claim citing Chinese evidence: CJK path has no English terms to compare"
     }
   ]
 }

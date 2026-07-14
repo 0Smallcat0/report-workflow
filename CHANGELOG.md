@@ -1,5 +1,36 @@
 # Changelog
 
+## 4.2.0 - 2026-07-14
+
+### Changed
+
+- Hardened the FE deep-audit content-overlap gate, closing three documented
+  evasions from the adversarial corpus and lifting measured recall from 80.0%
+  to 89.5% (34/38) at an unchanged 0% false-positive rate:
+  - **Precision inflation**: a claim number within the 1% tolerance may no
+    longer state more decimal places than the evidence value asserts
+    ("3.53%" against evidence "3.5%" now blocks; equal-value roundings such
+    as "12.40" vs "12.4" still pass).
+  - **Short fabricated quotes**: the quote scanner floor dropped from 10 to
+    4 characters, so `"audited"`-style one-word fabrications are checked
+    verbatim against evidence like any longer quote.
+  - **Cross-language laundering**: a non-CJK claim citing CJK-heavy evidence
+    now falls back to the English key-term check instead of passing
+    unexamined; bilingual evidence rows still pass via their embedded English
+    terms. Deliberate cost, documented in `docs/DESIGN.md`: honest *translated*
+    claims block under deep audit — the supported pattern is same-language or
+    bilingual evidence rows.
+- Adversarial corpus grown from 54 to 58 cases (20 honest controls, 38
+  hallucinated claims, 13 attack families): the three closed evasions were
+  promoted to regular attack families (`precision_inflation`,
+  `cross_language_mismatch`, and two short-quote cases under
+  `fabricated_quote`) with paired variants, plus a new honest control pinning
+  the 4-character quote floor against false positives. Archived evidence moved
+  to `benchmarks/evidence/adversarial_2026-07-14/`; the recall floor asserted
+  in tests rose from 0.75 to 0.85. Remaining documented evasions: bare
+  numbers without units, negation flips, hedged reinterpretation, value
+  misattribution.
+
 ## 4.1.0 - 2026-07-10
 
 ### Added
