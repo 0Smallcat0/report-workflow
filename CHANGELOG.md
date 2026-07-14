@@ -1,5 +1,27 @@
 # Changelog
 
+## 4.4.0 - 2026-07-15
+
+### Added
+
+- Out-of-domain benchmark (`scripts/run_external_benchmark.py`): runs the
+  zero-schema `verify()` adapter over the public HaluEval QA dataset
+  (Li et al., EMNLP 2023) — 10,000 knowledge-grounded pairs, 20,000 verdicts,
+  zero tokens. Measured: 0.06% false-positive rate (6/10,000 right answers
+  blocked, each one inspected and characterized: five title/address numerals
+  parsed as measurements, one dataset concatenation artifact), 99.7% precision
+  per block verdict, 23.2% overall recall, 66.7% recall on the numeric subset
+  where the FE gate has purchase. Framing is stated in the script docstring
+  before the numbers: HaluEval's entity-swap hallucinations are the documented
+  out-of-scope class (docs/DESIGN.md §6), so the out-of-domain claim is the
+  fail-closed discipline, not the recall. The 6 MB dataset is fetched on
+  demand (`--download`, sha256-pinned, gitignored under
+  `benchmarks/external_data/`), archived evidence lives under
+  `benchmarks/evidence/halueval_qa_2026-07-15/`, and `--check` recomputes all
+  20,000 verdicts against it. Not wired into CI (network dependency); 10 new
+  offline contract tests cover the scoring logic and archive consistency
+  (368 -> 378 tests).
+
 ## 4.3.0 - 2026-07-14
 
 ### Added

@@ -138,6 +138,18 @@ promoted them to attack families; the corpus records which rule closed each.
 The corpus doubles as a regression suite: every case's expected verdict is
 asserted in CI, so a gate regression fails the build.
 
+Out-of-domain evidence
+([`benchmarks/evidence/halueval_qa_2026-07-15/summary.md`](../benchmarks/evidence/halueval_qa_2026-07-15/summary.md),
+reproducible via `python scripts/run_external_benchmark.py --check`): the
+zero-schema `verify()` adapter over the public HaluEval QA dataset — 10,000
+pairs nobody here authored — yields a 0.06% false-positive rate (6/10,000,
+each inspected and characterized), 99.7% precision per block verdict, 23.2%
+overall recall, and 66.7% recall on the numeric subset. HaluEval's
+hallucinations are open-domain entity swaps, the class §6 places outside
+lexical checking, so the transferable claim is the fail-closed discipline
+rather than the recall: out of domain, the gates almost never cry wolf, and
+what they block is almost certainly fabricated.
+
 ## 5. Determinism as a feature
 
 The checkers are pure functions: no model, no network, no randomness, no

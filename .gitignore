@@ -23,6 +23,8 @@ output/
 out/
 custom-out/
 benchmarks/evidence/*/partial/
+# External datasets fetched on demand (see scripts/run_external_benchmark.py)
+benchmarks/external_data/
 reports/
 tmp/
 workflow_output*/
