@@ -134,6 +134,52 @@ python scripts/run_external_benchmark.py --check      # recompute all 20,000 ver
 
 Full analysis: [`benchmarks/evidence/halueval_qa_2026-07-15/summary.md`](benchmarks/evidence/halueval_qa_2026-07-15/summary.md).
 
+## How it compares
+
+Established hallucination/faithfulness tools (RAGAS, TruLens, DeepEval,
+Guardrails validators) are built around **a model judging a model** — an LLM
+or a trained classifier scores whether the output is grounded. That buys
+semantic understanding and costs determinism: verdicts vary between runs,
+need an API key or GPU, add latency and per-check cost, and cannot prove
+after the fact why a sentence shipped. This project occupies the opposite
+corner on purpose:
+
+|  | LLM-as-judge frameworks | **report-workflow gates** |
+| --- | --- | --- |
+| Verdict source | model opinion (prompted or trained) | pure function of (claim, evidence) |
+| Same input → same verdict | not guaranteed | guaranteed, sha256-proven in CI |
+| Offline / no API key / no GPU | usually no | always |
+| Cost & latency per 10,000 checks | per-call LLM pricing, seconds each | zero tokens, milliseconds each |
+| Machine-readable block reason per sentence | varies | always (gate + reason string) |
+| Catches paraphrase / entity-swap semantics | **yes — their home turf** | no — documented boundary (4 evasions) |
+| Catches fabricated citations, invented numbers, unit swaps, quote fabrication, precision inflation | depends on prompt | 100% on the 13-family corpus |
+
+The two are complements, not substitutes: run this layer first — free,
+deterministic, fail-closed — and spend judge calls only on what passes. On
+in-domain drafting the gates carry the load (89.5% recall); out of domain
+they are a zero-cost pre-filter that almost never cries wolf (0.06% FP on
+HaluEval).
+
+## Who is this for
+
+- **RAG / agent pipelines that need a CI gate.** `verify(answer, sources)`
+  in a test means a grounding regression fails the build — like a linter,
+  with no eval budget and no flaky judge. The MCP server gives any agent the
+  same gate at runtime before output reaches a user.
+- **Evidence-bounded documents.** The full pipeline (this repo's origin) is
+  for reports where every claim must trace to a registered source — lab
+  reports, financial memos, regulatory drafts — and renders auditable DOCX
+  with a QA pack that can prove, per sentence, why it was allowed to ship.
+- **Anyone who must explain a publish decision later.** Verdicts are pure
+  functions: cacheable, diffable, re-testable after an edit, and the block
+  reason names the gate and the evidence. "The model felt it was grounded"
+  is not an audit trail; this is.
+
+**Who it is not for:** open-domain chat where hallucinations are fluent
+paraphrases sharing the source's vocabulary — that is semantic entailment
+territory (the documented evasions), where an NLI model or LLM judge earns
+its cost. Use both layers; this one is the cheap, honest floor.
+
 ## Evidence it runs end-to-end
 
 The seven-profile benchmark prepares, authors (with a deterministic synthetic
