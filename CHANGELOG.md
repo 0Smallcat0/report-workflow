@@ -22,6 +22,21 @@
   offline contract tests cover the scoring logic and archive consistency
   (368 -> 378 tests).
 
+### Packaging
+
+- Prepared PyPI distribution: reframed the package summary to the
+  anti-hallucination positioning (was "…NotebookLM integration"), added
+  discoverability metadata (keywords, trove classifiers, author, and
+  `[project.urls]` for homepage/repo/changelog/design-doc/issues), and
+  verified the built sdist + wheel pass `twine check` and install-and-run
+  cleanly (`verify()`) in a fresh environment.
+- Added a Trusted-Publishing release workflow
+  (`.github/workflows/release.yml`): pushing a `vX.Y.Z` tag runs a guard job
+  (tag must equal `report_workflow.__version__`; benchmark `--check`s and unit
+  tests must pass), builds and `twine check`s the distributions, then publishes
+  to PyPI via OIDC — no stored token or secret. One-time PyPI pending-publisher
+  setup and the release procedure are documented in `docs/RELEASING.md`.
+
 ## 4.3.0 - 2026-07-14
 
 ### Added
