@@ -260,6 +260,17 @@ source; **FD** checks wording strength against evidence grade. See
 
 ## Install
 
+Just the verification gates (`verify()`, the factuality checkers, the MCP
+server) need only the package — no external tools:
+
+```bash
+pip install "git+https://github.com/0Smallcat0/report-workflow"
+# a PyPI release is wired up via trusted publishing (see docs/RELEASING.md);
+# once tagged: pip install report-workflow
+```
+
+For the full source-to-DOCX pipeline, install from a clone and add pandoc:
+
 ```powershell
 pip install -r requirements.txt
 pip install -e .

@@ -5,10 +5,37 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "report-workflow"
 version = "4.4.0"
-description = "Deterministic source-to-report pipeline with evidence-backed DOCX generation, external research, and NotebookLM integration."
+description = "Deterministic, zero-LLM verification gates that hard-block any LLM claim not traceable to its evidence."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "MIT"
+authors = [{ name = "0Smallcat0", email = "noiroao@gmail.com" }]
+keywords = [
+  "hallucination",
+  "hallucination-detection",
+  "llm",
+  "rag",
+  "faithfulness",
+  "grounding",
+  "evaluation",
+  "guardrails",
+  "provenance",
+  "trustworthy-ai",
+  "deterministic",
+  "mcp",
+]
+classifiers = [
+  "Development Status :: 5 - Production/Stable",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Artificial Intelligence",
+  "Topic :: Software Development :: Quality Assurance",
+  "Topic :: Text Processing :: Linguistic",
+]
 dependencies = [
   "pydantic>=2.0",
   "python-docx>=1.0.0",
@@ -23,6 +50,13 @@ dependencies = [
 [project.optional-dependencies]
 notebook = ["notebooklm-py>=0.1.0"]
 mcp = ["mcp>=1.2"]
+
+[project.urls]
+Homepage = "https://github.com/0Smallcat0/report-workflow"
+Repository = "https://github.com/0Smallcat0/report-workflow"
+Changelog = "https://github.com/0Smallcat0/report-workflow/blob/master/CHANGELOG.md"
+"Design doc" = "https://github.com/0Smallcat0/report-workflow/blob/master/docs/DESIGN.md"
+Issues = "https://github.com/0Smallcat0/report-workflow/issues"
 
 [project.scripts]
 report-workflow = "report_workflow.cli:main"
