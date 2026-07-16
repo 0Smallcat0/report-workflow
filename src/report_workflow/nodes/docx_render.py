@@ -583,6 +583,11 @@ def _add_hanging_indent_references(doc: Document, ref_md: str) -> None:
     if current:
         entries.append("\n".join(current))
 
+    if not any(entry.strip() for entry in entries):
+        # A heading with nothing under it reads as a broken document; a report
+        # with no references simply has no References section.
+        return
+
     doc.add_heading("References", level=2)
 
     hanging_left = Inches(0.5)
@@ -605,6 +610,40 @@ def _add_hanging_indent_references(doc: Document, ref_md: str) -> None:
                 run.italic = True
             else:
                 para.add_run(part)
+
+
+def _split_body_references(md_content: str) -> tuple[str, str]:
+    """Remove the inline References section from body markdown.
+
+    Returns ``(md_without_references, body_refs_md)`` where ``body_refs_md``
+    is a normalized bullet-list References block, or ``""`` when the section
+    is missing or empty. An *empty* References section is removed outright —
+    a document must never end with a dangling "References" heading that has
+    nothing under it.
+    """
+    body_refs_md = ""
+    body_refs_match = re.search(
+        r"(^##\s+References?[^\S\n]*\n+)(.*?)(?=^## |\Z)",
+        md_content,
+        re.MULTILINE | re.DOTALL,
+    )
+    if not body_refs_match:
+        return md_content, body_refs_md
+
+    entries_block = body_refs_match.group(2)
+    bullet_lines: list[str] = []
+    for line in entries_block.splitlines():
+        stripped = line.strip()
+        if not stripped or stripped == "References":
+            continue
+        if stripped.startswith(("- ", "* ")):
+            stripped = stripped[2:].strip()
+        bullet_lines.append(f"- {stripped}")
+    bullet_lines = _filter_body_reference_lines(bullet_lines)
+    if bullet_lines:
+        body_refs_md = "## References\n\n" + "\n\n".join(bullet_lines) + "\n"
+    md_content = md_content[:body_refs_match.start()] + md_content[body_refs_match.end():]
+    return md_content, body_refs_md
 
 
 def _truncate_orphan_sections(md_text: str) -> str:
@@ -959,26 +998,7 @@ def run_docx_render(state: ReportState) -> ReportState:
     # Handle inline References section and always remove it from body markdown.
     # If generated publication refs exist, they take precedence. Otherwise reuse
     # curated body references after filtering internal/project-only entries.
-    body_refs_md = ""
-    body_refs_match = re.search(
-        r"(^##\s+References?\s*\n+)(.+?)(?=^## |\Z)",
-        md_content,
-        re.MULTILINE | re.DOTALL
-    )
-    if body_refs_match:
-        entries_block = body_refs_match.group(2)
-        bullet_lines: list[str] = []
-        for line in entries_block.splitlines():
-            stripped = line.strip()
-            if not stripped or stripped == "References":
-                continue
-            if stripped.startswith(("- ", "* ")):
-                stripped = stripped[2:].strip()
-            bullet_lines.append(f"- {stripped}")
-        bullet_lines = _filter_body_reference_lines(bullet_lines)
-        if bullet_lines:
-            body_refs_md = "## References\n\n" + "\n\n".join(bullet_lines) + "\n"
-        md_content = md_content[:body_refs_match.start()] + md_content[body_refs_match.end():]
+    md_content, body_refs_md = _split_body_references(md_content)
 
     curated_count = int(state.citations.get("curated_reference_count", 0) or 0)
     if not pub_ref_md.strip() and body_refs_md.strip() and curated_count > 0:
