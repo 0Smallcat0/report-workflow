@@ -21,6 +21,14 @@ Hermes, …) owns judgment and drafting. Every publishable claim must be linked 
 evidence that actually supports it, or it is hard-blocked before it reaches the
 document.
 
+**Scope, stated plainly.** This is a *fidelity gate* for evidence-backed
+writing, not a general hallucination detector. Because the checks are
+mechanical, they reliably catch invented numbers, fabricated citations,
+misquotes, and unit swaps — but they do not judge meaning, so a fluent
+paraphrase that quietly reverses the source ("A before B" → "B before A") is
+out of scope. That boundary is not hidden; it is measured on outside data
+below (§[out-of-domain](#out-of-domain-halueval-qa-10000-pairs-nobody-here-wrote)).
+
 ## Verify any LLM answer in five lines
 
 No pipeline, no schema, no API key — pass the answer and the source text it
@@ -134,31 +142,31 @@ python scripts/run_external_benchmark.py --check      # recompute all 20,000 ver
 
 Full analysis: [`benchmarks/evidence/halueval_qa_2026-07-15/summary.md`](benchmarks/evidence/halueval_qa_2026-07-15/summary.md).
 
-## How it compares
+## How it relates to LLM-as-judge tools
 
-Established hallucination/faithfulness tools (RAGAS, TruLens, DeepEval,
-Guardrails validators) are built around **a model judging a model** — an LLM
-or a trained classifier scores whether the output is grounded. That buys
-semantic understanding and costs determinism: verdicts vary between runs,
-need an API key or GPU, add latency and per-check cost, and cannot prove
-after the fact why a sentence shipped. This project occupies the opposite
-corner on purpose:
+This is **not** a competitor to RAGAS, TruLens, DeepEval, or Guardrails — it
+does a different, narrower job. Those tools ask a model (an LLM or a trained
+classifier) *"is this output grounded?"* and get a semantic opinion: they can
+judge paraphrase and meaning, at the cost of an API key or GPU, per-call
+latency, and verdicts that can change between runs. This project does no
+judging at all. It mechanically checks one thing — **do the numbers,
+citations, and quotes in the text actually appear in the source?** — as a pure
+function, so the answer is the same every run and you can see exactly why a
+sentence was blocked.
 
-|  | LLM-as-judge frameworks | **report-workflow gates** |
+|  | LLM-as-judge tools | this fidelity gate |
 | --- | --- | --- |
+| Question it answers | "is this grounded / faithful?" (semantic) | "do the numbers/citations/quotes match the source?" (mechanical) |
 | Verdict source | model opinion (prompted or trained) | pure function of (claim, evidence) |
 | Same input → same verdict | not guaranteed | guaranteed, sha256-proven in CI |
 | Offline / no API key / no GPU | usually no | always |
 | Cost & latency per 10,000 checks | per-call LLM pricing, seconds each | zero tokens, milliseconds each |
-| Machine-readable block reason per sentence | varies | always (gate + reason string) |
-| Catches paraphrase / entity-swap semantics | **yes — their home turf** | no — documented boundary (4 evasions) |
-| Catches fabricated citations, invented numbers, unit swaps, quote fabrication, precision inflation | depends on prompt | 100% on the 13-family corpus |
+| Catches paraphrase / entity-swap meaning | yes — that is what they are for | no — needs semantics it does not have |
+| Catches invented numbers, fabricated citations, misquotes, unit swaps | depends on the prompt | deterministically, with the reason |
 
-The two are complements, not substitutes: run this layer first — free,
-deterministic, fail-closed — and spend judge calls only on what passes. On
-in-domain drafting the gates carry the load (89.5% recall); out of domain
-they are a zero-cost pre-filter that almost never cries wolf (0.06% FP on
-HaluEval).
+They are complementary, and the honest way to use both is to run this cheap
+deterministic check first and spend judge calls only on what passes. It is a
+floor, not a replacement for semantic judgement.
 
 ## Who is this for
 
