@@ -523,6 +523,35 @@ If `report_profile=engineering_lab_report`, preserve the lab handout contract:
 - reference figures and tables near the relevant result text
 - avoid workflow, agent, or tool jargon in the report body
 
+## Prose Quality (applies to every profile)
+
+The gates check grounding; they do not fix machine-sounding prose. These rules
+keep the rendered document reading like it was written by a person:
+
+1. **Translate data identifiers into plain language.** Column and field names
+   are source metadata, not prose. Write "median processing time
+   (12.4 minutes)", never `median_processing_minutes`; "the structured
+   workflow condition", never `structured_workflow`. Snake_case or camelCase
+   tokens in body text, headings, or captions are a defect.
+2. **State the grounded numbers.** When evidence contains the value, write the
+   value: "the error rate fell from 9.0% to 3.5%", not "the error rate was
+   lower". A quantitative section with no numbers reads as evasive even when
+   every claim is verified. Reuse the evidence's own figures and units so the
+   content checks pass untouched.
+3. **No internal identifiers in publication text.** Recommendation ids
+   (`figrec_1`), evidence ids (`E001`), artifact filenames
+   (`chart_source.csv`, `outline.json`), and run/job ids must never appear in
+   body text or captions. Refer to figures as "Figure 1", to data by its
+   real-world name ("the intake-time measurements").
+4. **Captions describe the finding, not the mechanics.** "Figure 1: Median
+   processing time per note, manual baseline vs structured workflow (minutes)"
+   — not "Figure 1: Bar view of chart_source". A caption should tell the
+   reader what is plotted, its units, and what comparison to see.
+5. **Vary sentence openings; never repeat a template sentence.** If several
+   figures or results need introducing, write a different lead-in for each,
+   anchored to what that specific figure shows. Repeating one mechanical
+   sentence with a swapped noun is an immediate machine-writing tell.
+
 ## Evidence Lookup
 
 For large projects with many evidence entries, use the `query_evidence` tool
