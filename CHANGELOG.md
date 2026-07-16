@@ -1,5 +1,45 @@
 # Changelog
 
+## 4.6.0 - 2026-07-16
+
+### Fixed — pain points from a real end-to-end dogfood run
+
+Walked a realistic Chinese tensile-test lab report (handout + measurement CSV)
+from `prepare` through authoring to rendered DOCX, and fixed what actually
+hurt:
+
+- **Chinese chart text rendered as tofu boxes**: matplotlib's default font has
+  no CJK glyphs, so every Chinese title/axis-label/legend in a generated
+  figure was unreadable. The figure builder now prepends a CJK-capable font
+  chain (Microsoft JhengHei / Noto Sans CJK / PingFang / SimHei) with DejaVu
+  fallback, and disables the U+2212 minus. Verified visually on a rendered
+  chart.
+- **Measurement data typed as qualitative evidence**: evidence typing was
+  English-keyword-only, so CSV rows (JSON-serialized) and Chinese sources fell
+  through to "qualitative" — which blocks statistical claims (FB requires
+  quantitative backing) and caps wording strength on the user's own
+  measurements. Typing now recognizes numeric-dense structured rows as
+  quantitative and includes Chinese keyword sets for
+  quantitative/methodological/contextual.
+- **Every section title rendered twice** ("1. 封面" + "封面"): the merge step
+  emitted the canonical heading and kept the draft's own title heading. The
+  inner duplicate is now dropped; each section has exactly one heading.
+- **`--preflight-decisions` file with a UTF-8 BOM was rejected**: PowerShell
+  5.1's `-Encoding utf8` always writes a BOM, so the file a Windows user
+  naturally produces failed to parse. Now read with `utf-8-sig`.
+- **Preflight error told you the shape but not the how**: the block now ends
+  with a copy-paste `how_to_proceed` example (write `preflight.json`, pass
+  `--preflight-decisions preflight.json`).
+- **Stale console-script shim dies silently** (multi-Python Windows PATH):
+  added `python -m report_workflow` as a PATH-independent entry point and a
+  README troubleshooting note.
+
+Known issues found in the same run, documented for later: the auto figure
+plan can mix units on one axis and titles charts "Bar view of <dataset>"
+(agents should edit `figure_plan.json`, as the briefs instruct), and the
+auto-generated data-source reference entry is stylistically odd for lab
+reports.
+
 ## 4.5.0 - 2026-07-16
 
 ### Changed — output quality round (rendered documents, not gates)

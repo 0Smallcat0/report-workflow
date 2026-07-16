@@ -315,6 +315,14 @@ def run_merge_draft(state: ReportState) -> ReportState:
                         raise QAHardBlockError(f"Section draft is placeholder content: {section_id}")
                     normalized = _canonicalize_section_content(section_id, content)
                     section_title = _canonical_section_title(section_id)
+                    # Section drafts compiled from structured_drafts start with
+                    # their own title heading; emitting it after the canonical
+                    # heading renders every section title twice in the final
+                    # document ("# Cover" + "## 封面"). Drop that inner heading
+                    # so each section has exactly one.
+                    inner_heading = re.match(r"^#{1,6}[^\S\n]+([^\n]{1,60})\n+", normalized)
+                    if inner_heading:
+                        normalized = normalized[inner_heading.end():]
                     merged_sections.append(f"# {section_title}\n\n{normalized}".strip())
                 except QAHardBlockError:
                     raise

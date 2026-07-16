@@ -127,8 +127,8 @@
     "main_limitation": "The source is synthetic and supports workflow-quality conclusions only within the tested pilot."
   },
   "_contract": {
-    "job_id": "run_8b4a4ad5",
-    "evidence_ledger_hash": "b9e80d8c33f899b9",
-    "source_registry_hash": "dfdff06235989746"
+    "job_id": "run_11e7ba0f",
+    "evidence_ledger_hash": "a7e1a6184180d823",
+    "source_registry_hash": "46a2c9d966da9e18"
   }
 }

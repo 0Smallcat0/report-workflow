@@ -56,7 +56,10 @@ def _parse_template_field_arg(value: str) -> tuple[str, str]:
 def _load_preflight_decisions(path: str | None) -> dict | None:
     if not path:
         return None
-    with open(path, encoding="utf-8") as f:
+    # utf-8-sig: PowerShell 5.1's `-Encoding utf8` always writes a BOM, so a
+    # Windows user following the printed instructions produces a BOM'd file;
+    # rejecting it is a paper cut, not a safety property.
+    with open(path, encoding="utf-8-sig") as f:
         data = json.load(f)
     if not isinstance(data, dict):
         raise argparse.ArgumentTypeError("preflight decisions file must contain a JSON object")
@@ -81,6 +84,17 @@ def _print_preflight_decision_block(
             indent=2,
             default=str,
         ),
+        file=sys.stderr,
+    )
+    print(
+        "\nhow_to_proceed: save your choices as JSON (pick one value per field"
+        " above; 'skip' declines an optional feature), then re-run with the"
+        " flag, e.g.:\n"
+        "  1. write preflight.json:\n"
+        '     {"confirmed_by_user": true,\n'
+        '      "install_decisions": {"notebook_sync": "skip"},\n'
+        '      "feature_decisions": {"web_research": "skip", "notebook_sync": "skip"}}\n'
+        "  2. report-workflow prepare ... --preflight-decisions preflight.json",
         file=sys.stderr,
     )
 
