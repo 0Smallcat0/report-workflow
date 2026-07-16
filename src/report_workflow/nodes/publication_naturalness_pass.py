@@ -23,6 +23,32 @@ FORBIDDEN_PUBLICATION_PHRASES = (
 )
 
 
+# Machine-writing tells: internal identifiers that read as machine output when
+# they appear in publication prose. Advisory only — code-artifact reports may
+# legitimately name identifiers in prose, so this warns (for the authoring
+# agent to repair) instead of hard-blocking. Fenced code blocks are structural
+# and are never scanned.
+_SNAKE_CASE_RE = re.compile(r"\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b")
+_INTERNAL_ID_RE = re.compile(r"\bfigrec_\w+\b|\b\w+_source\b|\bev_[a-z0-9_]+\b")
+
+
+def detect_machine_tell_identifiers(markdown: str) -> list[str]:
+    """Return snake_case / internal-id tokens found in publication prose."""
+    found: list[str] = []
+    for block in _split_markdown_blocks(markdown):
+        if _is_structural_markdown_block(block):
+            continue
+        for match in _SNAKE_CASE_RE.finditer(block):
+            token = match.group(0)
+            if token not in found:
+                found.append(token)
+        for match in _INTERNAL_ID_RE.finditer(block):
+            token = match.group(0)
+            if token not in found:
+                found.append(token)
+    return found
+
+
 def remove_workflow_defense_sentences(markdown: str) -> tuple[str, list[str]]:
     """Drop sentences that explain workflow evasions instead of research content."""
     removed: list[str] = []
@@ -69,10 +95,16 @@ def run_publication_naturalness_pass(state: ReportState) -> ReportState:
     output_path.write_text(cleaned, encoding="utf-8")
     state.drafts["publication_style_draft"] = str(output_path)
 
+    machine_tells = detect_machine_tell_identifiers(cleaned)
     report = {
         "job_id": state.job_id,
         "removed_count": len(removed),
         "removed_samples": removed[:20],
+        # Advisory: snake_case / internal ids in publication prose read as
+        # machine output. Surfaced for authoring-agent repair, never blocking
+        # (code-artifact reports may name identifiers legitimately).
+        "machine_tell_warnings": machine_tells[:20],
+        "machine_tell_count": len(machine_tells),
         "status": "passed",
         "output_path": str(output_path),
     }

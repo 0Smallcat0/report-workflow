@@ -6,7 +6,7 @@
       "title": "Abstract",
       "sentences": [
         {
-          "text": "The controlled source describes a synthetic pilot for converting intake notes into auditable report artifacts. It records the workflow context, comparison procedure, measurement table, proposal inputs, and project-learning constraints. The report uses these source elements to describe what changed, what can be recommended, and what should remain bounded as pilot evidence.",
+          "text": "The controlled source describes a synthetic pilot for converting intake notes into auditable report artifacts. It records the workflow context, the comparison procedure, the measured results for both conditions, the proposal inputs, and project-learning constraints. The report uses these source elements to describe what changed, what can be recommended, and what should remain bounded as pilot evidence.",
           "claim_ids": [
             "c_context",
             "c_method",
@@ -14,16 +14,16 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_bb9e035e_97eb9c25db",
-            "E_bb9e035e_89c9b93032",
-            "E_bb9e035e_9aa1a5dc86",
-            "E_bb9e035e_481e74f8d7"
+            "E_1bf3228f_e87b6a102b",
+            "E_1bf3228f_157a446927",
+            "E_1bf3228f_4eddc08ceb",
+            "E_1bf3228f_f42b6051b0"
           ],
           "citation_ids": [
-            "E_bb9e035e_97eb9c25db",
-            "E_bb9e035e_89c9b93032",
-            "E_bb9e035e_9aa1a5dc86",
-            "E_bb9e035e_481e74f8d7"
+            "E_1bf3228f_e87b6a102b",
+            "E_1bf3228f_157a446927",
+            "E_1bf3228f_4eddc08ceb",
+            "E_1bf3228f_f42b6051b0"
           ],
           "wording_strength": "hedged"
         }
@@ -43,20 +43,20 @@
             "c_proposal"
           ],
           "evidence_ids": [
-            "E_bb9e035e_97eb9c25db",
-            "E_bb9e035e_89c9b93032",
-            "E_bb9e035e_9aa1a5dc86",
-            "E_bb9e035e_481e74f8d7",
-            "E_bb9e035e_15d80c9989",
-            "E_bb9e035e_2b44e626eb"
+            "E_1bf3228f_e87b6a102b",
+            "E_1bf3228f_157a446927",
+            "E_1bf3228f_4eddc08ceb",
+            "E_1bf3228f_f42b6051b0",
+            "E_1bf3228f_e5ace2f379",
+            "E_1bf3228f_5c33b0d3f9"
           ],
           "citation_ids": [
-            "E_bb9e035e_97eb9c25db",
-            "E_bb9e035e_89c9b93032",
-            "E_bb9e035e_9aa1a5dc86",
-            "E_bb9e035e_481e74f8d7",
-            "E_bb9e035e_15d80c9989",
-            "E_bb9e035e_2b44e626eb"
+            "E_1bf3228f_e87b6a102b",
+            "E_1bf3228f_157a446927",
+            "E_1bf3228f_4eddc08ceb",
+            "E_1bf3228f_f42b6051b0",
+            "E_1bf3228f_e5ace2f379",
+            "E_1bf3228f_5c33b0d3f9"
           ],
           "wording_strength": "hedged"
         }
@@ -73,14 +73,14 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_bb9e035e_89c9b93032",
-            "E_bb9e035e_9aa1a5dc86",
-            "E_bb9e035e_481e74f8d7"
+            "E_1bf3228f_157a446927",
+            "E_1bf3228f_4eddc08ceb",
+            "E_1bf3228f_f42b6051b0"
           ],
           "citation_ids": [
-            "E_bb9e035e_89c9b93032",
-            "E_bb9e035e_9aa1a5dc86",
-            "E_bb9e035e_481e74f8d7"
+            "E_1bf3228f_157a446927",
+            "E_1bf3228f_4eddc08ceb",
+            "E_1bf3228f_f42b6051b0"
           ],
           "wording_strength": "hedged"
         }
@@ -95,10 +95,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_bb9e035e_9aa1a5dc86"
+            "E_1bf3228f_4eddc08ceb"
           ],
           "citation_ids": [
-            "E_bb9e035e_9aa1a5dc86"
+            "E_1bf3228f_4eddc08ceb"
           ],
           "wording_strength": "hedged"
         },
@@ -108,10 +108,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_bb9e035e_9aa1a5dc86"
+            "E_1bf3228f_4eddc08ceb"
           ],
           "citation_ids": [
-            "E_bb9e035e_9aa1a5dc86"
+            "E_1bf3228f_4eddc08ceb"
           ],
           "wording_strength": "hedged"
         },
@@ -121,10 +121,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_bb9e035e_9aa1a5dc86"
+            "E_1bf3228f_4eddc08ceb"
           ],
           "citation_ids": [
-            "E_bb9e035e_9aa1a5dc86"
+            "E_1bf3228f_4eddc08ceb"
           ],
           "wording_strength": "hedged"
         },
@@ -134,10 +134,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_bb9e035e_9aa1a5dc86"
+            "E_1bf3228f_4eddc08ceb"
           ],
           "citation_ids": [
-            "E_bb9e035e_9aa1a5dc86"
+            "E_1bf3228f_4eddc08ceb"
           ],
           "wording_strength": "hedged"
         },
@@ -147,10 +147,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_bb9e035e_9aa1a5dc86"
+            "E_1bf3228f_4eddc08ceb"
           ],
           "citation_ids": [
-            "E_bb9e035e_9aa1a5dc86"
+            "E_1bf3228f_4eddc08ceb"
           ],
           "wording_strength": "hedged"
         },
@@ -160,10 +160,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_bb9e035e_9aa1a5dc86"
+            "E_1bf3228f_4eddc08ceb"
           ],
           "citation_ids": [
-            "E_bb9e035e_9aa1a5dc86"
+            "E_1bf3228f_4eddc08ceb"
           ],
           "wording_strength": "hedged"
         }
@@ -179,12 +179,12 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_bb9e035e_9aa1a5dc86",
-            "E_bb9e035e_481e74f8d7"
+            "E_1bf3228f_4eddc08ceb",
+            "E_1bf3228f_f42b6051b0"
           ],
           "citation_ids": [
-            "E_bb9e035e_9aa1a5dc86",
-            "E_bb9e035e_481e74f8d7"
+            "E_1bf3228f_4eddc08ceb",
+            "E_1bf3228f_f42b6051b0"
           ],
           "wording_strength": "hedged"
         }
@@ -200,12 +200,12 @@
             "c_satisfaction"
           ],
           "evidence_ids": [
-            "E_bb9e035e_2b44e626eb",
-            "E_bb9e035e_15d80c9989"
+            "E_1bf3228f_5c33b0d3f9",
+            "E_1bf3228f_e5ace2f379"
           ],
           "citation_ids": [
-            "E_bb9e035e_2b44e626eb",
-            "E_bb9e035e_15d80c9989"
+            "E_1bf3228f_5c33b0d3f9",
+            "E_1bf3228f_e5ace2f379"
           ],
           "wording_strength": "hedged"
         }
@@ -221,8 +221,8 @@
     }
   },
   "_contract": {
-    "job_id": "run_bd338f7d",
-    "evidence_ledger_hash": "1db6930cc89d5b3e",
-    "source_registry_hash": "50cfb5bb8a50ad86"
+    "job_id": "run_63eb532d",
+    "evidence_ledger_hash": "4febfc44f63b0b74",
+    "source_registry_hash": "0472784a2d747faf"
   }
 }

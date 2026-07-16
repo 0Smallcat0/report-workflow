@@ -1,14 +1,14 @@
 {
-  "job_id": "run_012350ec",
-  "created_at": "2026-07-16T21:51:48.735740",
+  "job_id": "run_41ee067d",
+  "created_at": "2026-07-16T22:14:53.675212",
   "status": "completed",
   "overall_status": "failed",
   "report_profile": "proposal",
   "report": {
-    "final_docx_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\final.docx",
-    "published_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\final.docx",
+    "final_docx_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\final.docx",
+    "published_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\final.docx",
     "renderer_used": "pandoc",
-    "file_size_bytes": 167641,
+    "file_size_bytes": 167643,
     "workflow_success": true
   },
   "gate_summary": {
@@ -24,7 +24,7 @@
     "verified_count": 6,
     "blocked_count": 0,
     "claim_count": 6,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\factuality_report.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\factuality_report.json"
   },
   "artifact_lint": {
     "status": "missing",
@@ -48,7 +48,7 @@
     "issue_count": 0,
     "hard_issue_count": 0,
     "review_issue_count": 0,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\scholarly_quality_report.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\scholarly_quality_report.json"
   },
   "template_style": {
     "status": "pass",
@@ -57,7 +57,7 @@
     "renderer_used": "pandoc",
     "reference_docx_applied": true,
     "rendered_paragraph_style_count": 5,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\template_style_map.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\template_style_map.json"
   },
   "template_field_fill": {
     "status": "pass",
@@ -66,13 +66,13 @@
     "filled_count": 7,
     "missing_value_count": 0,
     "not_found_count": 0,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\template_field_fill_report.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\template_field_fill_report.json"
   },
   "figure_visual_quality": {
     "status": "pass",
     "issue_count": 0,
     "figure_count": 5,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\figure_visual_quality_report.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\figure_visual_quality_report.json"
   },
   "render": {
     "status": "failed",
@@ -85,24 +85,24 @@
     "issues": [
       "'\"C:\\Program Files\\LibreOffice\\program\\soffice.exe\"' is not recognized as an internal or external command,\noperable program or batch file.\n"
     ],
-    "post_render_layout_manifest_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\post_render_layout_manifest.json"
+    "post_render_layout_manifest_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\post_render_layout_manifest.json"
   },
   "source_artifacts": {
-    "qa_summary": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\qa_summary.json",
-    "factuality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\factuality_report.json",
+    "qa_summary": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\qa_summary.json",
+    "factuality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\factuality_report.json",
     "artifact_lint_report": "",
     "engineering_audit_report": "",
-    "scholarly_quality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\scholarly_quality_report.json",
-    "scholarly_quality_report_md": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\scholarly_quality_report.md",
-    "template_style_map": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\template_style_map.json",
-    "template_field_fill_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\template_field_fill_report.json",
-    "figure_visual_quality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\figure_visual_quality_report.json",
-    "post_render_validate_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\post_render_validate_report.json",
-    "post_render_layout_manifest": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\post_render_layout_manifest.json",
-    "visual_render_check_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\visual_render_check_report.json"
+    "scholarly_quality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\scholarly_quality_report.json",
+    "scholarly_quality_report_md": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\scholarly_quality_report.md",
+    "template_style_map": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\template_style_map.json",
+    "template_field_fill_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\template_field_fill_report.json",
+    "figure_visual_quality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\figure_visual_quality_report.json",
+    "post_render_validate_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\post_render_validate_report.json",
+    "post_render_layout_manifest": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\post_render_layout_manifest.json",
+    "visual_render_check_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\visual_render_check_report.json"
   },
   "qa_summary": {
-    "job_id": "run_012350ec",
+    "job_id": "run_41ee067d",
     "qa_decision": "pass",
     "artifact_completeness_status": "pass",
     "hard_fail_reasons": [],
@@ -114,193 +114,193 @@
     "evidence_policy_warnings": [],
     "citation_audit": [
       {
-        "cite_id": "E_635d4371_934f53f287",
+        "cite_id": "E_59b1c36e_4c02c47d32",
         "evidence_ids": [
-          "E_635d4371_934f53f287"
+          "E_59b1c36e_4c02c47d32"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_5711e667bd",
+        "cite_id": "E_59b1c36e_4cfda811b1",
         "evidence_ids": [
-          "E_635d4371_5711e667bd"
+          "E_59b1c36e_4cfda811b1"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_347c65d44c",
+        "cite_id": "E_59b1c36e_0e63cf2be5",
         "evidence_ids": [
-          "E_635d4371_347c65d44c"
+          "E_59b1c36e_0e63cf2be5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_2ea57f451f",
+        "cite_id": "E_59b1c36e_62b2c383ba",
         "evidence_ids": [
-          "E_635d4371_2ea57f451f"
+          "E_59b1c36e_62b2c383ba"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_9cb9676f38",
+        "cite_id": "E_59b1c36e_e8438c9ca6",
         "evidence_ids": [
-          "E_635d4371_9cb9676f38"
+          "E_59b1c36e_e8438c9ca6"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_d3773fa85e",
+        "cite_id": "E_59b1c36e_3483e2be21",
         "evidence_ids": [
-          "E_635d4371_d3773fa85e"
+          "E_59b1c36e_3483e2be21"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_5711e667bd",
+        "cite_id": "E_59b1c36e_4cfda811b1",
         "evidence_ids": [
-          "E_635d4371_5711e667bd"
+          "E_59b1c36e_4cfda811b1"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_2ea57f451f",
+        "cite_id": "E_59b1c36e_62b2c383ba",
         "evidence_ids": [
-          "E_635d4371_2ea57f451f"
+          "E_59b1c36e_62b2c383ba"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_5711e667bd",
+        "cite_id": "E_59b1c36e_4cfda811b1",
         "evidence_ids": [
-          "E_635d4371_5711e667bd"
+          "E_59b1c36e_4cfda811b1"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_2ea57f451f",
+        "cite_id": "E_59b1c36e_62b2c383ba",
         "evidence_ids": [
-          "E_635d4371_2ea57f451f"
+          "E_59b1c36e_62b2c383ba"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_5711e667bd",
+        "cite_id": "E_59b1c36e_4cfda811b1",
         "evidence_ids": [
-          "E_635d4371_5711e667bd"
+          "E_59b1c36e_4cfda811b1"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_347c65d44c",
+        "cite_id": "E_59b1c36e_0e63cf2be5",
         "evidence_ids": [
-          "E_635d4371_347c65d44c"
+          "E_59b1c36e_0e63cf2be5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_2ea57f451f",
+        "cite_id": "E_59b1c36e_62b2c383ba",
         "evidence_ids": [
-          "E_635d4371_2ea57f451f"
+          "E_59b1c36e_62b2c383ba"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_d3773fa85e",
+        "cite_id": "E_59b1c36e_3483e2be21",
         "evidence_ids": [
-          "E_635d4371_d3773fa85e"
+          "E_59b1c36e_3483e2be21"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_d3773fa85e",
+        "cite_id": "E_59b1c36e_3483e2be21",
         "evidence_ids": [
-          "E_635d4371_d3773fa85e"
+          "E_59b1c36e_3483e2be21"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_d3773fa85e",
+        "cite_id": "E_59b1c36e_3483e2be21",
         "evidence_ids": [
-          "E_635d4371_d3773fa85e"
+          "E_59b1c36e_3483e2be21"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_d3773fa85e",
+        "cite_id": "E_59b1c36e_3483e2be21",
         "evidence_ids": [
-          "E_635d4371_d3773fa85e"
+          "E_59b1c36e_3483e2be21"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_d3773fa85e",
+        "cite_id": "E_59b1c36e_3483e2be21",
         "evidence_ids": [
-          "E_635d4371_d3773fa85e"
+          "E_59b1c36e_3483e2be21"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_9cb9676f38",
+        "cite_id": "E_59b1c36e_e8438c9ca6",
         "evidence_ids": [
-          "E_635d4371_9cb9676f38"
+          "E_59b1c36e_e8438c9ca6"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_347c65d44c",
+        "cite_id": "E_59b1c36e_0e63cf2be5",
         "evidence_ids": [
-          "E_635d4371_347c65d44c"
+          "E_59b1c36e_0e63cf2be5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_347c65d44c",
+        "cite_id": "E_59b1c36e_0e63cf2be5",
         "evidence_ids": [
-          "E_635d4371_347c65d44c"
+          "E_59b1c36e_0e63cf2be5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_347c65d44c",
+        "cite_id": "E_59b1c36e_0e63cf2be5",
         "evidence_ids": [
-          "E_635d4371_347c65d44c"
+          "E_59b1c36e_0e63cf2be5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_347c65d44c",
+        "cite_id": "E_59b1c36e_0e63cf2be5",
         "evidence_ids": [
-          "E_635d4371_347c65d44c"
+          "E_59b1c36e_0e63cf2be5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_635d4371_347c65d44c",
+        "cite_id": "E_59b1c36e_0e63cf2be5",
         "evidence_ids": [
-          "E_635d4371_347c65d44c"
+          "E_59b1c36e_0e63cf2be5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
@@ -315,7 +315,7 @@
       "claim_count": 6,
       "evidence_count": 37
     },
-    "factuality_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\factuality_report.json",
+    "factuality_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\factuality_report.json",
     "consistency_report_path": ""
   }
 }

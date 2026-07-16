@@ -1,6 +1,6 @@
 {
-  "job_id": "run_a92bd1f8",
-  "created_at": "2026-07-16T21:51:41.613251",
+  "job_id": "run_27e44df0",
+  "created_at": "2026-07-16T22:14:49.066775",
   "status": "pass",
   "report_profile": "engineering_lab_report",
   "reference_template_mode": "style_reference",
@@ -136,7 +136,7 @@
     ]
   },
   "rendered_docx": {
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Laboratory Report--run_a92bd1f8\\final.docx",
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Laboratory Report--run_27e44df0\\final.docx",
     "exists": true,
     "load_error": "",
     "paragraph_count": 53,

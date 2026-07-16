@@ -1,14 +1,14 @@
 {
-  "job_id": "run_bd338f7d",
-  "created_at": "2026-07-16T21:51:56.237327",
+  "job_id": "run_63eb532d",
+  "created_at": "2026-07-16T22:14:57.803564",
   "status": "completed",
   "overall_status": "failed",
   "report_profile": "custom",
   "report": {
-    "final_docx_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\final.docx",
-    "published_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\final.docx",
+    "final_docx_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\final.docx",
+    "published_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\final.docx",
     "renderer_used": "pandoc",
-    "file_size_bytes": 167646,
+    "file_size_bytes": 167658,
     "workflow_success": true
   },
   "gate_summary": {
@@ -24,7 +24,7 @@
     "verified_count": 6,
     "blocked_count": 0,
     "claim_count": 6,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\factuality_report.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\factuality_report.json"
   },
   "artifact_lint": {
     "status": "missing",
@@ -48,7 +48,7 @@
     "issue_count": 0,
     "hard_issue_count": 0,
     "review_issue_count": 0,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\scholarly_quality_report.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\scholarly_quality_report.json"
   },
   "template_style": {
     "status": "pass",
@@ -57,7 +57,7 @@
     "renderer_used": "pandoc",
     "reference_docx_applied": true,
     "rendered_paragraph_style_count": 5,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\template_style_map.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\template_style_map.json"
   },
   "template_field_fill": {
     "status": "pass",
@@ -66,13 +66,13 @@
     "filled_count": 7,
     "missing_value_count": 0,
     "not_found_count": 0,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\template_field_fill_report.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\template_field_fill_report.json"
   },
   "figure_visual_quality": {
     "status": "pass",
     "issue_count": 0,
     "figure_count": 5,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\figure_visual_quality_report.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\figure_visual_quality_report.json"
   },
   "render": {
     "status": "failed",
@@ -85,24 +85,24 @@
     "issues": [
       "'\"C:\\Program Files\\LibreOffice\\program\\soffice.exe\"' is not recognized as an internal or external command,\noperable program or batch file.\n"
     ],
-    "post_render_layout_manifest_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\post_render_layout_manifest.json"
+    "post_render_layout_manifest_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\post_render_layout_manifest.json"
   },
   "source_artifacts": {
-    "qa_summary": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\qa_summary.json",
-    "factuality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\factuality_report.json",
+    "qa_summary": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\qa_summary.json",
+    "factuality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\factuality_report.json",
     "artifact_lint_report": "",
     "engineering_audit_report": "",
-    "scholarly_quality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\scholarly_quality_report.json",
-    "scholarly_quality_report_md": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\scholarly_quality_report.md",
-    "template_style_map": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\template_style_map.json",
-    "template_field_fill_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\template_field_fill_report.json",
-    "figure_visual_quality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\figure_visual_quality_report.json",
-    "post_render_validate_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\post_render_validate_report.json",
-    "post_render_layout_manifest": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\post_render_layout_manifest.json",
-    "visual_render_check_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\visual_render_check_report.json"
+    "scholarly_quality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\scholarly_quality_report.json",
+    "scholarly_quality_report_md": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\scholarly_quality_report.md",
+    "template_style_map": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\template_style_map.json",
+    "template_field_fill_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\template_field_fill_report.json",
+    "figure_visual_quality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\figure_visual_quality_report.json",
+    "post_render_validate_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\post_render_validate_report.json",
+    "post_render_layout_manifest": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\post_render_layout_manifest.json",
+    "visual_render_check_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\visual_render_check_report.json"
   },
   "qa_summary": {
-    "job_id": "run_bd338f7d",
+    "job_id": "run_63eb532d",
     "qa_decision": "pass",
     "artifact_completeness_status": "pass",
     "hard_fail_reasons": [],
@@ -111,185 +111,185 @@
     "evidence_policy_warnings": [],
     "citation_audit": [
       {
-        "cite_id": "E_bb9e035e_97eb9c25db",
+        "cite_id": "E_1bf3228f_e87b6a102b",
         "evidence_ids": [
-          "E_bb9e035e_97eb9c25db"
+          "E_1bf3228f_e87b6a102b"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_89c9b93032",
+        "cite_id": "E_1bf3228f_157a446927",
         "evidence_ids": [
-          "E_bb9e035e_89c9b93032"
+          "E_1bf3228f_157a446927"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_9aa1a5dc86",
+        "cite_id": "E_1bf3228f_4eddc08ceb",
         "evidence_ids": [
-          "E_bb9e035e_9aa1a5dc86"
+          "E_1bf3228f_4eddc08ceb"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_481e74f8d7",
+        "cite_id": "E_1bf3228f_f42b6051b0",
         "evidence_ids": [
-          "E_bb9e035e_481e74f8d7"
+          "E_1bf3228f_f42b6051b0"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_97eb9c25db",
+        "cite_id": "E_1bf3228f_e87b6a102b",
         "evidence_ids": [
-          "E_bb9e035e_97eb9c25db"
+          "E_1bf3228f_e87b6a102b"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_89c9b93032",
+        "cite_id": "E_1bf3228f_157a446927",
         "evidence_ids": [
-          "E_bb9e035e_89c9b93032"
+          "E_1bf3228f_157a446927"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_9aa1a5dc86",
+        "cite_id": "E_1bf3228f_4eddc08ceb",
         "evidence_ids": [
-          "E_bb9e035e_9aa1a5dc86"
+          "E_1bf3228f_4eddc08ceb"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_481e74f8d7",
+        "cite_id": "E_1bf3228f_f42b6051b0",
         "evidence_ids": [
-          "E_bb9e035e_481e74f8d7"
+          "E_1bf3228f_f42b6051b0"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_15d80c9989",
+        "cite_id": "E_1bf3228f_e5ace2f379",
         "evidence_ids": [
-          "E_bb9e035e_15d80c9989"
+          "E_1bf3228f_e5ace2f379"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_2b44e626eb",
+        "cite_id": "E_1bf3228f_5c33b0d3f9",
         "evidence_ids": [
-          "E_bb9e035e_2b44e626eb"
+          "E_1bf3228f_5c33b0d3f9"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_89c9b93032",
+        "cite_id": "E_1bf3228f_157a446927",
         "evidence_ids": [
-          "E_bb9e035e_89c9b93032"
+          "E_1bf3228f_157a446927"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_9aa1a5dc86",
+        "cite_id": "E_1bf3228f_4eddc08ceb",
         "evidence_ids": [
-          "E_bb9e035e_9aa1a5dc86"
+          "E_1bf3228f_4eddc08ceb"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_481e74f8d7",
+        "cite_id": "E_1bf3228f_f42b6051b0",
         "evidence_ids": [
-          "E_bb9e035e_481e74f8d7"
+          "E_1bf3228f_f42b6051b0"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_9aa1a5dc86",
+        "cite_id": "E_1bf3228f_4eddc08ceb",
         "evidence_ids": [
-          "E_bb9e035e_9aa1a5dc86"
+          "E_1bf3228f_4eddc08ceb"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_9aa1a5dc86",
+        "cite_id": "E_1bf3228f_4eddc08ceb",
         "evidence_ids": [
-          "E_bb9e035e_9aa1a5dc86"
+          "E_1bf3228f_4eddc08ceb"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_9aa1a5dc86",
+        "cite_id": "E_1bf3228f_4eddc08ceb",
         "evidence_ids": [
-          "E_bb9e035e_9aa1a5dc86"
+          "E_1bf3228f_4eddc08ceb"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_9aa1a5dc86",
+        "cite_id": "E_1bf3228f_4eddc08ceb",
         "evidence_ids": [
-          "E_bb9e035e_9aa1a5dc86"
+          "E_1bf3228f_4eddc08ceb"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_9aa1a5dc86",
+        "cite_id": "E_1bf3228f_4eddc08ceb",
         "evidence_ids": [
-          "E_bb9e035e_9aa1a5dc86"
+          "E_1bf3228f_4eddc08ceb"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_9aa1a5dc86",
+        "cite_id": "E_1bf3228f_4eddc08ceb",
         "evidence_ids": [
-          "E_bb9e035e_9aa1a5dc86"
+          "E_1bf3228f_4eddc08ceb"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_9aa1a5dc86",
+        "cite_id": "E_1bf3228f_4eddc08ceb",
         "evidence_ids": [
-          "E_bb9e035e_9aa1a5dc86"
+          "E_1bf3228f_4eddc08ceb"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_481e74f8d7",
+        "cite_id": "E_1bf3228f_f42b6051b0",
         "evidence_ids": [
-          "E_bb9e035e_481e74f8d7"
+          "E_1bf3228f_f42b6051b0"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_2b44e626eb",
+        "cite_id": "E_1bf3228f_5c33b0d3f9",
         "evidence_ids": [
-          "E_bb9e035e_2b44e626eb"
+          "E_1bf3228f_5c33b0d3f9"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_bb9e035e_15d80c9989",
+        "cite_id": "E_1bf3228f_e5ace2f379",
         "evidence_ids": [
-          "E_bb9e035e_15d80c9989"
+          "E_1bf3228f_e5ace2f379"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
@@ -304,7 +304,7 @@
       "claim_count": 6,
       "evidence_count": 37
     },
-    "factuality_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\factuality_report.json",
+    "factuality_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\factuality_report.json",
     "consistency_report_path": ""
   }
 }

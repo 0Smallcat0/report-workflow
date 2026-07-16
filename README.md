@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-388%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-393%20passing-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **A deterministic verification layer that lets an LLM draft a report but refuses
@@ -216,7 +216,7 @@ the publish decision is auditable after the fact, not just asserted.
 Pages from a rendered engineering lab report produced by that benchmark — table of
 contents, title and abstract, and a figure derived from the source data:
 
-![Three pages of a pipeline-rendered DOCX report: a table of contents, a title-and-abstract page, and a page with a line chart derived from the source data.](docs/sample_report.png)
+![Three pages of a pipeline-rendered DOCX report: a title-and-abstract page, a table of contents, and a page with a line chart derived from the source data with a self-contained caption.](docs/sample_report.png)
 
 ## How it works
 
