@@ -26,11 +26,11 @@
         "c_proposal"
       ],
       "figure_ids": [
-        "figrec_1",
-        "figrec_2",
-        "figrec_3",
-        "figrec_4",
-        "figrec_5"
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
       ]
     },
     "recommendations": {
@@ -54,8 +54,8 @@
     }
   },
   "_contract": {
-    "job_id": "run_436fe1f7",
-    "evidence_ledger_hash": "c5fc6e98a9fa3e7f",
-    "source_registry_hash": "af34b4055f57fe6c"
+    "job_id": "run_85233d0c",
+    "evidence_ledger_hash": "ef74850bf6e5aa05",
+    "source_registry_hash": "22bec70b2854e963"
   }
 }

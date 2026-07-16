@@ -1,13 +1,13 @@
 {
-  "job_id": "run_f1d7a71f",
-  "created_at": "2026-05-13T18:55:18.681121",
+  "job_id": "run_180a78bd",
+  "created_at": "2026-07-16T21:51:43.880429",
   "status": "pass",
   "report_profile": "academic_paper",
   "reference_template_mode": "style_reference",
   "renderer_used": "pandoc",
   "reference_docx_applied": true,
   "reference_docx": {
-    "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\src\\report_workflow\\templates\\reference.docx",
+    "path": "D:\\report_workflow\\src\\report_workflow\\templates\\reference.docx",
     "exists": true,
     "load_error": "",
     "paragraph_count": 23,
@@ -136,16 +136,16 @@
     ]
   },
   "rendered_docx": {
-    "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_f1d7a71f\\final.docx",
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_180a78bd\\final.docx",
     "exists": true,
     "load_error": "",
-    "paragraph_count": 45,
+    "paragraph_count": 44,
     "table_count": 0,
     "paragraph_style_counts": {
       "Heading 1": 9,
       "First Paragraph": 14,
       "Body Text": 14,
-      "Heading 2": 7,
+      "Heading 2": 6,
       "Normal": 1
     },
     "table_style_counts": {},

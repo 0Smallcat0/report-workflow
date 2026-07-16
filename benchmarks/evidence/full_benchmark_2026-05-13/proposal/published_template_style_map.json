@@ -1,13 +1,13 @@
 {
-  "job_id": "run_a28272e6",
-  "created_at": "2026-05-13T18:55:26.664979",
+  "job_id": "run_012350ec",
+  "created_at": "2026-07-16T21:51:48.637849",
   "status": "pass",
   "report_profile": "proposal",
   "reference_template_mode": "style_reference",
   "renderer_used": "pandoc",
   "reference_docx_applied": true,
   "reference_docx": {
-    "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\src\\report_workflow\\templates\\reference.docx",
+    "path": "D:\\report_workflow\\src\\report_workflow\\templates\\reference.docx",
     "exists": true,
     "load_error": "",
     "paragraph_count": 23,
@@ -136,7 +136,7 @@
     ]
   },
   "rendered_docx": {
-    "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_a28272e6\\final.docx",
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\final.docx",
     "exists": true,
     "load_error": "",
     "paragraph_count": 40,

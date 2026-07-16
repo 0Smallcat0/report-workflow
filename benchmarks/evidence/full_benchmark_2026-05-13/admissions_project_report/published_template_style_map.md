@@ -4,15 +4,15 @@
 - Reference template mode: style_reference
 - Renderer: pandoc
 - Reference DOCX applied: True
-- Reference DOCX: C:\Users\Administrator\Desktop\report_workflow\src\report_workflow\templates\reference.docx
-- Rendered DOCX: C:\Users\Administrator\Desktop\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_8e799de4\final.docx
+- Reference DOCX: D:\report_workflow\src\report_workflow\templates\reference.docx
+- Rendered DOCX: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_d9076b34\final.docx
 
 ## Rendered Style Usage
 
 - Body Text: 14
 - First Paragraph: 10
 - Heading 1: 9
-- Heading 2: 2
+- Heading 2: 1
 - Normal: 1
 
 ## Reference Key Styles

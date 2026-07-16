@@ -7,7 +7,7 @@
       "claim_role": "supporting",
       "status": "supported",
       "evidence_ids": [
-        "E_521d86ce_b7fae7f3b0"
+        "E_ab83f80b_07a5877c72"
       ],
       "topic_tags": [
         "workflow design",
@@ -21,7 +21,7 @@
       "claim_role": "supporting",
       "status": "supported",
       "evidence_ids": [
-        "E_521d86ce_b09d6430d8"
+        "E_ab83f80b_77cde4a360"
       ],
       "topic_tags": [
         "method",
@@ -30,12 +30,12 @@
     },
     {
       "claim_id": "c_measurement",
-      "claim_text": "The measurement table records structured_workflow as lower than baseline_manual on median_processing_minutes and error_rate_percent, with higher reviewer_satisfaction_percent.",
+      "claim_text": "Across the same 42 participant notes, the structured workflow cut median processing time from 28 to 20 minutes per note and the error rate from 7.5% to 4.1%, while reviewer satisfaction rose from 71% to 84%.",
       "claim_type": "factual",
       "claim_role": "primary",
       "status": "supported",
       "evidence_ids": [
-        "E_521d86ce_ead8c24bf6"
+        "E_ab83f80b_70f2f3e695"
       ],
       "topic_tags": [
         "pilot outcome",
@@ -49,7 +49,7 @@
       "claim_role": "background",
       "status": "supported",
       "evidence_ids": [
-        "E_521d86ce_3328e3f92c"
+        "E_ab83f80b_9a0eeaac03"
       ],
       "topic_tags": [
         "limitation"
@@ -62,7 +62,7 @@
       "claim_role": "supporting",
       "status": "supported",
       "evidence_ids": [
-        "E_521d86ce_f17da0ea15"
+        "E_ab83f80b_ab67d39e05"
       ],
       "topic_tags": [
         "reviewer evidence"
@@ -70,12 +70,12 @@
     },
     {
       "claim_id": "c_proposal",
-      "claim_text": "The proposal inputs identify six weeks of implementation effort, a USD setup cost, reviewer training risk, and onboarding mitigation.",
+      "claim_text": "The proposal inputs identify six weeks of implementation effort, USD 4,800 in direct setup cost, reviewer training risk, and onboarding mitigation.",
       "claim_type": "factual",
       "claim_role": "background",
       "status": "supported",
       "evidence_ids": [
-        "E_521d86ce_62fb8c55eb"
+        "E_ab83f80b_bc56b73c68"
       ],
       "topic_tags": [
         "proposal",
@@ -84,8 +84,8 @@
     }
   ],
   "_contract": {
-    "job_id": "run_0846ddea",
-    "evidence_ledger_hash": "8121231e98ebe1ab",
-    "source_registry_hash": "cff515fb313fc77b"
+    "job_id": "run_21b303c9",
+    "evidence_ledger_hash": "16bac4be9ab322e8",
+    "source_registry_hash": "eca2999c9b6eebdf"
   }
 }

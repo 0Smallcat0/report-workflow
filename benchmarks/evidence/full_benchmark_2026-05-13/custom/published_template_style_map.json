@@ -1,13 +1,13 @@
 {
-  "job_id": "run_27e75580",
-  "created_at": "2026-05-13T18:55:37.862115",
+  "job_id": "run_bd338f7d",
+  "created_at": "2026-07-16T21:51:56.120457",
   "status": "pass",
   "report_profile": "custom",
   "reference_template_mode": "style_reference",
   "renderer_used": "pandoc",
   "reference_docx_applied": true,
   "reference_docx": {
-    "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\src\\report_workflow\\templates\\reference.docx",
+    "path": "D:\\report_workflow\\src\\report_workflow\\templates\\reference.docx",
     "exists": true,
     "load_error": "",
     "paragraph_count": 23,
@@ -136,13 +136,13 @@
     ]
   },
   "rendered_docx": {
-    "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_27e75580\\final.docx",
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\final.docx",
     "exists": true,
     "load_error": "",
-    "paragraph_count": 31,
+    "paragraph_count": 32,
     "table_count": 0,
     "paragraph_style_counts": {
-      "Heading 1": 7,
+      "Heading 1": 8,
       "First Paragraph": 8,
       "Body Text": 14,
       "Heading 2": 1,

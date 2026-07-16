@@ -16,20 +16,20 @@
             "c_proposal"
           ],
           "evidence_ids": [
-            "E_adf53f8e_d4b5b68b85",
-            "E_adf53f8e_60eb69ec39",
-            "E_adf53f8e_1ee8dd0706",
-            "E_adf53f8e_2d1eda1f94",
-            "E_adf53f8e_81b6bff3aa",
-            "E_adf53f8e_39b610616a"
+            "E_0f0b93ab_190e8c2e84",
+            "E_0f0b93ab_0087c4acf4",
+            "E_0f0b93ab_6a081ce143",
+            "E_0f0b93ab_cedba0b3f8",
+            "E_0f0b93ab_d3533db355",
+            "E_0f0b93ab_34df66e4fe"
           ],
           "citation_ids": [
-            "E_adf53f8e_d4b5b68b85",
-            "E_adf53f8e_60eb69ec39",
-            "E_adf53f8e_1ee8dd0706",
-            "E_adf53f8e_2d1eda1f94",
-            "E_adf53f8e_81b6bff3aa",
-            "E_adf53f8e_39b610616a"
+            "E_0f0b93ab_190e8c2e84",
+            "E_0f0b93ab_0087c4acf4",
+            "E_0f0b93ab_6a081ce143",
+            "E_0f0b93ab_cedba0b3f8",
+            "E_0f0b93ab_d3533db355",
+            "E_0f0b93ab_34df66e4fe"
           ],
           "wording_strength": "hedged"
         }
@@ -47,16 +47,16 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_adf53f8e_d4b5b68b85",
-            "E_adf53f8e_60eb69ec39",
-            "E_adf53f8e_1ee8dd0706",
-            "E_adf53f8e_2d1eda1f94"
+            "E_0f0b93ab_190e8c2e84",
+            "E_0f0b93ab_0087c4acf4",
+            "E_0f0b93ab_6a081ce143",
+            "E_0f0b93ab_cedba0b3f8"
           ],
           "citation_ids": [
-            "E_adf53f8e_d4b5b68b85",
-            "E_adf53f8e_60eb69ec39",
-            "E_adf53f8e_1ee8dd0706",
-            "E_adf53f8e_2d1eda1f94"
+            "E_0f0b93ab_190e8c2e84",
+            "E_0f0b93ab_0087c4acf4",
+            "E_0f0b93ab_6a081ce143",
+            "E_0f0b93ab_cedba0b3f8"
           ],
           "wording_strength": "hedged"
         }
@@ -72,12 +72,12 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_adf53f8e_60eb69ec39",
-            "E_adf53f8e_2d1eda1f94"
+            "E_0f0b93ab_0087c4acf4",
+            "E_0f0b93ab_cedba0b3f8"
           ],
           "citation_ids": [
-            "E_adf53f8e_60eb69ec39",
-            "E_adf53f8e_2d1eda1f94"
+            "E_0f0b93ab_0087c4acf4",
+            "E_0f0b93ab_cedba0b3f8"
           ],
           "wording_strength": "hedged"
         }
@@ -93,12 +93,12 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_adf53f8e_60eb69ec39",
-            "E_adf53f8e_2d1eda1f94"
+            "E_0f0b93ab_0087c4acf4",
+            "E_0f0b93ab_cedba0b3f8"
           ],
           "citation_ids": [
-            "E_adf53f8e_60eb69ec39",
-            "E_adf53f8e_2d1eda1f94"
+            "E_0f0b93ab_0087c4acf4",
+            "E_0f0b93ab_cedba0b3f8"
           ],
           "wording_strength": "hedged"
         }
@@ -114,12 +114,12 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_adf53f8e_d4b5b68b85",
-            "E_adf53f8e_2d1eda1f94"
+            "E_0f0b93ab_190e8c2e84",
+            "E_0f0b93ab_cedba0b3f8"
           ],
           "citation_ids": [
-            "E_adf53f8e_d4b5b68b85",
-            "E_adf53f8e_2d1eda1f94"
+            "E_0f0b93ab_190e8c2e84",
+            "E_0f0b93ab_cedba0b3f8"
           ],
           "wording_strength": "hedged"
         }
@@ -134,10 +134,10 @@
             "c_context"
           ],
           "evidence_ids": [
-            "E_adf53f8e_d4b5b68b85"
+            "E_0f0b93ab_190e8c2e84"
           ],
           "citation_ids": [
-            "E_adf53f8e_d4b5b68b85"
+            "E_0f0b93ab_190e8c2e84"
           ],
           "wording_strength": "hedged"
         }
@@ -147,21 +147,21 @@
       "title": "\u5be6\u9a57\u6b65\u9a5f",
       "sentences": [
         {
-          "text": "The methods used the controlled source dataset as the sample basis, processed the same 42 participant notes once with the baseline manual procedure and once with the structured workflow, applied the fixture tables as the software-free comparison criteria, and used no exclusions beyond the documented pilot scope; deterministic chart transforms were kept in figure metadata rather than recomputed in prose.",
+          "text": "The methods used the controlled source dataset as the sample basis, processed the same 42 participant notes once with the baseline manual procedure and once with the structured workflow, compared the conditions on median processing time per note, detected error rate, and reviewer satisfaction, and used no exclusions beyond the documented pilot scope; deterministic chart transforms were kept in figure metadata rather than recomputed in prose.",
           "claim_ids": [
             "c_method",
             "c_measurement",
             "c_limit"
           ],
           "evidence_ids": [
-            "E_adf53f8e_60eb69ec39",
-            "E_adf53f8e_1ee8dd0706",
-            "E_adf53f8e_2d1eda1f94"
+            "E_0f0b93ab_0087c4acf4",
+            "E_0f0b93ab_6a081ce143",
+            "E_0f0b93ab_cedba0b3f8"
           ],
           "citation_ids": [
-            "E_adf53f8e_60eb69ec39",
-            "E_adf53f8e_1ee8dd0706",
-            "E_adf53f8e_2d1eda1f94"
+            "E_0f0b93ab_0087c4acf4",
+            "E_0f0b93ab_6a081ce143",
+            "E_0f0b93ab_cedba0b3f8"
           ],
           "wording_strength": "hedged"
         }
@@ -171,80 +171,80 @@
       "title": "\u539f\u59cb\u8cc7\u6599\u8207\u5716\u8868",
       "sentences": [
         {
-          "text": "The measurement table records structured_workflow as lower than baseline_manual on median_processing_minutes and error_rate_percent while reviewer_satisfaction_percent is higher for the structured condition.",
+          "text": "Across the same 42 notes, median processing time fell from 28 minutes per note under the manual baseline to 20 minutes under the structured workflow, the share of notes needing reviewer repair fell from 7.5% to 4.1%, and reviewer satisfaction rose from 71% to 84%.",
           "claim_ids": [
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_adf53f8e_1ee8dd0706"
+            "E_0f0b93ab_6a081ce143"
           ],
           "citation_ids": [
-            "E_adf53f8e_1ee8dd0706"
+            "E_0f0b93ab_6a081ce143"
           ],
           "wording_strength": "hedged"
         },
         {
-          "text": "Figure figrec_1 uses a deterministic bar view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_1]\n\nFigure figrec_1: Bar view of chart_source.",
+          "text": "Figure 1 compares the two conditions directly: the structured workflow brings median processing time down from 28 to 20 minutes per note. [FIGURE:1]\n\nFigure 1: Median processing time per note, manual baseline versus structured workflow (minutes).",
           "claim_ids": [
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_adf53f8e_1ee8dd0706"
+            "E_0f0b93ab_6a081ce143"
           ],
           "citation_ids": [
-            "E_adf53f8e_1ee8dd0706"
+            "E_0f0b93ab_6a081ce143"
           ],
           "wording_strength": "hedged"
         },
         {
-          "text": "Figure figrec_2 uses a deterministic line view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_2]\n\nFigure figrec_2: Line view of chart_line_source.",
+          "text": "Figure 2 traces the month-by-month trend across the pilot period, with median processing time falling as the structured workflow settled in. [FIGURE:2]\n\nFigure 2: Median processing time per note by month over the pilot period (minutes).",
           "claim_ids": [
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_adf53f8e_1ee8dd0706"
+            "E_0f0b93ab_6a081ce143"
           ],
           "citation_ids": [
-            "E_adf53f8e_1ee8dd0706"
+            "E_0f0b93ab_6a081ce143"
           ],
           "wording_strength": "hedged"
         },
         {
-          "text": "Figure figrec_3 uses a deterministic scatter view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_3]\n\nFigure figrec_3: Scatter view of chart_scatter_source.",
+          "text": "Figure 3 sets intake complexity against review effort, showing that more complex notes demanded proportionally more reviewer attention. [FIGURE:3]\n\nFigure 3: Review effort score versus intake complexity score for the sampled notes.",
           "claim_ids": [
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_adf53f8e_1ee8dd0706"
+            "E_0f0b93ab_6a081ce143"
           ],
           "citation_ids": [
-            "E_adf53f8e_1ee8dd0706"
+            "E_0f0b93ab_6a081ce143"
           ],
           "wording_strength": "hedged"
         },
         {
-          "text": "Figure figrec_4 uses a deterministic boxplot view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_4]\n\nFigure figrec_4: Boxplot view of chart_boxplot_source.",
+          "text": "Figure 4 shows the spread of per-note processing times within each condition, not just the medians. [FIGURE:4]\n\nFigure 4: Distribution of per-note processing minutes under each condition.",
           "claim_ids": [
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_adf53f8e_1ee8dd0706"
+            "E_0f0b93ab_6a081ce143"
           ],
           "citation_ids": [
-            "E_adf53f8e_1ee8dd0706"
+            "E_0f0b93ab_6a081ce143"
           ],
           "wording_strength": "hedged"
         },
         {
-          "text": "Figure figrec_5 uses a deterministic table view from the controlled source-data fixtures to keep chart evidence separate from prose interpretation. [FIGURE:figrec_5]\n\nFigure figrec_5: Table view of chart_table_fallback_source after sort desc.",
+          "text": "Figure 5 lists the adoption parameters behind the proposal: two onboarding sessions, a one-week shadow period, and USD 4,800 in setup cost. [FIGURE:5]\n\nFigure 5: Adoption planning parameters from the proposal inputs.",
           "claim_ids": [
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_adf53f8e_1ee8dd0706"
+            "E_0f0b93ab_6a081ce143"
           ],
           "citation_ids": [
-            "E_adf53f8e_1ee8dd0706"
+            "E_0f0b93ab_6a081ce143"
           ],
           "wording_strength": "hedged"
         }
@@ -254,15 +254,15 @@
       "title": "\u8a08\u7b97\u8207\u55ae\u4f4d\u6aa2\u6838",
       "sentences": [
         {
-          "text": "The available calculation basis is the comparison table, which keeps the measured processing, repair, and satisfaction fields tied to the two conditions.",
+          "text": "The calculation basis is the measured comparison itself: median processing time of 28 minutes per note under the manual baseline versus 20 minutes under the structured workflow, an error rate of 7.5% versus 4.1%, and reviewer satisfaction of 71% versus 84%.",
           "claim_ids": [
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_adf53f8e_1ee8dd0706"
+            "E_0f0b93ab_6a081ce143"
           ],
           "citation_ids": [
-            "E_adf53f8e_1ee8dd0706"
+            "E_0f0b93ab_6a081ce143"
           ],
           "wording_strength": "hedged"
         }
@@ -272,18 +272,18 @@
       "title": "\u7d50\u679c\u8207\u8a0e\u8ad6",
       "sentences": [
         {
-          "text": "The result pattern is useful for decision-making because it combines practical review signals with a clear warning that the pilot should not be generalized beyond the tested workflow.",
+          "text": "The pattern \u2014 faster processing, fewer repairs, and higher reviewer satisfaction \u2014 is useful for decision-making because it combines practical review signals with a clear warning that the pilot should not be generalized beyond the tested workflow.",
           "claim_ids": [
             "c_measurement",
             "c_limit"
           ],
           "evidence_ids": [
-            "E_adf53f8e_1ee8dd0706",
-            "E_adf53f8e_2d1eda1f94"
+            "E_0f0b93ab_6a081ce143",
+            "E_0f0b93ab_cedba0b3f8"
           ],
           "citation_ids": [
-            "E_adf53f8e_1ee8dd0706",
-            "E_adf53f8e_2d1eda1f94"
+            "E_0f0b93ab_6a081ce143",
+            "E_0f0b93ab_cedba0b3f8"
           ],
           "wording_strength": "hedged"
         }
@@ -299,12 +299,12 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_adf53f8e_1ee8dd0706",
-            "E_adf53f8e_2d1eda1f94"
+            "E_0f0b93ab_6a081ce143",
+            "E_0f0b93ab_cedba0b3f8"
           ],
           "citation_ids": [
-            "E_adf53f8e_1ee8dd0706",
-            "E_adf53f8e_2d1eda1f94"
+            "E_0f0b93ab_6a081ce143",
+            "E_0f0b93ab_cedba0b3f8"
           ],
           "wording_strength": "hedged"
         }
@@ -320,8 +320,8 @@
     }
   },
   "_contract": {
-    "job_id": "run_0ce5189c",
-    "evidence_ledger_hash": "83335f7e18e94c4a",
-    "source_registry_hash": "721c981d5c023e13"
+    "job_id": "run_a92bd1f8",
+    "evidence_ledger_hash": "d00ec9b02a6148c8",
+    "source_registry_hash": "d936b60d5c70d14b"
   }
 }

@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-13T18:55:37",
+  "generated_at": "2026-07-16T21:51:56",
   "fixture": "benchmarks\\fixtures\\controlled_source.md",
   "fixtures": [
     "benchmarks\\fixtures\\controlled_source.md",
@@ -32,25 +32,25 @@
       ],
       "status": "pass",
       "gap_classification": null,
-      "job_id": "run_0ce5189c",
-      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Laboratory Report--run_0ce5189c",
+      "job_id": "run_a92bd1f8",
+      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Laboratory Report--run_a92bd1f8",
       "prepare_status": "awaiting_agent_artifacts",
       "agent_artifacts": {
         "claim_count": 6,
         "evidence_count": 37,
         "section_count": 13,
         "figure_ids": [
-          "figrec_1",
-          "figrec_2",
-          "figrec_3",
-          "figrec_4",
-          "figrec_5"
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
         ],
         "figure_section": "data"
       },
       "validate_status": "validated",
       "render_status": "completed",
-      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Laboratory Report--run_0ce5189c\\final.docx",
+      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Laboratory Report--run_a92bd1f8\\final.docx",
       "qa_digest": {
         "qa_decision": "pass",
         "hard_fail_reasons": [],
@@ -177,25 +177,25 @@
       ],
       "status": "pass",
       "gap_classification": null,
-      "job_id": "run_f1d7a71f",
-      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_f1d7a71f",
+      "job_id": "run_180a78bd",
+      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_180a78bd",
       "prepare_status": "awaiting_agent_artifacts",
       "agent_artifacts": {
         "claim_count": 6,
         "evidence_count": 37,
         "section_count": 9,
         "figure_ids": [
-          "figrec_1",
-          "figrec_2",
-          "figrec_3",
-          "figrec_4",
-          "figrec_5"
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
         ],
         "figure_section": "results"
       },
       "validate_status": "validated",
       "render_status": "completed",
-      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_f1d7a71f\\final.docx",
+      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_180a78bd\\final.docx",
       "qa_digest": {
         "qa_decision": "pass",
         "hard_fail_reasons": [],
@@ -322,25 +322,25 @@
       ],
       "status": "pass",
       "gap_classification": null,
-      "job_id": "run_436fe1f7",
-      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_436fe1f7",
+      "job_id": "run_85233d0c",
+      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_85233d0c",
       "prepare_status": "awaiting_agent_artifacts",
       "agent_artifacts": {
         "claim_count": 6,
         "evidence_count": 37,
         "section_count": 4,
         "figure_ids": [
-          "figrec_1",
-          "figrec_2",
-          "figrec_3",
-          "figrec_4",
-          "figrec_5"
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
         ],
         "figure_section": "findings"
       },
       "validate_status": "validated",
       "render_status": "completed",
-      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_436fe1f7\\final.docx",
+      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_85233d0c\\final.docx",
       "qa_digest": {
         "qa_decision": "pass",
         "hard_fail_reasons": [],
@@ -467,25 +467,25 @@
       ],
       "status": "pass",
       "gap_classification": null,
-      "job_id": "run_a28272e6",
-      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_a28272e6",
+      "job_id": "run_012350ec",
+      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec",
       "prepare_status": "awaiting_agent_artifacts",
       "agent_artifacts": {
         "claim_count": 6,
         "evidence_count": 37,
         "section_count": 10,
         "figure_ids": [
-          "figrec_1",
-          "figrec_2",
-          "figrec_3",
-          "figrec_4",
-          "figrec_5"
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
         ],
         "figure_section": "evaluation"
       },
       "validate_status": "validated",
       "render_status": "completed",
-      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_a28272e6\\final.docx",
+      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\final.docx",
       "qa_digest": {
         "qa_decision": "pass",
         "hard_fail_reasons": [],
@@ -612,25 +612,25 @@
       ],
       "status": "pass",
       "gap_classification": null,
-      "job_id": "run_0846ddea",
-      "run_dir": "output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_0846ddea",
+      "job_id": "run_21b303c9",
+      "run_dir": "output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_21b303c9",
       "prepare_status": "awaiting_agent_artifacts",
       "agent_artifacts": {
         "claim_count": 6,
         "evidence_count": 37,
         "section_count": 9,
         "figure_ids": [
-          "figrec_1",
-          "figrec_2",
-          "figrec_3",
-          "figrec_4",
-          "figrec_5"
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
         ],
         "figure_section": "results"
       },
       "validate_status": "validated",
       "render_status": "completed",
-      "final_docx_path": "output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_0846ddea\\final.docx",
+      "final_docx_path": "output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_21b303c9\\final.docx",
       "qa_digest": {
         "qa_decision": "pass",
         "hard_fail_reasons": [],
@@ -769,25 +769,25 @@
       ],
       "status": "pass",
       "gap_classification": null,
-      "job_id": "run_8e799de4",
-      "run_dir": "output\\benchmark_runs\\Evidence-Bounded Workflow Project Report--run_8e799de4",
+      "job_id": "run_d9076b34",
+      "run_dir": "output\\benchmark_runs\\Evidence-Bounded Workflow Project Report--run_d9076b34",
       "prepare_status": "awaiting_agent_artifacts",
       "agent_artifacts": {
         "claim_count": 6,
         "evidence_count": 37,
         "section_count": 9,
         "figure_ids": [
-          "figrec_1",
-          "figrec_2",
-          "figrec_3",
-          "figrec_4",
-          "figrec_5"
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
         ],
         "figure_section": "results"
       },
       "validate_status": "validated",
       "render_status": "completed",
-      "final_docx_path": "output\\benchmark_runs\\Evidence-Bounded Workflow Project Report--run_8e799de4\\final.docx",
+      "final_docx_path": "output\\benchmark_runs\\Evidence-Bounded Workflow Project Report--run_d9076b34\\final.docx",
       "qa_digest": {
         "qa_decision": "pass",
         "hard_fail_reasons": [],
@@ -922,25 +922,25 @@
       ],
       "status": "pass",
       "gap_classification": null,
-      "job_id": "run_27e75580",
-      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_27e75580",
+      "job_id": "run_bd338f7d",
+      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d",
       "prepare_status": "awaiting_agent_artifacts",
       "agent_artifacts": {
         "claim_count": 6,
         "evidence_count": 37,
         "section_count": 8,
         "figure_ids": [
-          "figrec_1",
-          "figrec_2",
-          "figrec_3",
-          "figrec_4",
-          "figrec_5"
+          "1",
+          "2",
+          "3",
+          "4",
+          "5"
         ],
         "figure_section": "results"
       },
       "validate_status": "validated",
       "render_status": "completed",
-      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_27e75580\\final.docx",
+      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\final.docx",
       "qa_digest": {
         "qa_decision": "pass",
         "hard_fail_reasons": [],

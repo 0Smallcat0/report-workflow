@@ -58,6 +58,31 @@ class SplitBodyReferencesTests(unittest.TestCase):
         self.assertIn("Appendix body.", cleaned)
         self.assertNotIn("## References", cleaned)
 
+    def test_h1_empty_references_is_removed(self):
+        # Upstream drafts carry "# References" (H1) before heading
+        # normalization; the empty-section guard must catch that level too.
+        md = "# Title\n\nBody prose.\n\n# References\n"
+        cleaned, refs_md = _split_body_references(md)
+        self.assertEqual(refs_md, "")
+        self.assertNotIn("References", cleaned)
+
+    def test_empty_references_at_eof_without_newline_is_removed(self):
+        # Real drafts can end exactly at the heading with no trailing newline
+        # (the case that actually shipped a dangling heading).
+        md = "# Title\n\nBody prose.\n\n# References"
+        cleaned, refs_md = _split_body_references(md)
+        self.assertEqual(refs_md, "")
+        self.assertNotIn("References", cleaned)
+
+    def test_h1_populated_references_are_extracted(self):
+        md = (
+            "# Title\n\nBody.\n\n# References\n\n"
+            "- Doe, J. (2025). A real source. Journal of Examples.\n"
+        )
+        cleaned, refs_md = _split_body_references(md)
+        self.assertNotIn("References", cleaned)
+        self.assertIn("Doe, J. (2025)", refs_md)
+
 
 class HangingIndentReferencesTests(unittest.TestCase):
     def test_heading_only_reference_md_adds_nothing(self):
