@@ -235,9 +235,9 @@ def _claims(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         {
             "claim_id": "c_measurement",
             "claim_text": (
-                "The measurement table records structured_workflow as lower than baseline_manual "
-                "on median_processing_minutes and error_rate_percent, with higher "
-                "reviewer_satisfaction_percent."
+                "Across the same 42 participant notes, the structured workflow cut median "
+                "processing time from 28 to 20 minutes per note and the error rate from "
+                "7.5% to 4.1%, while reviewer satisfaction rose from 71% to 84%."
             ),
             "claim_type": "factual",
             "claim_role": "primary",
@@ -266,8 +266,8 @@ def _claims(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         {
             "claim_id": "c_proposal",
             "claim_text": (
-                "The proposal inputs identify six weeks of implementation effort, a USD setup cost, "
-                "reviewer training risk, and onboarding mitigation."
+                "The proposal inputs identify six weeks of implementation effort, USD 4,800 in "
+                "direct setup cost, reviewer training risk, and onboarding mitigation."
             ),
             "claim_type": "factual",
             "claim_role": "background",
@@ -302,9 +302,9 @@ Document intake work often loses traceability when source notes, claims, and fin
 ## Objective
 The objective was to assess whether a structured workflow could preserve auditability while improving practical review signals for processing, errors, reviewer confidence, and future adoption planning.
 ## Methods
-The same participant notes were processed through a baseline manual condition and a structured_workflow condition, then compared on median_processing_minutes, error_rate_percent, and reviewer_satisfaction_percent. The procedure also recorded constraints that limit generalization.
+The same 42 participant notes were processed once with the baseline manual method and once with the structured workflow, then compared on median processing time per note, the share of notes needing reviewer repair, and reviewer satisfaction. The procedure also recorded constraints that limit generalization.
 ## Principal Findings
-The measurement table records a more favorable structured_workflow row than baseline_manual for processing and error fields, while reviewer_satisfaction_percent also favors the structured condition. Reviewer satisfaction is still supportive rather than primary evidence, and proposal inputs add adoption context through effort, cost, training risk, and onboarding mitigation.
+The structured workflow reduced median processing time from 28 to 20 minutes per note and the error rate from 7.5% to 4.1%, while reviewer satisfaction rose from 71% to 84%. Satisfaction remains supportive rather than primary evidence, and the proposal inputs frame adoption through six weeks of effort, USD 4,800 in setup cost, training risk, and onboarding mitigation.
 ## Significance
 The benchmark supports using evidence boundaries, explicit methods, adoption assumptions, and limitation statements as quality controls for report generation research. Its value is methodological: it creates a controlled profile comparison without converting one sample report into a universal template."""
     return _sent(
@@ -367,19 +367,19 @@ def _section_sentence(profile: str, section_id: str, claims: list[dict[str, Any]
         )
     if section_id in {"methods", "procedure", "proposed_approach"}:
         return _sent(
-            "The methods used the controlled source dataset as the sample basis, processed the same 42 participant notes once with the baseline manual procedure and once with the structured workflow, applied the fixture tables as the software-free comparison criteria, and used no exclusions beyond the documented pilot scope; deterministic chart transforms were kept in figure metadata rather than recomputed in prose.",
+            "The methods used the controlled source dataset as the sample basis, processed the same 42 participant notes once with the baseline manual procedure and once with the structured workflow, compared the conditions on median processing time per note, detected error rate, and reviewer satisfaction, and used no exclusions beyond the documented pilot scope; deterministic chart transforms were kept in figure metadata rather than recomputed in prose.",
             ["c_method", "c_measurement", "c_limit"],
             claims,
         )
     if section_id in {"results", "data", "findings"}:
         return _sent(
-            "The measurement table records structured_workflow as lower than baseline_manual on median_processing_minutes and error_rate_percent while reviewer_satisfaction_percent is higher for the structured condition.",
+            "Across the same 42 notes, median processing time fell from 28 minutes per note under the manual baseline to 20 minutes under the structured workflow, the share of notes needing reviewer repair fell from 7.5% to 4.1%, and reviewer satisfaction rose from 71% to 84%.",
             ["c_measurement"],
             claims,
         )
     if section_id in {"discussion", "results_discussion"}:
         return _sent(
-            "The result pattern is useful for decision-making because it combines practical review signals with a clear warning that the pilot should not be generalized beyond the tested workflow.",
+            "The pattern — faster processing, fewer repairs, and higher reviewer satisfaction — is useful for decision-making because it combines practical review signals with a clear warning that the pilot should not be generalized beyond the tested workflow.",
             ["c_measurement", "c_limit"],
             claims,
         )
@@ -415,7 +415,7 @@ def _section_sentence(profile: str, section_id: str, claims: list[dict[str, Any]
         )
     if section_id == "calculations":
         return _sent(
-            "The available calculation basis is the comparison table, which keeps the measured processing, repair, and satisfaction fields tied to the two conditions.",
+            "The calculation basis is the measured comparison itself: median processing time of 28 minutes per note under the manual baseline versus 20 minutes under the structured workflow, an error rate of 7.5% versus 4.1%, and reviewer satisfaction of 71% versus 84%.",
             ["c_measurement"],
             claims,
         )
@@ -491,8 +491,19 @@ def _normalize_figure_for_publication(figure: dict[str, Any], section_id: str) -
 
     title = str(figure.get("title") or "").strip()
     figure_id = str(figure.get("figure_id") or "").strip()
-    if not title or title.lower() in {figure_id.lower(), "figure", "chart", "plot"}:
-        figure["title"] = f"{figure_type or 'Source-data'} benchmark figure for {figure_id}"
+    generic_title = (
+        not title
+        or title.lower() in {figure_id.lower(), "figure", "chart", "plot"}
+        # Auto-plan titles like "Bar view of chart_source" leak internal
+        # dataset filenames into the rendered chart; replace them with the
+        # human caption for that chart type.
+        or re.search(r"(?i)\bview of\b|_source\b", title) is not None
+    )
+    if generic_title:
+        _, human_caption = _FIGURE_COPY.get(
+            figure_type, ("", "Source-data view supporting the pilot comparison")
+        )
+        figure["title"] = human_caption
         changed = True
     return changed
 
@@ -506,8 +517,19 @@ def _retarget_figure_plan(run_dir: Path, section_id: str | None) -> None:
     if not isinstance(figures, list):
         return
     changed = False
+    display_number = 0
     for figure in figures:
         if isinstance(figure, dict):
+            # Renumber ids to the publication-facing "1".."5" so prose
+            # references ("Figure 1"), [FIGURE:<id>] placeholders, and outline
+            # figure_ids all agree, and no figrec_* internal id can leak into
+            # the rendered document. recommendation_id keeps the audit trail
+            # back to figure_recommendations.json.
+            display_number += 1
+            new_id = str(display_number)
+            if figure.get("figure_id") != new_id:
+                figure["figure_id"] = new_id
+                changed = True
             changed = _normalize_figure_for_publication(figure, section_id) or changed
     if changed:
         _write_json(path, figure_plan)
@@ -556,17 +578,60 @@ def _outline(
     return outline
 
 
-def _figure_sentence(figure: dict[str, Any], claims: list[dict[str, Any]]) -> dict[str, Any] | None:
+# One distinct lead-in and one human caption per chart, written from what each
+# fixture dataset actually contains. Repeating a single template sentence with
+# a swapped noun is exactly the machine-writing tell the Prose Quality
+# contract forbids, and internal ids (figrec_*, *_source filenames) must never
+# reach body text or captions.
+_FIGURE_COPY: dict[str, tuple[str, str]] = {
+    "bar": (
+        "Figure {n} compares the two conditions directly: the structured workflow "
+        "brings median processing time down from 28 to 20 minutes per note.",
+        "Median processing time per note, manual baseline versus structured workflow (minutes)",
+    ),
+    "line": (
+        "Figure {n} traces the month-by-month trend across the pilot period, with "
+        "median processing time falling as the structured workflow settled in.",
+        "Median processing time per note by month over the pilot period (minutes)",
+    ),
+    "scatter": (
+        "Figure {n} sets intake complexity against review effort, showing that "
+        "more complex notes demanded proportionally more reviewer attention.",
+        "Review effort score versus intake complexity score for the sampled notes",
+    ),
+    "boxplot": (
+        "Figure {n} shows the spread of per-note processing times within each "
+        "condition, not just the medians.",
+        "Distribution of per-note processing minutes under each condition",
+    ),
+    "table": (
+        "Figure {n} lists the adoption parameters behind the proposal: two "
+        "onboarding sessions, a one-week shadow period, and USD 4,800 in setup cost.",
+        "Adoption planning parameters from the proposal inputs",
+    ),
+}
+
+
+def _figure_sentence(
+    figure: dict[str, Any],
+    claims: list[dict[str, Any]],
+    display_number: int,
+) -> dict[str, Any] | None:
     figure_id = str(figure.get("figure_id") or "").strip()
     if not figure_id:
         return None
-    figure_type = str(figure.get("figure_type") or "figure").replace("_", " ")
-    title = str(figure.get("title") or f"Benchmark figure {figure_id}").strip()
+    figure_type = str(figure.get("figure_type") or "").strip().lower()
+    lead_in, caption = _FIGURE_COPY.get(
+        figure_type,
+        (
+            "Figure {n} presents the supporting source-data view for this comparison.",
+            "Source-data view supporting the pilot comparison",
+        ),
+    )
     return _sent(
         (
-            f"Figure {figure_id} uses a deterministic {figure_type} view from the controlled source-data fixtures "
-            f"to keep chart evidence separate from prose interpretation. [FIGURE:{figure_id}]\n\n"
-            f"Figure {figure_id}: {title}."
+            f"{lead_in.format(n=display_number)} [FIGURE:{figure_id}]\n\n"
+            f"Figure {display_number}: {caption}."
         ),
         ["c_measurement"],
         claims,
@@ -585,8 +650,8 @@ def _structured_drafts(
         sentence = _section_sentence(profile, section_id, claims)
         sentences = [] if sentence is None else [sentence]
         if section_id == figure_section:
-            for figure in figures:
-                figure_sentence = _figure_sentence(figure, claims)
+            for display_number, figure in enumerate(figures, start=1):
+                figure_sentence = _figure_sentence(figure, claims, display_number)
                 if figure_sentence:
                     sentences.append(figure_sentence)
         sections[section_id] = {

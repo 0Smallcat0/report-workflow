@@ -4,8 +4,8 @@
 - Reference template mode: style_reference
 - Renderer: pandoc
 - Reference DOCX applied: True
-- Reference DOCX: C:\Users\Administrator\Desktop\report_workflow\src\report_workflow\templates\reference.docx
-- Rendered DOCX: C:\Users\Administrator\Desktop\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_a28272e6\final.docx
+- Reference DOCX: D:\report_workflow\src\report_workflow\templates\reference.docx
+- Rendered DOCX: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_012350ec\final.docx
 
 ## Rendered Style Usage
 

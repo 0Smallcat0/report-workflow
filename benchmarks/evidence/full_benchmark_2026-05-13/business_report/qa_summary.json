@@ -1,120 +1,123 @@
 {
-  "job_id": "run_436fe1f7",
+  "job_id": "run_85233d0c",
   "qa_decision": "pass",
   "artifact_completeness_status": "pass",
   "hard_fail_reasons": [],
   "citation_policy_warnings": [],
-  "style_lint_warnings": [],
+  "style_lint_warnings": [
+    "style lint: banned phrases found in merged draft: just",
+    "  Hint: To fix: Search for each phrase in base_document_sections.json or merged_draft.md and replace with acceptable alternatives. Examples: replace 'justified' with 'warranted' or 'necessary'; replace 'justification' with 'reasoning' or 'documented basis'. Then run: report-workflow invalidate-cache --job-id <id> --sources --drafts"
+  ],
   "evidence_policy_warnings": [],
   "citation_audit": [
     {
-      "cite_id": "E_78ae82bb_c809e9a6e8",
+      "cite_id": "E_64ebfc2a_614a1e116e",
       "evidence_ids": [
-        "E_78ae82bb_c809e9a6e8"
+        "E_64ebfc2a_614a1e116e"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_78ae82bb_43b19dc367",
+      "cite_id": "E_64ebfc2a_08b2c2f5ce",
       "evidence_ids": [
-        "E_78ae82bb_43b19dc367"
+        "E_64ebfc2a_08b2c2f5ce"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_78ae82bb_91226810a0",
+      "cite_id": "E_64ebfc2a_744fb272db",
       "evidence_ids": [
-        "E_78ae82bb_91226810a0"
+        "E_64ebfc2a_744fb272db"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_78ae82bb_f5e2b03d9a",
+      "cite_id": "E_64ebfc2a_216bf54894",
       "evidence_ids": [
-        "E_78ae82bb_f5e2b03d9a"
+        "E_64ebfc2a_216bf54894"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_78ae82bb_143071530f",
+      "cite_id": "E_64ebfc2a_fb9c1c6bb8",
       "evidence_ids": [
-        "E_78ae82bb_143071530f"
+        "E_64ebfc2a_fb9c1c6bb8"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_78ae82bb_a284501371",
+      "cite_id": "E_64ebfc2a_2f6560013b",
       "evidence_ids": [
-        "E_78ae82bb_a284501371"
+        "E_64ebfc2a_2f6560013b"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_78ae82bb_91226810a0",
+      "cite_id": "E_64ebfc2a_744fb272db",
       "evidence_ids": [
-        "E_78ae82bb_91226810a0"
+        "E_64ebfc2a_744fb272db"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_78ae82bb_91226810a0",
+      "cite_id": "E_64ebfc2a_744fb272db",
       "evidence_ids": [
-        "E_78ae82bb_91226810a0"
+        "E_64ebfc2a_744fb272db"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_78ae82bb_91226810a0",
+      "cite_id": "E_64ebfc2a_744fb272db",
       "evidence_ids": [
-        "E_78ae82bb_91226810a0"
+        "E_64ebfc2a_744fb272db"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_78ae82bb_91226810a0",
+      "cite_id": "E_64ebfc2a_744fb272db",
       "evidence_ids": [
-        "E_78ae82bb_91226810a0"
+        "E_64ebfc2a_744fb272db"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_78ae82bb_91226810a0",
+      "cite_id": "E_64ebfc2a_744fb272db",
       "evidence_ids": [
-        "E_78ae82bb_91226810a0"
+        "E_64ebfc2a_744fb272db"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_78ae82bb_91226810a0",
+      "cite_id": "E_64ebfc2a_744fb272db",
       "evidence_ids": [
-        "E_78ae82bb_91226810a0"
+        "E_64ebfc2a_744fb272db"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_78ae82bb_a284501371",
+      "cite_id": "E_64ebfc2a_2f6560013b",
       "evidence_ids": [
-        "E_78ae82bb_a284501371"
+        "E_64ebfc2a_2f6560013b"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_78ae82bb_143071530f",
+      "cite_id": "E_64ebfc2a_fb9c1c6bb8",
       "evidence_ids": [
-        "E_78ae82bb_143071530f"
+        "E_64ebfc2a_fb9c1c6bb8"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
@@ -129,6 +132,6 @@
     "claim_count": 6,
     "evidence_count": 37
   },
-  "factuality_report_path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_436fe1f7\\factuality_report.json",
+  "factuality_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_85233d0c\\factuality_report.json",
   "consistency_report_path": ""
 }

@@ -1,13 +1,13 @@
 {
-  "job_id": "run_0846ddea",
-  "created_at": "2026-05-13T18:55:30.755028",
+  "job_id": "run_21b303c9",
+  "created_at": "2026-07-16T21:51:51.158959",
   "status": "pass",
   "report_profile": "admissions_report",
   "reference_template_mode": "style_reference",
   "renderer_used": "pandoc",
   "reference_docx_applied": true,
   "reference_docx": {
-    "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\src\\report_workflow\\templates\\reference.docx",
+    "path": "D:\\report_workflow\\src\\report_workflow\\templates\\reference.docx",
     "exists": true,
     "load_error": "",
     "paragraph_count": 23,
@@ -136,16 +136,16 @@
     ]
   },
   "rendered_docx": {
-    "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_0846ddea\\final.docx",
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_21b303c9\\final.docx",
     "exists": true,
     "load_error": "",
-    "paragraph_count": 36,
+    "paragraph_count": 35,
     "table_count": 0,
     "paragraph_style_counts": {
       "Heading 1": 9,
       "First Paragraph": 10,
       "Body Text": 14,
-      "Heading 2": 2,
+      "Heading 2": 1,
       "Normal": 1
     },
     "table_style_counts": {},

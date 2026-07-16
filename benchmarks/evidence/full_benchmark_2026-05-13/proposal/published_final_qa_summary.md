@@ -1,10 +1,10 @@
 # Final QA Summary
 
-- Overall status: pass
+- Overall status: failed
 - QA decision: pass
 - Report profile: proposal
 - Renderer: pandoc
-- Final DOCX: C:\Users\Administrator\Desktop\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_a28272e6\final.docx
+- Final DOCX: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_012350ec\final.docx
 
 ## Key Checks
 
@@ -15,19 +15,25 @@
 - Template style: pass (0 warnings, reference applied: True)
 - Template fields: pass (7 filled, 0 warnings)
 - Figure visual quality: pass (0 review issues across 5 figures)
-- Render: pass (40 paragraphs, 0 tables, 5 inline shapes)
+- Render: failed (40 paragraphs, 0 tables, 5 inline shapes)
 
 ## Packaged Evidence
 
-- qa_summary: C:\Users\Administrator\Desktop\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_a28272e6\qa_summary.json
-- factuality_report: C:\Users\Administrator\Desktop\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_a28272e6\factuality_report.json
+- qa_summary: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_012350ec\qa_summary.json
+- factuality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_012350ec\factuality_report.json
 - artifact_lint_report: missing
 - engineering_audit_report: missing
-- scholarly_quality_report: C:\Users\Administrator\Desktop\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_a28272e6\scholarly_quality_report.json
-- scholarly_quality_report_md: C:\Users\Administrator\Desktop\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_a28272e6\scholarly_quality_report.md
-- template_style_map: C:\Users\Administrator\Desktop\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_a28272e6\template_style_map.json
-- template_field_fill_report: C:\Users\Administrator\Desktop\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_a28272e6\template_field_fill_report.json
-- figure_visual_quality_report: C:\Users\Administrator\Desktop\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_a28272e6\figure_visual_quality_report.json
-- post_render_validate_report: C:\Users\Administrator\Desktop\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_a28272e6\post_render_validate_report.json
-- post_render_layout_manifest: C:\Users\Administrator\Desktop\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_a28272e6\post_render_layout_manifest.json
-- visual_render_check_report: C:\Users\Administrator\Desktop\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_a28272e6\visual_render_check_report.json
+- scholarly_quality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_012350ec\scholarly_quality_report.json
+- scholarly_quality_report_md: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_012350ec\scholarly_quality_report.md
+- template_style_map: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_012350ec\template_style_map.json
+- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_012350ec\template_field_fill_report.json
+- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_012350ec\figure_visual_quality_report.json
+- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_012350ec\post_render_validate_report.json
+- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_012350ec\post_render_layout_manifest.json
+- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Adoption Proposal--run_012350ec\visual_render_check_report.json
+
+## Render Issues
+
+- '"C:\Program Files\LibreOffice\program\soffice.exe"' is not recognized as an internal or external command,
+operable program or batch file.
+

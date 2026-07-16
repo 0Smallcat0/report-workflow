@@ -65,11 +65,11 @@
         "c_proposal"
       ],
       "figure_ids": [
-        "figrec_1",
-        "figrec_2",
-        "figrec_3",
-        "figrec_4",
-        "figrec_5"
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
       ]
     },
     "discussion": {
@@ -127,8 +127,8 @@
     "main_limitation": "The source is synthetic and supports workflow-quality conclusions only within the tested pilot."
   },
   "_contract": {
-    "job_id": "run_f1d7a71f",
-    "evidence_ledger_hash": "4356e8af4ce52d20",
-    "source_registry_hash": "e77ffd794c6ab0b6"
+    "job_id": "run_180a78bd",
+    "evidence_ledger_hash": "1f9ac383f8f66af6",
+    "source_registry_hash": "e1ca3d42e43e32fa"
   }
 }

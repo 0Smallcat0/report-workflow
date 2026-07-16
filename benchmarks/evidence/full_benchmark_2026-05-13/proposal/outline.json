@@ -117,11 +117,11 @@
         "c_proposal"
       ],
       "figure_ids": [
-        "figrec_1",
-        "figrec_2",
-        "figrec_3",
-        "figrec_4",
-        "figrec_5"
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
       ]
     },
     "appendix": {
@@ -132,8 +132,8 @@
     }
   },
   "_contract": {
-    "job_id": "run_a28272e6",
-    "evidence_ledger_hash": "e81292fd08df6ed6",
-    "source_registry_hash": "b2c92d7ad3e8c34b"
+    "job_id": "run_012350ec",
+    "evidence_ledger_hash": "4d853a5820f0355b",
+    "source_registry_hash": "8d21981727648fca"
   }
 }

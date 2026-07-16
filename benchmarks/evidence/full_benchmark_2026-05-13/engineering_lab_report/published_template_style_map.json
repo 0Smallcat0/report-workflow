@@ -1,13 +1,13 @@
 {
-  "job_id": "run_0ce5189c",
-  "created_at": "2026-05-13T18:55:14.510356",
+  "job_id": "run_a92bd1f8",
+  "created_at": "2026-07-16T21:51:41.613251",
   "status": "pass",
   "report_profile": "engineering_lab_report",
   "reference_template_mode": "style_reference",
   "renderer_used": "pandoc",
   "reference_docx_applied": true,
   "reference_docx": {
-    "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\src\\report_workflow\\templates\\reference.docx",
+    "path": "D:\\report_workflow\\src\\report_workflow\\templates\\reference.docx",
     "exists": true,
     "load_error": "",
     "paragraph_count": 23,
@@ -136,13 +136,13 @@
     ]
   },
   "rendered_docx": {
-    "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Laboratory Report--run_0ce5189c\\final.docx",
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Laboratory Report--run_a92bd1f8\\final.docx",
     "exists": true,
     "load_error": "",
-    "paragraph_count": 52,
+    "paragraph_count": 53,
     "table_count": 0,
     "paragraph_style_counts": {
-      "Heading 1": 12,
+      "Heading 1": 13,
       "First Paragraph": 13,
       "Body Text": 14,
       "Heading 2": 12,

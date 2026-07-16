@@ -622,8 +622,11 @@ def _split_body_references(md_content: str) -> tuple[str, str]:
     nothing under it.
     """
     body_refs_md = ""
+    # Match the heading at any level: upstream drafts carry "# References"
+    # (H1) while normalized drafts carry "## References" (H2); both must be
+    # captured or an empty section rides through to the rendered document.
     body_refs_match = re.search(
-        r"(^##\s+References?[^\S\n]*\n+)(.*?)(?=^## |\Z)",
+        r"(^#{1,6}\s+References?[^\S\n]*(?:\n+|\Z))(.*?)(?=^#{1,6} |\Z)",
         md_content,
         re.MULTILINE | re.DOTALL,
     )
@@ -1037,7 +1040,7 @@ def run_docx_render(state: ReportState) -> ReportState:
             # Strip reference section from md_content for legacy converter
             # (it adds references separately with hanging indent)
             md_for_legacy = re.sub(
-                r"^## References\s*\n.*",
+                r"^#{1,6} References\s*\n.*",
                 "",
                 md_content,
                 flags=re.MULTILINE | re.DOTALL,

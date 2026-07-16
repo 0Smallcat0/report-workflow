@@ -104,11 +104,11 @@
         "c_proposal"
       ],
       "figure_ids": [
-        "figrec_1",
-        "figrec_2",
-        "figrec_3",
-        "figrec_4",
-        "figrec_5"
+        "1",
+        "2",
+        "3",
+        "4",
+        "5"
       ]
     },
     "calculations": {
@@ -171,8 +171,8 @@
     "uncertainty_limitations": "The fixture is synthetic, small, and not generalizable beyond the tested intake workflow."
   },
   "_contract": {
-    "job_id": "run_0ce5189c",
-    "evidence_ledger_hash": "83335f7e18e94c4a",
-    "source_registry_hash": "721c981d5c023e13"
+    "job_id": "run_a92bd1f8",
+    "evidence_ledger_hash": "d00ec9b02a6148c8",
+    "source_registry_hash": "d936b60d5c70d14b"
   }
 }

@@ -1,5 +1,36 @@
 # Changelog
 
+## 4.5.0 - 2026-07-16
+
+### Changed — output quality round (rendered documents, not gates)
+
+- Audited real rendered benchmark reports and removed every machine-writing
+  tell found, across all seven profiles:
+  - **Prose Quality contract** added to the generated agent task briefs and
+    `agent_skill/reference/authoring.md`: translate data identifiers into
+    plain language with units, state grounded numbers instead of writing
+    around them, keep internal ids out of body text and captions, write
+    captions that describe the finding (not the chart mechanics), and vary
+    figure lead-ins instead of repeating a template sentence.
+  - **Benchmark showcase prose rewritten** to follow that contract: real
+    measurements in the abstract/results/calculations ("28 to 20 minutes per
+    note", "7.5% to 4.1%", "71% to 84%") instead of snake_case field names
+    and a phantom "measurement table"; five distinct figure lead-ins and
+    human captions written from what each fixture dataset actually contains;
+    publication-facing figure ids renumbered to "Figure 1..5" (the
+    recommendation id keeps the audit trail) so no `figrec_*` or
+    `chart_*_source` token can leak into a rendered document.
+  - **Dangling empty References heading fixed for real**: the render-time
+    guard now matches the heading at any level (upstream drafts carry
+    `# References`, normalized drafts `## References`) and at end-of-file
+    without a trailing newline — the exact case that shipped. A report with
+    no references now simply has no References section. 10 regression tests
+    cover both render paths and the EOF edge (378 -> 388 total).
+- Regenerated the full seven-profile benchmark evidence from the new fixtures;
+  all profiles pass end-to-end and the rendered documents scan clean for
+  snake_case identifiers, internal ids, template repetition, and dangling
+  headings.
+
 ## 4.4.0 - 2026-07-15
 
 ### Added

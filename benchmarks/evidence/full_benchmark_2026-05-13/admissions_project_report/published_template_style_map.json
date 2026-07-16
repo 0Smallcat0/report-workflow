@@ -1,13 +1,13 @@
 {
-  "job_id": "run_8e799de4",
-  "created_at": "2026-05-13T18:55:34.151037",
+  "job_id": "run_d9076b34",
+  "created_at": "2026-07-16T21:51:53.666020",
   "status": "pass",
   "report_profile": "admissions_project_report",
   "reference_template_mode": "style_reference",
   "renderer_used": "pandoc",
   "reference_docx_applied": true,
   "reference_docx": {
-    "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\src\\report_workflow\\templates\\reference.docx",
+    "path": "D:\\report_workflow\\src\\report_workflow\\templates\\reference.docx",
     "exists": true,
     "load_error": "",
     "paragraph_count": 23,
@@ -136,16 +136,16 @@
     ]
   },
   "rendered_docx": {
-    "path": "C:\\Users\\Administrator\\Desktop\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project Report--run_8e799de4\\final.docx",
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project Report--run_d9076b34\\final.docx",
     "exists": true,
     "load_error": "",
-    "paragraph_count": 36,
+    "paragraph_count": 35,
     "table_count": 0,
     "paragraph_style_counts": {
       "Heading 1": 9,
       "First Paragraph": 10,
       "Body Text": 14,
-      "Heading 2": 2,
+      "Heading 2": 1,
       "Normal": 1
     },
     "table_style_counts": {},
