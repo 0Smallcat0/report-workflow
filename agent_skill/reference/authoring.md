@@ -125,6 +125,21 @@ Avoid in body prose:
 - internal file paths
 - ASCII-art diagrams; use Mermaid or real image assets instead (see
   [figures.md](figures.md))
+- snake_case/camelCase data identifiers (`median_processing_minutes`,
+  `structured_workflow`) — translate every column or field name into plain
+  language with units: "median processing time (minutes)"
+- recommendation ids (`figrec_1`) or dataset filenames (`chart_source`) in
+  body text or figure captions — captions must describe the finding and its
+  units ("Figure 1: Median processing time per note, manual baseline vs
+  structured workflow (minutes)"), not the mechanics of the chart
+- one template sentence repeated for several figures or results with only a
+  noun swapped — vary each lead-in around what that specific figure shows
+
+State grounded numbers instead of writing around them: when the evidence
+contains the value, put it in the sentence ("the error rate fell from 9.0% to
+3.5%"), reusing the evidence's own figures and units so the content checks
+pass. A quantitative section with no numbers reads as evasive even when every
+claim is verified.
 
 For `academic_paper` and `engineering_lab_report`, make Methods/Procedure
 reproducible: name the source or sample basis, procedure, parameters or
