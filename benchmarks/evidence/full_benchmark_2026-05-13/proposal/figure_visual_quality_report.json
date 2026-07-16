@@ -1,5 +1,5 @@
 {
-  "job_id": "run_012350ec",
+  "job_id": "run_41ee067d",
   "status": "passed",
   "generated_count": 5,
   "issue_count": 0,
@@ -8,7 +8,7 @@
     {
       "figure_id": "1",
       "figure_type": "bar",
-      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\figures\\1.png",
+      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\figures\\1.png",
       "status": "passed",
       "issue_count": 0,
       "issues": []
@@ -16,7 +16,7 @@
     {
       "figure_id": "2",
       "figure_type": "line",
-      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\figures\\2.png",
+      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\figures\\2.png",
       "status": "passed",
       "issue_count": 0,
       "issues": []
@@ -24,7 +24,7 @@
     {
       "figure_id": "3",
       "figure_type": "scatter",
-      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\figures\\3.png",
+      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\figures\\3.png",
       "status": "passed",
       "issue_count": 0,
       "issues": []
@@ -32,7 +32,7 @@
     {
       "figure_id": "4",
       "figure_type": "boxplot",
-      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\figures\\4.png",
+      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\figures\\4.png",
       "status": "passed",
       "issue_count": 0,
       "issues": []
@@ -40,7 +40,7 @@
     {
       "figure_id": "5",
       "figure_type": "table",
-      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_012350ec\\figures\\5.png",
+      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_41ee067d\\figures\\5.png",
       "status": "passed",
       "issue_count": 0,
       "issues": []

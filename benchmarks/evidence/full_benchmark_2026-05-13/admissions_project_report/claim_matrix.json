@@ -7,7 +7,7 @@
       "claim_role": "supporting",
       "status": "supported",
       "evidence_ids": [
-        "E_9d68713f_4a6fb570b1"
+        "E_160d5ee1_ded0816d4b"
       ],
       "topic_tags": [
         "workflow design",
@@ -21,7 +21,7 @@
       "claim_role": "supporting",
       "status": "supported",
       "evidence_ids": [
-        "E_9d68713f_36ae7b22f9"
+        "E_160d5ee1_1d63e008e1"
       ],
       "topic_tags": [
         "method",
@@ -35,7 +35,7 @@
       "claim_role": "primary",
       "status": "supported",
       "evidence_ids": [
-        "E_9d68713f_658a4de6d4"
+        "E_160d5ee1_0250b372fc"
       ],
       "topic_tags": [
         "pilot outcome",
@@ -49,7 +49,7 @@
       "claim_role": "background",
       "status": "supported",
       "evidence_ids": [
-        "E_9d68713f_ee1e978821"
+        "E_160d5ee1_45a55b899c"
       ],
       "topic_tags": [
         "limitation"
@@ -62,7 +62,7 @@
       "claim_role": "supporting",
       "status": "supported",
       "evidence_ids": [
-        "E_9d68713f_b0abd0cf09"
+        "E_160d5ee1_814efe162a"
       ],
       "topic_tags": [
         "reviewer evidence"
@@ -75,7 +75,7 @@
       "claim_role": "background",
       "status": "supported",
       "evidence_ids": [
-        "E_9d68713f_7c1525145f"
+        "E_160d5ee1_a0a697eb0a"
       ],
       "topic_tags": [
         "proposal",
@@ -84,8 +84,8 @@
     }
   ],
   "_contract": {
-    "job_id": "run_d9076b34",
-    "evidence_ledger_hash": "f64e9e0a8b8ce14f",
-    "source_registry_hash": "8bc7a35519ccce29"
+    "job_id": "run_f42460d6",
+    "evidence_ledger_hash": "aba49063982c55a4",
+    "source_registry_hash": "e3902d8a2b9b0940"
   }
 }

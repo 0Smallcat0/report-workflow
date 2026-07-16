@@ -1,6 +1,6 @@
 {
-  "job_id": "run_bd338f7d",
-  "created_at": "2026-07-16T21:51:56.120457",
+  "job_id": "run_63eb532d",
+  "created_at": "2026-07-16T22:14:57.717890",
   "status": "pass",
   "report_profile": "custom",
   "reference_template_mode": "style_reference",
@@ -136,7 +136,7 @@
     ]
   },
   "rendered_docx": {
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_bd338f7d\\final.docx",
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_63eb532d\\final.docx",
     "exists": true,
     "load_error": "",
     "paragraph_count": 32,

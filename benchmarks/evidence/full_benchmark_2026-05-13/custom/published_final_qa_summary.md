@@ -4,7 +4,7 @@
 - QA decision: pass
 - Report profile: custom
 - Renderer: pandoc
-- Final DOCX: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_bd338f7d\final.docx
+- Final DOCX: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_63eb532d\final.docx
 
 ## Key Checks
 
@@ -19,18 +19,18 @@
 
 ## Packaged Evidence
 
-- qa_summary: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_bd338f7d\qa_summary.json
-- factuality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_bd338f7d\factuality_report.json
+- qa_summary: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_63eb532d\qa_summary.json
+- factuality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_63eb532d\factuality_report.json
 - artifact_lint_report: missing
 - engineering_audit_report: missing
-- scholarly_quality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_bd338f7d\scholarly_quality_report.json
-- scholarly_quality_report_md: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_bd338f7d\scholarly_quality_report.md
-- template_style_map: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_bd338f7d\template_style_map.json
-- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_bd338f7d\template_field_fill_report.json
-- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_bd338f7d\figure_visual_quality_report.json
-- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_bd338f7d\post_render_validate_report.json
-- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_bd338f7d\post_render_layout_manifest.json
-- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_bd338f7d\visual_render_check_report.json
+- scholarly_quality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_63eb532d\scholarly_quality_report.json
+- scholarly_quality_report_md: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_63eb532d\scholarly_quality_report.md
+- template_style_map: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_63eb532d\template_style_map.json
+- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_63eb532d\template_field_fill_report.json
+- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_63eb532d\figure_visual_quality_report.json
+- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_63eb532d\post_render_validate_report.json
+- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_63eb532d\post_render_layout_manifest.json
+- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_63eb532d\visual_render_check_report.json
 
 ## Render Issues
 

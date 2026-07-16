@@ -333,9 +333,10 @@ def _abstract_plain(profile: str, claims: list[dict[str, Any]]) -> dict[str, Any
         return _sent(text, ["c_context", "c_method", "c_limit", "c_proposal"], claims)
     text = (
         "The controlled source describes a synthetic pilot for converting intake notes into auditable report "
-        "artifacts. It records the workflow context, comparison procedure, measurement table, proposal inputs, "
-        "and project-learning constraints. The report uses these source elements to describe what changed, "
-        "what can be recommended, and what should remain bounded as pilot evidence."
+        "artifacts. It records the workflow context, the comparison procedure, the measured results for both "
+        "conditions, the proposal inputs, and project-learning constraints. The report uses these source "
+        "elements to describe what changed, what can be recommended, and what should remain bounded as pilot "
+        "evidence."
     )
     return _sent(text, ["c_context", "c_method", "c_measurement", "c_limit"], claims)
 
