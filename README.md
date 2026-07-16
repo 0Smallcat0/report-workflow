@@ -284,6 +284,14 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
+If the `report-workflow` command fails silently (common on Windows when
+several Python installs leave a stale `report-workflow.exe` on PATH), use the
+PATH-independent form — it always runs against the interpreter you invoke:
+
+```bash
+python -m report_workflow prepare --help
+```
+
 Required external tool for full-fidelity rendering:
 
 ```powershell

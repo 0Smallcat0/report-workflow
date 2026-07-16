@@ -14,16 +14,16 @@
             "c_proposal"
           ],
           "evidence_ids": [
-            "E_7af0a5ed_5c3a8d6bbf",
-            "E_7af0a5ed_fe44175d3a",
-            "E_7af0a5ed_8c2bc52653",
-            "E_7af0a5ed_37488b10e2"
+            "E_00f5d0b5_ac7dd5ae30",
+            "E_00f5d0b5_30e66c74da",
+            "E_00f5d0b5_3daff80c86",
+            "E_00f5d0b5_f2a7b118c6"
           ],
           "citation_ids": [
-            "E_7af0a5ed_5c3a8d6bbf",
-            "E_7af0a5ed_fe44175d3a",
-            "E_7af0a5ed_8c2bc52653",
-            "E_7af0a5ed_37488b10e2"
+            "E_00f5d0b5_ac7dd5ae30",
+            "E_00f5d0b5_30e66c74da",
+            "E_00f5d0b5_3daff80c86",
+            "E_00f5d0b5_f2a7b118c6"
           ],
           "wording_strength": "hedged"
         }
@@ -43,20 +43,20 @@
             "c_proposal"
           ],
           "evidence_ids": [
-            "E_7af0a5ed_5c3a8d6bbf",
-            "E_7af0a5ed_fe44175d3a",
-            "E_7af0a5ed_64266f98a9",
-            "E_7af0a5ed_8c2bc52653",
-            "E_7af0a5ed_e2352be481",
-            "E_7af0a5ed_37488b10e2"
+            "E_00f5d0b5_ac7dd5ae30",
+            "E_00f5d0b5_30e66c74da",
+            "E_00f5d0b5_4bc8203773",
+            "E_00f5d0b5_3daff80c86",
+            "E_00f5d0b5_58124ba649",
+            "E_00f5d0b5_f2a7b118c6"
           ],
           "citation_ids": [
-            "E_7af0a5ed_5c3a8d6bbf",
-            "E_7af0a5ed_fe44175d3a",
-            "E_7af0a5ed_64266f98a9",
-            "E_7af0a5ed_8c2bc52653",
-            "E_7af0a5ed_e2352be481",
-            "E_7af0a5ed_37488b10e2"
+            "E_00f5d0b5_ac7dd5ae30",
+            "E_00f5d0b5_30e66c74da",
+            "E_00f5d0b5_4bc8203773",
+            "E_00f5d0b5_3daff80c86",
+            "E_00f5d0b5_58124ba649",
+            "E_00f5d0b5_f2a7b118c6"
           ],
           "wording_strength": "hedged"
         }
@@ -72,12 +72,12 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_7af0a5ed_fe44175d3a",
-            "E_7af0a5ed_8c2bc52653"
+            "E_00f5d0b5_30e66c74da",
+            "E_00f5d0b5_3daff80c86"
           ],
           "citation_ids": [
-            "E_7af0a5ed_fe44175d3a",
-            "E_7af0a5ed_8c2bc52653"
+            "E_00f5d0b5_30e66c74da",
+            "E_00f5d0b5_3daff80c86"
           ],
           "wording_strength": "hedged"
         }
@@ -94,14 +94,14 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_7af0a5ed_fe44175d3a",
-            "E_7af0a5ed_64266f98a9",
-            "E_7af0a5ed_8c2bc52653"
+            "E_00f5d0b5_30e66c74da",
+            "E_00f5d0b5_4bc8203773",
+            "E_00f5d0b5_3daff80c86"
           ],
           "citation_ids": [
-            "E_7af0a5ed_fe44175d3a",
-            "E_7af0a5ed_64266f98a9",
-            "E_7af0a5ed_8c2bc52653"
+            "E_00f5d0b5_30e66c74da",
+            "E_00f5d0b5_4bc8203773",
+            "E_00f5d0b5_3daff80c86"
           ],
           "wording_strength": "hedged"
         }
@@ -116,10 +116,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_7af0a5ed_64266f98a9"
+            "E_00f5d0b5_4bc8203773"
           ],
           "citation_ids": [
-            "E_7af0a5ed_64266f98a9"
+            "E_00f5d0b5_4bc8203773"
           ],
           "wording_strength": "hedged"
         },
@@ -129,10 +129,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_7af0a5ed_64266f98a9"
+            "E_00f5d0b5_4bc8203773"
           ],
           "citation_ids": [
-            "E_7af0a5ed_64266f98a9"
+            "E_00f5d0b5_4bc8203773"
           ],
           "wording_strength": "hedged"
         },
@@ -142,10 +142,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_7af0a5ed_64266f98a9"
+            "E_00f5d0b5_4bc8203773"
           ],
           "citation_ids": [
-            "E_7af0a5ed_64266f98a9"
+            "E_00f5d0b5_4bc8203773"
           ],
           "wording_strength": "hedged"
         },
@@ -155,10 +155,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_7af0a5ed_64266f98a9"
+            "E_00f5d0b5_4bc8203773"
           ],
           "citation_ids": [
-            "E_7af0a5ed_64266f98a9"
+            "E_00f5d0b5_4bc8203773"
           ],
           "wording_strength": "hedged"
         },
@@ -168,10 +168,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_7af0a5ed_64266f98a9"
+            "E_00f5d0b5_4bc8203773"
           ],
           "citation_ids": [
-            "E_7af0a5ed_64266f98a9"
+            "E_00f5d0b5_4bc8203773"
           ],
           "wording_strength": "hedged"
         },
@@ -181,10 +181,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_7af0a5ed_64266f98a9"
+            "E_00f5d0b5_4bc8203773"
           ],
           "citation_ids": [
-            "E_7af0a5ed_64266f98a9"
+            "E_00f5d0b5_4bc8203773"
           ],
           "wording_strength": "hedged"
         }
@@ -200,12 +200,12 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_7af0a5ed_64266f98a9",
-            "E_7af0a5ed_8c2bc52653"
+            "E_00f5d0b5_4bc8203773",
+            "E_00f5d0b5_3daff80c86"
           ],
           "citation_ids": [
-            "E_7af0a5ed_64266f98a9",
-            "E_7af0a5ed_8c2bc52653"
+            "E_00f5d0b5_4bc8203773",
+            "E_00f5d0b5_3daff80c86"
           ],
           "wording_strength": "hedged"
         }
@@ -221,12 +221,12 @@
             "c_satisfaction"
           ],
           "evidence_ids": [
-            "E_7af0a5ed_8c2bc52653",
-            "E_7af0a5ed_e2352be481"
+            "E_00f5d0b5_3daff80c86",
+            "E_00f5d0b5_58124ba649"
           ],
           "citation_ids": [
-            "E_7af0a5ed_8c2bc52653",
-            "E_7af0a5ed_e2352be481"
+            "E_00f5d0b5_3daff80c86",
+            "E_00f5d0b5_58124ba649"
           ],
           "wording_strength": "hedged"
         }
@@ -243,14 +243,14 @@
             "c_satisfaction"
           ],
           "evidence_ids": [
-            "E_7af0a5ed_5c3a8d6bbf",
-            "E_7af0a5ed_8c2bc52653",
-            "E_7af0a5ed_e2352be481"
+            "E_00f5d0b5_ac7dd5ae30",
+            "E_00f5d0b5_3daff80c86",
+            "E_00f5d0b5_58124ba649"
           ],
           "citation_ids": [
-            "E_7af0a5ed_5c3a8d6bbf",
-            "E_7af0a5ed_8c2bc52653",
-            "E_7af0a5ed_e2352be481"
+            "E_00f5d0b5_ac7dd5ae30",
+            "E_00f5d0b5_3daff80c86",
+            "E_00f5d0b5_58124ba649"
           ],
           "wording_strength": "hedged"
         }
@@ -262,8 +262,8 @@
     }
   },
   "_contract": {
-    "job_id": "run_3b6bc18c",
-    "evidence_ledger_hash": "1ac581a344da2093",
-    "source_registry_hash": "0728e233e9fc7056"
+    "job_id": "run_9fb2cf1e",
+    "evidence_ledger_hash": "cbabb570bf12815f",
+    "source_registry_hash": "c0ca199ba9fc54b3"
   }
 }

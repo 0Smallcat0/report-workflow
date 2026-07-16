@@ -38,6 +38,32 @@ _COLORBLIND_SAFE_PALETTE = (
 def _palette_color(index: int) -> str:
     return _COLORBLIND_SAFE_PALETTE[index % len(_COLORBLIND_SAFE_PALETTE)]
 
+
+def _configure_cjk_fonts(matplotlib_module: Any) -> None:
+    """Prepend CJK-capable fonts so Chinese titles/labels render as text.
+
+    matplotlib's default DejaVu Sans has no CJK glyphs, so every Chinese
+    character in a chart title, axis label, or legend renders as a tofu box.
+    Missing font names in the list are skipped, so this is safe cross-platform:
+    Windows resolves Microsoft JhengHei, Linux/macOS resolve a Noto/PingFang
+    variant when installed, and everything else falls back to DejaVu Sans.
+    """
+    preferred = [
+        "Microsoft JhengHei",
+        "Microsoft YaHei",
+        "PingFang TC",
+        "Noto Sans CJK TC",
+        "Noto Sans CJK SC",
+        "SimHei",
+        "DejaVu Sans",
+    ]
+    current = list(matplotlib_module.rcParams.get("font.sans-serif", []))
+    matplotlib_module.rcParams["font.sans-serif"] = preferred + [
+        name for name in current if name not in preferred
+    ]
+    # CJK fonts often lack U+2212; use ASCII hyphen for minus signs.
+    matplotlib_module.rcParams["axes.unicode_minus"] = False
+
 # ------------------------------------------------------------------
 # Schema for figure_plan.json (what the agent must produce)
 # ------------------------------------------------------------------
@@ -142,6 +168,7 @@ def _check_matplotlib() -> bool:
         try:
             import matplotlib
             matplotlib.use("Agg")  # non-interactive backend
+            _configure_cjk_fonts(matplotlib)  # rcParams persist process-wide
             _MATPLOTLIB_AVAILABLE = True
         except Exception:
             _MATPLOTLIB_AVAILABLE = False

@@ -1,14 +1,14 @@
 {
-  "job_id": "run_3b6bc18c",
-  "created_at": "2026-07-16T22:14:55.064693",
+  "job_id": "run_9fb2cf1e",
+  "created_at": "2026-07-16T23:16:01.666469",
   "status": "completed",
   "overall_status": "failed",
   "report_profile": "admissions_report",
   "report": {
-    "final_docx_path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\final.docx",
-    "published_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\final.docx",
+    "final_docx_path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\final.docx",
+    "published_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\final.docx",
     "renderer_used": "pandoc",
-    "file_size_bytes": 168172,
+    "file_size_bytes": 182693,
     "workflow_success": true
   },
   "gate_summary": {
@@ -24,7 +24,7 @@
     "verified_count": 6,
     "blocked_count": 0,
     "claim_count": 6,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\factuality_report.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\factuality_report.json"
   },
   "artifact_lint": {
     "status": "missing",
@@ -48,7 +48,7 @@
     "issue_count": 0,
     "hard_issue_count": 0,
     "review_issue_count": 0,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\scholarly_quality_report.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\scholarly_quality_report.json"
   },
   "template_style": {
     "status": "pass",
@@ -57,7 +57,7 @@
     "renderer_used": "pandoc",
     "reference_docx_applied": true,
     "rendered_paragraph_style_count": 5,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\template_style_map.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\template_style_map.json"
   },
   "template_field_fill": {
     "status": "pass",
@@ -66,13 +66,13 @@
     "filled_count": 7,
     "missing_value_count": 0,
     "not_found_count": 0,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\template_field_fill_report.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\template_field_fill_report.json"
   },
   "figure_visual_quality": {
     "status": "pass",
     "issue_count": 0,
     "figure_count": 5,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\figure_visual_quality_report.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\figure_visual_quality_report.json"
   },
   "render": {
     "status": "failed",
@@ -85,24 +85,24 @@
     "issues": [
       "'\"C:\\Program Files\\LibreOffice\\program\\soffice.exe\"' is not recognized as an internal or external command,\noperable program or batch file.\n"
     ],
-    "post_render_layout_manifest_path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\post_render_layout_manifest.json"
+    "post_render_layout_manifest_path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\post_render_layout_manifest.json"
   },
   "source_artifacts": {
-    "qa_summary": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\qa_summary.json",
-    "factuality_report": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\factuality_report.json",
+    "qa_summary": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\qa_summary.json",
+    "factuality_report": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\factuality_report.json",
     "artifact_lint_report": "",
     "engineering_audit_report": "",
-    "scholarly_quality_report": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\scholarly_quality_report.json",
-    "scholarly_quality_report_md": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\scholarly_quality_report.md",
-    "template_style_map": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\template_style_map.json",
-    "template_field_fill_report": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\template_field_fill_report.json",
-    "figure_visual_quality_report": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\figure_visual_quality_report.json",
-    "post_render_validate_report": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\post_render_validate_report.json",
-    "post_render_layout_manifest": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\post_render_layout_manifest.json",
-    "visual_render_check_report": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\visual_render_check_report.json"
+    "scholarly_quality_report": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\scholarly_quality_report.json",
+    "scholarly_quality_report_md": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\scholarly_quality_report.md",
+    "template_style_map": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\template_style_map.json",
+    "template_field_fill_report": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\template_field_fill_report.json",
+    "figure_visual_quality_report": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\figure_visual_quality_report.json",
+    "post_render_validate_report": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\post_render_validate_report.json",
+    "post_render_layout_manifest": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\post_render_layout_manifest.json",
+    "visual_render_check_report": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\visual_render_check_report.json"
   },
   "qa_summary": {
-    "job_id": "run_3b6bc18c",
+    "job_id": "run_9fb2cf1e",
     "qa_decision": "pass",
     "artifact_completeness_status": "pass",
     "hard_fail_reasons": [],
@@ -113,225 +113,225 @@
     ],
     "citation_audit": [
       {
-        "cite_id": "E_7af0a5ed_5c3a8d6bbf",
+        "cite_id": "E_00f5d0b5_ac7dd5ae30",
         "evidence_ids": [
-          "E_7af0a5ed_5c3a8d6bbf"
+          "E_00f5d0b5_ac7dd5ae30"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_fe44175d3a",
+        "cite_id": "E_00f5d0b5_30e66c74da",
         "evidence_ids": [
-          "E_7af0a5ed_fe44175d3a"
+          "E_00f5d0b5_30e66c74da"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_8c2bc52653",
+        "cite_id": "E_00f5d0b5_3daff80c86",
         "evidence_ids": [
-          "E_7af0a5ed_8c2bc52653"
+          "E_00f5d0b5_3daff80c86"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_37488b10e2",
+        "cite_id": "E_00f5d0b5_f2a7b118c6",
         "evidence_ids": [
-          "E_7af0a5ed_37488b10e2"
+          "E_00f5d0b5_f2a7b118c6"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_5c3a8d6bbf",
+        "cite_id": "E_00f5d0b5_ac7dd5ae30",
         "evidence_ids": [
-          "E_7af0a5ed_5c3a8d6bbf"
+          "E_00f5d0b5_ac7dd5ae30"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_fe44175d3a",
+        "cite_id": "E_00f5d0b5_30e66c74da",
         "evidence_ids": [
-          "E_7af0a5ed_fe44175d3a"
+          "E_00f5d0b5_30e66c74da"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_64266f98a9",
+        "cite_id": "E_00f5d0b5_4bc8203773",
         "evidence_ids": [
-          "E_7af0a5ed_64266f98a9"
+          "E_00f5d0b5_4bc8203773"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_8c2bc52653",
+        "cite_id": "E_00f5d0b5_3daff80c86",
         "evidence_ids": [
-          "E_7af0a5ed_8c2bc52653"
+          "E_00f5d0b5_3daff80c86"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_e2352be481",
+        "cite_id": "E_00f5d0b5_58124ba649",
         "evidence_ids": [
-          "E_7af0a5ed_e2352be481"
+          "E_00f5d0b5_58124ba649"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_37488b10e2",
+        "cite_id": "E_00f5d0b5_f2a7b118c6",
         "evidence_ids": [
-          "E_7af0a5ed_37488b10e2"
+          "E_00f5d0b5_f2a7b118c6"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_fe44175d3a",
+        "cite_id": "E_00f5d0b5_30e66c74da",
         "evidence_ids": [
-          "E_7af0a5ed_fe44175d3a"
+          "E_00f5d0b5_30e66c74da"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_8c2bc52653",
+        "cite_id": "E_00f5d0b5_3daff80c86",
         "evidence_ids": [
-          "E_7af0a5ed_8c2bc52653"
+          "E_00f5d0b5_3daff80c86"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_fe44175d3a",
+        "cite_id": "E_00f5d0b5_30e66c74da",
         "evidence_ids": [
-          "E_7af0a5ed_fe44175d3a"
+          "E_00f5d0b5_30e66c74da"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_64266f98a9",
+        "cite_id": "E_00f5d0b5_4bc8203773",
         "evidence_ids": [
-          "E_7af0a5ed_64266f98a9"
+          "E_00f5d0b5_4bc8203773"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_8c2bc52653",
+        "cite_id": "E_00f5d0b5_3daff80c86",
         "evidence_ids": [
-          "E_7af0a5ed_8c2bc52653"
+          "E_00f5d0b5_3daff80c86"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_64266f98a9",
+        "cite_id": "E_00f5d0b5_4bc8203773",
         "evidence_ids": [
-          "E_7af0a5ed_64266f98a9"
+          "E_00f5d0b5_4bc8203773"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_64266f98a9",
+        "cite_id": "E_00f5d0b5_4bc8203773",
         "evidence_ids": [
-          "E_7af0a5ed_64266f98a9"
+          "E_00f5d0b5_4bc8203773"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_64266f98a9",
+        "cite_id": "E_00f5d0b5_4bc8203773",
         "evidence_ids": [
-          "E_7af0a5ed_64266f98a9"
+          "E_00f5d0b5_4bc8203773"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_64266f98a9",
+        "cite_id": "E_00f5d0b5_4bc8203773",
         "evidence_ids": [
-          "E_7af0a5ed_64266f98a9"
+          "E_00f5d0b5_4bc8203773"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_64266f98a9",
+        "cite_id": "E_00f5d0b5_4bc8203773",
         "evidence_ids": [
-          "E_7af0a5ed_64266f98a9"
+          "E_00f5d0b5_4bc8203773"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_64266f98a9",
+        "cite_id": "E_00f5d0b5_4bc8203773",
         "evidence_ids": [
-          "E_7af0a5ed_64266f98a9"
+          "E_00f5d0b5_4bc8203773"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_64266f98a9",
+        "cite_id": "E_00f5d0b5_4bc8203773",
         "evidence_ids": [
-          "E_7af0a5ed_64266f98a9"
+          "E_00f5d0b5_4bc8203773"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_8c2bc52653",
+        "cite_id": "E_00f5d0b5_3daff80c86",
         "evidence_ids": [
-          "E_7af0a5ed_8c2bc52653"
+          "E_00f5d0b5_3daff80c86"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_8c2bc52653",
+        "cite_id": "E_00f5d0b5_3daff80c86",
         "evidence_ids": [
-          "E_7af0a5ed_8c2bc52653"
+          "E_00f5d0b5_3daff80c86"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_e2352be481",
+        "cite_id": "E_00f5d0b5_58124ba649",
         "evidence_ids": [
-          "E_7af0a5ed_e2352be481"
+          "E_00f5d0b5_58124ba649"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_5c3a8d6bbf",
+        "cite_id": "E_00f5d0b5_ac7dd5ae30",
         "evidence_ids": [
-          "E_7af0a5ed_5c3a8d6bbf"
+          "E_00f5d0b5_ac7dd5ae30"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_8c2bc52653",
+        "cite_id": "E_00f5d0b5_3daff80c86",
         "evidence_ids": [
-          "E_7af0a5ed_8c2bc52653"
+          "E_00f5d0b5_3daff80c86"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_7af0a5ed_e2352be481",
+        "cite_id": "E_00f5d0b5_58124ba649",
         "evidence_ids": [
-          "E_7af0a5ed_e2352be481"
+          "E_00f5d0b5_58124ba649"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
@@ -346,7 +346,7 @@
       "claim_count": 6,
       "evidence_count": 37
     },
-    "factuality_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\\factuality_report.json",
+    "factuality_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\\factuality_report.json",
     "consistency_report_path": ""
   }
 }

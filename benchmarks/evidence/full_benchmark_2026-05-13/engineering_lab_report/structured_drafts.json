@@ -16,20 +16,20 @@
             "c_proposal"
           ],
           "evidence_ids": [
-            "E_c1c792ed_92aa1c0339",
-            "E_c1c792ed_0749f35a68",
-            "E_c1c792ed_ad5267cfcd",
-            "E_c1c792ed_fd8e46e2b6",
-            "E_c1c792ed_2444a66b2a",
-            "E_c1c792ed_f8c446586e"
+            "E_27f47024_fcf410f3bf",
+            "E_27f47024_1f69644165",
+            "E_27f47024_c11c9a2fe0",
+            "E_27f47024_950e1d0c27",
+            "E_27f47024_e39c059e7a",
+            "E_27f47024_5eb690abdd"
           ],
           "citation_ids": [
-            "E_c1c792ed_92aa1c0339",
-            "E_c1c792ed_0749f35a68",
-            "E_c1c792ed_ad5267cfcd",
-            "E_c1c792ed_fd8e46e2b6",
-            "E_c1c792ed_2444a66b2a",
-            "E_c1c792ed_f8c446586e"
+            "E_27f47024_fcf410f3bf",
+            "E_27f47024_1f69644165",
+            "E_27f47024_c11c9a2fe0",
+            "E_27f47024_950e1d0c27",
+            "E_27f47024_e39c059e7a",
+            "E_27f47024_5eb690abdd"
           ],
           "wording_strength": "hedged"
         }
@@ -47,16 +47,16 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_c1c792ed_92aa1c0339",
-            "E_c1c792ed_0749f35a68",
-            "E_c1c792ed_ad5267cfcd",
-            "E_c1c792ed_fd8e46e2b6"
+            "E_27f47024_fcf410f3bf",
+            "E_27f47024_1f69644165",
+            "E_27f47024_c11c9a2fe0",
+            "E_27f47024_950e1d0c27"
           ],
           "citation_ids": [
-            "E_c1c792ed_92aa1c0339",
-            "E_c1c792ed_0749f35a68",
-            "E_c1c792ed_ad5267cfcd",
-            "E_c1c792ed_fd8e46e2b6"
+            "E_27f47024_fcf410f3bf",
+            "E_27f47024_1f69644165",
+            "E_27f47024_c11c9a2fe0",
+            "E_27f47024_950e1d0c27"
           ],
           "wording_strength": "hedged"
         }
@@ -72,12 +72,12 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_c1c792ed_0749f35a68",
-            "E_c1c792ed_fd8e46e2b6"
+            "E_27f47024_1f69644165",
+            "E_27f47024_950e1d0c27"
           ],
           "citation_ids": [
-            "E_c1c792ed_0749f35a68",
-            "E_c1c792ed_fd8e46e2b6"
+            "E_27f47024_1f69644165",
+            "E_27f47024_950e1d0c27"
           ],
           "wording_strength": "hedged"
         }
@@ -93,12 +93,12 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_c1c792ed_0749f35a68",
-            "E_c1c792ed_fd8e46e2b6"
+            "E_27f47024_1f69644165",
+            "E_27f47024_950e1d0c27"
           ],
           "citation_ids": [
-            "E_c1c792ed_0749f35a68",
-            "E_c1c792ed_fd8e46e2b6"
+            "E_27f47024_1f69644165",
+            "E_27f47024_950e1d0c27"
           ],
           "wording_strength": "hedged"
         }
@@ -114,12 +114,12 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_c1c792ed_92aa1c0339",
-            "E_c1c792ed_fd8e46e2b6"
+            "E_27f47024_fcf410f3bf",
+            "E_27f47024_950e1d0c27"
           ],
           "citation_ids": [
-            "E_c1c792ed_92aa1c0339",
-            "E_c1c792ed_fd8e46e2b6"
+            "E_27f47024_fcf410f3bf",
+            "E_27f47024_950e1d0c27"
           ],
           "wording_strength": "hedged"
         }
@@ -134,10 +134,10 @@
             "c_context"
           ],
           "evidence_ids": [
-            "E_c1c792ed_92aa1c0339"
+            "E_27f47024_fcf410f3bf"
           ],
           "citation_ids": [
-            "E_c1c792ed_92aa1c0339"
+            "E_27f47024_fcf410f3bf"
           ],
           "wording_strength": "hedged"
         }
@@ -154,14 +154,14 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_c1c792ed_0749f35a68",
-            "E_c1c792ed_ad5267cfcd",
-            "E_c1c792ed_fd8e46e2b6"
+            "E_27f47024_1f69644165",
+            "E_27f47024_c11c9a2fe0",
+            "E_27f47024_950e1d0c27"
           ],
           "citation_ids": [
-            "E_c1c792ed_0749f35a68",
-            "E_c1c792ed_ad5267cfcd",
-            "E_c1c792ed_fd8e46e2b6"
+            "E_27f47024_1f69644165",
+            "E_27f47024_c11c9a2fe0",
+            "E_27f47024_950e1d0c27"
           ],
           "wording_strength": "hedged"
         }
@@ -176,10 +176,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_c1c792ed_ad5267cfcd"
+            "E_27f47024_c11c9a2fe0"
           ],
           "citation_ids": [
-            "E_c1c792ed_ad5267cfcd"
+            "E_27f47024_c11c9a2fe0"
           ],
           "wording_strength": "hedged"
         },
@@ -189,10 +189,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_c1c792ed_ad5267cfcd"
+            "E_27f47024_c11c9a2fe0"
           ],
           "citation_ids": [
-            "E_c1c792ed_ad5267cfcd"
+            "E_27f47024_c11c9a2fe0"
           ],
           "wording_strength": "hedged"
         },
@@ -202,10 +202,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_c1c792ed_ad5267cfcd"
+            "E_27f47024_c11c9a2fe0"
           ],
           "citation_ids": [
-            "E_c1c792ed_ad5267cfcd"
+            "E_27f47024_c11c9a2fe0"
           ],
           "wording_strength": "hedged"
         },
@@ -215,10 +215,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_c1c792ed_ad5267cfcd"
+            "E_27f47024_c11c9a2fe0"
           ],
           "citation_ids": [
-            "E_c1c792ed_ad5267cfcd"
+            "E_27f47024_c11c9a2fe0"
           ],
           "wording_strength": "hedged"
         },
@@ -228,10 +228,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_c1c792ed_ad5267cfcd"
+            "E_27f47024_c11c9a2fe0"
           ],
           "citation_ids": [
-            "E_c1c792ed_ad5267cfcd"
+            "E_27f47024_c11c9a2fe0"
           ],
           "wording_strength": "hedged"
         },
@@ -241,10 +241,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_c1c792ed_ad5267cfcd"
+            "E_27f47024_c11c9a2fe0"
           ],
           "citation_ids": [
-            "E_c1c792ed_ad5267cfcd"
+            "E_27f47024_c11c9a2fe0"
           ],
           "wording_strength": "hedged"
         }
@@ -259,10 +259,10 @@
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_c1c792ed_ad5267cfcd"
+            "E_27f47024_c11c9a2fe0"
           ],
           "citation_ids": [
-            "E_c1c792ed_ad5267cfcd"
+            "E_27f47024_c11c9a2fe0"
           ],
           "wording_strength": "hedged"
         }
@@ -278,12 +278,12 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_c1c792ed_ad5267cfcd",
-            "E_c1c792ed_fd8e46e2b6"
+            "E_27f47024_c11c9a2fe0",
+            "E_27f47024_950e1d0c27"
           ],
           "citation_ids": [
-            "E_c1c792ed_ad5267cfcd",
-            "E_c1c792ed_fd8e46e2b6"
+            "E_27f47024_c11c9a2fe0",
+            "E_27f47024_950e1d0c27"
           ],
           "wording_strength": "hedged"
         }
@@ -299,12 +299,12 @@
             "c_limit"
           ],
           "evidence_ids": [
-            "E_c1c792ed_ad5267cfcd",
-            "E_c1c792ed_fd8e46e2b6"
+            "E_27f47024_c11c9a2fe0",
+            "E_27f47024_950e1d0c27"
           ],
           "citation_ids": [
-            "E_c1c792ed_ad5267cfcd",
-            "E_c1c792ed_fd8e46e2b6"
+            "E_27f47024_c11c9a2fe0",
+            "E_27f47024_950e1d0c27"
           ],
           "wording_strength": "hedged"
         }
@@ -320,8 +320,8 @@
     }
   },
   "_contract": {
-    "job_id": "run_27e44df0",
-    "evidence_ledger_hash": "b512b027022287ed",
-    "source_registry_hash": "20c13a5ffed5f2a5"
+    "job_id": "run_6be33634",
+    "evidence_ledger_hash": "19b25ccd241582f9",
+    "source_registry_hash": "daac9d7201a5f7f9"
   }
 }

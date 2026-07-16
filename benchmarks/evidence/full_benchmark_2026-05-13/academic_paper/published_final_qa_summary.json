@@ -1,14 +1,14 @@
 {
-  "job_id": "run_8b4a4ad5",
-  "created_at": "2026-07-16T22:14:50.660084",
+  "job_id": "run_11e7ba0f",
+  "created_at": "2026-07-16T23:15:57.339644",
   "status": "completed",
   "overall_status": "failed",
   "report_profile": "academic_paper",
   "report": {
-    "final_docx_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\final.docx",
-    "published_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\final.docx",
+    "final_docx_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\final.docx",
+    "published_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\final.docx",
     "renderer_used": "pandoc",
-    "file_size_bytes": 168401,
+    "file_size_bytes": 182904,
     "workflow_success": true
   },
   "gate_summary": {
@@ -24,7 +24,7 @@
     "verified_count": 6,
     "blocked_count": 0,
     "claim_count": 6,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\factuality_report.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\factuality_report.json"
   },
   "artifact_lint": {
     "status": "missing",
@@ -48,7 +48,7 @@
     "issue_count": 0,
     "hard_issue_count": 0,
     "review_issue_count": 0,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\scholarly_quality_report.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\scholarly_quality_report.json"
   },
   "template_style": {
     "status": "pass",
@@ -57,7 +57,7 @@
     "renderer_used": "pandoc",
     "reference_docx_applied": true,
     "rendered_paragraph_style_count": 5,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\template_style_map.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\template_style_map.json"
   },
   "template_field_fill": {
     "status": "pass",
@@ -66,43 +66,43 @@
     "filled_count": 7,
     "missing_value_count": 0,
     "not_found_count": 0,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\template_field_fill_report.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\template_field_fill_report.json"
   },
   "figure_visual_quality": {
     "status": "pass",
     "issue_count": 0,
     "figure_count": 5,
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\figure_visual_quality_report.json"
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\figure_visual_quality_report.json"
   },
   "render": {
     "status": "failed",
     "post_render_validate_status": "passed",
     "layout_manifest_status": "passed",
     "visual_render_status": "failed",
-    "paragraph_count": 44,
+    "paragraph_count": 43,
     "table_count": 0,
     "inline_shape_count": 5,
     "issues": [
       "'\"C:\\Program Files\\LibreOffice\\program\\soffice.exe\"' is not recognized as an internal or external command,\noperable program or batch file.\n"
     ],
-    "post_render_layout_manifest_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\post_render_layout_manifest.json"
+    "post_render_layout_manifest_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\post_render_layout_manifest.json"
   },
   "source_artifacts": {
-    "qa_summary": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\qa_summary.json",
-    "factuality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\factuality_report.json",
+    "qa_summary": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\qa_summary.json",
+    "factuality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\factuality_report.json",
     "artifact_lint_report": "",
     "engineering_audit_report": "",
-    "scholarly_quality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\scholarly_quality_report.json",
-    "scholarly_quality_report_md": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\scholarly_quality_report.md",
-    "template_style_map": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\template_style_map.json",
-    "template_field_fill_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\template_field_fill_report.json",
-    "figure_visual_quality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\figure_visual_quality_report.json",
-    "post_render_validate_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\post_render_validate_report.json",
-    "post_render_layout_manifest": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\post_render_layout_manifest.json",
-    "visual_render_check_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\visual_render_check_report.json"
+    "scholarly_quality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\scholarly_quality_report.json",
+    "scholarly_quality_report_md": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\scholarly_quality_report.md",
+    "template_style_map": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\template_style_map.json",
+    "template_field_fill_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\template_field_fill_report.json",
+    "figure_visual_quality_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\figure_visual_quality_report.json",
+    "post_render_validate_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\post_render_validate_report.json",
+    "post_render_layout_manifest": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\post_render_layout_manifest.json",
+    "visual_render_check_report": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\visual_render_check_report.json"
   },
   "qa_summary": {
-    "job_id": "run_8b4a4ad5",
+    "job_id": "run_11e7ba0f",
     "qa_decision": "pass",
     "artifact_completeness_status": "pass",
     "hard_fail_reasons": [],
@@ -113,217 +113,217 @@
     ],
     "citation_audit": [
       {
-        "cite_id": "E_20c22843_512036d119",
+        "cite_id": "E_99b682df_79b15e34f7",
         "evidence_ids": [
-          "E_20c22843_512036d119"
+          "E_99b682df_79b15e34f7"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_bb20b95927",
+        "cite_id": "E_99b682df_77ac292413",
         "evidence_ids": [
-          "E_20c22843_bb20b95927"
+          "E_99b682df_77ac292413"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_8c89b67938",
+        "cite_id": "E_99b682df_222b5a1fe5",
         "evidence_ids": [
-          "E_20c22843_8c89b67938"
+          "E_99b682df_222b5a1fe5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_c0b664e5e2",
+        "cite_id": "E_99b682df_b21f472ecb",
         "evidence_ids": [
-          "E_20c22843_c0b664e5e2"
+          "E_99b682df_b21f472ecb"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_a8b2ea2161",
+        "cite_id": "E_99b682df_ef5e3bdcd1",
         "evidence_ids": [
-          "E_20c22843_a8b2ea2161"
+          "E_99b682df_ef5e3bdcd1"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_af3dd15277",
+        "cite_id": "E_99b682df_9f9a42e98f",
         "evidence_ids": [
-          "E_20c22843_af3dd15277"
+          "E_99b682df_9f9a42e98f"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_512036d119",
+        "cite_id": "E_99b682df_79b15e34f7",
         "evidence_ids": [
-          "E_20c22843_512036d119"
+          "E_99b682df_79b15e34f7"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_bb20b95927",
+        "cite_id": "E_99b682df_77ac292413",
         "evidence_ids": [
-          "E_20c22843_bb20b95927"
+          "E_99b682df_77ac292413"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_8c89b67938",
+        "cite_id": "E_99b682df_222b5a1fe5",
         "evidence_ids": [
-          "E_20c22843_8c89b67938"
+          "E_99b682df_222b5a1fe5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_c0b664e5e2",
+        "cite_id": "E_99b682df_b21f472ecb",
         "evidence_ids": [
-          "E_20c22843_c0b664e5e2"
+          "E_99b682df_b21f472ecb"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_bb20b95927",
+        "cite_id": "E_99b682df_77ac292413",
         "evidence_ids": [
-          "E_20c22843_bb20b95927"
+          "E_99b682df_77ac292413"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_c0b664e5e2",
+        "cite_id": "E_99b682df_b21f472ecb",
         "evidence_ids": [
-          "E_20c22843_c0b664e5e2"
+          "E_99b682df_b21f472ecb"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_bb20b95927",
+        "cite_id": "E_99b682df_77ac292413",
         "evidence_ids": [
-          "E_20c22843_bb20b95927"
+          "E_99b682df_77ac292413"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_8c89b67938",
+        "cite_id": "E_99b682df_222b5a1fe5",
         "evidence_ids": [
-          "E_20c22843_8c89b67938"
+          "E_99b682df_222b5a1fe5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_c0b664e5e2",
+        "cite_id": "E_99b682df_b21f472ecb",
         "evidence_ids": [
-          "E_20c22843_c0b664e5e2"
+          "E_99b682df_b21f472ecb"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_8c89b67938",
+        "cite_id": "E_99b682df_222b5a1fe5",
         "evidence_ids": [
-          "E_20c22843_8c89b67938"
+          "E_99b682df_222b5a1fe5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_8c89b67938",
+        "cite_id": "E_99b682df_222b5a1fe5",
         "evidence_ids": [
-          "E_20c22843_8c89b67938"
+          "E_99b682df_222b5a1fe5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_8c89b67938",
+        "cite_id": "E_99b682df_222b5a1fe5",
         "evidence_ids": [
-          "E_20c22843_8c89b67938"
+          "E_99b682df_222b5a1fe5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_8c89b67938",
+        "cite_id": "E_99b682df_222b5a1fe5",
         "evidence_ids": [
-          "E_20c22843_8c89b67938"
+          "E_99b682df_222b5a1fe5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_8c89b67938",
+        "cite_id": "E_99b682df_222b5a1fe5",
         "evidence_ids": [
-          "E_20c22843_8c89b67938"
+          "E_99b682df_222b5a1fe5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_8c89b67938",
+        "cite_id": "E_99b682df_222b5a1fe5",
         "evidence_ids": [
-          "E_20c22843_8c89b67938"
+          "E_99b682df_222b5a1fe5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_8c89b67938",
+        "cite_id": "E_99b682df_222b5a1fe5",
         "evidence_ids": [
-          "E_20c22843_8c89b67938"
+          "E_99b682df_222b5a1fe5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_c0b664e5e2",
+        "cite_id": "E_99b682df_b21f472ecb",
         "evidence_ids": [
-          "E_20c22843_c0b664e5e2"
+          "E_99b682df_b21f472ecb"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_c0b664e5e2",
+        "cite_id": "E_99b682df_b21f472ecb",
         "evidence_ids": [
-          "E_20c22843_c0b664e5e2"
+          "E_99b682df_b21f472ecb"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_a8b2ea2161",
+        "cite_id": "E_99b682df_ef5e3bdcd1",
         "evidence_ids": [
-          "E_20c22843_a8b2ea2161"
+          "E_99b682df_ef5e3bdcd1"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_8c89b67938",
+        "cite_id": "E_99b682df_222b5a1fe5",
         "evidence_ids": [
-          "E_20c22843_8c89b67938"
+          "E_99b682df_222b5a1fe5"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
       },
       {
-        "cite_id": "E_20c22843_c0b664e5e2",
+        "cite_id": "E_99b682df_b21f472ecb",
         "evidence_ids": [
-          "E_20c22843_c0b664e5e2"
+          "E_99b682df_b21f472ecb"
         ],
         "resolved": true,
         "citation_type": "sidecar_only"
@@ -338,7 +338,7 @@
       "claim_count": 6,
       "evidence_count": 37
     },
-    "factuality_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\\factuality_report.json",
+    "factuality_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\factuality_report.json",
     "consistency_report_path": ""
   }
 }

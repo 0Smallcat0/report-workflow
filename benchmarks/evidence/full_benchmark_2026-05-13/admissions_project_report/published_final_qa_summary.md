@@ -4,7 +4,7 @@
 - QA decision: pass
 - Report profile: admissions_project_report
 - Renderer: pandoc
-- Final DOCX: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_f42460d6\final.docx
+- Final DOCX: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_53110656\final.docx
 
 ## Key Checks
 
@@ -19,18 +19,18 @@
 
 ## Packaged Evidence
 
-- qa_summary: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_f42460d6\qa_summary.json
-- factuality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_f42460d6\factuality_report.json
+- qa_summary: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_53110656\qa_summary.json
+- factuality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_53110656\factuality_report.json
 - artifact_lint_report: missing
 - engineering_audit_report: missing
-- scholarly_quality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_f42460d6\scholarly_quality_report.json
-- scholarly_quality_report_md: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_f42460d6\scholarly_quality_report.md
-- template_style_map: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_f42460d6\template_style_map.json
-- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_f42460d6\template_field_fill_report.json
-- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_f42460d6\figure_visual_quality_report.json
-- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_f42460d6\post_render_validate_report.json
-- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_f42460d6\post_render_layout_manifest.json
-- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_f42460d6\visual_render_check_report.json
+- scholarly_quality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_53110656\scholarly_quality_report.json
+- scholarly_quality_report_md: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_53110656\scholarly_quality_report.md
+- template_style_map: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_53110656\template_style_map.json
+- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_53110656\template_field_fill_report.json
+- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_53110656\figure_visual_quality_report.json
+- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_53110656\post_render_validate_report.json
+- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_53110656\post_render_layout_manifest.json
+- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_53110656\visual_render_check_report.json
 
 ## Render Issues
 

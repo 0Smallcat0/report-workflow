@@ -1,6 +1,6 @@
 {
-  "job_id": "run_5a9046b6",
-  "created_at": "2026-07-16T22:14:52.136625",
+  "job_id": "run_90aaa136",
+  "created_at": "2026-07-16T23:15:58.598265",
   "status": "pass",
   "report_profile": "business_report",
   "reference_template_mode": "style_reference",
@@ -136,7 +136,7 @@
     ]
   },
   "rendered_docx": {
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_5a9046b6\\final.docx",
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_90aaa136\\final.docx",
     "exists": true,
     "load_error": "",
     "paragraph_count": 26,

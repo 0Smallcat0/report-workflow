@@ -1,6 +1,7 @@
 """EVIDENCE_NORMALIZE node - deterministic evidence scoring."""
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from ..state import ReportState, WORKFLOW_RUNS_DIR
@@ -226,26 +227,50 @@ def compute_provenance_score(entry: dict, block: dict) -> float:
     return max(0.0, min(1.0, score))
 
 
+_NUMERIC_TOKEN_RE = re.compile(r"\d+(?:[.,]\d+)?")
+
+
 def determine_evidence_type(content: str, block_type: str) -> str:
-    """Determine evidence type deterministically."""
+    """Determine evidence type deterministically.
+
+    Keyword matching alone is English-only and misses tabular data entirely:
+    a CSV row serialized as JSON carries measurements but no prose keywords,
+    and Chinese sources carry no English keywords at all. Both used to fall
+    through to "qualitative", which then blocked statistical claims (FB needs
+    quantitative evidence) and capped wording strength for the user's own
+    measurement data. Numeric density and structured-row shape are
+    language-neutral quantitative signals, checked first.
+    """
     content_lower = content.lower()
-    
-    # Quantitative indicators
-    quant_keywords = ["percentage", "%", "rate", "increase", "decrease", "number of", 
-                      "average", "mean", "median", "count", "data show", "statistical"]
+
+    # Structured data rows (CSV/table ingestion) carrying several numeric
+    # values are measurements, whatever language surrounds them.
+    numeric_tokens = _NUMERIC_TOKEN_RE.findall(content_lower)
+    if block_type in {"csv_row", "table_row", "data_row"} and len(numeric_tokens) >= 2:
+        return "quantitative"
+    if len(numeric_tokens) >= 3 and content_lower.count(":") >= 3 and content_lower.count('"') >= 4:
+        # JSON-ish record with several numeric fields.
+        return "quantitative"
+
+    # Quantitative indicators (English + Chinese)
+    quant_keywords = ["percentage", "%", "rate", "increase", "decrease", "number of",
+                      "average", "mean", "median", "count", "data show", "statistical",
+                      "百分比", "比率", "平均", "中位", "次數", "統計", "增加", "減少", "量測值"]
     if any(kw in content_lower for kw in quant_keywords):
         return "quantitative"
-    
-    # Methodological indicators
-    method_keywords = ["method", "methodology", "design", "sample", "participants", "procedure", "protocol"]
+
+    # Methodological indicators (English + Chinese)
+    method_keywords = ["method", "methodology", "design", "sample", "participants", "procedure", "protocol",
+                       "方法", "步驟", "程序", "樣本", "受試", "實驗設計"]
     if any(kw in content_lower for kw in method_keywords):
         return "methodological"
-    
-    # Contextual indicators
-    context_keywords = ["background", "context", "introduction", "overview", "setting"]
+
+    # Contextual indicators (English + Chinese)
+    context_keywords = ["background", "context", "introduction", "overview", "setting",
+                        "背景", "緒論", "概述", "前言"]
     if any(kw in content_lower for kw in context_keywords):
         return "contextual"
-    
+
     # Default to qualitative
     return "qualitative"
 

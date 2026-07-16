@@ -5,14 +5,14 @@
 - Renderer: pandoc
 - Reference DOCX applied: True
 - Reference DOCX: D:\report_workflow\src\report_workflow\templates\reference.docx
-- Rendered DOCX: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_8b4a4ad5\final.docx
+- Rendered DOCX: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\final.docx
 
 ## Rendered Style Usage
 
 - Body Text: 14
 - First Paragraph: 14
 - Heading 1: 9
-- Heading 2: 6
+- Heading 2: 5
 - Normal: 1
 
 ## Reference Key Styles

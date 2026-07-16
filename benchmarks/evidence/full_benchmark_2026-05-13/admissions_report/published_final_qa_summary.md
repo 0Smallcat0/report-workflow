@@ -4,7 +4,7 @@
 - QA decision: pass
 - Report profile: admissions_report
 - Renderer: pandoc
-- Final DOCX: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\final.docx
+- Final DOCX: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\final.docx
 
 ## Key Checks
 
@@ -19,18 +19,18 @@
 
 ## Packaged Evidence
 
-- qa_summary: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\qa_summary.json
-- factuality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\factuality_report.json
+- qa_summary: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\qa_summary.json
+- factuality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\factuality_report.json
 - artifact_lint_report: missing
 - engineering_audit_report: missing
-- scholarly_quality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\scholarly_quality_report.json
-- scholarly_quality_report_md: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\scholarly_quality_report.md
-- template_style_map: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\template_style_map.json
-- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\template_field_fill_report.json
-- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\figure_visual_quality_report.json
-- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\post_render_validate_report.json
-- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\post_render_layout_manifest.json
-- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3b6bc18c\visual_render_check_report.json
+- scholarly_quality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\scholarly_quality_report.json
+- scholarly_quality_report_md: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\scholarly_quality_report.md
+- template_style_map: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\template_style_map.json
+- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\template_field_fill_report.json
+- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\figure_visual_quality_report.json
+- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\post_render_validate_report.json
+- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\post_render_layout_manifest.json
+- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_9fb2cf1e\visual_render_check_report.json
 
 ## Render Issues
 

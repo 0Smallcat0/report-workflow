@@ -1,5 +1,5 @@
 {
-  "job_id": "run_f42460d6",
+  "job_id": "run_53110656",
   "qa_decision": "pass",
   "artifact_completeness_status": "pass",
   "hard_fail_reasons": [],
@@ -11,217 +11,217 @@
   "evidence_policy_warnings": [],
   "citation_audit": [
     {
-      "cite_id": "E_160d5ee1_ded0816d4b",
+      "cite_id": "E_5ffc719b_f33d6bdac6",
       "evidence_ids": [
-        "E_160d5ee1_ded0816d4b"
+        "E_5ffc719b_f33d6bdac6"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_1d63e008e1",
+      "cite_id": "E_5ffc719b_b1de5a63d1",
       "evidence_ids": [
-        "E_160d5ee1_1d63e008e1"
+        "E_5ffc719b_b1de5a63d1"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_45a55b899c",
+      "cite_id": "E_5ffc719b_8decc52a23",
       "evidence_ids": [
-        "E_160d5ee1_45a55b899c"
+        "E_5ffc719b_8decc52a23"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_a0a697eb0a",
+      "cite_id": "E_5ffc719b_5b0ea0510c",
       "evidence_ids": [
-        "E_160d5ee1_a0a697eb0a"
+        "E_5ffc719b_5b0ea0510c"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_ded0816d4b",
+      "cite_id": "E_5ffc719b_f33d6bdac6",
       "evidence_ids": [
-        "E_160d5ee1_ded0816d4b"
+        "E_5ffc719b_f33d6bdac6"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_1d63e008e1",
+      "cite_id": "E_5ffc719b_b1de5a63d1",
       "evidence_ids": [
-        "E_160d5ee1_1d63e008e1"
+        "E_5ffc719b_b1de5a63d1"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_0250b372fc",
+      "cite_id": "E_5ffc719b_65bd64660f",
       "evidence_ids": [
-        "E_160d5ee1_0250b372fc"
+        "E_5ffc719b_65bd64660f"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_45a55b899c",
+      "cite_id": "E_5ffc719b_8decc52a23",
       "evidence_ids": [
-        "E_160d5ee1_45a55b899c"
+        "E_5ffc719b_8decc52a23"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_814efe162a",
+      "cite_id": "E_5ffc719b_a7e6cccc44",
       "evidence_ids": [
-        "E_160d5ee1_814efe162a"
+        "E_5ffc719b_a7e6cccc44"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_a0a697eb0a",
+      "cite_id": "E_5ffc719b_5b0ea0510c",
       "evidence_ids": [
-        "E_160d5ee1_a0a697eb0a"
+        "E_5ffc719b_5b0ea0510c"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_1d63e008e1",
+      "cite_id": "E_5ffc719b_b1de5a63d1",
       "evidence_ids": [
-        "E_160d5ee1_1d63e008e1"
+        "E_5ffc719b_b1de5a63d1"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_45a55b899c",
+      "cite_id": "E_5ffc719b_8decc52a23",
       "evidence_ids": [
-        "E_160d5ee1_45a55b899c"
+        "E_5ffc719b_8decc52a23"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_1d63e008e1",
+      "cite_id": "E_5ffc719b_b1de5a63d1",
       "evidence_ids": [
-        "E_160d5ee1_1d63e008e1"
+        "E_5ffc719b_b1de5a63d1"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_0250b372fc",
+      "cite_id": "E_5ffc719b_65bd64660f",
       "evidence_ids": [
-        "E_160d5ee1_0250b372fc"
+        "E_5ffc719b_65bd64660f"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_45a55b899c",
+      "cite_id": "E_5ffc719b_8decc52a23",
       "evidence_ids": [
-        "E_160d5ee1_45a55b899c"
+        "E_5ffc719b_8decc52a23"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_0250b372fc",
+      "cite_id": "E_5ffc719b_65bd64660f",
       "evidence_ids": [
-        "E_160d5ee1_0250b372fc"
+        "E_5ffc719b_65bd64660f"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_0250b372fc",
+      "cite_id": "E_5ffc719b_65bd64660f",
       "evidence_ids": [
-        "E_160d5ee1_0250b372fc"
+        "E_5ffc719b_65bd64660f"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_0250b372fc",
+      "cite_id": "E_5ffc719b_65bd64660f",
       "evidence_ids": [
-        "E_160d5ee1_0250b372fc"
+        "E_5ffc719b_65bd64660f"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_0250b372fc",
+      "cite_id": "E_5ffc719b_65bd64660f",
       "evidence_ids": [
-        "E_160d5ee1_0250b372fc"
+        "E_5ffc719b_65bd64660f"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_0250b372fc",
+      "cite_id": "E_5ffc719b_65bd64660f",
       "evidence_ids": [
-        "E_160d5ee1_0250b372fc"
+        "E_5ffc719b_65bd64660f"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_0250b372fc",
+      "cite_id": "E_5ffc719b_65bd64660f",
       "evidence_ids": [
-        "E_160d5ee1_0250b372fc"
+        "E_5ffc719b_65bd64660f"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_0250b372fc",
+      "cite_id": "E_5ffc719b_65bd64660f",
       "evidence_ids": [
-        "E_160d5ee1_0250b372fc"
+        "E_5ffc719b_65bd64660f"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_45a55b899c",
+      "cite_id": "E_5ffc719b_8decc52a23",
       "evidence_ids": [
-        "E_160d5ee1_45a55b899c"
+        "E_5ffc719b_8decc52a23"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_45a55b899c",
+      "cite_id": "E_5ffc719b_8decc52a23",
       "evidence_ids": [
-        "E_160d5ee1_45a55b899c"
+        "E_5ffc719b_8decc52a23"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_814efe162a",
+      "cite_id": "E_5ffc719b_a7e6cccc44",
       "evidence_ids": [
-        "E_160d5ee1_814efe162a"
+        "E_5ffc719b_a7e6cccc44"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_0250b372fc",
+      "cite_id": "E_5ffc719b_65bd64660f",
       "evidence_ids": [
-        "E_160d5ee1_0250b372fc"
+        "E_5ffc719b_65bd64660f"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
     },
     {
-      "cite_id": "E_160d5ee1_45a55b899c",
+      "cite_id": "E_5ffc719b_8decc52a23",
       "evidence_ids": [
-        "E_160d5ee1_45a55b899c"
+        "E_5ffc719b_8decc52a23"
       ],
       "resolved": true,
       "citation_type": "sidecar_only"
@@ -236,6 +236,6 @@
     "claim_count": 6,
     "evidence_count": 37
   },
-  "factuality_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project Report--run_f42460d6\\factuality_report.json",
+  "factuality_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project Report--run_53110656\\factuality_report.json",
   "consistency_report_path": ""
 }
