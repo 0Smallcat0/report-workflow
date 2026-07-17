@@ -273,7 +273,10 @@ def run_revision_apply(state: ReportState) -> ReportState:
         if old != new:
             summary = compute_section_diff_summary(old, new)
             diff_summaries[sid] = summary
-            if summary["similarity_ratio"] < 0.3:
+            # Short sections trip the full-rewrite heuristic on any whole-
+            # sentence replacement; only warn when there was enough text for
+            # the ratio to mean anything.
+            if summary["similarity_ratio"] < 0.3 and len(old) > 200:
                 import logging
                 logging.getLogger(__name__).warning(
                     f"[REVISION_APPLY] Section '{sid}' was changed by "

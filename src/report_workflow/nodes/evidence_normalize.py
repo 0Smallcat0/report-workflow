@@ -364,8 +364,14 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
     if not source_registry:
         raise QAHardBlockError("No sources available for evidence normalization")
 
-    # In revise_existing mode with only base_document entries, skip extraction.
-    # The evidence ledger is carried from the previous run's agent artifacts.
+    # In revise_existing mode with only base_document entries, reuse a ledger
+    # carried from a previous run's agent artifacts when one exists. When it
+    # does not (a fresh revision run), fall through and ingest the base
+    # document itself: its content is the ground truth a faithful revision
+    # cites. Previously this early-returned unconditionally, recording a
+    # ledger path that no file ever backed — claims then had no possible
+    # evidence and validation failed far downstream with an empty-ledger
+    # error nobody could trace back to prepare.
     task_intent = state.spec.get("task_intent", "new_draft")
     only_base_docs = all(
         entry.get("artifact_role") == "base_document"
@@ -376,7 +382,29 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
         run_dir.mkdir(parents=True, exist_ok=True)
         evidence_ledger_path = run_dir / "evidence_ledger.jsonl"
         state.sources["evidence_ledger_path"] = str(evidence_ledger_path)
-        return state
+        if evidence_ledger_path.exists():
+            return state
+        # Base-document entries carry no parsed_content (ingestion only
+        # parses source_data); synthesize paragraph blocks from the sections
+        # BASE_DOCUMENT_PARSE just extracted so the normal ingestion loop
+        # below can build the ledger.
+        sections_path = run_dir / "base_document_sections.json"
+        if sections_path.exists():
+            with open(sections_path, encoding="utf-8") as f:
+                base_sections = json.load(f)
+            blocks = []
+            for sid, section_content in base_sections.items():
+                for index, para in enumerate(re.split(r"\n\s*\n", section_content or "")):
+                    if para.strip():
+                        blocks.append({
+                            "content": para.strip(),
+                            "block_type": "paragraph",
+                            "block_id": f"base_{sid}_{index}",
+                        })
+            for entry in source_registry:
+                if entry.get("artifact_role") == "base_document" and not entry.get("parsed_content"):
+                    entry["parsed_content"] = blocks
+                    break
 
     for entry in source_registry:
         parsed_content = entry.get("parsed_content", [])
