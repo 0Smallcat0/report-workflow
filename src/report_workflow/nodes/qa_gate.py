@@ -338,12 +338,17 @@ def _artifact_hard_fail_reasons(state: ReportState) -> list[str]:
     if not outline_sections:
         reasons.append("outline is empty")
 
+    # In revise_existing, section drafts are never merged — the published
+    # document comes from REVISION_APPLY over the base document — so their
+    # absence is the contract, not a defect.
+    revise_mode = state.spec.get("task_intent") == "revise_existing"
     section_drafts = state.drafts.get("section_drafts", {})
-    if not section_drafts:
+    if not section_drafts and not revise_mode:
         reasons.append("section drafts are empty")
     for section_id, section_path in section_drafts.items():
         if not section_path or not Path(section_path).exists():
-            reasons.append(f"section draft missing: {section_id}")
+            if not revise_mode:
+                reasons.append(f"section draft missing: {section_id}")
             continue
         text = Path(section_path).read_text(encoding="utf-8")
         if not text.strip():

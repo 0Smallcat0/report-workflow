@@ -78,12 +78,46 @@ def _parse_docx_section(path: str) -> dict[str, str]:
 
 
 _NUMBERED_HEADING_RE = re.compile(r"^\s*\d+(?:\.\d+)*\.?\s+")
+# Chinese ordinal prefixes: 「一、」「十二、」「（三）」 — with 、 . ． or ）
+_ZH_NUMBERED_HEADING_RE = re.compile(
+    r"^\s*(?:[（(][一二三四五六七八九十百]+[)）]|[一二三四五六七八九十百]+[、.．])\s*"
+)
 
 
 def _section_id_from_heading(heading: str) -> str:
-    """Map a publication heading to the workflow's canonical section id."""
-    normalized = _NUMBERED_HEADING_RE.sub("", heading).strip().lower()
-    normalized = re.sub(r"[^a-z0-9]+", "_", normalized).strip("_")
+    """Map a publication heading to the workflow's canonical section id.
+
+    CJK characters are preserved: stripping to ``[a-z0-9]`` collapsed every
+    Chinese heading to an empty slug, so a Chinese base document parsed into
+    one giant ``preamble`` section (plus whatever Latin fragments survived,
+    e.g. ``ai`` from a heading that mentioned AI) and revision targeting was
+    impossible.
+    """
+    normalized = _NUMBERED_HEADING_RE.sub("", heading).strip()
+    normalized = _ZH_NUMBERED_HEADING_RE.sub("", normalized).strip().lower()
+    normalized = re.sub(r"[^a-z0-9㐀-鿿]+", "_", normalized).strip("_")
+
+    zh_aliases = {
+        "摘要": "abstract",
+        "緒論": "introduction",
+        "前言": "introduction",
+        "引言": "introduction",
+        "研究背景與動機": "introduction",
+        "研究方法": "methods",
+        "方法": "methods",
+        "實驗方法": "methods",
+        "結果": "results",
+        "實驗結果": "results",
+        "討論": "discussion",
+        "結果與討論": "discussion",
+        "研究限制": "limitations",
+        "限制": "limitations",
+        "結論": "conclusion",
+        "參考文獻": "references",
+        "附錄": "appendix",
+    }
+    if normalized in zh_aliases:
+        return zh_aliases[normalized]
 
     aliases = {
         "abstract": "abstract",
@@ -162,6 +196,31 @@ def _parse_markdown_sections(path: str) -> dict[str, str]:
     return sections
 
 
+def _extract_markdown_section_titles(path: str) -> dict[str, str]:
+    """Map section ids back to the base document's original heading text.
+
+    The merged revision output previously rebuilt headings from slugs
+    (``sid.replace("_", " ").title()``), which mangles every real heading —
+    Chinese titles came back as space-separated slug words and aliased ids
+    surfaced as English ("Introduction" for 「一、研究背景與動機」). The
+    original text is authoritative; ids are only addressing.
+    """
+    text = Path(path).read_text(encoding="utf-8-sig")
+    heading_re = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
+    all_matches = list(heading_re.finditer(text))
+    matches = [match for match in all_matches if len(match.group(1)) <= 2]
+    if not matches:
+        matches = all_matches
+    titles: dict[str, str] = {}
+    for index, match in enumerate(matches):
+        if len(match.group(1)) == 1 and index == 0 and matches[1:]:
+            continue  # first H1 is the document title, kept in preamble
+        heading_text = match.group(2).strip()
+        section_id = _section_id_from_heading(heading_text)
+        titles.setdefault(section_id, heading_text)
+    return titles
+
+
 def run_base_document_parse(state: ReportState) -> ReportState:
     """T7b: BASE_DOCUMENT_PARSE - extract sections from base_document (if any).
 
@@ -208,13 +267,23 @@ def run_base_document_parse(state: ReportState) -> ReportState:
         text = Path(file_path).read_text(encoding="utf-8")
         sections = {"preamble": text}
 
+    if file_type == "md":
+        titles = _extract_markdown_section_titles(file_path)
+    else:
+        # docx/txt parsing uses the heading text itself as the section id.
+        titles = {section_id: section_id for section_id in sections if section_id != "preamble"}
+
     run_dir = WORKFLOW_RUNS_DIR / state.job_id
     run_dir.mkdir(parents=True, exist_ok=True)
     sections_path = run_dir / "base_document_sections.json"
     with open(sections_path, "w", encoding="utf-8") as f:
         json.dump(sections, f, indent=2)
+    titles_path = run_dir / "base_document_titles.json"
+    with open(titles_path, "w", encoding="utf-8") as f:
+        json.dump(titles, f, indent=2, ensure_ascii=False)
 
     state.sources["base_document_sections"] = sections
     state.sources["base_document_sections_path"] = str(sections_path)
+    state.sources["base_document_titles"] = titles
     write_base_document_integrity(state, sections, entry)
     return state

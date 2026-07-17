@@ -41,10 +41,30 @@ def run_outline_plan(state: ReportState) -> ReportState:
         raise QAHardBlockError("outline.json must contain a non-empty sections object")
 
     blueprint_sections = set((state.plan.get("blueprint") or {}).get("sections", {}).keys())
-    unknown_sections = sorted(section_id for section_id in sections if blueprint_sections and section_id not in blueprint_sections)
+    allowed_sections = set(blueprint_sections)
+    revise_mode = state.spec.get("task_intent") == "revise_existing"
+    if revise_mode:
+        # In revise_existing the document's shape is the *base document's*,
+        # not the new-draft blueprint's: its parsed section ids are the valid
+        # outline targets. Validating a revision outline against the blueprint
+        # rejected every real base document whose headings differ from the
+        # blueprint (any Chinese document, any custom structure).
+        base_sections_path = run_dir_for(state) / "base_document_sections.json"
+        if base_sections_path.exists():
+            try:
+                with open(base_sections_path, encoding="utf-8") as f:
+                    base_sections = json.load(f)
+                if isinstance(base_sections, dict):
+                    allowed_sections.update(base_sections.keys())
+            except json.JSONDecodeError:
+                pass
+    unknown_sections = sorted(section_id for section_id in sections if allowed_sections and section_id not in allowed_sections)
     if unknown_sections:
         raise QAHardBlockError(f"Outline references unknown sections: {', '.join(unknown_sections)}")
-    validate_required_outline_sections(state.plan.get("blueprint") or {}, sections)
+    if not revise_mode:
+        # Blueprint-required sections apply to new drafts only; a revision
+        # outline mirrors whatever sections the base document actually has.
+        validate_required_outline_sections(state.plan.get("blueprint") or {}, sections)
 
     assigned_claims = set()
     for section_id, section in sections.items():
