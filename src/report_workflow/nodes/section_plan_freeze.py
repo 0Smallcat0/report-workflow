@@ -25,13 +25,18 @@ def run_section_plan_freeze(state: ReportState) -> ReportState:
         raise QAHardBlockError("Cannot freeze section plan without claims")
     if not sections:
         raise QAHardBlockError("Cannot freeze section plan without outline sections")
-    validate_required_outline_sections(blueprint, sections)
+    # In revise_existing the outline mirrors the base document's own sections:
+    # blueprint-required sections do not apply, and sections the revision does
+    # not touch legitimately carry no claims.
+    revise_mode = state.spec.get("task_intent") == "revise_existing"
+    if not revise_mode:
+        validate_required_outline_sections(blueprint, sections)
 
     known_claim_ids = {claim.get("claim_id") for claim in claims if claim.get("claim_id")}
     assigned_claim_ids = set()
     for section_id, section in sections.items():
         claim_ids = section.get("claim_ids", [])
-        if not claim_ids and section_requires_claims(blueprint, section_id):
+        if not claim_ids and not revise_mode and section_requires_claims(blueprint, section_id):
             raise QAHardBlockError(f"Outline section has no claims: {section_id}")
         assigned_claim_ids.update(claim_ids)
 

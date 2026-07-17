@@ -314,6 +314,21 @@ def run_revision_apply(state: ReportState) -> ReportState:
         abstract_content = _strip_leading_heading_from_content(abstract_content, ABSTRACT_SECTION)
         merged_lines.append(f"# Abstract\n\n{abstract_content}\n")
 
+    # Original heading text from the base document; slug-derived titles are
+    # the fallback only (they mangle Chinese and aliased headings).
+    base_titles = state.sources.get("base_document_titles") or {}
+    if not base_titles:
+        titles_path = run_dir / "base_document_titles.json"
+        if titles_path.exists():
+            try:
+                with open(titles_path, encoding="utf-8") as f:
+                    base_titles = json.load(f)
+            except json.JSONDecodeError:
+                base_titles = {}
+
+    def _heading_for(sid: str) -> str:
+        return base_titles.get(sid) or sid.replace("_", " ").title()
+
     # 2. Blueprint sections in order
     for sid in section_order:
         if sid in (ABSTRACT_SECTION, REFERENCES_SECTION):
@@ -321,8 +336,7 @@ def run_revision_apply(state: ReportState) -> ReportState:
         content = other_sections.get(sid, "")
         if content.strip():
             content = _strip_leading_heading_from_content(content, sid)
-            formatted_heading = sid.replace("_", " ").title()
-            merged_lines.append(f"# {formatted_heading}\n\n{content}\n")
+            merged_lines.append(f"# {_heading_for(sid)}\n\n{content}\n")
             del other_sections[sid]  # avoid re-emitting
 
     # 3. Other non-blueprint sections (middle)
@@ -331,8 +345,7 @@ def run_revision_apply(state: ReportState) -> ReportState:
             continue
         if content.strip():
             content = _strip_leading_heading_from_content(content, sid)
-            formatted_heading = sid.replace("_", " ").title()
-            merged_lines.append(f"# {formatted_heading}\n\n{content}\n")
+            merged_lines.append(f"# {_heading_for(sid)}\n\n{content}\n")
 
     # 4. References — always last
     # Uses ## so docx_render can detect and apply APA hanging-indent formatting.

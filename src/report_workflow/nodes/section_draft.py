@@ -220,10 +220,19 @@ def run_section_draft(state: ReportState) -> ReportState:
         state.update_status("awaiting_agent_artifacts")
         raise AgentWorkRequired("Agent section draft artifacts are required", missing)
 
+    revise_mode = state.spec.get("task_intent") == "revise_existing"
     section_paths = {}
     for section_id in section_order:
         path = section_drafts_dir / f"{section_id}.md"
         if not path.exists():
+            if revise_mode:
+                # In revise_existing the authoring surface is
+                # revision_plan.json and section drafts are never merged;
+                # requiring a draft file per outline section contradicted the
+                # revision contract. Register the section id so sentence-map
+                # entries can still anchor to it.
+                section_paths[section_id] = ""
+                continue
             missing.append(str(path))
             continue
         text = path.read_text(encoding="utf-8")

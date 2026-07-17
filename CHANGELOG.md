@@ -1,5 +1,40 @@
 # Changelog
 
+## 4.7.0 - 2026-07-17
+
+### Fixed — revise_existing works on real documents
+
+Drove a real Chinese master's research proposal end-to-end through
+`revise_existing` (the first real document this mode has seen) and fixed
+every wall it hit. The mode's contract says the base document's structure is
+authoritative and `revision_plan.json` is the only authoring surface — but
+five separate gates still enforced the *new-draft blueprint* contract:
+
+- **Chinese headings collapsed the section parser**: section ids were built
+  by stripping to `[a-z0-9]`, so every Chinese heading slugged to empty and
+  merged into one giant `preamble` (a heading mentioning "AI" became section
+  `ai`). Ids now preserve CJK, strip Chinese ordinal prefixes (「一、」
+  「（三）」), and map common Chinese headings (摘要/結論/參考文獻/…) to
+  canonical ids.
+- **Mangled headings in the revised output**: the merge rebuilt headings from
+  slugs (`sid.replace("_"," ").title()`), turning 「一、研究背景與動機」 into
+  "1. Introduction" and slug-word soup. The parser now writes a
+  `base_document_titles.json` sidecar and the merge restores the original
+  heading text.
+- **Blueprint enforcement removed from the revision path** (new-draft behavior
+  unchanged): OUTLINE_PLAN accepts base-document section ids and skips
+  blueprint-required sections; SECTION_PLAN_FREEZE skips required-section and
+  claims-per-section checks; SECTION_DRAFT no longer demands per-section
+  draft files (revision never merges them); QA_GATE treats absent drafts as
+  the contract; HEADING_CONTRACT_CHECK downgrades blueprint heading findings
+  to advisory.
+
+Verified end-to-end: prepare → author (`claim_matrix`, `outline`,
+`sentence_map`, two-change `revision_plan`) → validate (qa=pass) → render,
+with the original Chinese headings, both revisions applied, and all facts
+intact in the final DOCX. 393 tests, seven-profile benchmark, and the
+adversarial check all pass.
+
 ## 4.6.0 - 2026-07-16
 
 ### Fixed — pain points from a real end-to-end dogfood run

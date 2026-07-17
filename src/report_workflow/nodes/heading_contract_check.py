@@ -106,14 +106,19 @@ def run_heading_contract_check(state: ReportState) -> ReportState:
     normalized_path.write_text(normalized, encoding="utf-8")
     state.drafts["publication_style_draft"] = str(normalized_path)
 
+    # A revised document keeps the base document's own heading structure; the
+    # new-draft blueprint contract does not apply. Record findings as advisory
+    # instead of hard-blocking.
+    revise_mode = state.spec.get("task_intent") == "revise_existing"
+
     report = {
         "job_id": state.job_id,
         "issues": issues,
-        "status": "passed" if not issues else "failed",
+        "status": "passed" if not issues else ("advisory" if revise_mode else "failed"),
         "output_path": str(normalized_path),
     }
     state.runtime["heading_contract_report_path"] = write_json_artifact(state, "heading_contract_report.json", report)
 
-    if issues:
+    if issues and not revise_mode:
         raise QAHardBlockError("HEADING_CONTRACT_CHECK: " + "; ".join(issues))
     return state
