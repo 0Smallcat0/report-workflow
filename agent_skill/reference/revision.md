@@ -6,6 +6,14 @@ a base document is supplied with role `base_document` (exactly one entry).
 In `revise_existing` mode, `section_drafts/*.md` are **not** merged into the final
 document. The supported authoring surface is `revision_plan.json`.
 
+## Evidence Sources
+
+When no `source_data` source is supplied, the pipeline ingests the base
+document itself as the evidence ledger: a faithful revision cites the base
+document's own facts. Supply additional `--source path:source_data` files when
+the revision introduces new facts (updated measurements, new references) —
+those claims must cite the new evidence, not the old text.
+
 ## Steps
 
 1. Call `get_controlled_next_action` until the harness returns the

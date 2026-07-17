@@ -286,8 +286,11 @@ def _source_diversity_reasons(state: ReportState) -> list[str]:
             "consider adding literature references for stronger claims"
         )
 
-    # Fix #4: derived_summary alone check
-    if derived_only_claims:
+    # Fix #4: derived_summary alone check.
+    # Exempt revise_existing: when the base document is the evidence source,
+    # its blocks are classed derived_summary, yet for a revision the base
+    # document IS the authoritative ground truth being revised.
+    if derived_only_claims and state.spec.get("task_intent") != "revise_existing":
         reasons.append(
             "claims backed ONLY by derived_summary evidence (no primary evidence): " +
             ", ".join(derived_only_claims[:5])
