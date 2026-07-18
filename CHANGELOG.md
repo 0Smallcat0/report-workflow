@@ -1,5 +1,47 @@
 # Changelog
 
+## 4.10.0 - 2026-07-19
+
+### Added — Chinese documents get Chinese section headings
+
+Business-proposal dogfood round (a Chinese pipeline-monitoring proposal on the
+`proposal` profile) shipped a fully Chinese document wearing English headings
+("1. Executive Summary" over Chinese prose) — and there was no way to fix it
+from the authoring side, because MERGE_DRAFT derived headings from section ids
+and HEADING_CONTRACT_CHECK's normalizer stripped CJK to empty slugs, so
+Chinese headings could never even be recognized:
+
+- **`title_zh` on every blueprint section** (proposal, business_report,
+  academic_paper, admissions ×2, custom; engineering_lab_report was already
+  Chinese-native). The blueprint stays the single source of heading truth.
+- **Deterministic document-language detection** (`report_workflow/language.py`):
+  CJK-dominant text → `zh`, same input → same answer in every stage, no
+  checkpoint coupling.
+- **MERGE_DRAFT and HEADING_CONTRACT_CHECK render localized titles**: a
+  Chinese document now gets 「1. 執行摘要 … 10. 附錄」, an English document is
+  byte-for-byte unchanged. The heading normalizer preserves CJK and strips
+  Chinese ordinal prefixes (「一、」「（三）」), so agent-authored Chinese
+  headings are recognized and the required-section check works for Chinese
+  documents. Abstract/References headings keep their English special-case
+  (citation-chain writers depend on the literal), noted as a limitation.
+- **The drafting brief announces the document language** and lists the
+  canonical Chinese headings, so agents write prose in the evidence's
+  language instead of guessing.
+
+Verified end-to-end: the same authoring artifacts that produced English
+headings before the fix render the full Chinese heading set after it, with
+all grounded numbers, the embedded figure, and zero marker leaks intact.
+
+### Fixed — carried from the work-report dogfood (previously unreleased)
+
+- **Chinese figure references counted**: figure-quality prose detection
+  understands 「如圖 1」/「圖 2:」 forms, not just "Figure N".
+- **Silent figure-build failures hard-block**: the rendered-manifest reality
+  check now runs for every profile, so a figure plan whose build died no
+  longer sails through validate with an empty figure.
+
+415 tests and both benchmark checks pass.
+
 ## 4.9.0 - 2026-07-19
 
 ### Fixed — the anti-hallucination tool was fabricating a citation

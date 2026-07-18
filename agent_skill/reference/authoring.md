@@ -141,6 +141,16 @@ contains the value, put it in the sentence ("the error rate fell from 9.0% to
 pass. A quantitative section with no numbers reads as evasive even when every
 claim is verified.
 
+## Document Language
+
+Write body prose in the language of the source evidence. When the evidence is
+Chinese-dominant, the `03_section_draft.md` brief says so and lists the
+canonical Chinese section headings; the pipeline detects the document language
+deterministically and renders section headings from the blueprint's localized
+titles (`title_zh`), so do not hand-translate headings or mix English
+boilerplate sentences into a Chinese document. English documents keep the
+blueprint's English titles unchanged.
+
 For `academic_paper` and `engineering_lab_report`, make Methods/Procedure
 reproducible: name the source or sample basis, procedure, parameters or
 instrument/software settings, and supported inclusion, exclusion, calibration,

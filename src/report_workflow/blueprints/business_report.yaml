@@ -22,24 +22,28 @@ sections:
   executive_summary:
     section_id: executive_summary
     title: Executive Summary
+    title_zh: 執行摘要
     required: true
     section_type: exec_summary
     order: 1
   findings:
     section_id: findings
     title: Key Findings
+    title_zh: 主要發現
     required: true
     section_type: findings
     order: 2
   recommendations:
     section_id: recommendations
     title: Recommendations
+    title_zh: 建議事項
     required: true
     section_type: recommendations
     order: 3
   appendix:
     section_id: appendix
     title: Appendix
+    title_zh: 附錄
     required: false
     section_type: appendix
     order: 4

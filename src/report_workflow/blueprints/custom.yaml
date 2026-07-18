@@ -26,48 +26,56 @@ sections:
   abstract:
     section_id: abstract
     title: Abstract
+    title_zh: 摘要
     required: true
     section_type: abstract
     order: 1
   introduction:
     section_id: introduction
     title: Introduction
+    title_zh: 緒論
     required: true
     section_type: introduction
     order: 2
   methods:
     section_id: methods
     title: Methods
+    title_zh: 方法
     required: true
     section_type: methods
     order: 3
   results:
     section_id: results
     title: Results
+    title_zh: 結果
     required: true
     section_type: results
     order: 4
   discussion:
     section_id: discussion
     title: Discussion
+    title_zh: 討論
     required: true
     section_type: discussion
     order: 5
   recommendations:
     section_id: recommendations
     title: Recommendations
+    title_zh: 建議事項
     required: true
     section_type: recommendations
     order: 6
   references:
     section_id: references
     title: References
+    title_zh: 參考文獻
     required: true
     section_type: references
     order: 7
   appendix:
     section_id: appendix
     title: Appendix
+    title_zh: 附錄
     required: false
     section_type: appendix
     order: 8

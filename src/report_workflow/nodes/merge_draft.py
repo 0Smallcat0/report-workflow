@@ -16,6 +16,7 @@ from pathlib import Path
 
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
+from ..language import detect_document_language, localized_section_title
 from ..runtime_support import write_json_artifact
 from ..policies import get_policy
 from .section_contract import planned_section_ids
@@ -302,34 +303,42 @@ def run_merge_draft(state: ReportState) -> ReportState:
         if not section_drafts:
             raise QAHardBlockError("No section drafts to merge")
 
-        merged_sections = []
+        # Read every section first so heading language is decided from the
+        # whole document, not from whichever section happens to merge first.
+        section_contents: dict[str, str] = {}
         for section_id in section_order:
             section_path = section_drafts.get(section_id)
-            if section_path:
-                try:
-                    with open(section_path, encoding="utf-8") as f:
-                        content = f.read()
-                    if not content.strip():
-                        raise QAHardBlockError(f"Section draft is empty: {section_id}")
-                    if "This section is under development" in content:
-                        raise QAHardBlockError(f"Section draft is placeholder content: {section_id}")
-                    normalized = _canonicalize_section_content(section_id, content)
-                    section_title = _canonical_section_title(section_id)
-                    # Section drafts compiled from structured_drafts start with
-                    # their own title heading; emitting it after the canonical
-                    # heading renders every section title twice in the final
-                    # document ("# Cover" + "## 封面"). Drop that inner heading
-                    # so each section has exactly one.
-                    inner_heading = re.match(r"^#{1,6}[^\S\n]+([^\n]{1,60})\n+", normalized)
-                    if inner_heading:
-                        normalized = normalized[inner_heading.end():]
-                    merged_sections.append(f"# {section_title}\n\n{normalized}".strip())
-                except QAHardBlockError:
-                    raise
-                except Exception as exc:
-                    raise QAHardBlockError(f"Failed to read section draft {section_id}: {exc}") from exc
-            else:
+            if not section_path:
                 raise QAHardBlockError(f"Missing section draft: {section_id}")
+            try:
+                with open(section_path, encoding="utf-8") as f:
+                    section_contents[section_id] = f.read()
+            except Exception as exc:
+                raise QAHardBlockError(f"Failed to read section draft {section_id}: {exc}") from exc
+
+        document_language = detect_document_language("\n".join(section_contents.values()))
+        blueprint_sections = blueprint.get("sections", {}) or {}
+
+        merged_sections = []
+        for section_id in section_order:
+            content = section_contents[section_id]
+            if not content.strip():
+                raise QAHardBlockError(f"Section draft is empty: {section_id}")
+            if "This section is under development" in content:
+                raise QAHardBlockError(f"Section draft is placeholder content: {section_id}")
+            normalized = _canonicalize_section_content(section_id, content)
+            section_title = localized_section_title(
+                blueprint_sections.get(section_id), section_id, document_language
+            )
+            # Section drafts compiled from structured_drafts start with
+            # their own title heading; emitting it after the canonical
+            # heading renders every section title twice in the final
+            # document ("# Cover" + "## 封面"). Drop that inner heading
+            # so each section has exactly one.
+            inner_heading = re.match(r"^#{1,6}[^\S\n]+([^\n]{1,60})\n+", normalized)
+            if inner_heading:
+                normalized = normalized[inner_heading.end():]
+            merged_sections.append(f"# {section_title}\n\n{normalized}".strip())
 
         merged_md = "\n\n".join(merged_sections)
         if not merged_md.strip():
