@@ -67,10 +67,13 @@ def _section_id_for_heading(text: str, sections: dict, title_map: dict[str, str]
 
 
 def _canonical_heading(section_id: str, title: str, ordinal: int | None) -> str:
+    # Abstract/References stay unnumbered but follow the document language:
+    # the caller passes the localized blueprint title ("Abstract"/"摘要"),
+    # so English documents render byte-identically.
     if section_id == "abstract":
-        return "# Abstract"
+        return f"# {title}"
     if section_id == "references":
-        return "## References"
+        return f"## {title}"
     if ordinal is None:
         return f"# {title}"
     return f"# {ordinal}. {title}"

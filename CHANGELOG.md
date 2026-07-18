@@ -1,5 +1,30 @@
 # Changelog
 
+## 4.11.0 - 2026-07-19
+
+### Fixed — admissions dogfood: Chinese abstracts and the last two English headings
+
+Admissions-report dogfood round (a Chinese 備審 project report on
+`admissions_project_report`, with a real HaluEval citation) hit two walls:
+
+- **Chinese abstracts always "too short"**: the abstract word counter used
+  `\b\w+\b`, which counts an entire Chinese clause as one word — a
+  normal-length Chinese abstract scored 39 "words" against a 150 minimum and
+  hard-blocked at METADATA_GATE. The counter is now CJK-aware (each CJK
+  character counts as one word; English counting unchanged).
+- **Abstract/References were the last English headings** in an otherwise
+  fully Chinese document (the 4.10.0 known limitation). The canonical
+  rewriter now emits the localized blueprint title for both (`# 摘要`,
+  `## 參考文獻`); the citation chain keeps writing its internal
+  `## References` marker, which DOCX_RENDER localizes at the final append,
+  and every References-section matcher (body split, hanging-indent
+  fallback, legacy strip) accepts the Chinese heading variants.
+
+Verified end-to-end: the admissions docx renders 摘要 / 1. 緒論 … 7. 結論 /
+參考文獻 with the HaluEval reference entry, embedded figure, all grounded
+numbers, and zero marker leaks. English documents render byte-identically.
+422 tests and both benchmark checks pass.
+
 ## 4.10.0 - 2026-07-19
 
 ### Added — Chinese documents get Chinese section headings
