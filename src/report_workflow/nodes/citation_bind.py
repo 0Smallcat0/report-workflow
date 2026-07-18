@@ -196,14 +196,24 @@ def _format_apa_reference_entry(file_name: str, file_type: str, source_id: str) 
     """Format a full APA reference entry for a research document."""
     author = _format_apa_author_year(file_name, file_type).split(" (")[0]
 
-    # Map file types to appropriate reference format
+    # Map file types to appropriate reference format.
+    # Two honesty rules, learned from a fabricated bibliography entry
+    # ("literature. (2026). *literature*.") reaching a rendered paper:
+    # 1. Never invent a year — a project source file has no publication date,
+    #    so it is cited as (n.d.), not as the current year.
+    # 2. Every format carries a bracketed file label ([Text file], [Dataset],
+    #    …) because the publication-reference curation filter keys off those
+    #    labels to keep internal file citations out of the published
+    #    bibliography. "md" was missing from this map and fell through to an
+    #    unlabeled format that slipped past the filter.
     type_formats = {
-        "pdf": f"{author}. (In press). *{Path(file_name).stem}* [PDF document].",
-        "docx": f"{author}. ({datetime.now().year}). *{Path(file_name).stem}* [Word document].",
-        "txt": f"{author}. ({datetime.now().year}). *{Path(file_name).stem}* [Text file].",
-        "csv": f"{author}. ({datetime.now().year}). *{Path(file_name).stem}* [Dataset].",
-        "json": f"{author}. ({datetime.now().year}). *{Path(file_name).stem}* [Data file].",
-        "unknown": f"{author}. ({datetime.now().year}). *{Path(file_name).stem}*.",
+        "pdf": f"{author}. (n.d.). *{Path(file_name).stem}* [PDF document].",
+        "docx": f"{author}. (n.d.). *{Path(file_name).stem}* [Word document].",
+        "txt": f"{author}. (n.d.). *{Path(file_name).stem}* [Text file].",
+        "md": f"{author}. (n.d.). *{Path(file_name).stem}* [Text file].",
+        "csv": f"{author}. (n.d.). *{Path(file_name).stem}* [Dataset].",
+        "json": f"{author}. (n.d.). *{Path(file_name).stem}* [Data file].",
+        "unknown": f"{author}. (n.d.). *{Path(file_name).stem}* [Project file].",
     }
 
     fmt = type_formats.get(file_type.lower(), type_formats["unknown"])

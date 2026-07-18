@@ -206,7 +206,17 @@ def run_section_draft(state: ReportState) -> ReportState:
         or not sentence_map_path.exists()
         or any(not (section_drafts_dir / f"{section_id}.md").exists() for section_id in section_order)
     )
-    if canonical_missing and structured_path.exists():
+    # Re-authoring: when structured_drafts.json is newer than the compiled
+    # sentence map, the agent has rewritten it since the last compile; the
+    # stale compiled drafts must not stay canonical (previously an edited
+    # structured_drafts silently had no effect and even
+    # `invalidate-cache --drafts` could not help).
+    structured_stale_recompile = (
+        structured_path.exists()
+        and sentence_map_path.exists()
+        and structured_path.stat().st_mtime > sentence_map_path.stat().st_mtime
+    )
+    if (canonical_missing or structured_stale_recompile) and structured_path.exists():
         _compile_structured_drafts(state, section_order)
 
     missing = []

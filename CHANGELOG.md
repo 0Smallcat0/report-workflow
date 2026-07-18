@@ -1,5 +1,33 @@
 # Changelog
 
+## 4.9.0 - 2026-07-19
+
+### Fixed — the anti-hallucination tool was fabricating a citation
+
+Journal-paper dogfood round 3, closing the bibliography and re-authoring
+backlog:
+
+- **Fabricated bibliography entry**: the auto reference formatter cited
+  project source files pseudo-APA style with the file stem as author AND
+  title and `datetime.now().year` as the publication year — and "md" was
+  missing from its type map, so markdown sources fell through to an
+  unlabeled format that slipped past the publication curation filter and
+  landed in a rendered paper as "literature. (2026). *literature*.". Years
+  are now honest `(n.d.)`, every format carries the bracketed file label the
+  curation filter keys off, and md is mapped.
+- **Real citations silently dropped**: publication candidacy required a
+  venue token (journal/press/…), DOI, or arXiv id, so "Notices of the AMS,
+  61(5), 458-471." was discarded. An article-shaped reference — "(year)."
+  plus volume(issue), pages — now qualifies.
+- **Re-authoring now takes effect** (the four-manual-workarounds trap): when
+  `structured_drafts.json` is newer than the compiled `sentence_map.jsonl`,
+  SECTION_DRAFT recompiles instead of letting stale compiled drafts stay
+  canonical.
+
+Verified end-to-end on the paper run with no manual cache surgery: exactly
+the three authored citations render (junk entry gone, Pseudo-mathematics
+restored), zero CITE leaks. 401 tests and both benchmark checks pass.
+
 ## 4.8.1 - 2026-07-18
 
 ### Fixed — first walls from the journal-paper dogfood
