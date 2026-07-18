@@ -1,5 +1,28 @@
 # Changelog
 
+## 4.8.1 - 2026-07-18
+
+### Fixed — first walls from the journal-paper dogfood
+
+Started the next document-type iteration (an English mini-paper with real
+literature citations) and fixed the two ingestion walls it hit immediately:
+
+- **Literature notes classified as internal sources**: md/txt literature
+  files landed in `internal_project_source`, so the academic path warned
+  "no research_document evidence" forever and literature-backed claims were
+  indistinguishable. Files whose name contains literature/reference/
+  bibliography/文獻 — or whose blocks carry citation shapes like
+  "(2014)." — now classify as `research_document`.
+- **Wrapped bullets fragmented citations**: the list parser only absorbed
+  lines starting with a bullet marker, so a citation wrapped across indented
+  continuation lines split into several evidence blocks (one paper became
+  three fragments). Continuation lines now stay in the bullet's block, in
+  both list-parsing paths.
+
+Verified on the paper run: literature rows classify as research_document and
+each citation is one intact evidence unit. 401 tests and both benchmark
+checks pass.
+
 ## 4.8.0 - 2026-07-18
 
 ### Added — revision plan expressiveness, from the real-proposal case

@@ -181,11 +181,24 @@ def parse_txt(file_path: str) -> dict:
             if stripped.startswith("- ") or stripped.startswith("* ") or stripped.startswith("+ "):
                 list_items = []
                 list_start = i
-                while i < len(lines) and (
-                    lines[i].strip().startswith("- ") or
-                    lines[i].strip().startswith("* ") or
-                    lines[i].strip().startswith("+ ")
-                ):
+                while i < len(lines):
+                    line_stripped = lines[i].strip()
+                    is_bullet = (
+                        line_stripped.startswith("- ")
+                        or line_stripped.startswith("* ")
+                        or line_stripped.startswith("+ ")
+                    )
+                    # A wrapped bullet continues on indented lines; splitting
+                    # them into separate blocks fragments one logical entry
+                    # (e.g. one literature citation) across evidence units.
+                    is_continuation = (
+                        bool(list_items)
+                        and bool(line_stripped)
+                        and lines[i][:1] in (" ", "\t")
+                        and not is_bullet
+                    )
+                    if not (is_bullet or is_continuation):
+                        break
                     list_items.append(lines[i].rstrip())
                     all_text_parts.append(lines[i].rstrip())
                     i += 1
@@ -363,11 +376,24 @@ def parse_markdown(file_path: str) -> dict:
             if stripped.startswith("- ") or stripped.startswith("* ") or stripped.startswith("+ "):
                 list_items = []
                 list_start = i
-                while i < len(lines) and (
-                    lines[i].strip().startswith("- ") or
-                    lines[i].strip().startswith("* ") or
-                    lines[i].strip().startswith("+ ")
-                ):
+                while i < len(lines):
+                    line_stripped = lines[i].strip()
+                    is_bullet = (
+                        line_stripped.startswith("- ")
+                        or line_stripped.startswith("* ")
+                        or line_stripped.startswith("+ ")
+                    )
+                    # A wrapped bullet continues on indented lines; splitting
+                    # them into separate blocks fragments one logical entry
+                    # (e.g. one literature citation) across evidence units.
+                    is_continuation = (
+                        bool(list_items)
+                        and bool(line_stripped)
+                        and lines[i][:1] in (" ", "\t")
+                        and not is_bullet
+                    )
+                    if not (is_bullet or is_continuation):
+                        break
                     list_items.append(lines[i].rstrip())
                     all_text_parts.append(lines[i].rstrip())
                     i += 1
