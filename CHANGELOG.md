@@ -1,5 +1,37 @@
 # Changelog
 
+## 4.12.0 - 2026-07-19
+
+### Fixed — technical-document dogfood: internal references are legitimate outside academia
+
+Technical-document dogfood round (a Chinese post-deployment system doc on the
+`custom` profile — the last document type in the iteration queue) rendered
+with its entire References section silently dropped: the body-reference
+filter required publication-shaped entries (DOI / arXiv / venue token /
+italics), and the body-refs fallback additionally required the citation
+chain to have curated at least one publication reference. Both rules are
+right for academic papers, where internal-file citations are junk — but a
+technical document legitimately cites the approved proposal, the monthly
+operations report, and the internal handbook.
+
+- The strict publication-shape filter now applies only to academic profiles
+  (`academic_paper`, `admissions_report`, `admissions_project_report`);
+  other profiles keep authored reference entries (internal-artifact junk
+  patterns still apply to every profile).
+- For non-academic profiles the authored body references no longer depend
+  on `curated_reference_count > 0` to survive into the rendered document.
+
+Verified end-to-end: the technical document renders 摘要 / 1. 緒論 … 5.
+建議事項 / 參考文獻 with all three internal references, the tuning figure,
+and every grounded number (25→4 minutes, 18%→5% false alerts); no empty
+appendix section. Academic-profile behavior unchanged. 423 tests and both
+benchmark checks pass.
+
+This closes the document-type iteration queue: lab report, research
+proposal (revise), journal paper, work report, business proposal,
+admissions report, and technical document have each been produced
+end-to-end, with every wall converted into a product fix.
+
 ## 4.11.0 - 2026-07-19
 
 ### Fixed — admissions dogfood: Chinese abstracts and the last two English headings
