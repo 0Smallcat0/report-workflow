@@ -44,6 +44,21 @@ def _determine_source_role(entry: dict, block: dict) -> str:
     if artifact_role == "base_document":
         return "derived_summary"
 
+    # Literature/bibliography sources in md/txt form are research documents:
+    # the academic gates (scholarly quality, reference verification) key off
+    # this role, and without it every literature note lands in
+    # internal_project_source and the paper path reports "no research
+    # documents" forever. Detect by filename token or by citation shape
+    # ("Author, X. (2014)." patterns) in the block.
+    literature_name = any(
+        token in file_name.lower()
+        for token in ("literature", "reference", "bibliograph", "文獻", "书目", "書目")
+    )
+    if file_type in {"md", "txt"} and (
+        literature_name or re.search(r"\(\d{4}\)\.", content)
+    ):
+        return "research_document"
+
     # A user/agent-curated Markdown or text source supplied as source_data is
     # an accepted project source, even when the filename contains "notes".
     # Otherwise Chinese lab workflows that transcribe scanned PDFs into
