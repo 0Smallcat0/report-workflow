@@ -38,6 +38,7 @@ sections:
   abstract:
     section_id: abstract
     title: Abstract
+    title_zh: 摘要
     required: true
     section_type: abstract
     order: 1
@@ -53,18 +54,21 @@ sections:
   introduction:
     section_id: introduction
     title: Introduction
+    title_zh: 緒論
     required: true
     section_type: introduction
     order: 2
   research_scope:
     section_id: research_scope
     title: Research Scope and Design Framing
+    title_zh: 研究範疇與設計
     required: true
     section_type: scope
     order: 3
   methods:
     section_id: methods
     title: Methods
+    title_zh: 研究方法
     required: true
     section_type: methods
     order: 4
@@ -74,6 +78,7 @@ sections:
   results:
     section_id: results
     title: Results
+    title_zh: 結果
     required: true
     section_type: results
     order: 5
@@ -89,24 +94,28 @@ sections:
   discussion:
     section_id: discussion
     title: Discussion
+    title_zh: 討論
     required: true
     section_type: discussion
     order: 6
   limitations:
     section_id: limitations
     title: Limitations
+    title_zh: 研究限制
     required: true
     section_type: limitations
     order: 7
   conclusion:
     section_id: conclusion
     title: Conclusion
+    title_zh: 結論
     required: true
     section_type: conclusion
     order: 8
   references:
     section_id: references
     title: References
+    title_zh: 參考文獻
     required: true
     section_type: references
     order: 9

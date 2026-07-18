@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from ..state import ReportState
+from ..language import detect_document_language, localized_section_title
 from ..runtime_support import run_dir_for
 from ..artifact_contract import make_artifact_contract
 from .figure_types import SUPPORTED_FIGURE_TYPES_TEXT
@@ -259,6 +260,30 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
     task_intent = state.spec.get("task_intent", "new_draft")
     contract = make_artifact_contract(state)
     contract_json = json.dumps(contract, indent=2)
+
+    # Chinese-dominant evidence means a Chinese deliverable: tell the agent up
+    # front, and show the canonical Chinese headings the pipeline will render
+    # so the draft and the final document agree on language.
+    document_language = detect_document_language(evidence_summary)
+    language_guidance = ""
+    if document_language == "zh":
+        blueprint_sections = (state.plan.get("blueprint") or {}).get("sections", {}) or {}
+        heading_lines = "\n".join(
+            f"- `{sid}` → {localized_section_title(section, sid, 'zh')}"
+            for sid, section in blueprint_sections.items()
+        )
+        language_guidance = f"""## Document Language
+
+The source evidence is Chinese-dominant, so this is a Chinese document:
+write all section prose in Chinese. The pipeline renders section headings
+with the blueprint's Chinese titles automatically:
+
+{heading_lines}
+
+Do not mix English boilerplate sentences into the Chinese body text.
+(Structural markers like `[CITE:...]` and `[FIGURE:...]` stay as-is.)
+
+"""
 
     if (
         task_intent == "new_draft"
@@ -527,7 +552,7 @@ If `report_profile=engineering_lab_report`, preserve the lab handout contract:
 - reference figures and tables near the relevant result text
 - avoid workflow, agent, or tool jargon in the report body
 
-## Prose Quality (applies to every profile)
+{language_guidance}## Prose Quality (applies to every profile)
 
 The gates check grounding; they do not fix machine-sounding prose. These rules
 keep the rendered document reading like it was written by a person:

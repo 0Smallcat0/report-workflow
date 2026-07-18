@@ -6,20 +6,48 @@ import re
 from pathlib import Path
 
 from ..errors import QAHardBlockError
+from ..language import (
+    derived_section_title,
+    detect_document_language,
+    localized_section_title,
+)
 from ..runtime_support import write_json_artifact
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 
 
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
 _NUMBERED_RE = re.compile(r"^\d+(?:\.\d+)*\.?\s+")
+# Chinese ordinal prefixes: 「一、」「十二、」「（三）」 — with 、 . ． or ）
+_ZH_NUMBERED_RE = re.compile(
+    r"^(?:[（(][一二三四五六七八九十百]+[)）]|[一二三四五六七八九十百]+[、.．])\s*"
+)
 
 
 def _norm(text: str) -> str:
-    text = _NUMBERED_RE.sub("", text).strip().lower()
-    return re.sub(r"[^a-z0-9]+", "_", text).strip("_")
+    """Normalize a heading for section-id matching, preserving CJK.
+
+    Stripping to ``[a-z0-9]`` collapsed every Chinese heading to an empty
+    slug, so Chinese documents failed the required-section check even when
+    every canonical heading was present.
+    """
+    text = _NUMBERED_RE.sub("", text.strip())
+    text = _ZH_NUMBERED_RE.sub("", text).strip().lower()
+    return re.sub(r"[^a-z0-9一-鿿㐀-䶿]+", "_", text).strip("_")
 
 
-def _section_id_for_heading(text: str, sections: dict) -> str:
+def _blueprint_title_map(sections: dict) -> dict[str, str]:
+    """Map normalized blueprint titles (en, zh, derived) to section ids."""
+    title_map: dict[str, str] = {}
+    for sid, section in (sections or {}).items():
+        section = section or {}
+        for candidate in (section.get("title"), section.get("title_zh"), derived_section_title(sid)):
+            normalized = _norm(str(candidate)) if candidate else ""
+            if normalized:
+                title_map.setdefault(normalized, sid)
+    return title_map
+
+
+def _section_id_for_heading(text: str, sections: dict, title_map: dict[str, str]) -> str:
     normalized = _norm(text)
     aliases = {
         "research_scope": "research_scope",
@@ -33,6 +61,8 @@ def _section_id_for_heading(text: str, sections: dict) -> str:
     }
     if normalized in sections:
         return normalized
+    if normalized in title_map:
+        return title_map[normalized]
     return aliases.get(normalized, normalized)
 
 
@@ -50,6 +80,8 @@ def normalize_heading_contract(markdown: str, blueprint: dict) -> tuple[str, lis
     """Return markdown with canonical top-level section headings."""
     sections = blueprint.get("sections", {}) or {}
     section_order = blueprint.get("section_order", []) or []
+    language = detect_document_language(markdown)
+    title_map = _blueprint_title_map(sections)
     ordinal_by_sid: dict[str, int] = {}
     ordinal = 1
     for sid in section_order:
@@ -63,11 +95,11 @@ def normalize_heading_contract(markdown: str, blueprint: dict) -> tuple[str, lis
 
     def replace(match: re.Match) -> str:
         hashes, heading = match.group(1), match.group(2).strip()
-        sid = _section_id_for_heading(heading, sections)
+        sid = _section_id_for_heading(heading, sections, title_map)
         is_wrapper_level = len(hashes) == 1 or (sid == "references" and len(hashes) <= 2)
         if is_wrapper_level and sid in sections:
             seen.add(sid)
-            title = sections[sid].get("title", sid.replace("_", " ").title())
+            title = localized_section_title(sections[sid], sid, language)
             return _canonical_heading(sid, title, ordinal_by_sid.get(sid))
         return match.group(0)
 
@@ -83,7 +115,7 @@ def normalize_heading_contract(markdown: str, blueprint: dict) -> tuple[str, lis
 
     # Catch subsection leakage: 3.1 Methods detail without # 3. Methods.
     for sid, ord_value in ordinal_by_sid.items():
-        title = sections.get(sid, {}).get("title", sid.replace("_", " ").title())
+        title = localized_section_title(sections.get(sid), sid, language)
         wrapper = _canonical_heading(sid, title, ord_value)
         if re.search(rf"^#{2,6}\s+{ord_value}\.\d+\s+", normalized, re.MULTILINE) and wrapper not in normalized:
             issues.append(f"Subsections for section {ord_value} exist but wrapper heading is missing: {title}")

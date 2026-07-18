@@ -25,60 +25,70 @@ sections:
   executive_summary:
     section_id: executive_summary
     title: Executive Summary
+    title_zh: 執行摘要
     required: true
     section_type: exec_summary
     order: 1
   problem_statement:
     section_id: problem_statement
     title: Problem Statement
+    title_zh: 問題陳述
     required: true
     section_type: problem
     order: 2
   objectives:
     section_id: objectives
     title: Objectives
+    title_zh: 提案目標
     required: true
     section_type: objectives
     order: 3
   proposed_approach:
     section_id: proposed_approach
     title: Proposed Approach
+    title_zh: 實施方案
     required: true
     section_type: approach
     order: 4
   scope_deliverables:
     section_id: scope_deliverables
     title: Scope and Deliverables
+    title_zh: 範疇與交付項目
     required: true
     section_type: deliverables
     order: 5
   timeline:
     section_id: timeline
     title: Timeline
+    title_zh: 時程規劃
     required: false
     section_type: timeline
     order: 6
   budget_resources:
     section_id: budget_resources
     title: Budget and Resources
+    title_zh: 預算與資源
     required: false
     section_type: budget
     order: 7
   risks:
     section_id: risks
     title: Risks and Mitigations
+    title_zh: 風險與因應
     required: false
     section_type: risks
     order: 8
   evaluation:
     section_id: evaluation
     title: Evaluation Plan
+    title_zh: 成效評估
     required: false
     section_type: evaluation
     order: 9
   appendix:
     section_id: appendix
     title: Appendix
+    title_zh: 附錄
     required: false
     section_type: appendix
     order: 10
