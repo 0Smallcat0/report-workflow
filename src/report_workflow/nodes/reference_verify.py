@@ -157,10 +157,15 @@ def _is_publication_reference_candidate(raw_ref: str) -> bool:
     if any(token in lowered for token in ("source_corpus", "source & corpus", "[text file]", "graphify", "graph_report")):
         return False
     # Keep durable scholarly/book references and DOI/arXiv references.
+    # The venue-token list alone silently dropped real citations whose venue
+    # carries none of the magic words ("Notices of the AMS, 61(5), 458-471."),
+    # so an article-shaped reference — (year). plus volume(issue), pages —
+    # also qualifies.
     return bool(
         re.search(r"doi[:\s]+10\.", text, re.IGNORECASE)
         or re.search(r"arxiv[:\s]+|\d{4}\.\d{4,5}", text, re.IGNORECASE)
         or re.search(r"\b(journal|proceedings|press|wiley|springer|elsevier|cambridge|oxford|mit press)\b", text, re.IGNORECASE)
+        or (re.search(r"\(\d{4}\)\.", text) and re.search(r"\d+\(\d+\),\s*\d+", text))
         or re.search(r"\*[^*]+\*", text)
     )
 
