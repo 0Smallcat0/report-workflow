@@ -369,6 +369,19 @@ Profile purposes and strictness are documented in
 `agent_skill/reference/profiles.md`; the registry lives in
 `src/report_workflow/profiles.py`.
 
+### Chinese documents
+
+Document language is detected deterministically from the source evidence.
+Chinese-dominant sources produce a fully Chinese deliverable: every blueprint
+section carries a `title_zh`, so headings render as 「1. 執行摘要 … 參考文獻」
+instead of leaking English defaults; the abstract word gate counts CJK
+characters; figure references (「如圖 1」) and Chinese ordinal headings
+(「一、」「（三）」) are recognized by the quality gates. English documents are
+byte-for-byte unchanged. Each built-in profile has been exercised end-to-end
+with a Chinese document (lab report, research proposal revision, work report,
+business proposal, admissions report, and technical document) plus an English
+journal paper.
+
 ## Reference templates
 
 Profiles control reference-template behavior. The default mode is

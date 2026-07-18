@@ -109,6 +109,17 @@ def _read_figure_recommendation_summary(path: str | None, limit: int = 8) -> str
     return header + "\n".join(rows)
 
 
+def _figure_plan_is_valid(plan: object) -> bool:
+    """Shared validity check so the starter plan and the brief's usage map
+    number the same entries identically."""
+    return (
+        isinstance(plan, dict)
+        and bool(plan.get("figure_id"))
+        and bool(plan.get("figure_type"))
+        and isinstance(plan.get("data"), dict)
+    )
+
+
 def _read_recommended_figure_usage_map(path: str | None, limit: int = 8) -> str:
     if not path or not Path(path).exists():
         return "(no recommended figure usage map available)"
@@ -118,13 +129,19 @@ def _read_recommended_figure_usage_map(path: str | None, limit: int = 8) -> str:
         return f"(recommended figure usage map could not be read: {exc})"
     recommendations = payload.get("recommendations", []) if isinstance(payload, dict) else []
     rows = []
-    for rec in recommendations[:limit]:
+    display_number = 0
+    for rec in recommendations:
+        if len(rows) >= limit:
+            break
         if not isinstance(rec, dict):
             continue
         plan = rec.get("figure_plan", {})
-        if not isinstance(plan, dict):
+        if not _figure_plan_is_valid(plan):
             continue
-        figure_id = plan.get("figure_id") or rec.get("recommendation_id") or "?"
+        # The starter figure plan renumbers figures 1..N in this same order,
+        # so the brief must reference the renumbered ids, not figrec_N.
+        display_number += 1
+        figure_id = str(display_number)
         section_id = plan.get("section_id") or rec.get("section_id") or "results"
         evidence_ids = plan.get("source_evidence_ids") or rec.get("evidence_ids") or []
         if not isinstance(evidence_ids, list):
@@ -168,13 +185,17 @@ def _recommended_figure_plans(path: str | None) -> tuple[list[dict], str]:
         if not isinstance(recommendation, dict):
             continue
         plan = recommendation.get("figure_plan")
-        if not isinstance(plan, dict):
-            continue
-        if not plan.get("figure_id") or not plan.get("figure_type") or not isinstance(plan.get("data"), dict):
+        if not _figure_plan_is_valid(plan):
             continue
         figures.append(dict(plan))
     if not figures:
         return [], "skipped_no_valid_figure_plans"
+    # Publication figure ids are 1..N; figrec_N stays in recommendation_id as
+    # the audit link. Shipping figrec ids in the starter plan forced every
+    # authoring pass to renumber by hand (and leaked "figrec_1" into captions
+    # when it didn't).
+    for number, plan in enumerate(figures, start=1):
+        plan["figure_id"] = str(number)
     return figures, "ready"
 
 
