@@ -617,7 +617,7 @@ def _add_hanging_indent_references(doc: Document, ref_md: str) -> None:
                 para.add_run(part)
 
 
-def _split_body_references(md_content: str) -> tuple[str, str]:
+def _split_body_references(md_content: str, strict_refs: bool = True) -> tuple[str, str]:
     """Remove the inline References section from body markdown.
 
     Returns ``(md_without_references, body_refs_md)`` where ``body_refs_md``
@@ -647,7 +647,7 @@ def _split_body_references(md_content: str) -> tuple[str, str]:
         if stripped.startswith(("- ", "* ")):
             stripped = stripped[2:].strip()
         bullet_lines.append(f"- {stripped}")
-    bullet_lines = _filter_body_reference_lines(bullet_lines)
+    bullet_lines = _filter_body_reference_lines(bullet_lines, strict=strict_refs)
     if bullet_lines:
         body_refs_md = "## References\n\n" + "\n\n".join(bullet_lines) + "\n"
     md_content = md_content[:body_refs_match.start()] + md_content[body_refs_match.end():]
@@ -807,8 +807,16 @@ def _pre_render_sanity_check(
     return issues
 
 
-def _filter_body_reference_lines(lines: list[str]) -> list[str]:
-    """Drop obviously internal or non-publication reference entries."""
+def _filter_body_reference_lines(lines: list[str], strict: bool = True) -> list[str]:
+    """Drop obviously internal or non-publication reference entries.
+
+    ``strict`` additionally requires publication-shaped entries (DOI, arXiv,
+    venue token, or italicized title). That is right for academic profiles,
+    where internal-file citations are junk — but a technical document or
+    business report legitimately cites internal documents (proposals,
+    monthly reports, handbooks), so non-academic profiles pass
+    ``strict=False`` and keep authored entries.
+    """
     filtered = []
     internal_patterns = [
         r"\bsource_corpus\b",
@@ -826,7 +834,7 @@ def _filter_body_reference_lines(lines: list[str]) -> list[str]:
         lowered = line.lower()
         if any(re.search(pattern, lowered, re.IGNORECASE) for pattern in internal_patterns):
             continue
-        if not (
+        if strict and not (
             re.search(r"doi[:\s]+10\.", line, re.IGNORECASE)
             or re.search(r"arxiv[:\s]+|\d{4}\.\d{4,5}", line, re.IGNORECASE)
             or re.search(r"\b(journal|proceedings|press|wiley|springer|elsevier|cambridge|oxford|mit press)\b", line, re.IGNORECASE)
@@ -1026,10 +1034,16 @@ def run_docx_render(state: ReportState) -> ReportState:
     # Handle inline References section and always remove it from body markdown.
     # If generated publication refs exist, they take precedence. Otherwise reuse
     # curated body references after filtering internal/project-only entries.
-    md_content, body_refs_md = _split_body_references(md_content)
+    # Academic profiles keep the strict publication-shape filter; other
+    # profiles legitimately cite internal documents, so authored entries
+    # survive and do not depend on the citation chain having curated anything.
+    strict_refs = state.spec.get("report_profile", "academic_paper") in (
+        "academic_paper", "admissions_report", "admissions_project_report"
+    )
+    md_content, body_refs_md = _split_body_references(md_content, strict_refs=strict_refs)
 
     curated_count = int(state.citations.get("curated_reference_count", 0) or 0)
-    if not pub_ref_md.strip() and body_refs_md.strip() and curated_count > 0:
+    if not pub_ref_md.strip() and body_refs_md.strip() and (curated_count > 0 or not strict_refs):
         pub_ref_md = body_refs_md
 
     # Append references to the end of the markdown for pandoc. The reference

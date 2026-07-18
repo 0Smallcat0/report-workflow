@@ -194,6 +194,14 @@ class ReferenceHeadingRenderTest(unittest.TestCase):
         body = "This study evaluates deterministic gates. " * 8
         self.assertEqual(_localize_reference_heading(ref_md, body, ACADEMIC_BLUEPRINT), ref_md)
 
+    def test_internal_document_refs_kept_for_non_academic_profiles(self):
+        md = f"# 1. 緒論\n\n{ZH_BODY}\n\n## 參考文獻\n\n- 資料管線監控告警系統導入提案(核准版)。\n- 內部維運手冊,第三章:告警分級規則。\n"
+        _, strict_refs = _split_body_references(md, strict_refs=True)
+        self.assertEqual(strict_refs, "")
+        _, loose_refs = _split_body_references(md, strict_refs=False)
+        self.assertIn("導入提案", loose_refs)
+        self.assertIn("維運手冊", loose_refs)
+
 
 if __name__ == "__main__":
     unittest.main()
