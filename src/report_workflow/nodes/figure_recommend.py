@@ -551,6 +551,45 @@ def _error_bar_payload(
     }
 
 
+_CJK_ANY_RE = re.compile(r"[一-鿿㐀-䶿]")
+
+
+def _human_figure_title(
+    figure_type: str,
+    ylabel: str,
+    xlabel: str,
+    data: dict,
+    title_source: str,
+    transform_label: str,
+) -> str:
+    """Build a reader-facing starter title from the chart's own labels.
+
+    "Bar view of chart_source" is a machine tell the prose-quality contract
+    forbids; when the data carries series names or axis labels, say what is
+    plotted ("誤報率 (%)(依階段)", "Effort hours by phase") and keep the
+    filename-based wording only as a last resort.
+    """
+    series_names: list[str] = []
+    if isinstance(data, dict):
+        for item in data.get("series", []):
+            if isinstance(item, dict):
+                name = _clean_text(str(item.get("name") or ""))
+                if name and name not in series_names:
+                    series_names.append(name)
+    subject = ", ".join(series_names[:3]) or _clean_text(ylabel)
+    group = _clean_text(xlabel)
+    if subject and group and subject != group:
+        if _CJK_ANY_RE.search(subject + group):
+            title = f"{subject}(依{group})"
+        else:
+            title = f"{subject} by {group}"
+    elif subject:
+        title = subject
+    else:
+        title = f"{figure_type.title()} view of {Path(str(title_source)).stem or title_source}"
+    return f"{title}{transform_label}"
+
+
 def _make_recommendation(
     state: ReportState,
     table: dict,
@@ -584,7 +623,7 @@ def _make_recommendation(
                 ylabel = "Percent of total (%)"
             elif "%" not in ylabel and "percent" not in ylabel.casefold():
                 ylabel = f"{ylabel} (%)"
-    title = f"{figure_type.title()} view of {Path(str(title_source)).stem or title_source}{transform_label}"
+    title = _human_figure_title(figure_type, ylabel, xlabel, data, title_source, transform_label)
     section_id = _section_for_recommendation(state)
     figure_plan = {
         "figure_id": rec_id,

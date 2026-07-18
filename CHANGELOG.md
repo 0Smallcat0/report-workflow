@@ -1,5 +1,41 @@
 # Changelog
 
+## 4.13.0 - 2026-07-19
+
+### Fixed — the starter figure plan no longer needs hand-repair
+
+Backlog sweep after the document-type iteration closed. Every dogfood round
+rewrote the auto-generated figure plan by hand for the same two reasons —
+that repeated workaround was the last live product debt:
+
+- **Machine-tell starter titles**: recommendations shipped
+  "Bar view of chart_source"-style titles, which the prose-quality contract
+  itself forbids in captions. Titles are now built from the chart's own
+  series names and axis labels ("Effort hours by phase",
+  「誤報率 (%)(依階段)」), falling back to the filename form only when no
+  labels exist.
+- **`figrec_N` shipped as the publication figure id**: the starter plan now
+  renumbers figures `1..N` (the id agents must reference and captions must
+  show), keeping `figrec_N` in `recommendation_id` as the audit link. The
+  drafting brief's usage map numbers entries with the same shared validity
+  rule, so brief guidance and starter plan always agree.
+
+### Verified dead — two long-carried Windows quirks
+
+- cp950 console crashes (P4): `main()` already reconfigures stdout/stderr to
+  UTF-8 with replacement at entry; re-verified against a Chinese-path run.
+- `python -m report_workflow --help` exit 255: not reproducible on the
+  current entry point (`--help` exits 0, argparse errors exit 2); the
+  original report traced to the stale-exe era. Both items are closed.
+
+### Added
+
+- README documents the Chinese-document capability (deterministic language
+  detection, `title_zh` headings, CJK-aware gates) and the seven
+  end-to-end-dogfooded document types.
+
+426 tests and both benchmark checks pass.
+
 ## 4.12.0 - 2026-07-19
 
 ### Fixed — technical-document dogfood: internal references are legitimate outside academia

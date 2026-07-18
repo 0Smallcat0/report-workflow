@@ -843,6 +843,31 @@ class FigureRecommendationTests(unittest.TestCase):
             self.assertNotIn("group_by_sum", rec["data_transform"]["operations"])
 
 
+class HumanFigureTitleTests(unittest.TestCase):
+    def test_title_uses_series_and_axis_labels(self):
+        from report_workflow.nodes.figure_recommend import _human_figure_title
+        title = _human_figure_title(
+            "bar", "Effort hours", "Phase",
+            {"series": [{"name": "Effort hours", "values": [1.0]}]},
+            "chart_source.csv", "",
+        )
+        self.assertEqual(title, "Effort hours by Phase")
+
+    def test_title_chinese_labels_use_chinese_grouping(self):
+        from report_workflow.nodes.figure_recommend import _human_figure_title
+        title = _human_figure_title(
+            "bar", "誤報率 (%)", "階段",
+            {"series": [{"name": "誤報率 (%)", "values": [18.0, 5.0]}]},
+            "效能數據.csv", "",
+        )
+        self.assertEqual(title, "誤報率 (%)(依階段)")
+
+    def test_title_falls_back_to_source_stem_without_labels(self):
+        from report_workflow.nodes.figure_recommend import _human_figure_title
+        title = _human_figure_title("bar", "", "", {}, "chart_source.csv", "")
+        self.assertEqual(title, "Bar view of chart_source")
+
+
 class AutoFigurePlanTests(unittest.TestCase):
     def test_agent_tasks_writes_starter_figure_plan_from_recommendations(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -859,7 +884,7 @@ class AutoFigurePlanTests(unittest.TestCase):
             self.assertEqual(payload["generated_figure_count"], 1)
             self.assertEqual(len(payload["figures"]), 1)
             figure = payload["figures"][0]
-            self.assertEqual(figure["figure_id"], "figrec_1")
+            self.assertEqual(figure["figure_id"], "1")
             self.assertEqual(figure["figure_type"], "pie")
             self.assertEqual(figure["recommendation_id"], "figrec_1")
             self.assertEqual(figure["source_evidence_ids"], ["E1"])
@@ -872,7 +897,7 @@ class AutoFigurePlanTests(unittest.TestCase):
             self.assertIn("Starter Figure Plan", outline_text)
             self.assertIn("Recommended Figure Usage Map", outline_text)
             self.assertIn("sections.results.figure_ids", outline_text)
-            self.assertIn("[FIGURE:figrec_1]", outline_text)
+            self.assertIn("[FIGURE:1]", outline_text)
 
             section_task = run_dir_for(state) / "agent_tasks" / "03_section_draft.md"
             section_text = section_task.read_text(encoding="utf-8")
@@ -954,7 +979,7 @@ class AutoFigurePlanTests(unittest.TestCase):
             manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             self.assertEqual(manifest["generated_count"], 1)
             self.assertEqual(manifest["error_count"], 0)
-            self.assertEqual(manifest["figures"][0]["figure_id"], "figrec_1")
+            self.assertEqual(manifest["figures"][0]["figure_id"], "1")
 
 
 class FigurePlanAuditTests(unittest.TestCase):
