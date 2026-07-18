@@ -803,16 +803,22 @@ def run_citation_bind(state: ReportState) -> ReportState:
 
     # Add sentence-level citation audit
 
-    # Build publication reference list (Markdown format)
+    # Build publication reference list (Markdown format).
+    # References drafted inside the body carry [CITE:] anchors like any other
+    # evidence-backed line; those are workflow markers and must never reach
+    # the published bibliography (POST_RENDER hard-fails on unresolved CITE).
+    def _clean_ref(ref: str) -> str:
+        return re.sub(r"\s*\[CITE:[^\]]+\]", "", ref).rstrip()
+
     publication_refs_md = ""
     if literature_refs and citation_style == "gb_t_7714_2015":
         publication_refs_md = "## References\n\n"
         for ref in literature_refs:
-            publication_refs_md += f"{ref.rstrip()}\n\n"
+            publication_refs_md += f"{_clean_ref(ref)}\n\n"
     elif literature_refs:
         publication_refs_md = "## References\n\n"
         for ref in sorted(literature_refs):
-            publication_refs_md += f"- {ref.rstrip()}\n\n"
+            publication_refs_md += f"- {_clean_ref(ref)}\n\n"
 
     # Build BibTeX file (basic format for academic compatibility)
     publication_bib = _build_bibtex(evidence_ledger, literature_refs)

@@ -253,6 +253,9 @@ def _write_curated_reference_list(state: ReportState, refs: list[dict]) -> None:
     seen: set[str] = set()
     for ref in refs:
         raw = ref.get("raw", "").strip()
+        # References drafted in the body carry [CITE:] anchors; those are
+        # workflow markers and must never reach the published bibliography.
+        raw = re.sub(r"\s*\[CITE:[^\]]+\]", "", raw).strip()
         if not raw or raw.lower() in seen:
             continue
         ok, _ = _check_reference_curation(raw)
