@@ -6,6 +6,11 @@ from report_workflow.language import (
     detect_document_language,
     localized_section_title,
 )
+from report_workflow.nodes.abstract_check import _count_words
+from report_workflow.nodes.docx_render import (
+    _localize_reference_heading,
+    _split_body_references,
+)
 from report_workflow.nodes.heading_contract_check import normalize_heading_contract
 
 
@@ -123,6 +128,71 @@ class HeadingContractLocalizationTest(unittest.TestCase):
         markdown = f"# 執行摘要\n\n{ZH_BODY}\n"
         _, issues = normalize_heading_contract(markdown, BLUEPRINT)
         self.assertTrue(any("problem_statement" in issue for issue in issues))
+
+
+ACADEMIC_BLUEPRINT = {
+    "section_order": ["abstract", "introduction", "references"],
+    "sections": {
+        "abstract": {"section_id": "abstract", "title": "Abstract", "title_zh": "摘要", "required": True},
+        "introduction": {"section_id": "introduction", "title": "Introduction", "title_zh": "緒論", "required": True},
+        "references": {"section_id": "references", "title": "References", "title_zh": "參考文獻", "required": True},
+    },
+}
+
+
+class SpecialHeadingLocalizationTest(unittest.TestCase):
+    def test_zh_abstract_and_references_headings_localized(self):
+        markdown = (
+            f"# Abstract\n\n{ZH_BODY}\n\n# Introduction\n\n{ZH_BODY}\n\n"
+            f"## References\n\n- Li, J. (2023). HaluEval benchmark. EMNLP, 6449-6464.\n"
+        )
+        normalized, issues = normalize_heading_contract(markdown, ACADEMIC_BLUEPRINT)
+        self.assertEqual(issues, [])
+        self.assertIn("# 摘要", normalized)
+        self.assertIn("# 1. 緒論", normalized)
+        self.assertIn("## 參考文獻", normalized)
+        self.assertNotIn("# Abstract", normalized)
+
+    def test_english_abstract_and_references_unchanged(self):
+        body = "This study evaluates deterministic gates. " * 8
+        markdown = (
+            f"# Abstract\n\n{body}\n\n# Introduction\n\n{body}\n\n"
+            f"## References\n\n- Li, J. (2023). HaluEval benchmark. EMNLP, 6449-6464.\n"
+        )
+        normalized, issues = normalize_heading_contract(markdown, ACADEMIC_BLUEPRINT)
+        self.assertEqual(issues, [])
+        self.assertIn("# Abstract", normalized)
+        self.assertIn("## References", normalized)
+
+
+class CjkWordCountTest(unittest.TestCase):
+    def test_chinese_abstract_counts_characters(self):
+        self.assertGreaterEqual(_count_words(ZH_BODY), 60)
+
+    def test_english_count_unchanged(self):
+        self.assertEqual(_count_words("The quick brown fox jumps over 3 dogs."), 8)
+
+
+class ReferenceHeadingRenderTest(unittest.TestCase):
+    def test_split_body_references_matches_zh_heading(self):
+        md = (
+            f"# 1. 緒論\n\n{ZH_BODY}\n\n## 參考文獻\n\n"
+            "- Li, J. (2023). HaluEval benchmark. In Proceedings of EMNLP 2023, 6449-6464.\n"
+        )
+        remaining, refs = _split_body_references(md)
+        self.assertNotIn("參考文獻", remaining)
+        self.assertIn("HaluEval benchmark", refs)
+
+    def test_localize_reference_heading_for_zh_document(self):
+        ref_md = "## References\n\n- Li, J. (2023). HaluEval benchmark. EMNLP, 6449-6464.\n"
+        localized = _localize_reference_heading(ref_md, ZH_BODY, ACADEMIC_BLUEPRINT)
+        self.assertTrue(localized.startswith("## 參考文獻"))
+        self.assertNotIn("## References", localized)
+
+    def test_localize_reference_heading_noop_for_english(self):
+        ref_md = "## References\n\n- Li, J. (2023). HaluEval benchmark. EMNLP, 6449-6464.\n"
+        body = "This study evaluates deterministic gates. " * 8
+        self.assertEqual(_localize_reference_heading(ref_md, body, ACADEMIC_BLUEPRINT), ref_md)
 
 
 if __name__ == "__main__":

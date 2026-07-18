@@ -21,10 +21,15 @@ from docx.oxml import OxmlElement
 
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
+from ..language import detect_document_language, localized_section_title
 from ..runtime_support import PLACEHOLDER_TEXT
 from ..policies import get_policy
 
 logger = logging.getLogger(__name__)
+
+# References-section heading names across supported document languages
+# (blueprints ship "References", 參考文獻, or 參考資料).
+_REFS_HEADING_NAMES = r"(?:References?|參考文獻|參考資料)"
 
 # Path to the reference DOCX template (for pandoc --reference-doc)
 _TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates"
@@ -560,7 +565,7 @@ def markdown_to_docx(
 
 def _add_hanging_indent_references(doc: Document, ref_md: str) -> None:
     """Append a formatted References section with hanging-indent paragraphs."""
-    ref_re = re.compile(r"^## References\s*$", re.MULTILINE)
+    ref_re = re.compile(rf"^## ({_REFS_HEADING_NAMES})\s*$", re.MULTILINE)
     m = ref_re.search(ref_md)
     if not m:
         return
@@ -588,7 +593,7 @@ def _add_hanging_indent_references(doc: Document, ref_md: str) -> None:
         # with no references simply has no References section.
         return
 
-    doc.add_heading("References", level=2)
+    doc.add_heading(m.group(1), level=2)
 
     hanging_left = Inches(0.5)
     hanging_first = Inches(-0.5)
@@ -626,7 +631,7 @@ def _split_body_references(md_content: str) -> tuple[str, str]:
     # (H1) while normalized drafts carry "## References" (H2); both must be
     # captured or an empty section rides through to the rendered document.
     body_refs_match = re.search(
-        r"(^#{1,6}\s+References?[^\S\n]*(?:\n+|\Z))(.*?)(?=^#{1,6} |\Z)",
+        rf"(^#{{1,6}}\s+{_REFS_HEADING_NAMES}[^\S\n]*(?:\n+|\Z))(.*?)(?=^#{{1,6}} |\Z)",
         md_content,
         re.MULTILINE | re.DOTALL,
     )
@@ -637,7 +642,7 @@ def _split_body_references(md_content: str) -> tuple[str, str]:
     bullet_lines: list[str] = []
     for line in entries_block.splitlines():
         stripped = line.strip()
-        if not stripped or stripped == "References":
+        if not stripped or stripped in ("References", "參考文獻", "參考資料"):
             continue
         if stripped.startswith(("- ", "* ")):
             stripped = stripped[2:].strip()
@@ -647,6 +652,26 @@ def _split_body_references(md_content: str) -> tuple[str, str]:
         body_refs_md = "## References\n\n" + "\n\n".join(bullet_lines) + "\n"
     md_content = md_content[:body_refs_match.start()] + md_content[body_refs_match.end():]
     return md_content, body_refs_md
+
+
+def _localize_reference_heading(ref_md: str, body_md: str, blueprint: dict) -> str:
+    """Replace an English References heading with the blueprint's localized title.
+
+    The citation chain writes ``## References`` as an internal marker; for a
+    Chinese-language document the final rendered heading must follow the
+    blueprint's ``title_zh`` (e.g. 參考文獻) like every other section.
+    """
+    if not ref_md.strip() or detect_document_language(body_md) != "zh":
+        return ref_md
+    sections = (blueprint or {}).get("sections", {}) or {}
+    title = localized_section_title(sections.get("references"), "references", "zh")
+    return re.sub(
+        r"^(#{1,6})\s+References?\s*$",
+        lambda m: f"{m.group(1)} {title}",
+        ref_md,
+        count=1,
+        flags=re.MULTILINE,
+    )
 
 
 def _truncate_orphan_sections(md_text: str) -> str:
@@ -1007,7 +1032,12 @@ def run_docx_render(state: ReportState) -> ReportState:
     if not pub_ref_md.strip() and body_refs_md.strip() and curated_count > 0:
         pub_ref_md = body_refs_md
 
-    # Append references to the end of the markdown for pandoc
+    # Append references to the end of the markdown for pandoc. The reference
+    # artifact carries an English "## References" marker; localize it to the
+    # blueprint title when the document language is Chinese.
+    pub_ref_md = _localize_reference_heading(
+        pub_ref_md, md_content, state.plan.get("blueprint") or {}
+    )
     if pub_ref_md.strip():
         md_content = md_content.rstrip() + "\n\n" + pub_ref_md
 
@@ -1040,7 +1070,7 @@ def run_docx_render(state: ReportState) -> ReportState:
             # Strip reference section from md_content for legacy converter
             # (it adds references separately with hanging indent)
             md_for_legacy = re.sub(
-                r"^#{1,6} References\s*\n.*",
+                rf"^#{{1,6}} {_REFS_HEADING_NAMES}\s*\n.*",
                 "",
                 md_content,
                 flags=re.MULTILINE | re.DOTALL,

@@ -78,8 +78,18 @@ def _strip_markers(text: str) -> str:
     return text
 
 
+_CJK_CHAR_RE = re.compile(r'[一-鿿㐀-䶿]')
+
+
 def _count_words(text: str) -> int:
-    return len(re.findall(r'\b\w+\b', text))
+    """CJK-aware word count: each CJK character counts as one word.
+
+    ``\\b\\w+\\b`` alone counts an entire Chinese clause as a single "word",
+    so a normal-length Chinese abstract failed the minimum-word gate.
+    """
+    cjk = len(_CJK_CHAR_RE.findall(text))
+    latin = len(re.findall(r'\b[A-Za-z0-9]+\b', text))
+    return cjk + latin
 
 
 # ------------------------------------------------------------------
