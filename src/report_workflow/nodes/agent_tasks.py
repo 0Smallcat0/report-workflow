@@ -470,7 +470,11 @@ Do not edit `merged_draft.md` directly. For `new_draft`, fix section files under
 
 ## Profile-Specific Abstract Template
 
-**Two accepted formats** (choose one based on your report_profile):
+**Two accepted formats** — but the choice is profile-bound, not free:
+`academic_paper` REQUIRES Option A (the structured headings below, exactly)
+and a 180-220 word abstract; admissions and project profiles use Option B.
+The gate enforces this — a plain-paragraph abstract on `academic_paper`
+hard-blocks at METADATA_GATE.
 
 ### Option A: Structured Abstract (for journal submissions)
 
