@@ -37,15 +37,18 @@ logger = logging.getLogger(__name__)
 # Pattern: [FIGURE:id] or [FIGURE:id caption text], matching DOCX_RENDER.
 _FIGURE_PLACEHOLDER_RE = re.compile(r"\[FIGURE:\s*([^\]\s]+)(?:\s+([^\]]+))?\]", re.IGNORECASE)
 
-# Pattern: prose reference to a figure, e.g. "see figure 1", "figure 2 shows".
+# Pattern: prose reference to a figure — English ("see figure 1", "figure 2
+# shows") or Chinese (「如圖 1 所示」「圖 2 顯示」). Chinese reports previously
+# counted zero prose references because the pattern was English-only.
 _FIGURE_PROSE_RE = re.compile(
-    r"\b(?:see\s+figure\s+|figure\s+)([a-z]|\d+|[a-z0-9_.-]*[\d_.-][a-z0-9_.-]*)\b(?!\s*:)",
+    r"(?:\b(?:see\s+figure\s+|figure\s+)|(?:如)?圖\s*)"
+    r"([a-z]|\d+|[a-z0-9_.-]*[\d_.-][a-z0-9_.-]*)\b(?!\s*[:：])",
     re.IGNORECASE,
 )
 
-# Pattern: caption start, e.g. "Figure 1:" or "[Figure 1]" at start of line/sentence.
+# Pattern: caption start, e.g. "Figure 1:" / "圖 1:" at start of line/sentence.
 _FIGURE_CAPTION_RE = re.compile(
-    r"(?:^|(?<=\n))(\[?Figure\s+([a-z]|\d+|[a-z0-9_.-]*[\d_.-][a-z0-9_.-]*)\]?:?\s+)",
+    r"(?:^|(?<=\n))(\[?(?:Figure|圖)\s*([a-z]|\d+|[a-z0-9_.-]*[\d_.-][a-z0-9_.-]*)\]?[:：]?\s+)",
     re.IGNORECASE | re.MULTILINE,
 )
 
@@ -390,9 +393,11 @@ def run_figure_quality(state: ReportState) -> ReportState:
 
     # 4. Figure manifest reality check: outline declared figures but no manifest
     # means figure_plan.json was missing/malformed or matplotlib skipped them.
-    # For academic_paper (where figures are load-bearing), this is a hard fail
-    # per the user's directive: never ship a silently-missing-figure doc.
-    if outline_figure_ids and policy.figure.audit_table_hard_block:
+    # This is profile-independent: a declared-but-unbuilt figure ships a broken
+    # document everywhere, and gating it behind audit_table_hard_block let a
+    # business_report pass validation with a failed figure build, only to
+    # explode at POST_RENDER with an unexplained embed-count mismatch.
+    if outline_figure_ids:
         manifest_path = state.output.get("figure_manifest_path", "")
         manifest_generated = 0
         manifest_errors: list[str] = []
