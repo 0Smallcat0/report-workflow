@@ -719,7 +719,7 @@ Write `{run_dir / "revision_plan.json"}` with this shape:
   "changes": [
     {{
       "section_id": "results",
-      "change_type": "replace|insert|delete",
+      "change_type": "replace|insert|delete|retitle|remove_section",
       "original_text": "exact text from base document to change",
       "new_text": "replacement text",
       "claim_ids": ["c1"],
@@ -733,9 +733,22 @@ Write `{run_dir / "revision_plan.json"}` with this shape:
 - `replace`: swap `original_text` with `new_text` in the given section
 - `insert`: insert `new_text` after `original_text` (or at section start if `original_text` is empty)
 - `delete`: remove `original_text` from the section
+- `retitle`: rename the section's heading to `new_text` (no `original_text` needed)
+- `remove_section`: drop the whole section, heading included (no `original_text` needed)
+
+## Editorial Changes (no claim linkage)
+
+A change that only rewords, fixes punctuation, or retitles — without stating
+any new fact — may set `"editorial": true` and omit `claim_ids`/`evidence_ids`.
+A deterministic guard enforces the boundary: an editorial `new_text` may not
+introduce numbers or quoted spans that the text it replaces did not already
+contain; if it does, the plan hard-blocks and the change must be claim-linked
+instead. `retitle` and `remove_section` are structural: they need no claims
+either way and are recorded explicitly in the revision diff report.
 
 ## Hard Rules
-- Every change must link to at least one `claim_id` and `evidence_id`.
+- Every `replace`/`insert`/`delete` must link at least one `claim_id` and
+  `evidence_id`, unless it is marked `"editorial": true` (wording-only).
 - `claim_ids` must exist in `claim_matrix.json`.
 - `evidence_ids` must exist in `evidence_ledger.jsonl`.
 - Provide enough `original_text` for unambiguous matching (usually at least 40 characters).

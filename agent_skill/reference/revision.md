@@ -6,6 +6,17 @@ a base document is supplied with role `base_document` (exactly one entry).
 In `revise_existing` mode, `section_drafts/*.md` are **not** merged into the final
 document. The supported authoring surface is `revision_plan.json`.
 
+## Change Types
+
+`revision_plan.json` changes support `replace`, `insert`, `delete`, plus two
+structural types learned from real revisions: `retitle` (rename a section
+heading via `new_text`) and `remove_section` (drop a whole section, heading
+included — e.g. removing a per-school customization section from a submission
+copy). Wording-only edits may set `"editorial": true` to skip claim linkage;
+a deterministic guard blocks any editorial change whose `new_text` introduces
+numbers or quoted spans absent from the text it replaces. Structural changes
+and editorial counts are recorded in the revision diff report.
+
 ## Evidence Sources
 
 When no `source_data` source is supplied, the pipeline ingests the base

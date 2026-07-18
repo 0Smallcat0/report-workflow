@@ -119,6 +119,30 @@ def _apply_changes(
     return updated, unapplied
 
 
+_EDITORIAL_NUMBER_RE = re.compile(r"\d+(?:[.,]\d+)?")
+_EDITORIAL_QUOTE_RE = re.compile(r"「[^」]{1,200}」|\"[^\"]{1,200}\"")
+
+
+def _editorial_guard_violations(new_text: str, old_text: str) -> list[str]:
+    """Deterministic 'no new facts' check for editorial (claim-free) changes.
+
+    An editorial change may reword, repunctuate, or retitle, but it may not
+    introduce numbers or quoted spans that the text it replaces did not
+    already contain — those are factual content and must go through a normal
+    claim-linked change instead.
+    """
+    violations: list[str] = []
+    old_numbers = set(_EDITORIAL_NUMBER_RE.findall(old_text or ""))
+    new_numbers = [n for n in _EDITORIAL_NUMBER_RE.findall(new_text or "") if n not in old_numbers]
+    if new_numbers:
+        violations.append("introduces numbers absent from the original text: " + ", ".join(sorted(set(new_numbers))[:5]))
+    old_quotes = set(_EDITORIAL_QUOTE_RE.findall(old_text or ""))
+    new_quotes = [q for q in _EDITORIAL_QUOTE_RE.findall(new_text or "") if q not in old_quotes]
+    if new_quotes:
+        violations.append("introduces quoted spans absent from the original text: " + "; ".join(sorted(set(new_quotes))[:3]))
+    return violations
+
+
 def _strip_leading_heading_from_content(content: str, sid: str) -> str:
     """If section content's first line is identical (case-insensitive) to the
     formatted heading, strip that first line. This prevents duplicate headings
@@ -190,11 +214,62 @@ def run_revision_apply(state: ReportState) -> ReportState:
     changes = revision_plan.get("changes", [])
     if not changes:
         raise QAHardBlockError("revision_plan.json has no changes; aborting revision")
+
+    # Original heading text sidecar (written by BASE_DOCUMENT_PARSE) — needed
+    # both for retitle validation here and heading restoration at merge time.
+    base_titles: dict = state.sources.get("base_document_titles") or {}
+    if not base_titles:
+        titles_path = run_dir / "base_document_titles.json"
+        if titles_path.exists():
+            try:
+                with open(titles_path, encoding="utf-8") as f:
+                    base_titles = json.load(f)
+            except json.JSONDecodeError:
+                base_titles = {}
+
+    CONTENT_CHANGE_TYPES = {"replace", "insert", "delete"}
+    STRUCTURAL_CHANGE_TYPES = {"retitle", "remove_section"}
+
     for index, change in enumerate(changes):
-        if change.get("change_type") == "replace" and change.get("original_text", "") == change.get("new_text", ""):
+        change_type = change.get("change_type", "")
+        if change_type == "replace" and change.get("original_text", "") == change.get("new_text", ""):
             raise QAHardBlockError(f"revision_plan change {index} is a no-op replace")
-        if change.get("change_type") == "insert" and not str(change.get("new_text", "")).strip():
+        if change_type == "insert" and not str(change.get("new_text", "")).strip():
             raise QAHardBlockError(f"revision_plan change {index} is a no-op insert")
+        if change_type == "retitle":
+            if not str(change.get("new_text", "")).strip():
+                raise QAHardBlockError(f"revision_plan change {index}: retitle requires a non-empty new_text")
+            if change.get("section_id") not in base_sections:
+                raise QAHardBlockError(f"revision_plan change {index}: retitle targets unknown section: {change.get('section_id')}")
+        if change_type == "remove_section" and change.get("section_id") not in base_sections:
+            raise QAHardBlockError(f"revision_plan change {index}: remove_section targets unknown section: {change.get('section_id')}")
+
+        # Editorial changes carry no claim linkage but must not introduce new
+        # facts; everything else in the content classes must cite its claims.
+        if change.get("editorial") is True:
+            if change_type in {"replace", "insert"}:
+                reference_text = change.get("original_text", "")
+            elif change_type == "retitle":
+                reference_text = base_titles.get(change.get("section_id"), "")
+            else:
+                reference_text = None
+            if reference_text is not None:
+                violations = _editorial_guard_violations(str(change.get("new_text", "")), str(reference_text))
+                if violations:
+                    raise QAHardBlockError(
+                        f"revision_plan change {index} is marked editorial but "
+                        + "; ".join(violations)
+                        + ". Factual content requires a claim-linked change."
+                    )
+        elif change_type in CONTENT_CHANGE_TYPES:
+            if not change.get("claim_ids") or not change.get("evidence_ids"):
+                raise QAHardBlockError(
+                    f"revision_plan change {index} ({change_type}) has no claim_ids/evidence_ids; "
+                    "link it to claims and evidence, or mark it editorial: true if it changes wording only"
+                )
+
+    structural_changes = [c for c in changes if c.get("change_type") in STRUCTURAL_CHANGE_TYPES]
+    content_changes = [c for c in changes if c.get("change_type") not in STRUCTURAL_CHANGE_TYPES]
 
     # --- Conflict detection ---
     from .base_document_diff import (
@@ -203,7 +278,7 @@ def run_revision_apply(state: ReportState) -> ReportState:
         write_diff_report,
     )
 
-    conflicts = detect_overlapping_changes(changes, base_sections)
+    conflicts = detect_overlapping_changes(content_changes, base_sections)
     if conflicts:
         conflict_desc = "; ".join(
             f"change {a} vs change {b}" for a, b in conflicts
@@ -217,7 +292,23 @@ def run_revision_apply(state: ReportState) -> ReportState:
     # Apply changes
     base_figures = _reference_ids(base_sections, "Figure")
     base_tables = _reference_ids(base_sections, "Table")
-    updated_sections, unapplied = _apply_changes(base_sections, changes)
+    updated_sections, unapplied = _apply_changes(base_sections, content_changes)
+
+    # Structural changes: whole-section removal and retitling. Both are
+    # recorded in the diff report below — an explicit audit trail instead of
+    # forcing fake claim linkage onto structural edits.
+    removed_section_ids: list[str] = []
+    retitled_sections: dict[str, str] = {}
+    for change in structural_changes:
+        sid = change.get("section_id")
+        if change.get("change_type") == "remove_section":
+            if sid in updated_sections:
+                updated_sections[sid] = ""
+                removed_section_ids.append(sid)
+        elif change.get("change_type") == "retitle":
+            new_title = str(change.get("new_text", "")).strip()
+            retitled_sections[sid] = new_title
+            base_titles[sid] = new_title
     updated_figures = _reference_ids(updated_sections, "Figure")
     updated_tables = _reference_ids(updated_sections, "Table")
     removed_figures = sorted(base_figures - updated_figures)
@@ -275,8 +366,9 @@ def run_revision_apply(state: ReportState) -> ReportState:
             diff_summaries[sid] = summary
             # Short sections trip the full-rewrite heuristic on any whole-
             # sentence replacement; only warn when there was enough text for
-            # the ratio to mean anything.
-            if summary["similarity_ratio"] < 0.3 and len(old) > 200:
+            # the ratio to mean anything. Explicit remove_section changes are
+            # intentional and never a rewrite warning.
+            if summary["similarity_ratio"] < 0.3 and len(old) > 200 and sid not in removed_section_ids:
                 import logging
                 logging.getLogger(__name__).warning(
                     f"[REVISION_APPLY] Section '{sid}' was changed by "
@@ -291,6 +383,9 @@ def run_revision_apply(state: ReportState) -> ReportState:
         "applied": len(changes) - len(unapplied),
         "unapplied": len(unapplied),
         "section_diffs": diff_summaries,
+        "removed_sections": removed_section_ids,
+        "retitled_sections": retitled_sections,
+        "editorial_changes": sum(1 for c in changes if c.get("editorial") is True),
     }
     report_path = write_diff_report(state.job_id, diff_report)
     state.runtime["revision_diff_report_path"] = report_path
@@ -317,18 +412,9 @@ def run_revision_apply(state: ReportState) -> ReportState:
         abstract_content = _strip_leading_heading_from_content(abstract_content, ABSTRACT_SECTION)
         merged_lines.append(f"# Abstract\n\n{abstract_content}\n")
 
-    # Original heading text from the base document; slug-derived titles are
-    # the fallback only (they mangle Chinese and aliased headings).
-    base_titles = state.sources.get("base_document_titles") or {}
-    if not base_titles:
-        titles_path = run_dir / "base_document_titles.json"
-        if titles_path.exists():
-            try:
-                with open(titles_path, encoding="utf-8") as f:
-                    base_titles = json.load(f)
-            except json.JSONDecodeError:
-                base_titles = {}
-
+    # Original heading text from the base document (loaded above, with any
+    # retitle changes already applied); slug-derived titles are the fallback
+    # only (they mangle Chinese and aliased headings).
     def _heading_for(sid: str) -> str:
         return base_titles.get(sid) or sid.replace("_", " ").title()
 

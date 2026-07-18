@@ -394,6 +394,7 @@ class QualityGateContractTests(unittest.TestCase):
                 "change_type": "delete",
                 "original_text": "Figure 1 shows the architecture.",
                 "new_text": "",
+                "editorial": True,
             }]
         }), encoding="utf-8")
 
@@ -417,6 +418,7 @@ class QualityGateContractTests(unittest.TestCase):
                 "original_text": "Figure 1 shows the architecture.",
                 "new_text": "",
                 "change_reason": "remove_figure_reference",
+                "editorial": True,
             }]
         }), encoding="utf-8")
 
@@ -441,6 +443,7 @@ class QualityGateContractTests(unittest.TestCase):
                 "new_text": "",
                 "change_reason": "remove_figure_reference",
                 "figure_preservation_decision": "remove_because_no_source_asset",
+                "editorial": True,
             }]
         }), encoding="utf-8")
 

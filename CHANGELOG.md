@@ -1,5 +1,38 @@
 # Changelog
 
+## 4.8.0 - 2026-07-18
+
+### Added — revision plan expressiveness, from the real-proposal case
+
+The real submission build needed three operations the revision contract could
+not express: renaming a section heading (had to edit the input file by hand),
+dropping a whole section (had to paste its full text into a `delete` change),
+and wording-only fixes (had to attach fake claim/evidence links). All three
+are now first-class:
+
+- **`retitle` change type**: rename a section heading via `new_text`; applied
+  to the original-title sidecar so the merged document renders the new
+  heading. No `original_text` required.
+- **`remove_section` change type**: drop a whole section, heading included —
+  e.g. removing a per-school customization section from a submission copy.
+  Explicitly recorded in the revision diff report (`removed_sections`) and
+  exempt from the full-rewrite warning.
+- **`"editorial": true` changes**: wording/punctuation-only edits carry no
+  claim linkage. A deterministic guard holds the boundary — an editorial
+  `new_text` may not introduce numbers or quoted spans absent from the text
+  it replaces, or the plan hard-blocks with instructions to claim-link the
+  change instead. Honest audit trail beats fabricated citations.
+- Claim linkage is now enforced for non-editorial `replace`/`insert`/`delete`
+  changes (the documented contract, previously unchecked); the revision diff
+  report gains `removed_sections`, `retitled_sections`, and
+  `editorial_changes` fields. Agent brief and skill reference updated; 8 new
+  unit tests (401 total).
+
+Acceptance: the research-proposal submission build now runs entirely on
+native operations — `remove_section` for the customization section and two
+`editorial` replaces — with zero input-file hacks and zero fake links, and
+renders the identical submission DOCX.
+
 ## 4.7.0 - 2026-07-17
 
 ### Fixed — revise_existing works on real documents
