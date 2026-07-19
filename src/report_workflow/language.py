@@ -13,8 +13,15 @@ from __future__ import annotations
 
 import re
 
-_CJK_RE = re.compile(r"[一-鿿㐀-䶿]")
+CJK_RE = re.compile(r"[一-鿿㐀-䶿]")
+# Chinese ordinal heading prefixes: 「一、」「十二、」「（三）」
+ZH_ORDINAL_PREFIX_RE = re.compile(
+    r"^(?:[（(][一二三四五六七八九十百]+[)）]|[一二三四五六七八九十百]+[、.．])\s*"
+)
+
+_CJK_RE = CJK_RE
 _LATIN_RE = re.compile(r"[A-Za-z]")
+_LATIN_WORD_RE = re.compile(r"\b[A-Za-z0-9]+\b")
 
 # Minimum CJK characters before a sample can flip to "zh": guards against an
 # English document that mentions a couple of Chinese proper nouns.
@@ -37,6 +44,17 @@ def detect_document_language(text: str) -> str:
     if cjk / max(1, cjk + latin) >= _ZH_RATIO:
         return "zh"
     return "en"
+
+
+def count_words(text: str) -> int:
+    """CJK-aware word count: each CJK character counts as one word.
+
+    ``\\b\\w+\\b`` alone counts an entire Chinese clause as a single "word",
+    so any length gate built on it rejects normal-length Chinese text.
+    """
+    cjk = len(CJK_RE.findall(text or ""))
+    latin = len(_LATIN_WORD_RE.findall(text or ""))
+    return cjk + latin
 
 
 def derived_section_title(section_id: str) -> str:

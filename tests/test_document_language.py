@@ -2,6 +2,8 @@
 import unittest
 
 from report_workflow.language import (
+    ZH_ORDINAL_PREFIX_RE,
+    count_words,
     derived_section_title,
     detect_document_language,
     localized_section_title,
@@ -171,6 +173,26 @@ class CjkWordCountTest(unittest.TestCase):
 
     def test_english_count_unchanged(self):
         self.assertEqual(_count_words("The quick brown fox jumps over 3 dogs."), 8)
+
+    def test_abstract_check_delegates_to_shared_counter(self):
+        self.assertEqual(_count_words(ZH_BODY), count_words(ZH_BODY))
+
+    def test_chinese_academic_title_is_not_undercounted(self):
+        # scholarly_quality flags academic titles outside 5..22 words; a
+        # Chinese title counted by \b\w+\b scored 1 and was always flagged.
+        title = "大型語言模型文件產生管線之反幻覺驗證閘門"
+        self.assertGreaterEqual(count_words(title), 5)
+        self.assertLessEqual(count_words(title), 22)
+
+
+class ZhOrdinalPrefixTest(unittest.TestCase):
+    def test_strips_dun_and_paren_forms(self):
+        self.assertEqual(ZH_ORDINAL_PREFIX_RE.sub("", "一、緒論"), "緒論")
+        self.assertEqual(ZH_ORDINAL_PREFIX_RE.sub("", "（三）研究方法"), "研究方法")
+        self.assertEqual(ZH_ORDINAL_PREFIX_RE.sub("", "十二、附錄"), "附錄")
+
+    def test_leaves_plain_heading_untouched(self):
+        self.assertEqual(ZH_ORDINAL_PREFIX_RE.sub("", "結論"), "結論")
 
 
 class ReferenceHeadingRenderTest(unittest.TestCase):

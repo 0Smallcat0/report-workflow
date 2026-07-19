@@ -72,11 +72,6 @@ def _reference_text(ref: dict) -> str:
     return str(ref.get("raw") or ref.get("ref_id") or "")
 
 
-def _has_relevance(ref_text: str, terms: set[str]) -> bool:
-    lowered = ref_text.lower()
-    return any(term in lowered for term in terms)
-
-
 def run_reference_relevance_gate(state: ReportState) -> ReportState:
     """Hard-block generic or non-bearing references for admissions reports."""
     profile = state.spec.get("report_profile")

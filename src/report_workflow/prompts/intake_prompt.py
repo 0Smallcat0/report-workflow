@@ -54,12 +54,3 @@ INTAKE_USER_PROMPT_TEMPLATE = """## User Request
 
 ## Task
 Analyze the request and files above, then output the classification JSON."""
-
-
-def get_intake_user_prompt(prompt: str, uploaded_files: list[str]) -> str:
-    files_str = "\n".join(f"- {f}" for f in uploaded_files) if uploaded_files else "- (no files uploaded)"
-    return INTAKE_USER_PROMPT_TEMPLATE.format(prompt=prompt, uploaded_files=files_str)
-
-
-def get_intake_system_prompt() -> str:
-    return INTAKE_SYSTEM_PROMPT

@@ -14,6 +14,7 @@ from pathlib import Path
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
 from ..artifact_contract import write_base_document_integrity
+from ..language import ZH_ORDINAL_PREFIX_RE
 
 
 def _parse_docx_section(path: str) -> dict[str, str]:
@@ -78,10 +79,6 @@ def _parse_docx_section(path: str) -> dict[str, str]:
 
 
 _NUMBERED_HEADING_RE = re.compile(r"^\s*\d+(?:\.\d+)*\.?\s+")
-# Chinese ordinal prefixes: 「一、」「十二、」「（三）」 — with 、 . ． or ）
-_ZH_NUMBERED_HEADING_RE = re.compile(
-    r"^\s*(?:[（(][一二三四五六七八九十百]+[)）]|[一二三四五六七八九十百]+[、.．])\s*"
-)
 
 
 def _section_id_from_heading(heading: str) -> str:
@@ -94,7 +91,7 @@ def _section_id_from_heading(heading: str) -> str:
     impossible.
     """
     normalized = _NUMBERED_HEADING_RE.sub("", heading).strip()
-    normalized = _ZH_NUMBERED_HEADING_RE.sub("", normalized).strip().lower()
+    normalized = ZH_ORDINAL_PREFIX_RE.sub("", normalized).strip().lower()
     normalized = re.sub(r"[^a-z0-9㐀-鿿]+", "_", normalized).strip("_")
 
     zh_aliases = {

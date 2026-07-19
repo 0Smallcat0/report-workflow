@@ -1,5 +1,52 @@
 # Changelog
 
+## 4.14.0 - 2026-07-20
+
+### Fixed — one more place the CJK word count was wrong
+
+`SCHOLARLY_QUALITY` counted academic title length with `\b\w+\b`, the same
+pattern that broke Chinese abstracts in 4.11.0. A Chinese academic title
+scored 1 "word" against a 5-22 range and was flagged on every run. Both call
+sites now share one CJK-aware `count_words` in `report_workflow.language`.
+
+### Removed — dead code audit
+
+An AST + whole-repo reference audit found nine modules and ~30 symbols with no
+reference anywhere in `src/`, `tests/`, `scripts/`, `examples/`, or
+`benchmarks/`. All removed:
+
+- `citation_formatters/` — a **second, stale APA formatter**. It predates the
+  4.9.0 fabricated-citation fixes (no `(n.d.)` years, no bracketed file
+  labels), so importing it would have reintroduced the exact bug that release
+  closed. The live formatter is in `citation_bind.py`.
+- `connectors/{arxiv,openalex,pubmed}_adapter.py` — superseded by the
+  `ResearchBackend` ABC in `research_backends.py`.
+- `prompts/{analyst,writer}_prompt.py` — pre-agent-era LLM templates; the
+  workflow no longer calls models itself.
+- `schemas/` — including a dead `ReportProfile` enum duplicating the live
+  `profiles.py` selector, against the single-selector contract.
+- `state.py`: `PlanState`, `SourcesState`, `SourceRegistryEntry`,
+  `DraftsState`, `QAState`, `OutputState`, `workspace_root_for` — models that
+  had drifted out of use while `ReportState` moved to plain dicts, plus a
+  stale comment in `front_matter_build.py` explaining behavior via one of them.
+- `project_identity_gate.DEFAULT_ADMISSIONS_PROJECT_IDENTITY` — an unused
+  default that hard-coded one author's project vocabulary into a
+  general-purpose tool.
+- `factuality_check.run_factuality_check_fc` (self-described deprecated hook),
+  two abandoned `heading_dedup` helpers (one documented itself as not
+  working), nine unused pre-compiled regexes in `code_parser.py`, and unused
+  helpers in `abstract_check`, `agent_tasks`, `reference_relevance_gate`,
+  `research_backends`, `parse_validator`, and `intake_prompt`.
+
+### Changed
+
+- CJK character and Chinese-ordinal-prefix regexes lived in six modules in two
+  different spellings; both now come from `report_workflow.language`.
+- README test badge tracks the suite again (393 -> 430).
+
+430 tests, both benchmark checks, and a native end-to-end revalidate/rerender
+of the Chinese admissions document all pass.
+
 ## 4.13.0 - 2026-07-19
 
 ### Fixed — the starter figure plan no longer needs hand-repair

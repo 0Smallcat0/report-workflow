@@ -18,19 +18,6 @@ def agent_tasks_dir(state: ReportState) -> Path:
     return path
 
 
-def _read_jsonl_preview(path: str | None, limit: int = 8) -> list[dict]:
-    rows = []
-    if not path or not Path(path).exists():
-        return rows
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            if line.strip():
-                rows.append(json.loads(line))
-            if len(rows) >= limit:
-                break
-    return rows
-
-
 def _read_jsonl_compact_summary(path: str | None, limit: int = 20) -> str:
     """Build a compact evidence summary for task briefs.
 

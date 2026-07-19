@@ -12,6 +12,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from ..language import count_words
 from ..runtime_support import run_dir_for, write_json_artifact
 from ..state import ReportState
 
@@ -379,7 +380,7 @@ def _check_abstract_and_title(state: ReportState, profile: str, sections: dict[s
     front_matter = state.plan.get("front_matter") or {}
     title = str(front_matter.get("title") or "").strip()
     if profile == "academic_paper" and title:
-        word_count = len(re.findall(r"\b\w+\b", title))
+        word_count = count_words(title)
         if word_count < 5 or word_count > 22:
             _issue(
                 issues,

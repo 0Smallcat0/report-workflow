@@ -31,10 +31,6 @@ from typing import Any
 
 logger = logging.getLogger(__name__)
 
-REQUIRED_EVIDENCE_FIELDS = ["title", "url", "source_type", "trust_reason", "verification_note"]
-AUTO_EXECUTION_BACKENDS = ("tavily", "serper", "serpapi", "browser_mcp")
-
-
 # ------------------------------------------------------------------
 # Utilities
 # ------------------------------------------------------------------
