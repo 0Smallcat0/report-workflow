@@ -447,9 +447,8 @@ def _build_front_matter(state: ReportState) -> dict:
         # in base_document_sections before falling back to user_prompt parsing.
         task_intent = state.spec.get("task_intent", "new_draft")
         if task_intent == "revise_existing":
-            # base_document_sections may not be embedded in the checkpoint
-            # (SourcesState Pydantic model drops unknown fields on deserialization).
-            # Fall back to loading from the file path if present.
+            # base_document_sections is not always embedded in the checkpoint;
+            # fall back to loading from the file path if present.
             base_sections: dict = state.sources.get("base_document_sections", {})
             if not base_sections:
                 bd_path = state.sources.get("base_document_sections_path")

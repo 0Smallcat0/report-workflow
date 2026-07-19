@@ -512,7 +512,7 @@ def parse_semi_structured(file_path: str, file_type: str) -> dict:
 
 import re as _re_module
 
-_CJK_RE = _re_module.compile(r"[\u4e00-\u9fff\u3400-\u4dbf]")
+from ..language import CJK_RE as _CJK_RE
 _FORMULA_HINT_RE = _re_module.compile(r"(=|\b(?:Re|Cd|C_D|CL|C_L|Cp|C_p)\b|ρ|ν|μ|sqrt|√)")
 _QUESTION_RE = _re_module.compile(r"^\d+[.、)]")
 _SECTION_HEADING_RE = _re_module.compile(r"^(?:[一二三四五六七八九十]+[、.]|[IVX]+[.])")

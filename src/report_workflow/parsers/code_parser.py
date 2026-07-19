@@ -13,19 +13,6 @@ from pathlib import Path
 # Language-specific structural parsers
 # ------------------------------------------------------------------
 
-_PY_CLASS_RE = re.compile(r"^class\s+\w+", re.MULTILINE)
-_PY_DEF_RE = re.compile(r"^(?:async\s+)?def\s+\w+", re.MULTILINE)
-_PY_DECORATOR_RE = re.compile(r"^@\w+", re.MULTILINE)
-
-_JS_FUNC_RE = re.compile(r"^(?:async\s+)?function\s+\w+", re.MULTILINE)
-_JS_ARROW_RE = re.compile(r"^\w+\s*=\s*(?:async\s+)?\(", re.MULTILINE)
-_JS_CLASS_RE = re.compile(r"^class\s+\w+", re.MULTILINE)
-
-_TS_INTERFACE_RE = re.compile(r"^interface\s+\w+", re.MULTILINE)
-_TS_TYPE_RE = re.compile(r"^type\s+\w+\s*=", re.MULTILINE)
-_TS_DECORATOR_RE = re.compile(r"^@\w+", re.MULTILINE)
-
-
 def _split_python(source: str) -> list[tuple[str, int, int]]:
     """Split Python source into (name, line_start, line_end) units.
 

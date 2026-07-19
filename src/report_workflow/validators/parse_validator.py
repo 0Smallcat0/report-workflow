@@ -43,9 +43,3 @@ def validate_parsed_output(parsed: dict) -> tuple[bool, str]:
         return False, "Parser reported failure and no content available"
     
     return True, "Valid"
-
-
-def should_retry_with_fallback(parsed: dict) -> bool:
-    """Determine if we should retry with fallback parser."""
-    is_valid, _ = validate_parsed_output(parsed)
-    return not is_valid

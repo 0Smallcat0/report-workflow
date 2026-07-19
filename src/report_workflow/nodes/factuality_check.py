@@ -200,22 +200,6 @@ def run_factuality_check_fb(
     return results
 
 
-def run_factuality_check_fc(disputed_claims: list[dict], claim_matrix: dict) -> list[dict]:
-    """Deprecated Phase 1 adjudication hook.
-
-    The MVP fail-fast contract has no auto-verifying agent adjudication path.
-    """
-    return [
-        {
-            "claim_id": claim.get("claim_id", "<missing>"),
-            "status": "blocked",
-            "checker": "FC_DISABLED",
-            "reason": "Agent adjudication is not enabled in MVP",
-        }
-        for claim in disputed_claims
-    ]
-
-
 # ----------------------------------------------------------------------
 # Fix #5: Content overlap checker
 # ----------------------------------------------------------------------

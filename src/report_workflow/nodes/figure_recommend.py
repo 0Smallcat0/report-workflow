@@ -9,6 +9,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from ..language import CJK_RE
 from ..runtime_support import load_jsonl, write_json_artifact
 from ..state import ReportState
 from .figure_utils import (
@@ -551,9 +552,6 @@ def _error_bar_payload(
     }
 
 
-_CJK_ANY_RE = re.compile(r"[一-鿿㐀-䶿]")
-
-
 def _human_figure_title(
     figure_type: str,
     ylabel: str,
@@ -579,7 +577,7 @@ def _human_figure_title(
     subject = ", ".join(series_names[:3]) or _clean_text(ylabel)
     group = _clean_text(xlabel)
     if subject and group and subject != group:
-        if _CJK_ANY_RE.search(subject + group):
+        if CJK_RE.search(subject + group):
             title = f"{subject}(依{group})"
         else:
             title = f"{subject} by {group}"

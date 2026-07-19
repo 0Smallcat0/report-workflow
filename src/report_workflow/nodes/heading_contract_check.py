@@ -7,6 +7,7 @@ from pathlib import Path
 
 from ..errors import QAHardBlockError
 from ..language import (
+    ZH_ORDINAL_PREFIX_RE,
     derived_section_title,
     detect_document_language,
     localized_section_title,
@@ -17,10 +18,6 @@ from ..state import ReportState, WORKFLOW_RUNS_DIR
 
 _HEADING_RE = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
 _NUMBERED_RE = re.compile(r"^\d+(?:\.\d+)*\.?\s+")
-# Chinese ordinal prefixes: 「一、」「十二、」「（三）」 — with 、 . ． or ）
-_ZH_NUMBERED_RE = re.compile(
-    r"^(?:[（(][一二三四五六七八九十百]+[)）]|[一二三四五六七八九十百]+[、.．])\s*"
-)
 
 
 def _norm(text: str) -> str:
@@ -31,7 +28,7 @@ def _norm(text: str) -> str:
     every canonical heading was present.
     """
     text = _NUMBERED_RE.sub("", text.strip())
-    text = _ZH_NUMBERED_RE.sub("", text).strip().lower()
+    text = ZH_ORDINAL_PREFIX_RE.sub("", text).strip().lower()
     return re.sub(r"[^a-z0-9一-鿿㐀-䶿]+", "_", text).strip("_")
 
 

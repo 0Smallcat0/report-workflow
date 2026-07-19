@@ -132,12 +132,6 @@ WORKFLOW_RUNS_DIR = _RunDirectoryResolver()
 PUBLISHED_DIR = _PublishedDirectoryResolver()
 
 
-class PlanState(BaseModel):
-    blueprint: Optional[dict] = None
-    claim_matrix: Optional[dict] = None
-    outline: Optional[dict] = None
-
-
 class SourceContentBlock(BaseModel):
     block_id: str
     block_type: str
@@ -151,33 +145,6 @@ class SourceContentBlock(BaseModel):
     quote: Optional[str] = None
 
 
-class SourceRegistryEntry(BaseModel):
-    source_id: str
-    file_name: str
-    file_path: str
-    file_type: str
-    file_size: int
-    uploaded_at: str
-    artifact_role: str
-    parsed_content: list[SourceContentBlock] = Field(default_factory=list)
-    parse_attempts: int = 0
-    parse_status: Optional[str] = None
-    parse_error: Optional[str] = None
-
-
-class SourcesState(BaseModel):
-    corpus_manifest: list[dict] = Field(default_factory=list)
-    source_registry: list[SourceRegistryEntry] = Field(default_factory=list)
-    evidence_ledger_path: Optional[str] = None
-
-
-class DraftsState(BaseModel):
-    section_drafts: dict[str, str] = Field(default_factory=dict)
-    sentence_map_path: Optional[str] = None
-    merged_draft_md: Optional[str] = None
-    merged_draft_cited_md: Optional[str] = None
-
-
 class CitationAuditEntry(BaseModel):
     cite_id: str
     evidence_ids: list[str]
@@ -186,22 +153,6 @@ class CitationAuditEntry(BaseModel):
 
 class CitationsState(BaseModel):
     citation_audit: list[CitationAuditEntry] = Field(default_factory=list)
-
-
-class QAState(BaseModel):
-    factuality_report_path: Optional[str] = None
-    qa_decision: Optional[str] = None
-    artifact_completeness_status: Optional[str] = None
-    hard_fail_reasons: list[str] = Field(default_factory=list)
-
-
-class OutputState(BaseModel):
-    final_docx_path: Optional[str] = None
-    output_dir: Optional[str] = None
-    workspace_root: Optional[str] = None
-    run_dir: Optional[str] = None
-    published_dir: Optional[str] = None
-    published_report_path: Optional[str] = None
 
 
 class RuntimeState(BaseModel):
@@ -366,15 +317,6 @@ def _sync_state_paths(state: ReportState, run_dir: Path) -> None:
     state.output["run_dir"] = str(run_dir)
     state.output["output_dir"] = str(run_dir)
     state.output.setdefault("published_dir", str(published_dir))
-
-
-def workspace_root_for(job: ReportState | str, workspace_root: str | Path | None = None) -> Path:
-    if isinstance(job, ReportState):
-        raw = job.output.get("workspace_root")
-        if raw:
-            return Path(raw).expanduser().resolve()
-        return run_dir_for(job, workspace_root=workspace_root).parent
-    return locate_run_dir(str(job), workspace_root=workspace_root).parent
 
 
 def run_dir_for(job: ReportState | str, workspace_root: str | Path | None = None) -> Path:

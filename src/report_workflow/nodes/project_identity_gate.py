@@ -10,35 +10,6 @@ from ..runtime_support import write_json_artifact
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 
 
-DEFAULT_ADMISSIONS_PROJECT_IDENTITY = {
-    "required_terms": [
-        "deterministic compilation",
-        "StrategyIR",
-        "AST",
-        "Taiwan equities",
-    ],
-    "required_context_terms": [
-        "compiler architecture",
-        "domain-specific intermediate representation",
-    ],
-    "forbidden_terms": [
-        "U.S. equity markets",
-        "U.S. Equity Markets",
-        "StrategySpec JSON",
-        "Research Author",
-        "Research University",
-        "research@university.edu",
-    ],
-    "canonical_title_terms": [
-        "deterministic",
-        "compilation",
-        "StrategyIR",
-        "compiler",
-    ],
-    "domain_context": "Taiwan equities",
-    "author_metadata": {},
-}
-
 _SECTION_RE = re.compile(r"^#{1,6}\s+(.+?)\s*$", re.MULTILINE)
 
 
