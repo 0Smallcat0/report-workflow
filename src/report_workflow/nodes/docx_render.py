@@ -332,14 +332,36 @@ def _toc_openxml_block(language: str, page_break_before: bool) -> str:
     return "```{=openxml}\n" + "\n".join(parts) + "\n```"
 
 
+def _xml_text_escape(text: str) -> str:
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _cover_openxml_block(cover_body: str) -> str:
+    """Centered title-page paragraphs for a leading cover section.
+
+    Raw openxml deliberately: the cover prose is plain sentences by the time
+    it reaches the renderer (citations already bound), and markdown has no
+    centering.
+    """
+    paragraphs = [p.strip() for p in re.split(r"\n\s*\n", cover_body) if p.strip()]
+    parts = [
+        '<w:p><w:pPr><w:jc w:val="center"/><w:spacing w:before="240" w:after="240"/></w:pPr>'
+        f'<w:r><w:t xml:space="preserve">{_xml_text_escape(paragraph)}</w:t></w:r></w:p>'
+        for paragraph in paragraphs
+    ]
+    return "```{=openxml}\n" + "\n".join(parts) + "\n```"
+
+
 def _inject_toc(md_content: str, has_front_matter: bool, cover_title: str = "") -> str:
     """Insert the TOC block after the front matter or a leading cover section.
 
     Placement, in priority order: after the front-matter separator; after a
-    leading cover section (profiles like the lab report open with a 封面
-    section instead of front matter); else at the top of the document. Only
-    the pandoc input gets this: the python-docx fallback would render the
-    raw-openxml fence as a literal code block.
+    leading cover section; else at the top of the document. A leading cover
+    section is also promoted to a title page: its heading is dropped (a
+    cover page does not label itself, and without a Heading 1 it stays out
+    of the TOC field) and its paragraphs render centered. Only the pandoc
+    input gets any of this: the python-docx fallback would render the
+    raw-openxml fences as literal code blocks.
     """
     language = detect_document_language(md_content)
     if has_front_matter:
@@ -352,10 +374,15 @@ def _inject_toc(md_content: str, has_front_matter: bool, cover_title: str = "") 
             return head + "\n\n" + block + "\n\n" + body
     if cover_title:
         headings = list(re.finditer(r"^# .*$", md_content, flags=re.MULTILINE))
-        if len(headings) >= 2 and cover_title in headings[0].group(0):
-            block = _toc_openxml_block(language, page_break_before=True)
-            idx = headings[1].start()
-            return md_content[:idx] + block + "\n\n" + md_content[idx:]
+        if headings and cover_title in headings[0].group(0):
+            end = headings[1].start() if len(headings) >= 2 else len(md_content)
+            cover_body = md_content[headings[0].end():end].strip()
+            toc_block = _toc_openxml_block(language, page_break_before=True)
+            head = md_content[:headings[0].start()]
+            if cover_body:
+                cover_block = _cover_openxml_block(cover_body)
+                return head + cover_block + "\n\n" + toc_block + "\n\n" + md_content[end:]
+            return head + toc_block + "\n\n" + md_content[end:]
     block = _toc_openxml_block(language, page_break_before=False)
     return block + "\n\n" + md_content
 

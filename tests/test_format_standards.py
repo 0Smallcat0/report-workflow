@@ -68,14 +68,18 @@ class ReferenceTemplateTest(unittest.TestCase):
 
 
 class CoverTocPlacementTest(unittest.TestCase):
-    def test_cover_led_document_gets_toc_after_cover(self):
+    def test_cover_promoted_to_title_page_with_toc_after(self):
         md = (
-            "# 1. 封面\n\n本報告為機械工程實驗課程之實驗報告,依據講義與量測數據撰寫。\n\n"
-            "# 2. 實驗目的\n\n量測懸臂樑自由端撓度並與理論比較,驗證線性關係與誤差來源。"
+            "# 封面\n\n本報告為機械工程實驗課程之實驗報告,依據講義與量測數據撰寫。\n\n"
+            "# 1. 實驗目的\n\n量測懸臂樑自由端撓度並與理論比較,驗證線性關係與誤差來源。"
         )
         out = _inject_toc(md, has_front_matter=False, cover_title="封面")
+        # The cover heading is dropped (a title page does not label itself,
+        # and without a Heading 1 it stays out of the TOC field).
+        self.assertNotIn("# 封面", out)
+        self.assertIn('w:jc w:val="center"', out)
         self.assertIn("目錄", out)
-        self.assertLess(out.index("封面"), out.index("目錄"))
+        self.assertLess(out.index("本報告為"), out.index("目錄"))
         self.assertLess(out.index("目錄"), out.index("實驗目的"))
 
     def test_unrelated_first_heading_keeps_toc_on_top(self):

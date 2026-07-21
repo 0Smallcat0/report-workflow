@@ -85,7 +85,11 @@ def normalize_heading_contract(markdown: str, blueprint: dict) -> tuple[str, lis
     ordinal_by_sid: dict[str, int] = {}
     ordinal = 1
     for sid in section_order:
-        if sid in {"abstract", "references"}:
+        # Abstract/References stay unnumbered by convention; the cover is a
+        # title page, not a numbered body section — the renderer promotes it
+        # to a centered cover block, so numbering starts at the first real
+        # section.
+        if sid in {"abstract", "references", "cover"}:
             continue
         ordinal_by_sid[sid] = ordinal
         ordinal += 1
