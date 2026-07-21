@@ -1,5 +1,37 @@
 # Changelog
 
+## 4.20.0 - 2026-07-22
+
+### Fixed — the English revise dogfood: a revision keeps the base document's shape
+
+An English revise case (an old lab-report draft: correct a wrong error
+figure against the CSV, retitle, drop a "Notes for Instructor" section,
+polish informal wording — with a user template) found the sixth and seventh
+members of the "revise wrongly inherits the new-draft blueprint contract"
+family from 4.7.0. Chinese revisions never tripped them because Chinese
+section ids share nothing with the blueprint; a partially-overlapping
+English document did:
+
+- SECTION_DRAFT rejected sentence-map entries anchored to base-document
+  sections (`results`) because its section universe was
+  blueprint ∩ outline; base sections are now registered in revise mode
+  (the same guard outline_plan already had).
+- REVISION_APPLY emitted blueprint-matching sections first, so the base
+  document's Conclusion was hoisted above its Introduction. Revised
+  documents now keep the base document's own section order.
+- HEADING_CONTRACT_CHECK still ran the canonical rewrite in revise mode,
+  renumbering whichever base sections happened to share blueprint ids
+  ("9. Conclusion"). Revise mode now keeps base headings verbatim.
+- The revised document's title (the base H1, retitle-aware) is emitted
+  again — it vanished whenever the profile had no required front matter —
+  and the TOC now follows the title instead of sitting on top of it.
+
+Verified end-to-end: all four change types applied (claim-linked number
+correction, retitle, remove_section, two editorial rewrites), base order
+preserved (title → TOC → Introduction → … → Conclusion), template fonts/
+header/page numbers carried, zero CJK leakage. 443 tests and both
+benchmark --checks pass.
+
 ## 4.19.1 - 2026-07-21
 
 ### Fixed — English lab reports no longer carry Chinese headings

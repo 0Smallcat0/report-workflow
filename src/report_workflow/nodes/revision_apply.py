@@ -390,10 +390,7 @@ def run_revision_apply(state: ReportState) -> ReportState:
     report_path = write_diff_report(state.job_id, diff_report)
     state.runtime["revision_diff_report_path"] = report_path
 
-    # Canonical order: Abstract first, blueprint sections, other sections, References last
-    blueprint = state.plan.get("blueprint") or {}
-    section_order: list[str] = blueprint.get("section_order", [])
-
+    # Canonical order: title, Abstract first, base-document sections, References last
     ABSTRACT_SECTION = "abstract"
     REFERENCES_SECTION = "references"
 
@@ -405,6 +402,17 @@ def run_revision_apply(state: ReportState) -> ReportState:
     }
 
     merged_lines: list[str] = []
+
+    # 0. Document title. The base document's H1 lives in the preamble
+    # (retitle-aware via base_titles); without this, a revised document
+    # loses its title whenever the profile has no required front matter.
+    doc_title = str(base_titles.get("preamble") or "").strip()
+    if not doc_title:
+        title_match = re.match(r"\s*#\s+(.+)", str(base_sections.get("preamble") or ""))
+        if title_match:
+            doc_title = title_match.group(1).strip()
+    if doc_title:
+        merged_lines.append(f"# {doc_title}\n")
 
     # 1. Abstract — always first
     abstract_content = updated_sections.get(ABSTRACT_SECTION, "").strip()
@@ -418,17 +426,11 @@ def run_revision_apply(state: ReportState) -> ReportState:
     def _heading_for(sid: str) -> str:
         return base_titles.get(sid) or sid.replace("_", " ").title()
 
-    # 2. Blueprint sections in order
-    for sid in section_order:
-        if sid in (ABSTRACT_SECTION, REFERENCES_SECTION):
-            continue
-        content = other_sections.get(sid, "")
-        if content.strip():
-            content = _strip_leading_heading_from_content(content, sid)
-            merged_lines.append(f"# {_heading_for(sid)}\n\n{content}\n")
-            del other_sections[sid]  # avoid re-emitting
-
-    # 3. Other non-blueprint sections (middle)
+    # 2. Body sections in the base document's own order. The blueprint's
+    # order only ever matched a base document by coincidence: a partially
+    # overlapping English draft had its Conclusion hoisted to the top
+    # because "conclusion" happened to be a blueprint id. For a revision,
+    # the base document's own order is the canonical one.
     for sid, content in other_sections.items():
         if sid in (ABSTRACT_SECTION, REFERENCES_SECTION):
             continue

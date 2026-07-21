@@ -252,6 +252,23 @@ def run_section_draft(state: ReportState) -> ReportState:
             raise QAHardBlockError(f"Section draft is placeholder content: {section_id}")
         section_paths[section_id] = str(path)
 
+    if revise_mode:
+        # A revision outline mirrors the base document, whose section ids
+        # need not exist in the blueprint — planned_section_ids intersects
+        # with the blueprint and silently drops them (the same trap
+        # outline_plan already guards against). Register the base sections
+        # so sentence-map entries can anchor to them.
+        base_sections_path = run_dir / "base_document_sections.json"
+        if base_sections_path.exists():
+            try:
+                with open(base_sections_path, encoding="utf-8") as f:
+                    base_sections = json.load(f)
+                if isinstance(base_sections, dict):
+                    for base_sid in base_sections:
+                        section_paths.setdefault(base_sid, "")
+            except json.JSONDecodeError:
+                pass
+
     if missing:
         write_agent_task_briefs(state)
         state.runtime["required_agent_artifacts"] = missing
