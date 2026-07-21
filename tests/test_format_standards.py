@@ -105,6 +105,42 @@ class TableFigureTitleTest(unittest.TestCase):
         self.assertNotIn("view of", title)
 
 
+class EnglishTitleLocalizationTest(unittest.TestCase):
+    def test_cjk_only_blueprint_title_falls_back_for_english(self):
+        from report_workflow.language import localized_section_title
+
+        self.assertEqual(
+            localized_section_title({"title": "封面"}, "cover", "en"), "Cover"
+        )
+        self.assertEqual(
+            localized_section_title({"title": "結果與討論"}, "results_discussion", "en"),
+            "Results Discussion",
+        )
+
+    def test_zh_document_still_gets_chinese_title(self):
+        from report_workflow.language import localized_section_title
+
+        self.assertEqual(
+            localized_section_title(
+                {"title": "Cover", "title_zh": "封面"}, "cover", "zh"
+            ),
+            "封面",
+        )
+
+    def test_engineering_blueprint_is_bilingual(self):
+        import report_workflow
+
+        blueprint = (
+            Path(report_workflow.__file__).parent
+            / "blueprints"
+            / "engineering_lab_report.yaml"
+        ).read_text(encoding="utf-8")
+        self.assertIn("title: Cover", blueprint)
+        self.assertIn("title_zh: 封面", blueprint)
+        self.assertIn("title: Results and Discussion", blueprint)
+        self.assertIn("title_zh: 結果與討論", blueprint)
+
+
 class NativeTableRenderTest(unittest.TestCase):
     def _manifest(self):
         return {

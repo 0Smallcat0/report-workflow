@@ -66,8 +66,10 @@ def localized_section_title(section: dict, section_id: str, language: str) -> st
     """Pick the blueprint section title for the document language.
 
     ``title_zh`` wins for Chinese documents when the blueprint provides it;
-    otherwise the plain ``title`` (which profiles like engineering_lab_report
-    already author in Chinese) and finally the derived id-based title.
+    otherwise the plain ``title`` and finally the derived id-based title.
+    A Chinese-only ``title`` on a non-Chinese document falls back to the
+    derived English title instead of leaking CJK headings into an English
+    document (the mirror of the pre-4.10 English-headings-in-Chinese wall).
     """
     section = section or {}
     if language == "zh":
@@ -75,4 +77,11 @@ def localized_section_title(section: dict, section_id: str, language: str) -> st
         if title_zh:
             return title_zh
     title = str(section.get("title") or "").strip()
+    if (
+        language != "zh"
+        and title
+        and CJK_RE.search(title)
+        and not _LATIN_RE.search(title)
+    ):
+        return derived_section_title(section_id)
     return title or derived_section_title(section_id)

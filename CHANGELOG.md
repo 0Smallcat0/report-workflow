@@ -1,5 +1,27 @@
 # Changelog
 
+## 4.19.1 - 2026-07-21
+
+### Fixed — English lab reports no longer carry Chinese headings
+
+The question "does the English side work too?" found the mirror of the
+pre-4.10 wall: six blueprints are English-native with `title_zh` for
+Chinese documents, but engineering_lab_report was Chinese-native — an
+English lab report rendered "1. 封面" and friends into an otherwise
+English document (confirmed in the archived English benchmark output).
+
+- engineering_lab_report.yaml is now bilingual like the other six:
+  `title` in English, `title_zh` carrying the exact Chinese strings the
+  Chinese path always produced — Chinese output is unchanged.
+- `localized_section_title` gained the symmetric defense: a Chinese-only
+  `title` on a non-Chinese document falls back to the id-derived English
+  title instead of leaking CJK headings.
+
+Verified both ways end-to-end: the English benchmark lab case now renders
+"1. Objectives … 4. Apparatus and Materials" with zero CJK paragraphs,
+and the Chinese beam case is unchanged (centered cover, 目錄,
+"1. 實驗目的", 表 1). 442 tests and both benchmark --checks pass.
+
 ## 4.19.0 - 2026-07-21
 
 ### Changed — the cover is a title page, not "1. 封面"
