@@ -715,6 +715,35 @@ def run_figure_build(state: ReportState) -> ReportState:
             elif figure_type == "pie":
                 figure_visual_issues = _generate_pie(figure_id, title, data, width, height, dpi, output_path)
             elif figure_type == "table":
+                columns = data.get("columns") or []
+                rows = data.get("rows") or []
+                if columns and rows:
+                    # Native Word table: no PNG. DOCX_RENDER turns this entry
+                    # into a markdown pipe table, so the document gets a real,
+                    # selectable table that follows the reference template's
+                    # table style — a rasterized table does neither.
+                    manifest_entries.append({
+                        "figure_id": figure_id,
+                        "figure_type": figure_type,
+                        "title": title,
+                        "path": "",
+                        "render_mode": "native_table",
+                        "format": "docx_table",
+                        "section_id": section_id,
+                        "data": {"columns": columns, "rows": rows},
+                        "visual_quality_status": "passed",
+                        "visual_quality_issue_count": 0,
+                    })
+                    visual_figure_reports.append({
+                        "figure_id": figure_id,
+                        "figure_type": figure_type,
+                        "path": "",
+                        "status": "passed",
+                        "issue_count": 0,
+                        "issues": [],
+                    })
+                    logger.info(f"[FIGURE_BUILD] {figure_id}: native docx table ({len(rows)} rows)")
+                    continue
                 figure_visual_issues = _generate_table(figure_id, title, data, width, height, dpi, output_path)
             elif figure_type == "histogram":
                 figure_visual_issues = _generate_histogram(figure_id, title, data, xlabel, ylabel, width, height, dpi, output_path)

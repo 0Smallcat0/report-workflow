@@ -101,6 +101,46 @@ class TableFigureTitleTest(unittest.TestCase):
         self.assertNotIn("view of", title)
 
 
+class NativeTableRenderTest(unittest.TestCase):
+    def _manifest(self):
+        return {
+            "figures": [
+                {
+                    "figure_id": "1",
+                    "figure_type": "table",
+                    "title": "各級荷重之實測與理論撓度",
+                    "render_mode": "native_table",
+                    "data": {
+                        "columns": ["荷重(N)", "實測撓度(mm)"],
+                        "rows": [["5", "1.52"], ["10", "3.01"]],
+                    },
+                }
+            ]
+        }
+
+    def test_zh_native_table_markdown(self):
+        from report_workflow.nodes.docx_render import _replace_figure_placeholders
+
+        md = "五級荷重的量測結果整理如下表,實測撓度與理論撓度的誤差均低於檢查門檻。\n\n[FIGURE:1]\n"
+        out, replaced, unresolved = _replace_figure_placeholders(md, self._manifest())
+        self.assertEqual(replaced, 1)
+        self.assertEqual(unresolved, [])
+        self.assertIn("表 1. 各級荷重之實測與理論撓度", out)
+        self.assertIn("| 荷重(N) | 實測撓度(mm) |", out)
+        self.assertIn("| 5 | 1.52 |", out)
+        self.assertNotIn("[FIGURE:1]", out)
+
+    def test_en_native_table_caption(self):
+        from report_workflow.nodes.docx_render import _replace_figure_placeholders
+
+        md = "The measured deflections are summarized in the table below.\n\n[FIGURE:1]\n"
+        manifest = self._manifest()
+        manifest["figures"][0]["title"] = "Deflection summary"
+        out, replaced, _ = _replace_figure_placeholders(md, manifest)
+        self.assertEqual(replaced, 1)
+        self.assertIn("Table 1. Deflection summary", out)
+
+
 class FigureCaptionLanguageTest(unittest.TestCase):
     def test_zh_caption_prefix(self):
         from report_workflow.nodes.docx_render import _figure_alt_text
