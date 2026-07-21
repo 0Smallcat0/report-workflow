@@ -23,10 +23,6 @@ ROUTE_RULES = [
     ("placeholder", "SECTION_DRAFT", "replace placeholder draft content"),
     ("citation", "CITATION_BIND", "resolve citations"),
     ("factuality", "CLAIM_PLAN", "revise claims/evidence linkage"),
-    ("consistency", "CONSISTENCY_CHECK", "resolve consistency findings"),
-    ("style", "STYLE_LINT", "resolve style findings"),
-    ("guideline", "GUIDELINE_CHECK", "resolve guideline findings"),
-    ("research", "RESEARCH_RETRIEVE", "rerun or repair research retrieval"),
 ]
 
 

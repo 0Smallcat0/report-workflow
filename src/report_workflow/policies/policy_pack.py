@@ -73,8 +73,7 @@ class ClaimPolicy:
 
 @dataclass(frozen=True)
 class GuidelinePolicy:
-    hard_guideline_ids: list[str]
-    auto_select_allowed: bool  # academic=false (require explicit --guidelines)
+    auto_select_allowed: bool  # academic=False: no automatic guideline selection
 
 
 @dataclass
@@ -112,20 +111,6 @@ class ReportPolicy:
             pass
         return []
 
-    def load_hard_guidelines(self, family: str) -> list[str]:
-        """Load hard-block guideline IDs for the given family alias."""
-        try:
-            with importlib.resources.as_file(
-                importlib.resources.files("report_workflow") / "configs" / "guideline_severity_policy.json"
-            ) as path:
-                if path.exists():
-                    with open(path, encoding="utf-8") as f:
-                        data = json.load(f)
-                    return data.get("hard", {}).get(family, [])
-        except Exception:
-            pass
-        return []
-
 
 # ------------------------------------------------------------------
 # Concrete policy classes
@@ -134,7 +119,6 @@ class ReportPolicy:
 class AcademicReportPolicy(ReportPolicy):
     def __init__(self):
         phrases = self.load_banned_phrases("academic")
-        hard_ids = self.load_hard_guidelines("academic")
 
         super().__init__(
             front_matter=FrontMatterPolicy(
@@ -173,7 +157,7 @@ class AcademicReportPolicy(ReportPolicy):
                 thesis_required=True,
                 rqs_required=False,
             ),
-            guideline=GuidelinePolicy(hard_guideline_ids=hard_ids, auto_select_allowed=False),
+            guideline=GuidelinePolicy(auto_select_allowed=False),
             banned_phrases=phrases,
         )
 
@@ -181,7 +165,6 @@ class AcademicReportPolicy(ReportPolicy):
 class WorkReportPolicy(ReportPolicy):
     def __init__(self):
         phrases = self.load_banned_phrases("work")
-        hard_ids = self.load_hard_guidelines("work")
 
         super().__init__(
             front_matter=FrontMatterPolicy(
@@ -220,7 +203,7 @@ class WorkReportPolicy(ReportPolicy):
                 thesis_required=False,
                 rqs_required=False,
             ),
-            guideline=GuidelinePolicy(hard_guideline_ids=hard_ids, auto_select_allowed=True),
+            guideline=GuidelinePolicy(auto_select_allowed=True),
             banned_phrases=phrases,
         )
 
@@ -228,7 +211,6 @@ class WorkReportPolicy(ReportPolicy):
 class CustomReportPolicy(ReportPolicy):
     def __init__(self):
         phrases = self.load_banned_phrases("hybrid")
-        hard_ids: list[str] = []
 
         super().__init__(
             front_matter=FrontMatterPolicy(
@@ -268,7 +250,7 @@ class CustomReportPolicy(ReportPolicy):
                 thesis_required=False,
                 rqs_required=False,
             ),
-            guideline=GuidelinePolicy(hard_guideline_ids=hard_ids, auto_select_allowed=True),
+            guideline=GuidelinePolicy(auto_select_allowed=True),
             banned_phrases=phrases,
         )
 
@@ -314,7 +296,7 @@ _PROFILE_OVERRIDES: dict[str, dict] = {
             thesis_required=False,
             rqs_required=False,
         ),
-        "guideline": GuidelinePolicy(hard_guideline_ids=[], auto_select_allowed=True),
+        "guideline": GuidelinePolicy(auto_select_allowed=True),
     },
     "admissions_report": {
         "abstract": AbstractPolicy(
