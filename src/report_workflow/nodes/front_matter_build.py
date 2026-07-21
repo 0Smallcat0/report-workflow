@@ -18,7 +18,7 @@ import json
 import re
 from pathlib import Path
 
-from ..state import ReportState, WORKFLOW_RUNS_DIR
+from ..state import ReportState
 from ..errors import QAHardBlockError
 from ..language import CJK_RE
 from ..policies import get_policy

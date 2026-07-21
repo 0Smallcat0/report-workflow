@@ -1,7 +1,6 @@
 """SECTION_PLAN_FREEZE - freeze planning artifacts before drafting."""
 import hashlib
 import json
-from pathlib import Path
 
 from ..errors import QAHardBlockError
 from ..state import ReportState, WORKFLOW_RUNS_DIR

@@ -294,6 +294,17 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _reject_invalid_reference_docx(path_str: str | None) -> bool:
+    """Print the reason and return True when a --reference-docx arg is unusable."""
+    if not path_str:
+        return False
+    error = reference_docx_error(Path(path_str))
+    if error:
+        print(f"Invalid --reference-docx: {error}", file=sys.stderr)
+        return True
+    return False
+
+
 def _print_state(state) -> None:
     """Print workflow state summary."""
     print(f"job_id: {state.job_id}")
@@ -626,11 +637,8 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 return 3
 
-            if args.reference_docx:
-                ref_error = reference_docx_error(Path(args.reference_docx))
-                if ref_error:
-                    print(f"Invalid --reference-docx: {ref_error}", file=sys.stderr)
-                    return 2
+            if _reject_invalid_reference_docx(args.reference_docx):
+                return 2
 
             state = prepare_workflow(
                 args.prompt,
@@ -672,11 +680,8 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "render":
-            if args.reference_docx:
-                ref_error = reference_docx_error(Path(args.reference_docx))
-                if ref_error:
-                    print(f"Invalid --reference-docx: {ref_error}", file=sys.stderr)
-                    return 2
+            if _reject_invalid_reference_docx(args.reference_docx):
+                return 2
             state = render_workflow(
                 args.job_id,
                 workspace_root=args.workspace_root,
@@ -691,11 +696,8 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "run":
-            if args.reference_docx:
-                ref_error = reference_docx_error(Path(args.reference_docx))
-                if ref_error:
-                    print(f"Invalid --reference-docx: {ref_error}", file=sys.stderr)
-                    return 2
+            if _reject_invalid_reference_docx(args.reference_docx):
+                return 2
             if args.verbose:
                 state = _verbose_validate(args.job_id, workspace_root=args.workspace_root)
             else:

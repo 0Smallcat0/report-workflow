@@ -1,6 +1,4 @@
 """Semi-structured parser for PDF, DOCX, TXT files."""
-from pathlib import Path
-from typing import Any, Optional
 
 
 def table_to_text(table: list[list[str]]) -> str:

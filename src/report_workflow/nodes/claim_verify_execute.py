@@ -16,7 +16,6 @@ import json
 import logging
 from pathlib import Path
 
-from ..connectors.research_backends import ensure_source_shape
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 
 logger = logging.getLogger(__name__)

@@ -1,5 +1,4 @@
 """Parse validator - validates parsed output."""
-from typing import Any
 
 
 def block_text(block: dict) -> str:

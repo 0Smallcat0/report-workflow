@@ -6,7 +6,6 @@ Falls back to fixed-size (50-line) chunks when structural parsing fails.
 """
 import hashlib
 import re
-from pathlib import Path
 
 
 # ------------------------------------------------------------------

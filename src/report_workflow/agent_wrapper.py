@@ -31,7 +31,7 @@ from report_workflow.automation_harness import (
     run_controlled_stage,
 )
 from report_workflow.engineering_audit import run_engineering_audit as run_engineering_lab_audit
-from report_workflow.config import load_config, save_feature_flag
+from report_workflow.config import load_config
 from report_workflow.preflight import discover_features, check_preflight
 from report_workflow.preflight_decisions import (
     evaluate_preflight_start,

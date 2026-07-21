@@ -2,8 +2,6 @@
 import csv
 import json
 import tomllib
-from pathlib import Path
-from typing import Any
 
 
 def parse_csv(file_path: str) -> list[dict]:

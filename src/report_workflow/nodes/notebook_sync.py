@@ -11,7 +11,6 @@ the state unchanged.
 """
 import json
 import logging
-from pathlib import Path
 
 from ..connectors.notebooklm_connector import (
     notebooklm_available,

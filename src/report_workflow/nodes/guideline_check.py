@@ -14,7 +14,6 @@ Output: guideline_report.json
 import json
 import re
 from pathlib import Path
-from typing import Optional
 
 from ..errors import QAHardBlockError
 from ..state import ReportState, WORKFLOW_RUNS_DIR

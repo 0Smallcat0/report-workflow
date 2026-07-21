@@ -358,11 +358,13 @@ def _resolve_reference_doc(spec: dict) -> Path:
 def _render_via_pandoc(
     md_path: str,
     output_path: str,
-    toc: bool = False,
-    number_sections: bool = False,
     reference_doc: Path | None = None,
 ) -> bool:
     """Convert markdown to DOCX using pandoc.
+
+    The table of contents is not pandoc's --toc: _inject_toc places a TOC
+    field after the front matter in the markdown instead, so the title page
+    stays first and the heading is localized.
 
     Returns True on success, False if pandoc is unavailable or fails.
     """
@@ -377,15 +379,6 @@ def _render_via_pandoc(
     ref_doc = reference_doc if reference_doc is not None else _REFERENCE_DOC
     if ref_doc.exists():
         cmd.extend(["--reference-doc", str(ref_doc)])
-
-    # Table of contents
-    if toc:
-        cmd.append("--toc")
-        cmd.extend(["--toc-depth", "3"])
-
-    # Section numbering
-    if number_sections:
-        cmd.append("--number-sections")
 
     # Standalone output
     cmd.append("--standalone")
@@ -1166,8 +1159,6 @@ def run_docx_render(state: ReportState) -> ReportState:
         used_pandoc = _render_via_pandoc(
             str(pandoc_input_md),
             str(final_docx_path),
-            toc=False,
-            number_sections=False,
             reference_doc=reference_doc,
         )
     except Exception as exc:
