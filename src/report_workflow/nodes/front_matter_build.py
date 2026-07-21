@@ -20,8 +20,12 @@ from pathlib import Path
 
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
+from ..language import CJK_RE
 from ..policies import get_policy
 from ..runtime_support import write_json_artifact
+
+# Single CJK character class, shared with report_workflow.language
+_CJK_CHAR = CJK_RE.pattern
 
 
 # ------------------------------------------------------------------
@@ -40,8 +44,10 @@ from ..runtime_support import write_json_artifact
 
 def _parse_author_from_user_prompt(user_prompt: str) -> str:
     """Extract author name from user prompt if recognizable."""
-    # Common patterns: "by Author", "Author Name:", "author:"
+    # Common patterns: "by Author", "Author Name:", "author:", "作者:王小明"
     patterns = [
+        # "作者:王小明" / "Author: 王小明" (labelled CJK name, 2-4 chars)
+        rf"(?:author|作者|撰寫人|報告人)\s*[::\-]\s*({_CJK_CHAR}{{2,4}})(?!{_CJK_CHAR})",
         # "Author: Full Name" or "Author - Full Name"
         r"(?:author[:\-\s]+)([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)",
         # "by Author Full Name"
@@ -55,6 +61,9 @@ def _parse_author_from_user_prompt(user_prompt: str) -> str:
         m = re.search(pattern, user_prompt, re.IGNORECASE | re.MULTILINE)
         if m:
             name = m.group(1).strip()
+            # Labelled CJK names are already tight (2-4 chars); accept as-is
+            if CJK_RE.search(name):
+                return name
             # Filter out obvious non-names
             if len(name) > 5 and not any(kw in name.lower() for kw in ["report", "thesis", "study", "paper", "analysis"]):
                 return name
@@ -66,8 +75,11 @@ def _parse_title_from_user_prompt(user_prompt: str) -> str:
     lines = user_prompt.split('\n')
     for line in lines[:5]:  # Check first 5 lines
         line = line.strip()
+        # CJK titles are dense: 6 chars is already a full title
+        is_cjk = bool(CJK_RE.search(line))
+        min_len = 4 if is_cjk else 10
         # Skip very short lines
-        if len(line) < 10:
+        if len(line) < min_len:
             continue
         # Skip lines that look like commands/paths
         if re.match(r'^[a-zA-Z]:|^\s*--|^pip |^python |^report-workflow', line):
@@ -76,12 +88,12 @@ def _parse_title_from_user_prompt(user_prompt: str) -> str:
         if re.search(r'\.(txt|docx|pdf|csv|xlsx|json)\b', line, re.IGNORECASE):
             continue
         # Lines that look like titles (may have subtitle separator)
-        if len(line) > 15 and len(line) < 200:
+        if len(line) > (4 if is_cjk else 15) and len(line) < 200:
             # Title-like: starts capitalized or has em-dash/subtitle separator
-            if line[0].isupper() or ":" in line[:50]:
+            if is_cjk or line[0].isupper() or ":" in line[:50]:
                 # Clean up any prefix markers
-                cleaned = re.sub(r'^(?:title[:\-\s]+|"#?\s*)', '', line, flags=re.IGNORECASE).strip()
-                if cleaned and len(cleaned) > 10:
+                cleaned = re.sub(r'^(?:title[:\-\s]+|(?:標題|題目)\s*[::]\s*|"#?\s*)', '', line, flags=re.IGNORECASE).strip()
+                if cleaned and len(cleaned) > (3 if is_cjk else 10):
                     return cleaned
     return ""
 
@@ -89,6 +101,8 @@ def _parse_title_from_user_prompt(user_prompt: str) -> str:
 def _parse_affiliation_from_user_prompt(user_prompt: str) -> str:
     """Extract affiliation/institution from user prompt if recognizable."""
     patterns = [
+        # "單位:國立成功大學機械系" (labelled CJK affiliation)
+        rf"(?:單位|機構|系所|學校|服務單位)\s*[::]\s*({_CJK_CHAR}[^\n]{{1,60}})",
         # "Affiliation: ..." or "Institution: ..."
         r"(?:affiliation|institution|department|university|company|organization)[:\s]+([^\n]{10,100})",
         # "at Institution Name"
@@ -98,7 +112,7 @@ def _parse_affiliation_from_user_prompt(user_prompt: str) -> str:
         m = re.search(pattern, user_prompt, re.IGNORECASE)
         if m:
             affil = m.group(1).strip().rstrip(',.;')
-            if len(affil) > 5:
+            if len(affil) > 5 or (CJK_RE.search(affil) and len(affil) >= 3):
                 return affil
     return ""
 

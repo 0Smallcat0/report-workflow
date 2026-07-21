@@ -218,6 +218,22 @@ Closing the negation/misattribution gap would require an NLI-style semantic
 checker, which would reintroduce a probabilistic component; the design keeps
 that trade-off explicit instead of blending the two.
 
+### Formatting boundary
+
+The renderer targets a clean, submission-ready *manuscript*: title page
+first, a localized table-of-contents field after the front matter, a
+page-number footer, styled tables, embedded figures with captions,
+hanging-indent references, and TeX math rendered to native equations.
+
+It deliberately does **not** implement venue-specific layout: journal house
+styles and two-column layouts (IEEE/ACM), LaTeX output, or per-institution
+thesis rules (mandated fonts, margin regimes, roman-to-arabic page-number
+switches that require multi-section documents). Citation output is APA 7th
+for publications plus GB/T 7714 labels for data sources; other styles are
+not implemented. Submitting to a venue still means pouring the content into
+that venue's template — the contract here is that the content survives the
+pour: headings, citations, numbers, and figures arrive real and traceable.
+
 ## 7. Generalization
 
 Report generation is one instance of **evidence-bounded generation**: wherever
