@@ -1,6 +1,6 @@
 """SECTION_ROLE_CHECK node - verify IMRaD section role separation.
 
-Sits between CONSISTENCY_CHECK and QA_GATE in validate phase.
+Runs before QA_GATE in the validate phase.
 
 Validates that IMRaD sections maintain proper role boundaries:
   - Results: only presents findings (no interpretation)
@@ -220,7 +220,7 @@ def _check_abstract_claims(state: ReportState, abstract_content: str) -> list[di
 def run_section_role_check(state: ReportState) -> ReportState:
     """T_NEW: SECTION_ROLE_CHECK - verify IMRaD section role separation.
 
-    Position: After CONSISTENCY_CHECK, before QA_GATE.
+    Position: before QA_GATE.
     """
     merged_path = state.drafts.get("merged_draft_md", "")
     if not merged_path or not Path(merged_path).exists():

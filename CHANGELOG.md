@@ -1,5 +1,33 @@
 # Changelog
 
+## 4.16.2 - 2026-07-21
+
+### Removed — the unwired quality gates, resolved
+
+Decision on the 4.16.1 open question: deleted rather than wired.
+
+- `consistency_check` + `guideline_check` and their 14 tests. Functional but
+  unreachable, and wiring them was rejected on three grounds: the project's
+  standing "improve output quality, don't stack more verification" ruling;
+  CONSORT/PRISMA/SRQR are clinical/systematic-review reporting guidelines
+  none of the seven supported document types belong to; and cross-section
+  numeric consistency is already enforced by evidence binding (every number
+  must trace to evidence, so two disagreeing sections cannot both pass).
+- The write-only severity chain that existed only to feed them:
+  `ReportPolicy.load_hard_guidelines`, `GuidelinePolicy.hard_guideline_ids`
+  (constructed four times, read zero times), and
+  `configs/guideline_severity_policy.json`.
+- Four remediation-router rows that routed failure reasons to stages that
+  do not exist (CONSISTENCY_CHECK, GUIDELINE_CHECK, STYLE_LINT,
+  RESEARCH_RETRIEVE), plus stale stage-position comments in
+  section_role_check.
+
+Kept: `guideline_select` and the `guidelines/*.json` packs — they are wired
+into prepare and feed agent-visible authoring guidance, which serves writing
+quality rather than post-hoc verification.
+
+- README test badge 445 → 431.
+
 ## 4.16.1 - 2026-07-21
 
 ### Removed — debt sweep after two same-day releases
