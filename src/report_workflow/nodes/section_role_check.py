@@ -15,7 +15,7 @@ import json
 import re
 from pathlib import Path
 
-from ..state import ReportState, WORKFLOW_RUNS_DIR
+from ..state import ReportState
 from ..runtime_support import write_json_artifact
 from ..policies import get_policy
 

@@ -42,8 +42,6 @@ from .nodes.reference_verify import run_reference_verify
 from .nodes.factuality_check import run_factuality_check
 from .nodes.research_execute import run_research_execute
 from .nodes.claim_verify_execute import run_claim_verify_execute
-from .nodes.consistency_check import run_consistency_check  # kept for explicit quality command
-from .nodes.guideline_check import run_guideline_check      # kept for explicit quality command
 from .nodes.base_document_parse import run_base_document_parse
 from .nodes.qa_gate import run_qa_gate
 from .nodes.scholarly_quality import run_scholarly_quality

@@ -1,5 +1,23 @@
 # Changelog
 
+## 4.16.1 - 2026-07-21
+
+### Removed — debt sweep after two same-day releases
+
+- `_render_via_pandoc`'s dead `toc` / `number_sections` parameters: the TOC
+  moved to injected-field form in 4.15.0, leaving `--toc` branches that no
+  caller ever enabled.
+- 22 unused imports across 18 modules (AST scan; zero textual references
+  each). That includes run_workflow's imports of `run_consistency_check` /
+  `run_guideline_check`, whose comment claimed they were "kept for explicit
+  quality command" — no such command exists.
+- CLI: the `--reference-docx` validation block was pasted three times; now
+  one `_reject_invalid_reference_docx` helper.
+
+Known state, documented rather than hidden: `consistency_check` and
+`guideline_check` are functional, tested library modules that no pipeline
+stage runs. Wiring or removing them is a product decision, not a cleanup.
+
 ## 4.16.0 - 2026-07-21
 
 ### Added — bring your own template

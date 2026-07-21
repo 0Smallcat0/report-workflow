@@ -26,7 +26,6 @@ import re
 from pathlib import Path
 
 from ..state import ReportState, WORKFLOW_RUNS_DIR
-from ..runtime_support import write_json_artifact
 
 
 def _load_jsonl(path: str | None) -> list[dict]:

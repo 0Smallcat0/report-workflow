@@ -3,7 +3,6 @@ import hashlib
 import json
 import re
 from datetime import datetime, timezone
-from pathlib import Path
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
 from ..artifact_contract import stable_evidence_id

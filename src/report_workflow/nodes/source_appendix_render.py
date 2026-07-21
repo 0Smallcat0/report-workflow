@@ -12,7 +12,6 @@ from pathlib import Path
 import json
 
 from ..state import ReportState, WORKFLOW_RUNS_DIR
-from ..errors import QAHardBlockError
 from .docx_render import markdown_to_docx
 
 

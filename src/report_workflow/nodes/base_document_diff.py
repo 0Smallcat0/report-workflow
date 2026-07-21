@@ -10,7 +10,6 @@ These are tool functions called by agent_wrapper, NOT pipeline nodes.
 """
 import difflib
 import json
-from pathlib import Path
 
 from ..state import WORKFLOW_RUNS_DIR
 
