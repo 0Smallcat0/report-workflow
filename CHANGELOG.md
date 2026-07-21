@@ -1,5 +1,26 @@
 # Changelog
 
+## 4.19.0 - 2026-07-21
+
+### Changed — the cover is a title page, not "1. 封面"
+
+Cover-led profiles (the engineering lab report) rendered their cover as a
+numbered body section: a "1. 封面" heading, listed in the TOC, pushing real
+sections' numbers up by one. Now:
+
+- Section numbering skips the cover (same convention as Abstract and
+  References), so the first real section is "1." again.
+- The renderer promotes a leading cover section to a title-page block: the
+  heading is dropped (a cover page does not label itself, and without a
+  Heading 1 it stays out of the TOC field) and its paragraphs render
+  centered. The TOC follows the cover, then the body starts on a new page.
+- Front-matter documents and coverless documents are unchanged.
+
+Verified end-to-end on the beam lab case with a user template: centered
+cover text first, 目錄 second, "1. 實驗目的" third; native table and
+caption conventions from 4.18.0 unaffected; QA pass. 439 tests and both
+benchmark --checks pass.
+
 ## 4.18.0 - 2026-07-21
 
 ### Changed — table figures are real Word tables now
