@@ -352,7 +352,12 @@ def _cover_openxml_block(cover_body: str) -> str:
     return "```{=openxml}\n" + "\n".join(parts) + "\n```"
 
 
-def _inject_toc(md_content: str, has_front_matter: bool, cover_title: str = "") -> str:
+def _inject_toc(
+    md_content: str,
+    has_front_matter: bool,
+    cover_title: str = "",
+    title_leads: bool = False,
+) -> str:
     """Insert the TOC block after the front matter or a leading cover section.
 
     Placement, in priority order: after the front-matter separator; after a
@@ -383,6 +388,14 @@ def _inject_toc(md_content: str, has_front_matter: bool, cover_title: str = "") 
                 cover_block = _cover_openxml_block(cover_body)
                 return head + cover_block + "\n\n" + toc_block + "\n\n" + md_content[end:]
             return head + toc_block + "\n\n" + md_content[end:]
+    if title_leads:
+        # Revised documents open with the base document's own title H1;
+        # the TOC belongs after it, not on top of it.
+        headings = list(re.finditer(r"^# .*$", md_content, flags=re.MULTILINE))
+        if len(headings) >= 2:
+            block = _toc_openxml_block(language, page_break_before=True)
+            idx = headings[1].start()
+            return md_content[:idx] + block + "\n\n" + md_content[idx:]
     block = _toc_openxml_block(language, page_break_before=False)
     return block + "\n\n" + md_content
 
@@ -1217,9 +1230,20 @@ def run_docx_render(state: ReportState) -> ReportState:
             "cover",
             detect_document_language(md_content),
         )
+    title_leads = (
+        not has_front_matter
+        and state.spec.get("task_intent") == "revise_existing"
+    )
     pandoc_input_md = run_dir / "pandoc_input.md"
     with open(pandoc_input_md, "w", encoding="utf-8") as f:
-        f.write(_inject_toc(md_content, has_front_matter, cover_title=cover_title))
+        f.write(
+            _inject_toc(
+                md_content,
+                has_front_matter,
+                cover_title=cover_title,
+                title_leads=title_leads,
+            )
+        )
 
     # --- Primary path: pandoc ---
     # Resolve outside the try: an unusable custom template must hard-block,

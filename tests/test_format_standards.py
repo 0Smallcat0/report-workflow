@@ -87,6 +87,12 @@ class CoverTocPlacementTest(unittest.TestCase):
         out = _inject_toc(md, has_front_matter=False, cover_title="封面")
         self.assertTrue(out.startswith("```{=openxml}"))
 
+    def test_revised_document_title_leads_and_toc_follows(self):
+        md = "# My Report Title\n\n# Introduction\n\nBody text for the report."
+        out = _inject_toc(md, has_front_matter=False, title_leads=True)
+        self.assertLess(out.index("My Report Title"), out.index("Table of Contents"))
+        self.assertLess(out.index("Table of Contents"), out.index("Introduction"))
+
 
 class TableFigureTitleTest(unittest.TestCase):
     def test_table_title_uses_columns(self):

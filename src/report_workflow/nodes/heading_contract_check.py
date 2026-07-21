@@ -135,17 +135,22 @@ def run_heading_contract_check(state: ReportState) -> ReportState:
         return state
 
     markdown = Path(draft_path).read_text(encoding="utf-8")
-    normalized, issues = normalize_heading_contract(markdown, state.plan.get("blueprint") or {})
+    revise_mode = state.spec.get("task_intent") == "revise_existing"
+    if revise_mode:
+        # A revised document keeps the base document's headings verbatim.
+        # Rewriting them against the blueprint renumbers whichever base
+        # sections happen to share blueprint ids (a partially-overlapping
+        # English draft rendered "9. Conclusion") while leaving the rest
+        # bare. Structure findings are advisory in revise mode anyway; skip
+        # the rewrite entirely.
+        normalized, issues = markdown, []
+    else:
+        normalized, issues = normalize_heading_contract(markdown, state.plan.get("blueprint") or {})
 
     run_dir = WORKFLOW_RUNS_DIR / state.job_id
     normalized_path = run_dir / "heading_contract_draft.md"
     normalized_path.write_text(normalized, encoding="utf-8")
     state.drafts["publication_style_draft"] = str(normalized_path)
-
-    # A revised document keeps the base document's own heading structure; the
-    # new-draft blueprint contract does not apply. Record findings as advisory
-    # instead of hard-blocking.
-    revise_mode = state.spec.get("task_intent") == "revise_existing"
 
     report = {
         "job_id": state.job_id,
