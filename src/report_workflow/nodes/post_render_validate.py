@@ -48,28 +48,43 @@ def _outline_figure_ids(state: ReportState) -> set[str]:
     return ids
 
 
-def _expected_figure_count(state: ReportState) -> int:
+def _manifest_figures(state: ReportState) -> list[dict]:
     manifest_path = state.output.get("figure_manifest_path", "")
-    manifest_count = 0
-    if manifest_path and Path(manifest_path).exists():
-        try:
-            with open(manifest_path, encoding="utf-8") as f:
-                manifest = json.load(f)
-            manifest_count = int(manifest.get("generated_count", 0) or 0)
-        except Exception:
-            manifest_count = 0
+    if not manifest_path or not Path(manifest_path).exists():
+        return []
+    try:
+        with open(manifest_path, encoding="utf-8") as f:
+            manifest = json.load(f)
+        figures = manifest.get("figures", [])
+        return [f for f in figures if isinstance(f, dict)]
+    except Exception:
+        return []
+
+
+def _expected_figure_count(state: ReportState) -> int:
+    figures = _manifest_figures(state)
+    native_tables = sum(
+        1 for f in figures if str(f.get("render_mode") or "") == "native_table"
+    )
+    image_count = len(figures) - native_tables
     # Outline may declare figures even when no manifest was produced (e.g.
     # matplotlib unavailable, malformed figure_plan.json). Treat outline as an
-    # additional upper bound so silently-missing figures surface at render time.
-    return max(manifest_count, _outline_figure_count(state))
+    # additional upper bound so silently-missing figures surface at render
+    # time — minus the figures that legitimately render as native tables.
+    return max(image_count, _outline_figure_count(state) - native_tables)
 
 
 def _expected_table_count(state: ReportState) -> int:
+    count = sum(
+        1
+        for f in _manifest_figures(state)
+        if str(f.get("render_mode") or "") == "native_table"
+    )
     draft_path = state.drafts.get("publication_style_draft") or state.drafts.get("merged_draft_cited_md")
-    if not draft_path or not Path(draft_path).exists():
-        return 0
-    markdown = Path(draft_path).read_text(encoding="utf-8")
-    return len(re.findall(r"^\|.+\|\s*$\n^\|?\s*:?-{3,}", markdown, re.MULTILINE))
+    if draft_path and Path(draft_path).exists():
+        markdown = Path(draft_path).read_text(encoding="utf-8")
+        count += len(re.findall(r"^\|.+\|\s*$\n^\|?\s*:?-{3,}", markdown, re.MULTILINE))
+    return count
 
 
 def _clean_preview(text: str, limit: int = 160) -> str:

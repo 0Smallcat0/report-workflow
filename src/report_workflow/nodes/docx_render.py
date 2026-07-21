@@ -239,6 +239,28 @@ def _replace_figure_placeholders(md_content: str, figure_manifest: dict | None) 
             unresolved.append(figure_id)
             return match.group(0)
 
+        if str(entry.get("render_mode") or "") == "native_table":
+            table_data = entry.get("data") or {}
+            columns = [str(c) for c in (table_data.get("columns") or [])]
+            rows = table_data.get("rows") or []
+            if columns and rows:
+                replaced += 1
+                label = "表" if language == "zh" else "Table"
+                title = str(entry.get("title") or inline_caption or "").strip()
+                caption = f"{label} {figure_id}. {title}".strip()
+
+                def esc(value: object) -> str:
+                    return str(value).replace("|", "\\|")
+
+                header = "| " + " | ".join(esc(c) for c in columns) + " |"
+                separator = "|" + "|".join(" --- " for _ in columns) + "|"
+                body = "\n".join(
+                    "| " + " | ".join(esc(v) for v in row) + " |" for row in rows
+                )
+                return f"{caption}\n\n{header}\n{separator}\n{body}"
+            unresolved.append(figure_id)
+            return match.group(0)
+
         image_path = Path(str(entry.get("path") or "").strip())
         if not image_path.exists():
             unresolved.append(figure_id)

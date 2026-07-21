@@ -1,5 +1,29 @@
 # Changelog
 
+## 4.18.0 - 2026-07-21
+
+### Changed — table figures are real Word tables now
+
+Table-type figures used to render as matplotlib PNGs: not selectable, not
+copyable, and blind to the reference template's table styles. FIGURE_BUILD
+now emits a native-table manifest entry (`render_mode: "native_table"`, no
+rasterization) and DOCX_RENDER turns it into a markdown pipe table, so
+pandoc produces a real `w:tbl` that follows the document's table style.
+Captions follow table convention — 「表 N.」 for Chinese documents,
+"Table N." for English — placed above the table.
+
+POST_RENDER_VALIDATE's embed accounting understands the split: native
+tables are expected as Word tables rather than embedded images, and the
+outline-declared figure bound is reduced accordingly.
+
+Fallback: a table figure whose data lacks columns/rows still renders
+through the matplotlib path.
+
+Verified end-to-end on the beam-deflection lab case with a user template:
+final.docx carries one w:tbl (TableGrid style), a 「表 1.」 caption,
+correct cells, zero embedded images, QA pass. 439 tests and both benchmark
+--checks pass.
+
 ## 4.17.0 - 2026-07-21
 
 ### Fixed — template dogfood round
