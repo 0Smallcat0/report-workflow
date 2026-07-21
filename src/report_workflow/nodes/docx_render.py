@@ -268,10 +268,64 @@ def _absolutize_image_paths(md_content: str, base_dir: Path) -> str:
     return _IMAGE_LINK_RE.sub(replace, md_content)
 
 
+_TOC_TITLES = {"zh": "目錄", "en": "Table of Contents"}
+_TOC_PLACEHOLDERS = {
+    "zh": "（開啟後按 F9 或於列印時自動更新目錄）",
+    "en": "(Press F9 after opening, or print, to populate the table of contents.)",
+}
+
+
+def _toc_openxml_block(language: str, page_break_before: bool) -> str:
+    """Raw OOXML table-of-contents block for the pandoc input.
+
+    pandoc's own --toc places the TOC ahead of everything, which puts it in
+    front of the title page. Injecting the field manually keeps the title
+    page first and localizes the heading. TOCHeading exists in the reference
+    template, so the heading styles correctly and stays out of the TOC
+    field's own listing.
+    """
+    title = _TOC_TITLES.get(language, _TOC_TITLES["en"])
+    placeholder = _TOC_PLACEHOLDERS.get(language, _TOC_PLACEHOLDERS["en"])
+    parts = []
+    if page_break_before:
+        parts.append('<w:p><w:r><w:br w:type="page"/></w:r></w:p>')
+    parts.append(
+        '<w:p><w:pPr><w:pStyle w:val="TOCHeading"/></w:pPr>'
+        f"<w:r><w:t>{title}</w:t></w:r></w:p>"
+    )
+    parts.append(
+        '<w:p><w:r><w:fldChar w:fldCharType="begin" w:dirty="true"/></w:r>'
+        '<w:r><w:instrText xml:space="preserve"> TOC \\o "1-3" \\h \\z \\u </w:instrText></w:r>'
+        '<w:r><w:fldChar w:fldCharType="separate"/></w:r>'
+        f"<w:r><w:t>{placeholder}</w:t></w:r>"
+        '<w:r><w:fldChar w:fldCharType="end"/></w:r></w:p>'
+    )
+    parts.append('<w:p><w:r><w:br w:type="page"/></w:r></w:p>')
+    return "```{=openxml}\n" + "\n".join(parts) + "\n```"
+
+
+def _inject_toc(md_content: str, has_front_matter: bool) -> str:
+    """Insert the TOC block after the front matter (or at the top without one).
+
+    Only the pandoc input gets this: the python-docx fallback would render
+    the raw-openxml fence as a literal code block.
+    """
+    language = detect_document_language(md_content)
+    block = _toc_openxml_block(language, page_break_before=has_front_matter)
+    if has_front_matter:
+        separator = "\n\n---\n\n"
+        idx = md_content.find(separator)
+        if idx != -1:
+            head = md_content[:idx]
+            body = md_content[idx + len(separator):]
+            return head + "\n\n" + block + "\n\n" + body
+    return block + "\n\n" + md_content
+
+
 def _render_via_pandoc(
     md_path: str,
     output_path: str,
-    toc: bool = True,
+    toc: bool = False,
     number_sections: bool = False,
 ) -> bool:
     """Convert markdown to DOCX using pandoc.
@@ -988,6 +1042,7 @@ def run_docx_render(state: ReportState) -> ReportState:
 
     # Inject front matter at the top of the document
     front_matter_md = state.plan.get("front_matter_md", "")
+    has_front_matter = bool(front_matter_md)
     if front_matter_md:
         md_content = front_matter_md + "\n\n---\n\n" + md_content
 
@@ -1059,10 +1114,12 @@ def run_docx_render(state: ReportState) -> ReportState:
     md_content = _absolutize_image_paths(md_content, run_dir)
     final_docx_path = run_dir / "rendered_report.docx"
 
-    # Write the final markdown to a temp file for pandoc
+    # Write the final markdown to a temp file for pandoc. The TOC field is
+    # injected here (pandoc path only): --toc would place it before the
+    # title page, and the fallback converter cannot consume raw openxml.
     pandoc_input_md = run_dir / "pandoc_input.md"
     with open(pandoc_input_md, "w", encoding="utf-8") as f:
-        f.write(md_content)
+        f.write(_inject_toc(md_content, has_front_matter))
 
     # --- Primary path: pandoc ---
     used_pandoc = False
@@ -1070,7 +1127,7 @@ def run_docx_render(state: ReportState) -> ReportState:
         used_pandoc = _render_via_pandoc(
             str(pandoc_input_md),
             str(final_docx_path),
-            toc=True,
+            toc=False,
             number_sections=False,
         )
     except Exception as exc:

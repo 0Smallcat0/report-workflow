@@ -1,5 +1,39 @@
 # Changelog
 
+## 4.15.0 - 2026-07-21
+
+### Added — baseline manuscript formatting
+
+An audit of shipped documents against real-world document standards found
+the content layer solid and the formatting layer missing three basics:
+
+- **Page numbers.** The pandoc reference template now carries a centered
+  PAGE-field footer; every rendered document gets page numbers.
+- **Table of contents in the right place, in the right language.** `--toc`
+  placed the TOC ahead of the title page and hardcoded "Table of Contents".
+  The renderer now injects the TOC field after the front matter instead:
+  title page first, heading localized (目錄) for Chinese documents, page
+  breaks around the TOC.
+- **TeX math verified.** `$...$` renders to native OMML equations through
+  pandoc; a regression test pins it (skipped where pandoc is absent).
+- **CJK front matter parsing.** `作者:`/`標題:`/`單位:` labels now parse
+  from Chinese prompts; dense CJK titles are no longer rejected by
+  latin-length thresholds. English parsing unchanged.
+
+### Fixed
+
+- `__version__` had drifted to 4.9.0 while pyproject said 4.14.0 — the
+  release-tag guard would have refused the next tag. Both now read 4.15.0
+  and a version-sync test pins them together.
+
+### Changed
+
+- DESIGN.md documents the formatting boundary: venue templates (two-column
+  layouts, LaTeX, per-school thesis rules, non-APA citation engines) are
+  explicitly out of scope; the contract is that content survives the pour
+  into a venue template.
+- README test badge 430 → 440.
+
 ## 4.14.0 - 2026-07-20
 
 ### Fixed — one more place the CJK word count was wrong
