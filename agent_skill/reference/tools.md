@@ -30,6 +30,7 @@ Parameters:
 - `correspondence` (string, optional): Correspondence email/contact for front matter.
 - `keywords` (list[string], optional): Structured front matter keywords. Use thesis-aligned academic terms.
 - `template_fields` (object, optional): Optional fixed-template/front-matter fields such as course_name, student_id, instructor, lab_section, date, or department. These are rendered into the front matter and audited in template_field_fill_report.json.
+- `reference_docx` (string, optional): Optional path to a user-supplied .docx template. The rendered document follows its styles, margins, and header/footer (including page numbers). Requires pandoc; an unusable template hard-blocks the render instead of silently using the default look.
 - `project_identity` (object, optional): Optional project identity contract with required_terms, required_context_terms, forbidden_terms, canonical_title_terms, domain_context, and author_metadata. Use to prevent topic drift.
 - `enable_research` (boolean, optional): Enable external web research for claim verification. When true, blocked/disputed claims are automatically researched via configured backends (Tavily, Serper, SerpAPI, BrowserMCP). Requires at least one API key env var to be set; falls back to no-op without keys.
 - `enable_notebook_sync` (boolean, optional): Enable NotebookLM knowledge sync. When true, the pipeline syncs context from a matching NotebookLM notebook after evidence store. Requires notebooklm-py to be installed.
@@ -80,6 +81,7 @@ Run full validation pipeline and render the final DOCX. Can be called after step
 Parameters:
 
 - `job_id` (string, required): The job ID returned by start_report_task
+- `reference_docx` (string, optional): Optional path to a user-supplied .docx template to follow for styles, margins, and header/footer at render time.
 
 ## `query_evidence`
 

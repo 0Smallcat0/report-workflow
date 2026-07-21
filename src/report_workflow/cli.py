@@ -7,6 +7,7 @@ import sys
 from pathlib import Path
 
 from .errors import AgentWorkRequired, QAHardBlockError
+from .nodes.docx_render import reference_docx_error
 from .run_workflow import (
     prepare_workflow,
     render_workflow,
@@ -146,6 +147,10 @@ def build_parser() -> argparse.ArgumentParser:
     prepare.add_argument("--affiliation", help="Structured front matter affiliation block")
     prepare.add_argument("--correspondence", help="Structured front matter correspondence email/contact")
     prepare.add_argument(
+        "--reference-docx",
+        help="Path to a .docx whose styles, margins, and header/footer the output should follow",
+    )
+    prepare.add_argument(
         "--template-field",
         action="append",
         default=[],
@@ -194,6 +199,10 @@ def build_parser() -> argparse.ArgumentParser:
     render = subcommands.add_parser("render", help="Render and package a validated workflow")
     render.add_argument("--job-id", required=True, help="Workflow job id")
     render.add_argument("--workspace-root", help="Optional workspace root for locating this run")
+    render.add_argument(
+        "--reference-docx",
+        help="Path to a .docx whose styles, margins, and header/footer the output should follow",
+    )
 
     status = subcommands.add_parser("status", help="Show current workflow status")
     status.add_argument("--job-id", required=True, help="Workflow job id")
@@ -202,6 +211,10 @@ def build_parser() -> argparse.ArgumentParser:
     run = subcommands.add_parser("run", help="Validate and render an existing prepared run")
     run.add_argument("--job-id", required=True, help="Workflow job id with agent artifacts already present")
     run.add_argument("--workspace-root", help="Optional workspace root for locating this run")
+    run.add_argument(
+        "--reference-docx",
+        help="Path to a .docx whose styles, margins, and header/footer the output should follow",
+    )
     run.add_argument(
         "--verbose",
         action="store_true",
@@ -613,6 +626,12 @@ def main(argv: list[str] | None = None) -> int:
                 )
                 return 3
 
+            if args.reference_docx:
+                ref_error = reference_docx_error(Path(args.reference_docx))
+                if ref_error:
+                    print(f"Invalid --reference-docx: {ref_error}", file=sys.stderr)
+                    return 2
+
             state = prepare_workflow(
                 args.prompt,
                 source_files,
@@ -636,6 +655,7 @@ def main(argv: list[str] | None = None) -> int:
                 enable_notebook_sync=cfg.enable_notebook_sync,
                 notebooklm_notebook_id=cfg.notebooklm_notebook_id,
                 notebooklm_storage_path=cfg.notebooklm_storage_path,
+                reference_docx=args.reference_docx,
             )
             _print_state(state)
             return 0
@@ -652,7 +672,16 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "render":
-            state = render_workflow(args.job_id, workspace_root=args.workspace_root)
+            if args.reference_docx:
+                ref_error = reference_docx_error(Path(args.reference_docx))
+                if ref_error:
+                    print(f"Invalid --reference-docx: {ref_error}", file=sys.stderr)
+                    return 2
+            state = render_workflow(
+                args.job_id,
+                workspace_root=args.workspace_root,
+                reference_docx=args.reference_docx,
+            )
             _print_state(state)
             return 0
 
@@ -662,11 +691,20 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
         if args.command == "run":
+            if args.reference_docx:
+                ref_error = reference_docx_error(Path(args.reference_docx))
+                if ref_error:
+                    print(f"Invalid --reference-docx: {ref_error}", file=sys.stderr)
+                    return 2
             if args.verbose:
                 state = _verbose_validate(args.job_id, workspace_root=args.workspace_root)
             else:
                 state = validate_workflow(args.job_id, workspace_root=args.workspace_root)
-            state = render_workflow(state.job_id, workspace_root=args.workspace_root)
+            state = render_workflow(
+                state.job_id,
+                workspace_root=args.workspace_root,
+                reference_docx=args.reference_docx,
+            )
             _print_state(state)
             return 0
 

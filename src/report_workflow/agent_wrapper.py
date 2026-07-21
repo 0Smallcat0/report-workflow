@@ -202,6 +202,7 @@ def start_report_task(
     enable_notebook_sync: bool | None = None,
     notebooklm_notebook_id: str | None = None,
     notebooklm_storage_path: str | None = None,
+    reference_docx: str | None = None,
     preflight_confirmed: bool = False,
     preflight_decisions: dict | None = None,
     allow_degraded_render: bool = False,
@@ -278,6 +279,7 @@ def start_report_task(
                 if value
             },
             project_identity=project_identity,
+            reference_docx=reference_docx,
             enable_research=cfg.enable_research,
             enable_notebook_sync=cfg.enable_notebook_sync,
             notebooklm_notebook_id=cfg.notebooklm_notebook_id,
@@ -495,15 +497,25 @@ def run_engineering_audit(job_id: str, workspace_root: str | None = None) -> dic
         return {"status": "failed", "error": str(e)}
 
 
-def submit_and_publish_report(job_id: str, workspace_root: str | None = None) -> dict:
+def submit_and_publish_report(
+    job_id: str,
+    workspace_root: str | None = None,
+    reference_docx: str | None = None,
+) -> dict:
     """Step 5: Run full validation pipeline and render the final DOCX.
 
     This can be called after all 3 steps, or directly after start_report_task
     if the Agent created all artifacts in one shot (legacy 2-step mode).
+
+    Args:
+        reference_docx: optional user-supplied .docx template; the rendered
+            document follows its styles, margins, and header/footer.
     """
     try:
         state = validate_workflow(job_id, workspace_root=workspace_root)
-        state = render_workflow(job_id, workspace_root=workspace_root)
+        state = render_workflow(
+            job_id, workspace_root=workspace_root, reference_docx=reference_docx
+        )
         warnings = state.runtime.get("warnings", [])
         result = {
             "status": state.status,
