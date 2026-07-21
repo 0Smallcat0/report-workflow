@@ -29,13 +29,15 @@ section_order:
 sections:
   cover:
     section_id: cover
-    title: 封面
+    title: Cover
+    title_zh: 封面
     required: true
     section_type: front_matter
     order: 1
   abstract:
     section_id: abstract
-    title: 摘要
+    title: Abstract
+    title_zh: 摘要
     required: false
     section_type: abstract
     order: 2
@@ -43,67 +45,78 @@ sections:
     word_count_max: 300
   objectives:
     section_id: objectives
-    title: 實驗目的
+    title: Objectives
+    title_zh: 實驗目的
     required: true
     section_type: objectives
     order: 3
   requirements:
     section_id: requirements
-    title: 需求與規格矩陣
+    title: Requirements and Specifications
+    title_zh: 需求與規格矩陣
     required: true
     section_type: requirement_matrix
     order: 4
   theory:
     section_id: theory
-    title: 原理與公式
+    title: Theory and Formulas
+    title_zh: 原理與公式
     required: true
     section_type: theory
     order: 5
   apparatus:
     section_id: apparatus
-    title: 儀器與材料
+    title: Apparatus and Materials
+    title_zh: 儀器與材料
     required: true
     section_type: apparatus
     order: 6
   procedure:
     section_id: procedure
-    title: 實驗步驟
+    title: Procedure
+    title_zh: 實驗步驟
     required: true
     section_type: procedure
     order: 7
   data:
     section_id: data
-    title: 原始資料與圖表
+    title: Data and Figures
+    title_zh: 原始資料與圖表
     required: true
     section_type: data
     order: 8
   calculations:
     section_id: calculations
-    title: 計算與單位檢核
+    title: Calculations and Unit Checks
+    title_zh: 計算與單位檢核
     required: true
     section_type: calculations
     order: 9
   results_discussion:
     section_id: results_discussion
-    title: 結果與討論
+    title: Results and Discussion
+    title_zh: 結果與討論
     required: true
     section_type: discussion
     order: 10
   conclusion:
     section_id: conclusion
-    title: 結論
+    title: Conclusion
+    title_zh: 結論
     required: true
     section_type: conclusion
     order: 11
   references:
     section_id: references
-    title: 參考資料
+    title: References
+    title_zh: 參考資料
     required: false
     section_type: references
     order: 12
   appendix:
     section_id: appendix
-    title: 附錄
+    title: Appendix
+    title_zh: 附錄
     required: false
     section_type: appendix
     order: 13
