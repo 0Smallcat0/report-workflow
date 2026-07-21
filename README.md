@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-440%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-445%20passing-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **A deterministic verification layer that lets an LLM draft a report but refuses
@@ -383,6 +383,14 @@ business proposal, admissions report, and technical document) plus an English
 journal paper.
 
 ## Reference templates
+
+Bring your own formatting: pass `--reference-docx your.docx` on `prepare`,
+`render`, or `run` (agent tools accept `reference_docx`) and the output
+follows that document's styles — fonts, sizes, margins, header/footer
+(including its page-number setup), and table styles. Section structure still
+comes from the report profile, every content gate still applies, and an
+unusable template hard-blocks the render instead of silently falling back to
+the built-in look.
 
 Profiles control reference-template behavior. The default mode is
 `style_reference` (use a DOCX as a style/layout reference); if the user asks to

@@ -62,6 +62,8 @@ supports:
     --output out --preflight-decisions preflight_decisions.json
   report-workflow validate --job-id <job_id>
   report-workflow render --job-id <job_id>
+  # Optional on prepare/render/run: --reference-docx corporate.docx to follow
+  # a user-supplied Word template's styles, margins, and header/footer.
 
   # any wrapper tool, harness-neutral:
   python -c "import json; from report_workflow.agent_wrapper import get_controlled_next_action as f; print(json.dumps(f(job_id='<job_id>')))"

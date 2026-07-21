@@ -345,6 +345,7 @@ def prepare_workflow(
     enable_notebook_sync: bool = False,
     notebooklm_notebook_id: str | None = None,
     notebooklm_storage_path: str | None = None,
+    reference_docx: str | None = None,
 ) -> ReportState:
     """Prepare deterministic artifacts and agent task briefs.
 
@@ -373,6 +374,8 @@ def prepare_workflow(
         state.spec["notebooklm_notebook_id"] = notebooklm_notebook_id
     if notebooklm_storage_path:
         state.spec["notebooklm_storage_path"] = notebooklm_storage_path
+    if reference_docx:
+        state.spec["reference_docx_path"] = str(Path(reference_docx).resolve())
     try:
         state = run_preflight_checks(state)
     except QAHardBlockError as e:
@@ -512,9 +515,22 @@ def validate_workflow_dry_run(job_id: str, *, deep_audit: bool = False, workspac
     return state_copy
 
 
-def render_workflow(job_id: str, *, workspace_root: str | None = None) -> ReportState:
-    """Render and package a validated report workflow."""
+def render_workflow(
+    job_id: str,
+    *,
+    workspace_root: str | None = None,
+    reference_docx: str | None = None,
+) -> ReportState:
+    """Render and package a validated report workflow.
+
+    Args:
+        reference_docx: optional user-supplied .docx whose styles, margins,
+            and header/footer the rendered document should follow. Persists
+            into the run's spec so later re-renders keep the same template.
+    """
     state = ReportState.resume(job_id, workspace_root=workspace_root)
+    if reference_docx:
+        state.spec["reference_docx_path"] = str(Path(reference_docx).resolve())
     _assert_render_ready(state)
     return _run_nodes(state, render_nodes())
 

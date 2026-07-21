@@ -11,6 +11,7 @@ import logging
 import re
 import shutil
 import subprocess
+import zipfile
 from pathlib import Path
 
 from docx import Document
@@ -322,11 +323,44 @@ def _inject_toc(md_content: str, has_front_matter: bool) -> str:
     return block + "\n\n" + md_content
 
 
+def reference_docx_error(path: Path) -> str | None:
+    """Return why a user-supplied reference .docx is unusable, or None if OK."""
+    if not path.exists():
+        return f"file not found: {path}"
+    if path.suffix.lower() != ".docx":
+        return f"not a .docx file: {path}"
+    try:
+        with zipfile.ZipFile(path) as z:
+            if "word/styles.xml" not in z.namelist():
+                return f"no word/styles.xml inside (not a Word document?): {path}"
+    except zipfile.BadZipFile:
+        return f"not a valid docx (zip) file: {path}"
+    return None
+
+
+def _resolve_reference_doc(spec: dict) -> Path:
+    """Pick the styling template: user-supplied reference docx or the built-in.
+
+    A user-supplied template that is missing or unreadable hard-blocks the
+    render instead of silently falling back — the user asked for their
+    formatting, so shipping the default would be the wrong document.
+    """
+    custom = str(spec.get("reference_docx_path") or "").strip()
+    if not custom:
+        return _REFERENCE_DOC
+    path = Path(custom)
+    error = reference_docx_error(path)
+    if error:
+        raise QAHardBlockError(f"Custom reference docx unusable: {error}")
+    return path
+
+
 def _render_via_pandoc(
     md_path: str,
     output_path: str,
     toc: bool = False,
     number_sections: bool = False,
+    reference_doc: Path | None = None,
 ) -> bool:
     """Convert markdown to DOCX using pandoc.
 
@@ -340,8 +374,9 @@ def _render_via_pandoc(
     cmd = [pandoc, str(md_path), "-o", str(output_path)]
 
     # Use reference doc for styling if available
-    if _REFERENCE_DOC.exists():
-        cmd.extend(["--reference-doc", str(_REFERENCE_DOC)])
+    ref_doc = reference_doc if reference_doc is not None else _REFERENCE_DOC
+    if ref_doc.exists():
+        cmd.extend(["--reference-doc", str(ref_doc)])
 
     # Table of contents
     if toc:
@@ -1122,6 +1157,10 @@ def run_docx_render(state: ReportState) -> ReportState:
         f.write(_inject_toc(md_content, has_front_matter))
 
     # --- Primary path: pandoc ---
+    # Resolve outside the try: an unusable custom template must hard-block,
+    # not get swallowed into the python-docx fallback.
+    reference_doc = _resolve_reference_doc(state.spec)
+    custom_template_requested = bool(str(state.spec.get("reference_docx_path") or "").strip())
     used_pandoc = False
     try:
         used_pandoc = _render_via_pandoc(
@@ -1129,10 +1168,18 @@ def run_docx_render(state: ReportState) -> ReportState:
             str(final_docx_path),
             toc=False,
             number_sections=False,
+            reference_doc=reference_doc,
         )
     except Exception as exc:
         logger.warning(f"[DOCX_RENDER] pandoc path failed, falling back: {exc}")
         used_pandoc = False
+
+    if not used_pandoc and custom_template_requested:
+        raise QAHardBlockError(
+            "Custom reference docx was requested but the pandoc render did not "
+            "run; the python-docx fallback cannot apply a template, and "
+            "shipping the default formatting instead would be the wrong document."
+        )
 
     # --- Fallback path: python-docx ---
     if not used_pandoc:

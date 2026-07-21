@@ -1,5 +1,27 @@
 # Changelog
 
+## 4.16.0 - 2026-07-21
+
+### Added — bring your own template
+
+`--reference-docx your.docx` on CLI `prepare`/`render`/`run`, and
+`reference_docx` on the agent tools `start_report_task` /
+`submit_and_publish_report`: the rendered document follows the user-supplied
+Word template's styles — fonts, sizes, margins, header/footer (including its
+page-number setup), and table styles — instead of the built-in look. Section
+structure still comes from the report profile and every content gate still
+applies.
+
+Fail-closed by design: a missing or unreadable template, or a pandoc-less
+environment (the python-docx fallback cannot apply templates), hard-blocks
+the render rather than silently shipping the default formatting. The
+template path persists in the run spec, so later re-renders keep it.
+
+### Changed
+
+- README "Reference templates" documents the flag; README test badge
+  440 → 445.
+
 ## 4.15.0 - 2026-07-21
 
 ### Added — baseline manuscript formatting

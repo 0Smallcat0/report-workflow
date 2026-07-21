@@ -144,6 +144,14 @@ tools:
           student_id, instructor, lab_section, date, or department. These are
           rendered into the front matter and audited in
           template_field_fill_report.json.
+      - name: reference_docx
+        type: string
+        required: false
+        description: >
+          Optional path to a user-supplied .docx template. The rendered
+          document follows its styles, margins, and header/footer (including
+          page numbers). Requires pandoc; an unusable template hard-blocks
+          the render instead of silently using the default look.
       - name: project_identity
         type: object
         required: false
@@ -281,6 +289,12 @@ tools:
         type: string
         required: true
         description: The job ID returned by start_report_task
+      - name: reference_docx
+        type: string
+        required: false
+        description: >
+          Optional path to a user-supplied .docx template to follow for
+          styles, margins, and header/footer at render time.
 
   # Evidence query tool
   - name: query_evidence
