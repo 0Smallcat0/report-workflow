@@ -219,9 +219,20 @@ def compute_provenance_score(entry: dict, block: dict) -> float:
         score += 0.1
     elif block_type == "figure_caption":
         score += 0.05
-    
+
     # First hand account (PDF/DOCX typically contain original content)
     if file_type in FIRST_HAND_TYPES:
+        score += 0.15
+
+    # First-hand quantitative measurements: a structured data row carrying
+    # several numeric values is the user's own measured data — the same
+    # language-neutral signal determine_evidence_type uses for
+    # "quantitative". Without this bonus a CSV of the user's measurements
+    # can never reach evidence_grade=high, and FD then forbids measured
+    # wording on the very numbers the report exists to state.
+    if block_type in {"csv_row", "table_row", "data_row"} and len(
+        _NUMERIC_TOKEN_RE.findall(content)
+    ) >= 2:
         score += 0.15
     
     # Contains methodology keywords

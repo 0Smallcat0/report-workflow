@@ -149,7 +149,8 @@ def _convert_mermaid_blocks(md_content: str, output_dir: Path) -> tuple[str, int
                 logger.info(
                     f"[DOCX_RENDER] Mermaid block {figure_counter} -> {png_path.name}"
                 )
-                return f"![Figure {figure_counter}]({png_path})"
+                label = "圖" if detect_document_language(md_content) == "zh" else "Figure"
+                return f"![{label} {figure_counter}]({png_path})"
             else:
                 logger.warning(
                     f"[DOCX_RENDER] mmdc failed for block {figure_counter}: "
@@ -192,15 +193,18 @@ def _load_figure_manifest(manifest_path: str) -> dict | None:
         return None
 
 
-def _figure_alt_text(entry: dict, fallback_id: str, inline_caption: str = "") -> str:
+def _figure_alt_text(
+    entry: dict, fallback_id: str, inline_caption: str = "", language: str = "en"
+) -> str:
+    label = "圖" if language == "zh" else "Figure"
     title = str(entry.get("title") or inline_caption or "").strip()
     figure_id = str(entry.get("figure_id") or fallback_id).strip()
     if title and figure_id and title.casefold() != figure_id.casefold():
-        alt = f"Figure {figure_id}. {title}"
+        alt = f"{label} {figure_id}. {title}"
     elif figure_id:
-        alt = f"Figure {figure_id}"
+        alt = f"{label} {figure_id}"
     else:
-        alt = title or "Figure"
+        alt = title or label
     return " ".join(alt.replace("[", "(").replace("]", ")").split())
 
 
@@ -214,6 +218,7 @@ def _replace_figure_placeholders(md_content: str, figure_manifest: dict | None) 
     if not figure_manifest:
         return md_content, 0, []
 
+    language = detect_document_language(md_content)
     entries_by_id: dict[str, dict] = {}
     for entry in figure_manifest.get("figures", []) or []:
         if not isinstance(entry, dict):
@@ -240,7 +245,7 @@ def _replace_figure_placeholders(md_content: str, figure_manifest: dict | None) 
             return match.group(0)
 
         replaced += 1
-        alt = _figure_alt_text(entry, figure_id, inline_caption)
+        alt = _figure_alt_text(entry, figure_id, inline_caption, language=language)
         return f"![{alt}]({image_path.resolve().as_posix()})"
 
     return _FIGURE_PLACEHOLDER_RE.sub(replace, md_content), replaced, unresolved
@@ -305,21 +310,31 @@ def _toc_openxml_block(language: str, page_break_before: bool) -> str:
     return "```{=openxml}\n" + "\n".join(parts) + "\n```"
 
 
-def _inject_toc(md_content: str, has_front_matter: bool) -> str:
-    """Insert the TOC block after the front matter (or at the top without one).
+def _inject_toc(md_content: str, has_front_matter: bool, cover_title: str = "") -> str:
+    """Insert the TOC block after the front matter or a leading cover section.
 
-    Only the pandoc input gets this: the python-docx fallback would render
-    the raw-openxml fence as a literal code block.
+    Placement, in priority order: after the front-matter separator; after a
+    leading cover section (profiles like the lab report open with a 封面
+    section instead of front matter); else at the top of the document. Only
+    the pandoc input gets this: the python-docx fallback would render the
+    raw-openxml fence as a literal code block.
     """
     language = detect_document_language(md_content)
-    block = _toc_openxml_block(language, page_break_before=has_front_matter)
     if has_front_matter:
         separator = "\n\n---\n\n"
         idx = md_content.find(separator)
         if idx != -1:
+            block = _toc_openxml_block(language, page_break_before=True)
             head = md_content[:idx]
             body = md_content[idx + len(separator):]
             return head + "\n\n" + block + "\n\n" + body
+    if cover_title:
+        headings = list(re.finditer(r"^# .*$", md_content, flags=re.MULTILINE))
+        if len(headings) >= 2 and cover_title in headings[0].group(0):
+            block = _toc_openxml_block(language, page_break_before=True)
+            idx = headings[1].start()
+            return md_content[:idx] + block + "\n\n" + md_content[idx:]
+    block = _toc_openxml_block(language, page_break_before=False)
     return block + "\n\n" + md_content
 
 
@@ -1145,9 +1160,17 @@ def run_docx_render(state: ReportState) -> ReportState:
     # Write the final markdown to a temp file for pandoc. The TOC field is
     # injected here (pandoc path only): --toc would place it before the
     # title page, and the fallback converter cannot consume raw openxml.
+    toc_blueprint = state.plan.get("blueprint") or {}
+    cover_title = ""
+    if not has_front_matter and (toc_blueprint.get("section_order") or [])[:1] == ["cover"]:
+        cover_title = localized_section_title(
+            (toc_blueprint.get("sections") or {}).get("cover"),
+            "cover",
+            detect_document_language(md_content),
+        )
     pandoc_input_md = run_dir / "pandoc_input.md"
     with open(pandoc_input_md, "w", encoding="utf-8") as f:
-        f.write(_inject_toc(md_content, has_front_matter))
+        f.write(_inject_toc(md_content, has_front_matter, cover_title=cover_title))
 
     # --- Primary path: pandoc ---
     # Resolve outside the try: an unusable custom template must hard-block,

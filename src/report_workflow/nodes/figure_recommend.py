@@ -574,8 +574,13 @@ def _human_figure_title(
                 name = _clean_text(str(item.get("name") or ""))
                 if name and name not in series_names:
                     series_names.append(name)
-    subject = ", ".join(series_names[:3]) or _clean_text(ylabel)
-    group = _clean_text(xlabel)
+    # Tables carry no series and often no axis labels; their non-index
+    # columns are the subjects and the first column is the grouping key.
+    columns: list[str] = []
+    if isinstance(data, dict):
+        columns = [_clean_text(str(c)) for c in data.get("columns", []) if _clean_text(str(c))]
+    subject = ", ".join(series_names[:3]) or _clean_text(ylabel) or ", ".join(columns[1:3])
+    group = _clean_text(xlabel) or (columns[0] if columns else "")
     if subject and group and subject != group:
         if CJK_RE.search(subject + group):
             title = f"{subject}(依{group})"

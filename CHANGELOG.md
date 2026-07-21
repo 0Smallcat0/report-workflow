@@ -1,5 +1,44 @@
 # Changelog
 
+## 4.17.0 - 2026-07-21
+
+### Fixed — template dogfood round
+
+A realistic department-format template (標楷體, 2.5 cm margins, course-name
+header, page footer) went through the full pipeline on a beam-deflection lab
+case. Template fidelity held — fonts, margins, header/footer, and the
+localized TOC all carry into the output. Four walls fell along the way:
+
+- **The user's own measurements could never grade high.** Provenance scoring
+  only rewarded publication signals (peer review, citations, PDF/DOCX
+  first-hand bonus), so a CSV of the user's measured data capped at
+  evidence_grade=medium and the FD gate forbade measured wording on the very
+  numbers the report exists to state — while the agent brief promised the
+  opposite for quantitative evidence. Structured numeric rows now earn the
+  same language-neutral quantitative bonus `determine_evidence_type` already
+  uses (score 0.6 → 0.75 = high). Same root-cause family as 4.6.0's P5,
+  thirty lines away in the same file.
+- **TOC placement for cover-led documents.** Engineering lab reports open
+  with a 封面 section instead of front matter; the TOC field now lands after
+  the cover section rather than on top of it.
+- **Figure captions hardcoded "Figure N."** Chinese documents now get
+  「圖 N.」 — both the placeholder path and the mermaid path.
+- **Table figures fell back to "Table view of X" titles.** Tables carry no
+  series or axis labels, so the title humanizer now reads the column names:
+  「實測撓度(mm), 理論撓度(mm)(依荷重(N))」.
+- CLAIM_PLAN's claim-role errors named academic_paper regardless of the
+  actual profile; they now report the run's profile.
+
+Verification: fresh prepare→author→validate→render with zero authoring
+workarounds; 437 tests; both benchmark --checks pass.
+
+### Known items
+
+- Table-type figures render as PNG images, not native docx tables, so a
+  user template's table styles do not apply to them.
+- The cover section renders as a numbered body section ("1. 封面"), not a
+  standalone title page.
+
 ## 4.16.2 - 2026-07-21
 
 ### Removed — the unwired quality gates, resolved

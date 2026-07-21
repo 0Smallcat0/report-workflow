@@ -82,12 +82,12 @@ def _validate_claim_matrix(payload: dict, report_profile: str = "") -> list[dict
 
         if role_counts.get("primary", 0) == 0:
             raise QAHardBlockError(
-                "At least 1 primary claim is required for academic_paper. "
+                f"At least 1 primary claim is required for {report_profile}. "
                 "No primary claims found in claim_matrix."
             )
         if role_counts.get("primary", 0) > 3:
             raise QAHardBlockError(
-                f"Maximum 3 primary claims allowed for academic_paper, "
+                f"Maximum 3 primary claims allowed for {report_profile}, "
                 f"found {role_counts['primary']}. Move extra claims to supporting or background."
             )
 
