@@ -67,6 +67,68 @@ class ReferenceTemplateTest(unittest.TestCase):
             )
 
 
+class CoverTocPlacementTest(unittest.TestCase):
+    def test_cover_led_document_gets_toc_after_cover(self):
+        md = (
+            "# 1. 封面\n\n本報告為機械工程實驗課程之實驗報告,依據講義與量測數據撰寫。\n\n"
+            "# 2. 實驗目的\n\n量測懸臂樑自由端撓度並與理論比較,驗證線性關係與誤差來源。"
+        )
+        out = _inject_toc(md, has_front_matter=False, cover_title="封面")
+        self.assertIn("目錄", out)
+        self.assertLess(out.index("封面"), out.index("目錄"))
+        self.assertLess(out.index("目錄"), out.index("實驗目的"))
+
+    def test_unrelated_first_heading_keeps_toc_on_top(self):
+        md = "# Introduction\n\nBody text.\n\n# Methods\n\nMore body."
+        out = _inject_toc(md, has_front_matter=False, cover_title="封面")
+        self.assertTrue(out.startswith("```{=openxml}"))
+
+
+class TableFigureTitleTest(unittest.TestCase):
+    def test_table_title_uses_columns(self):
+        from report_workflow.nodes.figure_recommend import _human_figure_title
+
+        title = _human_figure_title(
+            "table",
+            "",
+            "",
+            {"columns": ["荷重(N)", "實測撓度(mm)", "理論撓度(mm)", "誤差(%)"]},
+            "量測數據.csv",
+            "",
+        )
+        self.assertIn("實測撓度", title)
+        self.assertIn("依荷重", title)
+        self.assertNotIn("view of", title)
+
+
+class FigureCaptionLanguageTest(unittest.TestCase):
+    def test_zh_caption_prefix(self):
+        from report_workflow.nodes.docx_render import _figure_alt_text
+
+        alt = _figure_alt_text(
+            {"figure_id": "1", "title": "實測與理論撓度比較"}, "1", language="zh"
+        )
+        self.assertTrue(alt.startswith("圖 1."), alt)
+
+    def test_en_caption_prefix_unchanged(self):
+        from report_workflow.nodes.docx_render import _figure_alt_text
+
+        alt = _figure_alt_text({"figure_id": "1", "title": "Load vs deflection"}, "1")
+        self.assertTrue(alt.startswith("Figure 1."), alt)
+
+
+class ProvenanceGradeTest(unittest.TestCase):
+    def test_users_measured_csv_row_grades_high(self):
+        from report_workflow.nodes.evidence_normalize import compute_provenance_score
+
+        entry = {"file_type": "csv"}
+        block = {
+            "content": '{"荷重(N)": "5", "實測撓度(mm)": "1.52", "理論撓度(mm)": "1.45"}',
+            "block_type": "csv_row",
+        }
+        self.assertGreaterEqual(compute_provenance_score(entry, block), 0.7)
+
+
 class CjkFrontMatterParseTest(unittest.TestCase):
     def test_labelled_cjk_author(self):
         self.assertEqual(_parse_author_from_user_prompt("作者:王小明"), "王小明")
