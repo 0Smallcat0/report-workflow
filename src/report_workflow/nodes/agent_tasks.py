@@ -251,6 +251,94 @@ def _auto_figure_plan_guidance(info: dict) -> str:
     return "No starter figure plan was generated because there are no figure recommendations for this run."
 
 
+READER_RUBRICS: dict[str, tuple[str, list[str]]] = {
+    "engineering_lab_report": ("the course professor", [
+        "Quantified comparison beats description: report the measured slope versus the theoretical slope, the fit quality (R²), and the error range against the acceptance threshold — not just 'close to theory'.",
+        "The discussion explains mechanisms: why the measurements deviate, which error source dominates and roughly how much it contributes. Restating the numbers is not a discussion.",
+        "Every figure and table earns its place: referenced from the prose, with the finding stated next to it.",
+        "The conclusion answers the stated objective with numbers, and says whether the acceptance criteria were met.",
+    ]),
+    "academic_paper": ("a peer reviewer", [
+        "The contribution is stated in one sentence, early; the reader should never wonder what is new.",
+        "Claims are sized to the evidence; limitations are stated plainly instead of being discovered by the reviewer.",
+        "The method section is reproducible from the text alone — parameters, data, and decision rules included.",
+        "Results are quantified with their uncertainty; adjectives are not results.",
+    ]),
+    "proposal": ("the decision-maker", [
+        "The ask, the cost, and the payoff are on the first page.",
+        "Every number ties to a decision the reader must make; decoration numbers waste their time.",
+        "Risks are listed with mitigations, honestly — a proposal with no risks reads as unexamined.",
+        "The timeline is concrete enough to be held accountable to.",
+    ]),
+    "business_report": ("your manager", [
+        "Conclusion first, supporting detail after; the reader decides in the first half page whether to keep reading.",
+        "Each metric leads somewhere: a decision, an action, or an explicitly flagged risk.",
+        "Next steps are explicit — owned and dated, not implied.",
+    ]),
+    "admissions_report": ("the admissions committee", [
+        "Specific incidents beat adjectives: one concrete decision with its outcome outweighs a paragraph of self-description.",
+        "Motivation, preparation, and goal read as one arc — each section sets up the next.",
+        "Numbers anchor credibility: scores, scale, results, dates.",
+    ]),
+    "admissions_project_report": ("the admissions committee", [
+        "The project reads problem → method → result → reflection, complete with numbers at each step.",
+        "Design decisions are justified: what was chosen, what was rejected, and why.",
+        "The reflection states what would be done differently — that is where maturity shows.",
+    ]),
+    "custom": ("the intended reader", [
+        "Lead with the point; one idea per paragraph, each advancing the argument.",
+        "Figures and tables are self-explanatory; the prose states the finding, not the mechanics.",
+        "The ending tells the reader what to take away or do next.",
+    ]),
+}
+
+
+def _reader_rubric_section(report_profile: str) -> str:
+    """The 'what does a high grade look like' brief section.
+
+    Traceability is the entry ticket; this is the part that aims the writing
+    at a document the reader actually rates highly.
+    """
+    audience, bullets = READER_RUBRICS.get(report_profile) or READER_RUBRICS["custom"]
+    lines = "\n".join(f"- {b}" for b in bullets)
+    return (
+        "## How the Reader Grades This\n\n"
+        f"Traceable-to-evidence is the entry ticket, not the goal. The goal is a\n"
+        f"document {audience} rates highly. Write toward these criteria, in the\n"
+        "document's language:\n\n"
+        f"{lines}\n\n"
+    )
+
+
+def _derived_stats_guidance(evidence_path: str) -> str:
+    """List pre-computed derived statistics so the analysis can cite them."""
+    if not evidence_path or not Path(evidence_path).exists():
+        return ""
+    lines: list[str] = []
+    try:
+        with open(evidence_path, encoding="utf-8") as f:
+            for raw in f:
+                try:
+                    unit = json.loads(raw)
+                except json.JSONDecodeError:
+                    continue
+                if isinstance(unit, dict) and unit.get("derivation"):
+                    lines.append(f"- `{unit.get('evidence_id', '')}` — {unit.get('content', '')}")
+    except OSError:
+        return ""
+    if not lines:
+        return ""
+    return (
+        "## Derived Statistics (citable)\n\n"
+        "The pipeline pre-computed these from the measurement data; they are\n"
+        "regular evidence entries. Use them to make the analysis quantitative —\n"
+        "slope versus theory, fit quality, error range — instead of leaving the\n"
+        "discussion qualitative. Cite them like any other evidence id.\n\n"
+        + "\n".join(lines)
+        + "\n\n"
+    )
+
+
 def write_agent_task_briefs(state: ReportState) -> ReportState:
     """Write all task briefs required for the external agent authoring phase.
 
@@ -265,6 +353,8 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
     recommended_figure_usage_map = _read_recommended_figure_usage_map(figure_recommendations_path)
     auto_figure_plan = _write_auto_figure_plan(state, figure_recommendations_path)
     auto_figure_plan_guidance = _auto_figure_plan_guidance(auto_figure_plan)
+    reader_rubric = _reader_rubric_section(state.spec.get("report_profile", ""))
+    derived_stats_guidance = _derived_stats_guidance(evidence_path)
     task_intent = state.spec.get("task_intent", "new_draft")
     contract = make_artifact_contract(state)
     contract_json = json.dumps(contract, indent=2)
@@ -560,7 +650,7 @@ If `report_profile=engineering_lab_report`, preserve the lab handout contract:
 - reference figures and tables near the relevant result text
 - avoid workflow, agent, or tool jargon in the report body
 
-{language_guidance}## Prose Quality (applies to every profile)
+{language_guidance}{reader_rubric}{derived_stats_guidance}## Prose Quality (applies to every profile)
 
 The gates check grounding; they do not fix machine-sounding prose. These rules
 keep the rendered document reading like it was written by a person:

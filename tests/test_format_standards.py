@@ -111,6 +111,91 @@ class TableFigureTitleTest(unittest.TestCase):
         self.assertNotIn("view of", title)
 
 
+class DerivedStatsEvidenceTest(unittest.TestCase):
+    def _registry(self, cols):
+        import json
+
+        rows = [
+            {cols[0]: "5", cols[1]: "1.52", cols[2]: "1.45", cols[3]: "4.8"},
+            {cols[0]: "10", cols[1]: "3.01", cols[2]: "2.90", cols[3]: "3.8"},
+            {cols[0]: "15", cols[1]: "4.48", cols[2]: "4.35", cols[3]: "3.0"},
+        ]
+        blocks = [
+            {"block_type": "csv_row", "content": json.dumps(r, ensure_ascii=False)}
+            for r in rows
+        ]
+        return [{
+            "source_id": "s1",
+            "file_name": "m.csv",
+            "file_path": "m.csv",
+            "file_type": "csv",
+            "parsed_content": blocks,
+        }]
+
+    def test_en_measurement_columns_produce_citable_stats(self):
+        from report_workflow.nodes.evidence_normalize import _derived_stats_units
+
+        units = _derived_stats_units(
+            self._registry(
+                ["Load (N)", "Measured deflection (mm)", "Theoretical deflection (mm)", "Error (%)"]
+            ),
+            "2026-07-22T00:00:00+00:00",
+        )
+        self.assertEqual(len(units), 2)
+        regression = units[0]
+        self.assertEqual(regression["evidence_grade"], "high")
+        self.assertIn("least-squares slope", regression["content"])
+        self.assertIn("R²", regression["content"])
+        self.assertEqual(regression["derivation"]["method"], "least_squares_fit")
+        self.assertIn("mean", units[1]["content"])
+
+    def test_zh_columns_produce_zh_content(self):
+        from report_workflow.nodes.evidence_normalize import _derived_stats_units
+
+        units = _derived_stats_units(
+            self._registry(["荷重(N)", "實測撓度(mm)", "理論撓度(mm)", "誤差(%)"]),
+            "2026-07-22T00:00:00+00:00",
+        )
+        self.assertEqual(len(units), 2)
+        self.assertIn("最小平方法", units[0]["content"])
+        self.assertIn("平均", units[1]["content"])
+
+    def test_unrelated_columns_add_nothing(self):
+        from report_workflow.nodes.evidence_normalize import _derived_stats_units
+
+        units = _derived_stats_units(
+            self._registry(["A", "B", "C", "D"]), "2026-07-22T00:00:00+00:00"
+        )
+        self.assertEqual(units, [])
+
+
+class ReaderRubricTest(unittest.TestCase):
+    PROFILES = [
+        "engineering_lab_report",
+        "academic_paper",
+        "proposal",
+        "business_report",
+        "admissions_report",
+        "admissions_project_report",
+        "custom",
+    ]
+
+    def test_every_profile_has_a_rubric(self):
+        from report_workflow.nodes.agent_tasks import _reader_rubric_section
+
+        for profile in self.PROFILES:
+            section = _reader_rubric_section(profile)
+            self.assertIn("How the Reader Grades This", section)
+            self.assertIn("entry ticket", section)
+
+    def test_lab_rubric_demands_quantified_comparison(self):
+        from report_workflow.nodes.agent_tasks import _reader_rubric_section
+
+        section = _reader_rubric_section("engineering_lab_report")
+        self.assertIn("R²", section)
+        self.assertIn("professor", section)
+
+
 class EnglishTitleLocalizationTest(unittest.TestCase):
     def test_cjk_only_blueprint_title_falls_back_for_english(self):
         from report_workflow.language import localized_section_title

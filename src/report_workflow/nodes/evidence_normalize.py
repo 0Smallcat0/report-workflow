@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
 from ..artifact_contract import stable_evidence_id
+from ..language import CJK_RE
 
 
 STRUCTURED_TYPES = {"csv", "xlsx", "json"}
@@ -253,6 +254,169 @@ def compute_provenance_score(entry: dict, block: dict) -> float:
 
 
 _NUMERIC_TOKEN_RE = re.compile(r"\d+(?:[.,]\d+)?")
+
+_MEASURED_COL_RE = re.compile(r"measured|實測", re.IGNORECASE)
+_THEORETICAL_COL_RE = re.compile(r"theoretical|理論", re.IGNORECASE)
+_ERROR_COL_RE = re.compile(r"error|誤差", re.IGNORECASE)
+
+
+def _linear_fit(xs: list[float], ys: list[float]) -> tuple[float, float]:
+    """Least-squares slope and R² of y against x."""
+    n = len(xs)
+    mean_x = sum(xs) / n
+    mean_y = sum(ys) / n
+    sxx = sum((x - mean_x) ** 2 for x in xs)
+    if sxx == 0:
+        return 0.0, 0.0
+    sxy = sum((x - mean_x) * (y - mean_y) for x, y in zip(xs, ys))
+    slope = sxy / sxx
+    syy = sum((y - mean_y) ** 2 for y in ys)
+    r2 = (sxy * sxy) / (sxx * syy) if syy > 0 else 1.0
+    return slope, r2
+
+
+def _derived_stats_units(source_registry: list, created_at: str) -> list[dict]:
+    """Compute citable derived statistics from structured measurement rows.
+
+    The quantitative analysis a reader actually grades — slope versus the
+    theoretical slope, fit quality, error range — cannot come from the
+    authoring agent: a number with no evidence behind it is exactly what
+    the factuality gates block. Deriving the standard statistics here and
+    recording them as regular ledger entries (method noted in a
+    ``derivation`` field) makes that analysis citable.
+    """
+    units: list[dict] = []
+    for entry in source_registry:
+        if entry.get("file_type") not in STRUCTURED_TYPES:
+            continue
+        rows: list[dict] = []
+        for block in entry.get("parsed_content", []) or []:
+            if block.get("block_type") not in {"csv_row", "table_row", "data_row"}:
+                continue
+            try:
+                row = json.loads(block.get("content", ""))
+            except (json.JSONDecodeError, TypeError):
+                continue
+            if isinstance(row, dict):
+                rows.append(row)
+        if len(rows) < 3:
+            continue
+        columns = list(rows[0].keys())
+        numeric: dict[str, list[float]] = {}
+        for col in columns:
+            try:
+                numeric[col] = [
+                    float(str(r.get(col, "")).replace(",", "")) for r in rows
+                ]
+            except (TypeError, ValueError):
+                continue
+        if not numeric:
+            continue
+
+        measured_col = next(
+            (c for c in columns if c in numeric and _MEASURED_COL_RE.search(c)), None
+        )
+        theoretical_col = next(
+            (c for c in columns if c in numeric and _THEORETICAL_COL_RE.search(c)), None
+        )
+        error_col = next(
+            (c for c in columns if c in numeric and _ERROR_COL_RE.search(c)), None
+        )
+        x_col = next(
+            (
+                c
+                for c in columns
+                if c in numeric
+                and c not in (measured_col, theoretical_col, error_col)
+            ),
+            None,
+        )
+        zh = bool(CJK_RE.search("".join(columns)))
+        file_name = entry.get("file_name", "")
+
+        contents: list[tuple[str, dict]] = []
+        if measured_col and x_col:
+            slope, r2 = _linear_fit(numeric[x_col], numeric[measured_col])
+            if zh:
+                text = (
+                    f"衍生統計(來源:{file_name}):以最小平方法擬合 {measured_col} 對 "
+                    f"{x_col},斜率為 {slope:.3g},決定係數 R² 為 {r2:.4f}。"
+                )
+            else:
+                text = (
+                    f"Derived statistics from {file_name}: least-squares slope of "
+                    f"{measured_col} versus {x_col} is {slope:.3g} with R² = {r2:.4f}."
+                )
+            if theoretical_col:
+                t_slope, _ = _linear_fit(numeric[x_col], numeric[theoretical_col])
+                if zh:
+                    text += f"{theoretical_col} 對 {x_col} 的理論斜率為 {t_slope:.3g}。"
+                else:
+                    text += (
+                        f" The slope of {theoretical_col} versus {x_col} is "
+                        f"{t_slope:.3g}."
+                    )
+            contents.append(
+                (
+                    text,
+                    {
+                        "method": "least_squares_fit",
+                        "input_columns": [c for c in (x_col, measured_col, theoretical_col) if c],
+                    },
+                )
+            )
+        if error_col:
+            values = numeric[error_col]
+            e_min, e_max = min(values), max(values)
+            e_mean = sum(values) / len(values)
+            if zh:
+                text = (
+                    f"衍生統計(來源:{file_name}):{error_col} 介於 {e_min:.3g} 至 "
+                    f"{e_max:.3g},平均為 {e_mean:.3g}。"
+                )
+            else:
+                text = (
+                    f"Derived statistics from {file_name}: {error_col} ranges from "
+                    f"{e_min:.3g} to {e_max:.3g} with a mean of {e_mean:.3g}."
+                )
+            contents.append(
+                (text, {"method": "summary_stats", "input_columns": [error_col]})
+            )
+
+        for index, (content, derivation) in enumerate(contents):
+            digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
+            units.append({
+                "evidence_id": f"E_{entry.get('source_id', '')}_{digest[:10]}",
+                "source_id": entry.get("source_id", ""),
+                "source_file_name": file_name,
+                "source_file_path": entry.get("file_path", ""),
+                "file_type": entry.get("file_type", ""),
+                "source_role": "source_data",
+                "granularity": "paragraph",
+                "evidence_type": "quantitative",
+                "content": content,
+                "quote": content[:200],
+                "source_span": None,
+                "line_start": None,
+                "line_end": None,
+                "content_hash": digest[:16],
+                "provenance_score": 0.75,
+                "evidence_grade": "high",
+                "allowed_claim_types": ["factual", "statistical"],
+                "block_id": f"derived_{index}",
+                "page_number": None,
+                "requires_hedged_wording": False,
+                "first_hand_account": False,
+                "contains_methodology": False,
+                "contains_citations": False,
+                "claimed_reproducibility": False,
+                "topic_tags": determine_topic_tags(content),
+                "cross_references": [],
+                "created_at": created_at,
+                "last_used": None,
+                "derivation": derivation,
+            })
+    return units
 
 
 def determine_evidence_type(content: str, block_type: str) -> str:
@@ -530,6 +694,10 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
                 unit.update(graph_provenance)
 
             evidence_units.append(unit)
+
+    # Citable derived statistics (slope, R², error summary) from structured
+    # measurement rows — the analysis a reader grades, made evidence.
+    evidence_units.extend(_derived_stats_units(source_registry, created_at))
 
     if not evidence_units:
         raise QAHardBlockError("Evidence ledger is empty")

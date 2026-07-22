@@ -1,5 +1,38 @@
 # Changelog
 
+## 4.21.0 - 2026-07-22
+
+### Added — aim at "good", not just "not wrong"
+
+Direction correction from the maintainer: traceable-to-evidence is the
+entry ticket, not the goal — the goal is a document the reader rates
+highly (a professor grading a lab report, a manager reading a status
+report, a committee reading an application). Two mechanisms push toward
+that, neither of them a gate:
+
+- **Reader rubrics in the authoring brief.** Every profile's brief now
+  carries a "How the Reader Grades This" section: what the course
+  professor, peer reviewer, decision-maker, manager, or admissions
+  committee actually rewards (quantified comparison over description,
+  mechanisms over restated numbers, conclusion-first for managers,
+  incidents over adjectives for admissions). The writing is aimed at a
+  grade, not just at passing the gates.
+- **Derived statistics as citable evidence.** The quantitative analysis a
+  grader looks for — least-squares slope versus the theoretical slope, R²,
+  error range and mean — cannot come from the authoring agent, because a
+  number with no evidence behind it is exactly what the factuality gates
+  block. EVIDENCE_BUILD now computes these from structured measurement
+  rows (columns matching measured/實測, theoretical/理論, error/誤差) and
+  records them as regular high-grade ledger entries with the method noted;
+  the brief lists them under "Derived Statistics (citable)". Chinese
+  columns produce Chinese entries.
+
+End-to-end on the beam case: the final document's discussion now states
+the fitted slope (0.298 vs 0.29 theoretical), R² = 0.9999, and the mean
+error of 3.5% — all through the citation and factuality gates. Sources
+with no matching columns are byte-unchanged. 448 tests and both benchmark
+--checks pass.
+
 ## 4.20.0 - 2026-07-22
 
 ### Fixed — the English revise dogfood: a revision keeps the base document's shape
