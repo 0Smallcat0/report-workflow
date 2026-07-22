@@ -310,6 +310,69 @@ def _reader_rubric_section(report_profile: str) -> str:
     )
 
 
+# Structure guidance distilled from published writing standards:
+# - Kording & Mensh, "Ten simple rules for structuring papers",
+#   PLOS Comput Biol 2017 (C-C-C at paper/abstract/paragraph scale)
+# - Whitesides, "Whitesides' Group: Writing a Paper", Adv. Mater. 2004
+#   (figures carry the results; prose explains them)
+# - Minto, The Pyramid Principle (answer first; SCQA opening)
+# - University lab-report rubrics (ASEE, WSU, NC State LabWrite):
+#   discussion = result → quantitative comparison → mechanism → verdict
+# - Graduate-admissions guidance (MIT EECS CommLab, Cornell Graduate
+#   School): depth on 2-4 defining experiences over exhaustive listing
+_STRUCTURE_RECIPES: dict[str, str] = {
+    "engineering_lab_report": (
+        "Discussion recipe (university lab rubrics): for each key result —\n"
+        "state it, compare it quantitatively with theory (use the derived\n"
+        "statistics), explain the mechanism behind the deviation, and give\n"
+        "the verdict against the acceptance threshold. Close the discussion\n"
+        "by saying whether the data support the model."
+    ),
+    "academic_paper": (
+        "One paper, one central contribution (Kording & Mensh). Figures\n"
+        "carry the results and prose explains them (Whitesides): build each\n"
+        "results paragraph around its figure or table — state what it shows,\n"
+        "then what it means."
+    ),
+    "proposal": (
+        "Answer first (Minto's Pyramid Principle): the recommendation leads,\n"
+        "then the two or three supports, then the evidence. Open the\n"
+        "executive summary as SCQA — situation, complication, the question\n"
+        "it raises, and your answer."
+    ),
+    "business_report": (
+        "Answer first (Minto's Pyramid Principle): the conclusion leads,\n"
+        "then the two or three supports, then the evidence. Open with\n"
+        "SCQA — situation, complication, the question it raises, and your\n"
+        "answer."
+    ),
+    "admissions_report": (
+        "Depth over coverage (MIT EECS CommLab, Cornell): develop two to\n"
+        "four defining experiences fully — situation, what you did, the\n"
+        "result, and what it changed in you — instead of listing everything."
+    ),
+    "admissions_project_report": (
+        "Depth over coverage (MIT EECS CommLab, Cornell): develop the\n"
+        "project's defining decisions fully — the situation, the choice, the\n"
+        "result, and what it taught you — instead of listing every task."
+    ),
+}
+
+
+def _structure_guidance(report_profile: str) -> str:
+    """Writing-structure discipline distilled from published standards."""
+    paragraph_rule = (
+        "Paragraph rule (Kording & Mensh, PLOS Comput Biol 2017): every\n"
+        "paragraph is Context → Content → Conclusion. The first sentence\n"
+        "states what the paragraph is about; the last states what the reader\n"
+        "should remember. A run of parallel evidence sentences with no\n"
+        "concluding sentence reads as a list, not an argument."
+    )
+    recipe = _STRUCTURE_RECIPES.get(report_profile, "")
+    body = paragraph_rule if not recipe else f"{paragraph_rule}\n\n{recipe}"
+    return f"## Structure Discipline (from published writing standards)\n\n{body}\n\n"
+
+
 def _derived_stats_guidance(evidence_path: str) -> str:
     """List pre-computed derived statistics so the analysis can cite them."""
     if not evidence_path or not Path(evidence_path).exists():
@@ -354,6 +417,7 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
     auto_figure_plan = _write_auto_figure_plan(state, figure_recommendations_path)
     auto_figure_plan_guidance = _auto_figure_plan_guidance(auto_figure_plan)
     reader_rubric = _reader_rubric_section(state.spec.get("report_profile", ""))
+    structure_guidance = _structure_guidance(state.spec.get("report_profile", ""))
     derived_stats_guidance = _derived_stats_guidance(evidence_path)
     task_intent = state.spec.get("task_intent", "new_draft")
     contract = make_artifact_contract(state)
@@ -650,7 +714,7 @@ If `report_profile=engineering_lab_report`, preserve the lab handout contract:
 - reference figures and tables near the relevant result text
 - avoid workflow, agent, or tool jargon in the report body
 
-{language_guidance}{reader_rubric}{derived_stats_guidance}## Prose Quality (applies to every profile)
+{language_guidance}{reader_rubric}{structure_guidance}{derived_stats_guidance}## Prose Quality (applies to every profile)
 
 The gates check grounding; they do not fix machine-sounding prose. These rules
 keep the rendered document reading like it was written by a person:

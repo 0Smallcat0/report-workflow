@@ -1,5 +1,35 @@
 # Changelog
 
+## 4.22.0 - 2026-07-22
+
+### Added — structure discipline from published writing standards
+
+The reader rubrics shipped in 4.21.0 were professional judgment; this
+release grounds the quality guidance in published, citable standards and
+adds the piece none of the gates could give: how paragraphs and sections
+should be *built*. Every authoring brief now carries a "Structure
+Discipline" section:
+
+- **The paragraph rule** (Kording & Mensh, *Ten simple rules for
+  structuring papers*, PLOS Comput Biol 2017): every paragraph runs
+  Context → Content → Conclusion — first sentence says what it is about,
+  last sentence says what to remember. A run of parallel evidence
+  sentences with no concluding sentence reads as a list, not an argument.
+- **Per-profile recipes**: lab discussions follow the university-rubric
+  pattern (result → quantitative comparison → mechanism → verdict against
+  the acceptance threshold; ASEE/WSU/NC State LabWrite); papers build each
+  results paragraph around its figure (Whitesides, Adv. Mater. 2004) with
+  one central contribution; proposals and business reports lead with the
+  answer and open as SCQA (Minto, The Pyramid Principle); admissions
+  documents develop 2-4 defining experiences in depth instead of listing
+  everything (MIT EECS CommLab, Cornell Graduate School).
+
+The web research also validated the 4.21.0 rubrics themselves — quantified
+comparison, mechanism over restatement, answer-first, incidents over
+adjectives all match the published guidance; sources are now cited in the
+code. Guidance only: no new gates. 451 tests and both benchmark --checks
+pass.
+
 ## 4.21.0 - 2026-07-22
 
 ### Added — aim at "good", not just "not wrong"
