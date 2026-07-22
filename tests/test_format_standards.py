@@ -196,6 +196,29 @@ class ReaderRubricTest(unittest.TestCase):
         self.assertIn("professor", section)
 
 
+class StructureGuidanceTest(unittest.TestCase):
+    def test_paragraph_rule_for_every_profile(self):
+        from report_workflow.nodes.agent_tasks import _structure_guidance
+
+        for profile in ReaderRubricTest.PROFILES:
+            section = _structure_guidance(profile)
+            self.assertIn("Context → Content → Conclusion", section)
+            self.assertIn("Kording", section)
+
+    def test_lab_discussion_recipe_present(self):
+        from report_workflow.nodes.agent_tasks import _structure_guidance
+
+        section = _structure_guidance("engineering_lab_report")
+        self.assertIn("quantitatively with theory", section)
+        self.assertIn("verdict", section)
+
+    def test_business_lines_lead_with_the_answer(self):
+        from report_workflow.nodes.agent_tasks import _structure_guidance
+
+        self.assertIn("Pyramid Principle", _structure_guidance("business_report"))
+        self.assertIn("SCQA", _structure_guidance("proposal"))
+
+
 class EnglishTitleLocalizationTest(unittest.TestCase):
     def test_cjk_only_blueprint_title_falls_back_for_english(self):
         from report_workflow.language import localized_section_title

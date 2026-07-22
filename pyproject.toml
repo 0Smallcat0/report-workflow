@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "report-workflow"
-version = "4.21.0"
+version = "4.22.0"
 description = "Deterministic, zero-LLM verification gates that hard-block any LLM claim not traceable to its evidence."
 readme = "README.md"
 requires-python = ">=3.11"
