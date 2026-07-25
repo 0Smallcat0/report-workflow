@@ -332,6 +332,52 @@ def _toc_openxml_block(language: str, page_break_before: bool) -> str:
     return "```{=openxml}\n" + "\n".join(parts) + "\n```"
 
 
+# A Chinese line that ends mid-paragraph: last character is a Han character
+# or Chinese punctuation.
+_CJK_LINE_END_RE = re.compile(r"[一-鿿㐀-䶿。，、；:：？！」』）】》%]$")
+_CJK_BLOCK_PREFIXES = ("|", "#", ">", "-", "*", "+", "```", "[FIGURE", "[Source")
+
+
+def _normalize_cjk_typography(md: str) -> str:
+    """Chinese sentences do not take a space between them.
+
+    Each authored sentence is its own markdown line, and pandoc turns an
+    intra-paragraph newline into a space — correct for English, wrong for
+    Chinese, where it renders as "…增加。 5 N 時…". Join those lines
+    directly and close the gap before a citation marker.
+    """
+    out: list[str] = []
+    in_fence = False
+    for line in md.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("```"):
+            in_fence = not in_fence
+            out.append(line)
+            continue
+        joinable = (
+            not in_fence
+            and out
+            and stripped
+            and not stripped.startswith(_CJK_BLOCK_PREFIXES)
+            and not out[-1].strip().startswith(_CJK_BLOCK_PREFIXES)
+            and bool(_CJK_LINE_END_RE.search(out[-1].strip()))
+        )
+        if joinable:
+            out[-1] = out[-1].rstrip() + stripped
+        else:
+            out.append(line)
+    joined = "\n".join(out)
+    # Close gaps left inside a line too: a stripped internal-source marker
+    # leaves "轉動。 千分錶", and an authored marker leaves "4.8%。 [1]".
+    # Only CJK-to-CJK (or CJK-to-citation) gaps close; a space between
+    # Chinese and Latin ("撓度 1.52 mm") is real spacing and stays.
+    return re.sub(
+        r"([一-鿿㐀-䶿。，、；:：？！」』）】》])[ \t]+([一-鿿㐀-䶿「『（【《\[])",
+        r"\1\2",
+        joined,
+    )
+
+
 def _xml_text_escape(text: str) -> str:
     return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
@@ -1217,6 +1263,8 @@ def run_docx_render(state: ReportState) -> ReportState:
 
     run_dir = WORKFLOW_RUNS_DIR / state.job_id
     md_content = _absolutize_image_paths(md_content, run_dir)
+    if detect_document_language(md_content) == "zh":
+        md_content = _normalize_cjk_typography(md_content)
     final_docx_path = run_dir / "rendered_report.docx"
 
     # Write the final markdown to a temp file for pandoc. The TOC field is
