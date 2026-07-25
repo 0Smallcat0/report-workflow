@@ -1,5 +1,44 @@
 # Changelog
 
+## 4.25.0 - 2026-07-25
+
+### Fixed — a monthly trend reads as a trend, and 表 1 is reachable
+
+Second untouched profile dogfooded the same way: a Chinese production-line
+defect-rate analysis on `business_report`, written to a plant manager from a
+monthly CSV, a QA meeting log, and a countermeasure record. Four defects, none
+of them visible in the profiles already exercised.
+
+- **A monthly table with one "%" column is no longer stacked.** The
+  stacked-bar branch accepted a loose keyword test — `"%"` appearing anywhere
+  in the headers — as evidence of part-whole composition, and it runs before
+  the time-series branch, so an ordered monthly table could never reach a line
+  chart. The rigorous test (rows summing to ~1 or ~100) still wins anywhere;
+  the keyword guess now yields to ordered time data.
+- **A unitless column is not the same unit as one that has a unit.**
+  `mixed_measure_units` counted only detected signatures, so 投產數 / 不良數 /
+  不良率(%) reported a single unit ("%") and read as unmixed — counts in the
+  thousands and a percentage near 2 on one shared y-axis, drawing the
+  defect-rate line flat against the axis. The existing "keep it as a table or
+  split the charts" advice now actually fires.
+- **Mixed units no longer pre-empt a scatter.** That guard is about sharing
+  one y-axis; a scatter puts each measure on its own axis, which is what it is
+  for. Surfaced by the fix above, which made an existing fixture mixed.
+- **Figures and tables are numbered independently.** The caption printed the
+  author's `figure_id`, and ids are unique across the plan, so a report with
+  one chart and one table rendered "圖 1." then "表 2." — 表 1 was
+  unreachable. `figure_id` remains the identity the manifest and gates match
+  on; the caption number is now a per-label sequence.
+- **An image path is not publication text.** Figures are written under the run
+  directory, whose name is derived from the prompt, so the pre-render scan
+  found the prompt inside a markdown image target and hard-blocked with "raw
+  prompt fragment leaked into publication text". A CJK prompt hits this every
+  time: it has no spaces to trim, so it lands in the directory name whole.
+  Link and image targets are excluded from the scan; prompt text in the body
+  still blocks.
+
+486 tests and both benchmark --checks pass.
+
 ## 4.24.0 - 2026-07-25
 
 ### Fixed — a proposal can state its own budget, and cite nothing that isn't there

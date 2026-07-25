@@ -25,6 +25,50 @@ def _state(tmpdir: str, profile: str = "engineering_lab_report") -> ReportState:
     return state
 
 
+class MonthlyTrendChartTests(unittest.TestCase):
+    """A monthly table carrying one "%" column is a trend, not a composition."""
+
+    TABLE = [
+        ["月份", "投產數", "不良數", "不良率(%)", "主要不良類型"],
+        ["2026-01", "12480", "312", "2.50", "尺寸超差"],
+        ["2026-02", "10260", "267", "2.60", "尺寸超差"],
+        ["2026-03", "13150", "382", "2.90", "尺寸超差"],
+        ["2026-04", "12890", "425", "3.30", "尺寸超差"],
+        ["2026-07", "13080", "275", "2.10", "表面刮傷"],
+    ]
+
+    def _recommend(self, table_data):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            return recommend_figures_from_evidence(state, [{
+                "evidence_id": "E1",
+                "source_id": "defects",
+                "source_file_name": "defects.csv",
+                "granularity": "table",
+                "content": "monthly defect rate",
+                "table_data": table_data,
+            }])
+
+    def test_ordered_time_column_is_not_stacked(self):
+        recommendation = self._recommend(self.TABLE)[0]
+        self.assertNotEqual(recommendation["recommended_figure_type"], "stacked_bar")
+
+    def test_counts_beside_a_percentage_count_as_mixed_units(self):
+        recommendation = self._recommend(self.TABLE)[0]
+        self.assertTrue(
+            recommendation["data_profile"]["summary"]["mixed_measure_units"]
+        )
+        self.assertEqual(recommendation["recommended_figure_type"], "table")
+
+    def test_single_unit_trend_still_charts_as_a_line(self):
+        single_unit = [[row[0], row[3]] for row in self.TABLE]
+        recommendation = self._recommend(single_unit)[0]
+        self.assertFalse(
+            recommendation["data_profile"]["summary"]["mixed_measure_units"]
+        )
+        self.assertEqual(recommendation["recommended_figure_type"], "line")
+
+
 class FigureRecommendationTests(unittest.TestCase):
     def test_recommends_pie_for_composition_table(self):
         with tempfile.TemporaryDirectory() as tmpdir:

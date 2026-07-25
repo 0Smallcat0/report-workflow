@@ -405,6 +405,81 @@ class FactualityBlockMessageTest(unittest.TestCase):
         self.assertIn("claim_matrix.json", hint)
 
 
+class CaptionNumberingTest(unittest.TestCase):
+    """Figures and tables carry independent sequences."""
+
+    def _manifest(self):
+        return {
+            "figures": [
+                {
+                    "figure_id": "1",
+                    "figure_type": "line",
+                    "title": "月別不良率",
+                    "path": "",
+                    "render_mode": "native_table",
+                    "data": {"columns": ["月份", "不良率"], "rows": [["2026-01", "2.50"]]},
+                },
+                {
+                    "figure_id": "2",
+                    "figure_type": "table",
+                    "title": "月別明細",
+                    "path": "",
+                    "render_mode": "native_table",
+                    "data": {"columns": ["月份", "投產數"], "rows": [["2026-01", "12480"]]},
+                },
+            ]
+        }
+
+    def test_two_tables_number_one_and_two(self):
+        from report_workflow.nodes.docx_render import _replace_figure_placeholders
+
+        md = (
+            "# 主要發現\n\n不良率自一月的二點五零上升至六月的四點四零，"
+            "轉折點落在六月底的模具更換，兩段之間沒有其他製程變更。\n\n"
+            "[FIGURE:1]\n\n根因為第三模穴的模具磨耗，並非量測系統問題。\n\n"
+            "[FIGURE:2]\n"
+        )
+        out, replaced, unresolved = _replace_figure_placeholders(md, self._manifest())
+        self.assertEqual((replaced, unresolved), (2, []))
+        self.assertIn("表 1. 月別不良率", out)
+        self.assertIn("表 2. 月別明細", out)
+
+    def test_image_figure_numbering_is_independent_of_figure_id(self):
+        from report_workflow.nodes.docx_render import _figure_alt_text
+
+        alt = _figure_alt_text(
+            {"figure_id": "7", "title": "月別不良率"},
+            "7",
+            language="zh",
+            display_number="1",
+        )
+        self.assertTrue(alt.startswith("圖 1."), alt)
+
+
+class PromptFragmentScanTest(unittest.TestCase):
+    """An image path is not publication text."""
+
+    PROMPT = "分析第二產線今年一至九月不良率變化,向廠長說明主因與後續建議"
+
+    def test_prompt_inside_an_image_path_is_not_a_leak(self):
+        from report_workflow.nodes.docx_render import _pre_render_sanity_check
+
+        md = (
+            "# 主要發現\n\n不良率自一月的 2.50% 上升至六月的 4.40%。\n\n"
+            f"![圖 1. 月別不良率](C:/out/{self.PROMPT}--run_1/figures/1.png)\n"
+        )
+        self.assertEqual(_pre_render_sanity_check(md, {}, [self.PROMPT]), [])
+
+    def test_prompt_in_body_text_is_still_a_leak(self):
+        from report_workflow.nodes.docx_render import _pre_render_sanity_check
+
+        md = f"# 主要發現\n\n{self.PROMPT}\n"
+        self.assertIn(
+            "Raw prompt fragment leaked into publication text",
+            _pre_render_sanity_check(md, {}, [self.PROMPT]),
+        )
+
+
 class CjkTypographyTest(unittest.TestCase):
     def test_chinese_sentence_lines_join_without_space(self):
         from report_workflow.nodes.docx_render import _normalize_cjk_typography

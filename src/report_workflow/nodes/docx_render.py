@@ -194,11 +194,18 @@ def _load_figure_manifest(manifest_path: str) -> dict | None:
 
 
 def _figure_alt_text(
-    entry: dict, fallback_id: str, inline_caption: str = "", language: str = "en"
+    entry: dict,
+    fallback_id: str,
+    inline_caption: str = "",
+    language: str = "en",
+    display_number: str = "",
 ) -> str:
     label = "圖" if language == "zh" else "Figure"
     title = str(entry.get("title") or inline_caption or "").strip()
-    figure_id = str(entry.get("figure_id") or fallback_id).strip()
+    figure_id = (
+        display_number.strip()
+        or str(entry.get("figure_id") or fallback_id).strip()
+    )
     if title and figure_id and title.casefold() != figure_id.casefold():
         alt = f"{label} {figure_id}. {title}"
     elif figure_id:
@@ -229,9 +236,16 @@ def _replace_figure_placeholders(md_content: str, figure_manifest: dict | None) 
 
     replaced = 0
     unresolved: list[str] = []
+    # Figures and tables are numbered independently, as every style guide
+    # expects. The caption used to print the author's figure_id, and ids are
+    # unique across the whole plan, so a report with one chart and one table
+    # rendered "圖 1." followed by "表 2." — 表 1 was unreachable. figure_id
+    # stays the stable identity the manifest and gates match on.
+    figure_number = 0
+    table_number = 0
 
     def replace(match: re.Match) -> str:
-        nonlocal replaced
+        nonlocal replaced, figure_number, table_number
         figure_id = match.group(1).strip()
         inline_caption = (match.group(2) or "").strip()
         entry = entries_by_id.get(figure_id.casefold())
@@ -245,9 +259,10 @@ def _replace_figure_placeholders(md_content: str, figure_manifest: dict | None) 
             rows = table_data.get("rows") or []
             if columns and rows:
                 replaced += 1
+                table_number += 1
                 label = "表" if language == "zh" else "Table"
                 title = str(entry.get("title") or inline_caption or "").strip()
-                caption = f"{label} {figure_id}. {title}".strip()
+                caption = f"{label} {table_number}. {title}".strip()
 
                 def esc(value: object) -> str:
                     return str(value).replace("|", "\\|")
@@ -267,7 +282,14 @@ def _replace_figure_placeholders(md_content: str, figure_manifest: dict | None) 
             return match.group(0)
 
         replaced += 1
-        alt = _figure_alt_text(entry, figure_id, inline_caption, language=language)
+        figure_number += 1
+        alt = _figure_alt_text(
+            entry,
+            figure_id,
+            inline_caption,
+            language=language,
+            display_number=str(figure_number),
+        )
         return f"![{alt}]({image_path.resolve().as_posix()})"
 
     return _FIGURE_PLACEHOLDER_RE.sub(replace, md_content), replaced, unresolved
@@ -962,11 +984,19 @@ def _pre_render_sanity_check(
     if re.search(r"source_corpus", md_content, re.IGNORECASE):
         issues.append("Internal source_corpus reference leaked into publication text")
 
+    # Link and image targets are structural: pandoc consumes them and the
+    # reader never sees them. Figures are written under the run directory,
+    # whose name is derived from the prompt, so scanning raw markdown
+    # reported "prompt leaked into publication text" for any run that
+    # renders an image — reliably so for a CJK prompt, which has no spaces
+    # to trim and therefore lands in the directory name whole.
+    prose_only = re.sub(r"\]\([^)]*\)", "]()", md_content)
+    normalized_prose = " ".join(prose_only.split()).lower()
     for fragment in forbidden_fragments or []:
         clean = " ".join(fragment.split())
         if len(clean) < 20:
             continue
-        if clean.lower() in " ".join(md_content.split()).lower():
+        if clean.lower() in normalized_prose:
             issues.append("Raw prompt fragment leaked into publication text")
             break
 
