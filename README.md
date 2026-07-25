@@ -5,23 +5,87 @@
 ![Tests](https://img.shields.io/badge/tests-463%20passing-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-**A deterministic verification layer that lets an LLM draft a report but refuses
-to publish any claim it cannot trace to registered evidence.**
+**Turns your source material into a finished report — and refuses to ship a
+single claim it cannot trace back to that material.**
 
-An LLM writes fluent prose and, every so often, invents a number, misquotes a
-source, or cites a study that does not exist. That is fine for a chat reply and
-unacceptable in a lab report, a client memo, or an admissions document. Report
-Workflow puts a checkable boundary between *drafting* and *publishing*: the model
-proposes, and a deterministic pipeline decides what is allowed to ship.
+Getting the document *graded well* is the job: a lab report a professor marks
+highly, a status report a manager can act on in half a page, an application a
+committee remembers. Report Workflow drives the whole route — it parses your
+sources, tells the writing agent what that document's reader actually rewards,
+computes the analysis a grader looks for, and renders a submission-ready DOCX
+with a table of contents, page numbers, real Word tables, and your department's
+own template, in English or Chinese.
+
+Traceability is the floor, not the pitch. Every publishable sentence has to link
+to registered evidence, so the document that comes out carries no invented
+numbers, no fabricated citations, and no misquotes — the price of entry for
+anything you put your name on, not the reason to use it.
 
 The Python package **does not call an LLM and needs no API key.** It owns source
 parsing, the evidence ledger, artifact contracts, validation gates, DOCX
 rendering, and traceability packaging. The external agent (Codex, Claude Code,
-Hermes, …) owns judgment and drafting. Every publishable claim must be linked to
-evidence that actually supports it, or it is hard-blocked before it reaches the
-document.
+Hermes, …) owns judgment and drafting.
 
-**Scope, stated plainly.** This is a *fidelity gate* for evidence-backed
+```bash
+pip install report-workflow
+```
+
+That is everything except DOCX rendering, which needs pandoc — see
+[Install](#install).
+
+## What a graded document reads like
+
+The discussion section of a cantilever-beam lab report, rendered by the pipeline
+from a course handout and a five-row measurement CSV:
+
+> Fitting the measurements puts a number on how closely they track the model. A
+> least-squares fit of measured deflection against load gives a slope of 0.298
+> with R² = 0.9999, against the theoretical slope of 0.29. [1] Across the five
+> steps the error ranges from 2.6 to 4.8 with a mean of 3.5. [1] The coefficient
+> of determination is high enough that the linear assumption is not in question,
+> and the excess slope is consistent across the range — the deviation is
+> systematic, not scatter.
+>
+> Two features of the apparatus explain a systematic excess of this kind. The
+> model assumes a perfectly rigid fixed end, whereas the clamp has finite
+> stiffness and rotates slightly under load. The dial indicator also rests
+> against the beam with a small contact force. Both add deflection the
+> rigid-clamp model does not account for, and both act at every load — which is
+> why the offset appears at all five steps rather than at isolated points.
+
+The slope and R² are not the agent's own arithmetic: the pipeline computed them
+from the CSV and registered them as evidence, so the quantitative analysis a
+grader looks for is citable instead of unsupported. Each paragraph opens with
+its point and closes with the takeaway, and the discussion runs result →
+quantitative comparison → mechanism → verdict — the shape university lab rubrics
+grade against.
+
+## How it aims at "good", not just "not wrong"
+
+Passing the gates means a document is not *wrong*. Three mechanisms aim it at a
+document its reader rates highly. All three are guidance, not gates:
+
+- **Reader rubrics.** Each profile's authoring brief states what its reader
+  rewards: quantified comparison over description for a lab professor,
+  conclusion-first for a manager, concrete incidents over adjectives for an
+  admissions committee, one plainly stated contribution for a reviewer.
+- **Structure discipline**, distilled from published standards — every paragraph
+  Context → Content → Conclusion ([Kording & Mensh, *PLOS Comput Biol* 2017](https://journals.plos.org/ploscompbiol/article?id=10.1371/journal.pcbi.1005619));
+  figures carrying the results and prose explaining them ([Whitesides, *Adv.
+  Mater.* 2004](https://www.gmwgroup.harvard.edu/publications/whitesides-group-writing-paper));
+  answer-first with an SCQA opening for business writing (Minto's Pyramid
+  Principle); depth on a few defining experiences for admissions documents
+  ([MIT CommLab](https://mitcommlab.mit.edu/eecs/commkit/graduate-school-statement-of-purpose/),
+  [Cornell](https://gradschool.cornell.edu/inclusion/recruitment/prospective-students/writing-your-statement-of-purpose/)).
+- **Derived statistics as citable evidence.** Least-squares slope against the
+  theoretical slope, R², and the error range and mean are computed from
+  structured measurement data and registered as ledger entries — because a
+  number the agent worked out by itself has nothing to cite, and is exactly what
+  the factuality gates block.
+
+## Verify any LLM answer in five lines
+
+**Scope, stated plainly.** The gate is a *fidelity gate* for evidence-backed
 writing, not a general hallucination detector. Because the checks are
 mechanical, they reliably catch invented numbers, fabricated citations,
 misquotes, and unit swaps — but they do not judge meaning, so a fluent
@@ -29,10 +93,8 @@ paraphrase that quietly reverses the source ("A before B" → "B before A") is
 out of scope. That boundary is not hidden; it is measured on outside data
 below (§[out-of-domain](#out-of-domain-halueval-qa-10000-pairs-nobody-here-wrote)).
 
-## Verify any LLM answer in five lines
-
-No pipeline, no schema, no API key — pass the answer and the source text it
-was supposed to be grounded in:
+The same gate stack runs standalone. No pipeline, no schema, no API key — pass
+the answer and the source text it was supposed to be grounded in:
 
 ```python
 from report_workflow import verify
@@ -170,14 +232,18 @@ floor, not a replacement for semantic judgement.
 
 ## Who is this for
 
+- **Anyone who has to hand in a document that gets judged.** Lab reports,
+  research proposals, journal manuscripts, status and business reports,
+  admissions documents, technical documentation — seven built-in profiles, each
+  carrying its reader's rubric, rendered as a submission-ready DOCX in English
+  or Chinese, optionally following a template you supply.
 - **RAG / agent pipelines that need a CI gate.** `verify(answer, sources)`
   in a test means a grounding regression fails the build — like a linter,
   with no eval budget and no flaky judge. The MCP server gives any agent the
   same gate at runtime before output reaches a user.
-- **Evidence-bounded documents.** The full pipeline (this repo's origin) is
-  for reports where every claim must trace to a registered source — lab
-  reports, financial memos, regulatory drafts — and renders auditable DOCX
-  with a QA pack that can prove, per sentence, why it was allowed to ship.
+- **Evidence-bounded documents.** Where every claim must trace to a registered
+  source — financial memos, regulatory drafts — the pipeline renders auditable
+  DOCX with a QA pack that can prove, per sentence, why it was allowed to ship.
 - **Anyone who must explain a publish decision later.** Verdicts are pure
   functions: cacheable, diffable, re-testable after an edit, and the block
   reason names the gate and the evidence. "The model felt it was grounded"
@@ -207,7 +273,7 @@ Archived results ([`benchmarks/evidence/full_benchmark_2026-05-13/summary.md`](b
 | Claims verified against evidence | **42** (6 per profile), **0 blocked** |
 | Unresolved citation-audit entries | **0** |
 | Delivery QA decision | `pass` on every profile |
-| Unit tests | **351 passing** |
+| Unit tests at the time of the archived run | **351 passing** (463 today) |
 
 Each report is packaged with its QA pack (`final_qa_summary`, factuality,
 scholarly-quality, figure-visual, template-style, and render-layout reports) so
@@ -268,14 +334,15 @@ source; **FD** checks wording strength against evidence grade. See
 
 ## Install
 
-Just the verification gates (`verify()`, the factuality checkers, the MCP
-server) need only the package — no external tools:
+The verification gates (`verify()`, the factuality checkers, the MCP server)
+need only the package — no external tools:
 
 ```bash
-pip install "git+https://github.com/0Smallcat0/report-workflow"
-# a PyPI release is wired up via trusted publishing (see docs/RELEASING.md);
-# once tagged: pip install report-workflow
+pip install report-workflow
 ```
+
+Releases are published to PyPI through GitHub trusted publishing (OIDC, no
+tokens); see [`docs/RELEASING.md`](docs/RELEASING.md).
 
 For the full source-to-DOCX pipeline, install from a clone and add pandoc:
 
@@ -437,6 +504,14 @@ is not the fluent draft but the layer that can *prove* each statement and refuse
 the ones it cannot. Keeping that layer deterministic (no LLM in the checker)
 makes the verdict reproducible and auditable rather than another probabilistic
 opinion.
+
+That layer is the floor, and a floor is not a destination. A document that
+merely refuses to lie is not yet a document worth handing in, so the same
+deterministic machinery is used to raise the ceiling: it puts the reader's
+grading criteria in front of the writer before drafting, and it computes the
+quantitative analysis a grader expects — a fitted slope against theory, a
+coefficient of determination — and registers it as evidence, because analysis
+nobody can cite is analysis the gates would have to block.
 
 This repository was specified, integrated, and verified by its author with heavy
 use of coding agents for implementation. The deterministic gates and the
