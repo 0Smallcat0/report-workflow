@@ -1,5 +1,32 @@
 # Changelog
 
+## 4.23.1 - 2026-07-25
+
+### Changed — the README leads with the document, not the gate
+
+The project page still opened with "a deterministic verification layer that
+refuses to publish any claim it cannot trace to registered evidence" — the
+floor sold as the pitch. Traceability is the price of entry for anything you
+put your name on; the reason to use this is the document that comes out.
+
+- New opening: what the tool produces (a submission-ready DOCX aimed at the
+  person who grades it, English or Chinese, optionally following your own
+  template), with traceability stated plainly as the floor.
+- `pip install report-workflow` moved to the top — it was buried 260 lines
+  down and still described PyPI as "once tagged", which shipped this morning.
+- New **What a graded document reads like**: a real rendered discussion
+  section, with the derived slope and R² it cites.
+- New **How it aims at "good", not just "not wrong"**: reader rubrics,
+  structure discipline with its published sources, derived statistics as
+  citable evidence.
+- "Who is this for" now leads with people handing in documents; the
+  fidelity-gate scope note moved down to where the gate is the subject.
+- Package description and keywords match the same framing, so the PyPI
+  landing page says what the project is for.
+
+Documentation and packaging metadata only; no code change. 463 tests and
+both benchmark --checks pass.
+
 ## 4.23.0 - 2026-07-25
 
 ### Fixed — Chinese documents no longer carry English sentence spacing
