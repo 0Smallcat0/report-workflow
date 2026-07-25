@@ -230,6 +230,107 @@ class BudgetTotalDerivedStatsTest(unittest.TestCase):
         self.assertIn("350", units[0]["content"])
 
 
+class OptionsComparisonTotalTest(unittest.TestCase):
+    """Alternatives are not line items: their costs must not be summed."""
+
+    def _registry(self, label_header):
+        import json
+
+        rows = [
+            {label_header: "沿用既有設備", "採購成本": "0"},
+            {label_header: "開源自組", "採購成本": "8500"},
+            {label_header: "商用套裝", "採購成本": "86000"},
+        ]
+        return [{
+            "source_id": "s1",
+            "file_name": "compare.csv",
+            "file_path": "compare.csv",
+            "file_type": "csv",
+            "parsed_content": [
+                {"block_type": "csv_row", "content": json.dumps(r, ensure_ascii=False)}
+                for r in rows
+            ],
+        }]
+
+    def test_option_table_gets_no_total(self):
+        from report_workflow.nodes.evidence_normalize import _derived_stats_units
+
+        units = _derived_stats_units(self._registry("方案"), "2026-07-26T00:00:00+00:00")
+        self.assertEqual(units, [])
+
+    def test_line_item_table_still_gets_a_total(self):
+        from report_workflow.nodes.evidence_normalize import _derived_stats_units
+
+        units = _derived_stats_units(self._registry("品項"), "2026-07-26T00:00:00+00:00")
+        self.assertEqual(len(units), 1)
+        self.assertIn("94,500", units[0]["content"])
+
+
+class UnitSignatureTest(unittest.TestCase):
+    """An unrecognized unit is still a unit."""
+
+    def test_cjk_and_unknown_units_are_distinguished(self):
+        from report_workflow.nodes.figure_utils import unit_signature
+
+        rate = unit_signature("最高取樣率(kS/s)")
+        cost = unit_signature("採購成本(元)")
+        bits = unit_signature("解析度(bit)")
+        for signature in (rate, cost, bits):
+            self.assertNotEqual(signature, "")
+        self.assertEqual(len({rate, cost, bits}), 3)
+
+    def test_column_without_parentheses_has_no_unit(self):
+        from report_workflow.nodes.figure_utils import unit_signature
+
+        self.assertEqual(unit_signature("輸入通道"), "")
+
+    def test_year_parenthetical_is_not_a_unit(self):
+        from report_workflow.nodes.figure_utils import unit_signature
+
+        self.assertEqual(unit_signature("Revenue (2026)"), "")
+
+    def test_known_units_keep_their_canonical_token(self):
+        from report_workflow.nodes.figure_utils import unit_signature
+
+        self.assertEqual(unit_signature("載重(kg)"), "kg")
+        self.assertEqual(unit_signature("不良率(%)"), "%")
+
+
+class CjkAbstractLengthTest(unittest.TestCase):
+    """Policy bounds are English word counts; CJK is counted per character."""
+
+    def test_chinese_abstract_is_measured_against_scaled_bounds(self):
+        from report_workflow.nodes.abstract_check import _word_count_check
+
+        text = "本報告說明變轉速條件下的軸承診斷方法與量化結果。" * 14
+        self.assertEqual(_word_count_check(text, "admissions_project_report"), [])
+
+    def test_chinese_abstract_can_still_be_too_short(self):
+        from report_workflow.nodes.abstract_check import _word_count_check
+
+        text = "本報告說明變轉速條件下的軸承診斷方法與量化結果。" * 5
+        errors = _word_count_check(text, "admissions_project_report")
+        self.assertTrue(errors)
+        self.assertIn("characters", errors[0])
+        self.assertIn("minimum 300", errors[0])
+
+    def test_english_bounds_are_unchanged(self):
+        from report_workflow.nodes.abstract_check import _word_count_check
+
+        errors = _word_count_check("word " * 400, "admissions_project_report")
+        self.assertTrue(errors)
+        self.assertIn("maximum 250", errors[0])
+
+
+class ReferencesHeadingLevelTest(unittest.TestCase):
+    def test_references_sits_at_the_same_level_as_its_siblings(self):
+        from report_workflow.nodes.heading_contract_check import _canonical_heading
+
+        self.assertEqual(_canonical_heading("references", "參考文獻", None), "# 參考文獻")
+        self.assertEqual(_canonical_heading("abstract", "摘要", None), "# 摘要")
+        self.assertEqual(_canonical_heading("introduction", "緒論", 1), "# 1. 緒論")
+
+
 class MarkdownTableProvenanceTest(unittest.TestCase):
     """The same table must not score lower for living inside a Markdown file."""
 

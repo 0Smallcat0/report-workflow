@@ -152,7 +152,9 @@ class SpecialHeadingLocalizationTest(unittest.TestCase):
         self.assertEqual(issues, [])
         self.assertIn("# 摘要", normalized)
         self.assertIn("# 1. 緒論", normalized)
-        self.assertIn("## 參考文獻", normalized)
+        # References is a top-level section, at the same level as its siblings.
+        self.assertIn("# 參考文獻", normalized)
+        self.assertNotIn("## 參考文獻", normalized)
         self.assertNotIn("# Abstract", normalized)
 
     def test_english_abstract_and_references_unchanged(self):
@@ -164,7 +166,8 @@ class SpecialHeadingLocalizationTest(unittest.TestCase):
         normalized, issues = normalize_heading_contract(markdown, ACADEMIC_BLUEPRINT)
         self.assertEqual(issues, [])
         self.assertIn("# Abstract", normalized)
-        self.assertIn("## References", normalized)
+        self.assertIn("# References", normalized)
+        self.assertNotIn("## References", normalized)
 
 
 class CjkWordCountTest(unittest.TestCase):

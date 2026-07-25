@@ -858,14 +858,15 @@ def _split_body_references(md_content: str, strict_refs: bool = True) -> tuple[s
     # (H1) while normalized drafts carry "## References" (H2); both must be
     # captured or an empty section rides through to the rendered document.
     body_refs_match = re.search(
-        rf"(^#{{1,6}}\s+{_REFS_HEADING_NAMES}[^\S\n]*(?:\n+|\Z))(.*?)(?=^#{{1,6}} |\Z)",
+        rf"(?P<heading>^(?P<hashes>#{{1,6}})\s+{_REFS_HEADING_NAMES}"
+        rf"[^\S\n]*(?:\n+|\Z))(?P<entries>.*?)(?=^#{{1,6}} |\Z)",
         md_content,
         re.MULTILINE | re.DOTALL,
     )
     if not body_refs_match:
         return md_content, body_refs_md
 
-    entries_block = body_refs_match.group(2)
+    entries_block = body_refs_match.group("entries")
     bullet_lines: list[str] = []
     for line in entries_block.splitlines():
         stripped = line.strip()
@@ -876,7 +877,23 @@ def _split_body_references(md_content: str, strict_refs: bool = True) -> tuple[s
         bullet_lines.append(f"- {stripped}")
     bullet_lines = _filter_body_reference_lines(bullet_lines, strict=strict_refs)
     if bullet_lines:
-        body_refs_md = "## References\n\n" + "\n\n".join(bullet_lines) + "\n"
+        # Keep the level the heading already had. Emitting a hardcoded H2
+        # pushed 參考文獻 one level below its sibling sections, so Word nested
+        # it under the last body section in the table of contents instead of
+        # listing it alongside them.
+        hashes = body_refs_match.group("hashes")
+        body_refs_md = f"{hashes} References\n\n" + "\n\n".join(bullet_lines) + "\n"
+    elif entries_block.strip():
+        # The section carried authored content, but none of it is a citation —
+        # commentary about the sources, say. Dropping it is right (References
+        # lists references), but dropping it silently meant the author only
+        # discovered the loss by reading the rendered document.
+        logger.warning(
+            "[DOCX_RENDER] References section removed: %d line(s) of authored "
+            "content held no usable citation. References carries citations "
+            "only; move source commentary into a body section.",
+            len([ln for ln in entries_block.strip().splitlines() if ln.strip()]),
+        )
     md_content = md_content[:body_refs_match.start()] + md_content[body_refs_match.end():]
     return md_content, body_refs_md
 
@@ -944,7 +961,7 @@ def _pre_render_sanity_check(
             issues.append(f"Duplicated heading ({count}x): \"{h_text}\"")
 
     # 2. Duplicated References section
-    ref_count = len(re.findall(r'^##\s+References?\s*$', md_content, re.MULTILINE))
+    ref_count = len(re.findall(r'^#{1,6}\s+References?\s*$', md_content, re.MULTILINE))
     if ref_count > 1:
         issues.append(f"Multiple References sections found ({ref_count})")
 

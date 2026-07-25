@@ -36,7 +36,13 @@ def run_section_plan_freeze(state: ReportState) -> ReportState:
     for section_id, section in sections.items():
         claim_ids = section.get("claim_ids", [])
         if not claim_ids and not revise_mode and section_requires_claims(blueprint, section_id):
-            raise QAHardBlockError(f"Outline section has no claims: {section_id}")
+            raise QAHardBlockError(
+                f"Outline section has no claims: {section_id}. Add the claim ids "
+                f"this section covers to outline.json sections.{section_id}."
+                f"claim_ids. A summary section such as an abstract lists the "
+                f"claims it summarizes even though its text carries no "
+                f"[CITE:] markers; only references and appendix may be empty."
+            )
         assigned_claim_ids.update(claim_ids)
 
     unknown = sorted(claim_id for claim_id in assigned_claim_ids if claim_id not in known_claim_ids)

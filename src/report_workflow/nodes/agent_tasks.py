@@ -696,6 +696,9 @@ in a flowing narrative.]
 Count words after removing `[CITE:]` markers.
 **No trailing ellipses (`.....`), no incomplete sentences.**
 **No `[CITE:]`, `[Source:]`, or `[graphify:]` markers in the abstract.**
+The abstract still needs `claim_ids` in `outline.json` — it declares which
+claims the abstract summarizes, and PLAN_LOCK hard-blocks an abstract with an
+empty `claim_ids` list. Only `references` and `appendix` may carry none.
 
 ## Admissions-facing academic reports
 

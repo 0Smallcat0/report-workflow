@@ -1,5 +1,51 @@
 # Changelog
 
+## 4.26.0 - 2026-07-26
+
+### Fixed — the last two untouched profiles, and a total that meant nothing
+
+`custom` and `admissions_project_report` were the only built-in profiles never
+run on a real case. Both were dogfooded in Chinese: a three-option evaluation
+of lab data-acquisition hardware, and a capstone project report written as
+graduate-application material. Six defects, one of them introduced by 4.24.0.
+
+- **A comparison of alternatives is no longer totalled.** The column-total
+  derived statistic added in 4.24.0 summed the cost column of an options
+  table and registered "採購成本 欄合計為 94,500" as high-grade citable
+  evidence — a number with no referent, because you buy one option, not all
+  three. That is exactly the confident-but-meaningless figure the gates exist
+  to keep out of a document. Tables whose columns name alternatives
+  (`方案`/`option`/`alternative`/`scenario`) now produce no total; line-item
+  tables still do.
+- **An unrecognized unit is still a unit.** `unit_signature` returned a value
+  only for a closed vocabulary, so `(kS/s)`, `(bit)` and `(元)` all came back
+  empty — indistinguishable from a column carrying no unit. A sampling rate
+  and a price therefore read as the same unit and were drawn on one shared
+  y-axis. Non-ASCII unit words are kept, and an explicit parenthetical is now
+  treated as a signature even when the vocabulary does not know it; a purely
+  numeric one (`Revenue (2026)`) still is not.
+- **A Chinese abstract is measured in characters, not English words.** The
+  policy bounds are English word counts and `count_words` counts each CJK
+  character as one unit, so every Chinese abstract was held to roughly half
+  its intended length — a 269-字 abstract rejected against a 250-word maximum.
+  The conventional pairing is a 250-word English abstract beside a 500-字
+  Chinese one, so CJK abstracts scale by two.
+- **References sits at the same level as its siblings.** The heading contract
+  emitted References at H2 while every other section was H1, so Word nested
+  參考文獻 under the last body section in the table of contents instead of
+  listing it as a section.
+- **An authored References section is no longer dropped in silence.** Prose
+  about the sources is correctly removed — References carries citations — but
+  the author previously discovered the loss only by reading the rendered file.
+  It now warns and says where the commentary belongs.
+- **The abstract's claim requirement is documented.** PLAN_LOCK hard-blocks an
+  abstract with no `claim_ids`, while the brief tells the author to put no
+  `[CITE:]` markers in the abstract; nothing said the outline entry still
+  needs the claim ids it summarizes. The brief now says so and the block
+  message explains the fix.
+
+496 tests and both benchmark --checks pass.
+
 ## 4.25.0 - 2026-07-25
 
 ### Fixed — a monthly trend reads as a trend, and 表 1 is reachable

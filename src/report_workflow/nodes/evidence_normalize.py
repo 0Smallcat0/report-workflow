@@ -283,6 +283,16 @@ _AMOUNT_COL_RE = re.compile(
 )
 
 
+#: Column headers that mark rows as mutually exclusive alternatives rather
+#: than line items. Totalling a comparison of options produces a number with
+#: no referent — you buy one of them, not all three — and registering that as
+#: high-grade citable evidence is exactly the confident-but-meaningless figure
+#: the gates exist to keep out of a document.
+_OPTION_TABLE_COL_RE = re.compile(
+    r"方案|選項|備選|option|alternative|scenario", re.IGNORECASE
+)
+
+
 def _format_amount(value: float) -> str:
     """Thousands-separated, and only as precise as the data actually is."""
     if abs(value - round(value)) < 1e-9:
@@ -437,18 +447,20 @@ def _derived_stats_units(source_registry: list, created_at: str) -> list[dict]:
         # total is the one number on the page that no row states. Without it
         # the author either omits the figure the reader came for or writes an
         # arithmetic result the factuality gates correctly refuse to publish.
+        compares_alternatives = any(_OPTION_TABLE_COL_RE.search(c) for c in columns)
         amount_cols = [
             c
             for c in columns
             if c in numeric
             and c not in (measured_col, theoretical_col, error_col)
             and _AMOUNT_COL_RE.search(c)
+            and not compares_alternatives
         ]
         total_col = next(
             (c for c in amount_cols if _is_product_column(numeric, c)),
             amount_cols[-1] if amount_cols else None,
         )
-        if total_col is None and len(numeric) >= 3:
+        if total_col is None and len(numeric) >= 3 and not compares_alternatives:
             total_col = next(
                 (
                     c

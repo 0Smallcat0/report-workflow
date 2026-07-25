@@ -68,7 +68,9 @@ def unit_signature(text: Any) -> str:
     elif "%" in normalized:
         return "%"
     normalized = normalized.replace("\u00b0", "deg")
-    normalized = re.sub(r"[^a-z0-9%/]+", " ", normalized).strip()
+    # CJK unit words are units too: stripping every non-ASCII character made
+    # "\u63a1\u8cfc\u6210\u672c(\u5143)" indistinguishable from a column carrying no unit at all.
+    normalized = re.sub(r"[^a-z0-9%/\u4e00-\u9fff]+", " ", normalized).strip()
     if not normalized:
         return ""
     aliases = {
@@ -101,4 +103,12 @@ def unit_signature(text: Any) -> str:
             continue
         if token in UNIT_TERMS:
             return token
+    # A unit the vocabulary does not know is still a unit. "(kS/s)", "(bit)"
+    # and "(元)" all fell through to "" — indistinguishable from a column with
+    # no unit — so a sampling rate and a price read as the same unit and were
+    # drawn on one shared y-axis. Comparing signatures only needs them to
+    # differ, not to be recognized. Purely numeric parentheticals are skipped
+    # so a "Revenue (2026)" style column is not mistaken for a unit.
+    if explicit_parenthetical and tokens and not normalized.isdigit():
+        return normalized
     return ""
