@@ -169,6 +169,59 @@ class DerivedStatsEvidenceTest(unittest.TestCase):
         self.assertEqual(units, [])
 
 
+class DuplicateCitationCollapseTest(unittest.TestCase):
+    def test_repeated_numeric_marker_collapses(self):
+        from report_workflow.nodes.citation_bind import (
+            _collapse_adjacent_duplicate_citations,
+        )
+
+        text = "At 10 N and 15 N the deflections were 3.01 mm and 4.48 mm. [1] [1]"
+        self.assertEqual(
+            _collapse_adjacent_duplicate_citations(text),
+            "At 10 N and 15 N the deflections were 3.01 mm and 4.48 mm. [1]",
+        )
+
+    def test_three_in_a_row_collapse(self):
+        from report_workflow.nodes.citation_bind import (
+            _collapse_adjacent_duplicate_citations,
+        )
+
+        self.assertEqual(
+            _collapse_adjacent_duplicate_citations("Summary. [2] [2] [2]"),
+            "Summary. [2]",
+        )
+
+    def test_distinct_citations_are_kept(self):
+        from report_workflow.nodes.citation_bind import (
+            _collapse_adjacent_duplicate_citations,
+        )
+
+        text = "Both sources agree. [1] [2]"
+        self.assertEqual(_collapse_adjacent_duplicate_citations(text), text)
+
+    def test_author_year_and_source_markers(self):
+        from report_workflow.nodes.citation_bind import (
+            _collapse_adjacent_duplicate_citations,
+        )
+
+        self.assertEqual(
+            _collapse_adjacent_duplicate_citations("Claim. (Tsai, 2026) (Tsai, 2026)"),
+            "Claim. (Tsai, 2026)",
+        )
+        self.assertEqual(
+            _collapse_adjacent_duplicate_citations("Note. [Source: a.py] [Source: a.py]"),
+            "Note. [Source: a.py]",
+        )
+
+    def test_markdown_links_untouched(self):
+        from report_workflow.nodes.citation_bind import (
+            _collapse_adjacent_duplicate_citations,
+        )
+
+        text = "See [the guide](https://example.com/2026) [the guide](https://example.com/2026)"
+        self.assertEqual(_collapse_adjacent_duplicate_citations(text), text)
+
+
 class ReaderRubricTest(unittest.TestCase):
     PROFILES = [
         "engineering_lab_report",
