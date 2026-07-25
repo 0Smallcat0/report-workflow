@@ -381,11 +381,18 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
     role_counts: dict[str, int] = {}
     for column in columns:
         role_counts[column["role"]] = role_counts.get(column["role"], 0) + 1
-    measure_units = sorted({
+    # A column carrying no unit is not the same unit as one that does. A
+    # monthly table of 投產數 / 不良數 / 不良率(%) reported a single signature
+    # ("%") and so read as unmixed, putting counts in the thousands and a
+    # percentage near 2 on one shared y-axis — the defect-rate line, the
+    # entire point of the report, drew flat against the axis.
+    measure_signatures = [
         str(column.get("unit_signature") or "")
         for column in columns
-        if column.get("role") == "numeric_measure" and column.get("unit_signature")
-    })
+        if column.get("role") == "numeric_measure"
+    ]
+    measure_units = sorted({unit for unit in measure_signatures if unit})
+    mixed_measure_units = len(set(measure_signatures)) > 1
     negative_numeric_value_count = sum(int(column.get("negative_value_count", 0) or 0) for column in columns)
 
     return {
@@ -401,7 +408,7 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
             "composition_total": composition_total,
             "parameter_table": _is_parameter_table(headers, content),
             "measure_unit_signatures": measure_units,
-            "mixed_measure_units": len(measure_units) > 1,
+            "mixed_measure_units": mixed_measure_units,
             "negative_numeric_value_count": negative_numeric_value_count,
         },
         "columns": columns,
@@ -777,7 +784,16 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
             selection_warnings=warnings,
         )
 
-    if summary.get("mixed_measure_units"):
+    # Mixed units are a problem for charts that share one y-axis, which is
+    # what this guard is for. A scatter of two measures puts each on its own
+    # axis — mixed units are the normal case there, not a defect.
+    scatter_shape = (
+        not time_indices
+        and not categorical_indices
+        and len(measure_indices) >= 2
+        and len(rows) - 1 >= 3
+    )
+    if summary.get("mixed_measure_units") and not scatter_shape:
         reason = (
             "Numeric measure columns use mixed units; keep them as a table or split them into separate charts "
             "instead of sharing one y-axis."
@@ -872,8 +888,18 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
         and len(measure_indices) <= MAX_STACKED_BAR_SERIES
         and _all_values_non_negative(rows, measure_indices)
         and (
-            _contains_terms(headers, table.get("content", ""), STACKED_BAR_TERMS)
-            or _row_totals_are_composition_like(rows, measure_indices)
+            # Rows that really do sum to a whole are composition anywhere.
+            _row_totals_are_composition_like(rows, measure_indices)
+            # The keyword test is a guess, and it loses to ordered time data:
+            # a monthly defect table carrying one "%" column and a category
+            # column matched on the "%" alone and stacked counts on top of a
+            # percentage, when the trend over months is the whole point. The
+            # stacked-bar branch precedes the time-series branch, so without
+            # this the line chart was unreachable.
+            or (
+                _contains_terms(headers, table.get("content", ""), STACKED_BAR_TERMS)
+                and not time_indices
+            )
         )
     ):
         cat_index = _distinct_label_index(rows, categorical_indices)
