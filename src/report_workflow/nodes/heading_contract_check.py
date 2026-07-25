@@ -67,10 +67,11 @@ def _canonical_heading(section_id: str, title: str, ordinal: int | None) -> str:
     # Abstract/References stay unnumbered but follow the document language:
     # the caller passes the localized blueprint title ("Abstract"/"摘要"),
     # so English documents render byte-identically.
-    if section_id == "abstract":
+    if section_id in {"abstract", "references"}:
+        # Both are top-level sections. Emitting References at H2 while every
+        # sibling sat at H1 made Word nest 參考文獻 under the last body section
+        # in the table of contents instead of listing it as a section.
         return f"# {title}"
-    if section_id == "references":
-        return f"## {title}"
     if ordinal is None:
         return f"# {title}"
     return f"# {ordinal}. {title}"

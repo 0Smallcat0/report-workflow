@@ -30,7 +30,7 @@ from pathlib import Path
 
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
-from ..language import count_words
+from ..language import count_words, detect_document_language
 from ..runtime_support import PLACEHOLDER_TEXT
 from ..policies import get_policy
 
@@ -148,20 +148,30 @@ def _sanity_checks(text: str) -> list[str]:
     return errors
 
 
+#: count_words counts each CJK character as one unit, but the policy bounds are
+#: English word counts, and an English word carries roughly two Chinese
+#: characters of content — the conventional pairing is a 250-word English
+#: abstract beside a 500-字 Chinese one. Comparing the two directly held every
+#: Chinese abstract to about half its intended length.
+CJK_ABSTRACT_SCALE = 2
+
+
 def _word_count_check(text: str, family: str) -> list[str]:
     """Check word count is in range per policy."""
     errors = []
     words = _count_words(text)
     policy = get_policy(family)
-    if words < policy.abstract.word_count_min:
+    scale = CJK_ABSTRACT_SCALE if detect_document_language(text) == "zh" else 1
+    minimum = policy.abstract.word_count_min * scale
+    maximum = policy.abstract.word_count_max * scale
+    unit = "characters" if scale > 1 else "words"
+    if words < minimum:
         errors.append(
-            f"Abstract too short: {words} words "
-            f"(minimum {policy.abstract.word_count_min} for {family})"
+            f"Abstract too short: {words} {unit} (minimum {minimum} for {family})"
         )
-    elif words > policy.abstract.word_count_max:
+    elif words > maximum:
         errors.append(
-            f"Abstract too long: {words} words "
-            f"(maximum {policy.abstract.word_count_max} for {family})"
+            f"Abstract too long: {words} {unit} (maximum {maximum} for {family})"
         )
     return errors
 
