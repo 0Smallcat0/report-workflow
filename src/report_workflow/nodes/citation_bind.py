@@ -192,6 +192,39 @@ def _format_apa_author_year(file_name: str, file_type: str = "unknown") -> str:
     return f"{author} (n.d.)"
 
 
+#: file_type -> (bracketed label for its reference entry, is it a local file
+#: artifact rather than a publication).
+#:
+#: One table, because three separate facts derive from it: the label an entry
+#: carries, the file types whose in-text citations must be suppressed, and the
+#: labels reference_verify curates out of the publication list. They used to be
+#: three hand-copied lists, and the copies drifted — the curation filter knew
+#: four labels while the publication-candidate test knew one, so a .csv source
+#: was carried into the bibliography and then hard-failed REFERENCE_QA as "not
+#: a publication", making any run with a dataset source unpublishable.
+_REFERENCE_LABELS: dict[str, tuple[str, bool]] = {
+    "pdf": ("PDF document", False),
+    "docx": ("Word document", True),
+    "txt": ("Text file", True),
+    "md": ("Text file", True),
+    "csv": ("Dataset", True),
+    "json": ("Data file", True),
+    "unknown": ("Project file", True),
+}
+
+#: File types whose reference entry publication curation removes. Their in-text
+#: citations are suppressed too: a citation must point at something the
+#: reference list actually carries.
+LOCAL_ARTIFACT_FILE_TYPES = frozenset(
+    file_type for file_type, (_, is_local) in _REFERENCE_LABELS.items() if is_local
+)
+
+#: The bracketed labels those entries carry. reference_verify curates on these.
+LOCAL_ARTIFACT_LABELS = tuple(
+    sorted({label for label, is_local in _REFERENCE_LABELS.values() if is_local})
+)
+
+
 def _format_apa_reference_entry(file_name: str, file_type: str, source_id: str) -> str:
     """Format a full APA reference entry for a research document."""
     author = _format_apa_author_year(file_name, file_type).split(" (")[0]
@@ -206,17 +239,10 @@ def _format_apa_reference_entry(file_name: str, file_type: str, source_id: str) 
     #    labels to keep internal file citations out of the published
     #    bibliography. "md" was missing from this map and fell through to an
     #    unlabeled format that slipped past the filter.
-    type_formats = {
-        "pdf": f"{author}. (n.d.). *{Path(file_name).stem}* [PDF document].",
-        "docx": f"{author}. (n.d.). *{Path(file_name).stem}* [Word document].",
-        "txt": f"{author}. (n.d.). *{Path(file_name).stem}* [Text file].",
-        "md": f"{author}. (n.d.). *{Path(file_name).stem}* [Text file].",
-        "csv": f"{author}. (n.d.). *{Path(file_name).stem}* [Dataset].",
-        "json": f"{author}. (n.d.). *{Path(file_name).stem}* [Data file].",
-        "unknown": f"{author}. (n.d.). *{Path(file_name).stem}* [Project file].",
-    }
-
-    fmt = type_formats.get(file_type.lower(), type_formats["unknown"])
+    label, _ = _REFERENCE_LABELS.get(
+        file_type.lower(), _REFERENCE_LABELS["unknown"]
+    )
+    fmt = f"{author}. (n.d.). *{Path(file_name).stem}* [{label}]."
 
     # If we have a real source_id that looks like a DOI or URL, use it
     if source_id.startswith("doi:") or source_id.startswith("http"):
@@ -252,13 +278,6 @@ def _collapse_adjacent_duplicate_citations(text: str) -> str:
     return text
 
 
-#: File types whose APA reference entry carries a local-artifact label
-#: ([Text file], [Word document], [Dataset], [Data file]) and is therefore
-#: removed by publication reference curation. Keep in step with the
-#: type_formats table above and with reference_verify's curation rules.
-_LOCAL_ARTIFACT_FILE_TYPES = {"txt", "md", "csv", "json", "docx"}
-
-
 def _format_in_text_citation(evidence: dict) -> str:
     """Format an in-text citation based on source_role.
 
@@ -286,7 +305,7 @@ def _format_in_text_citation(evidence: dict) -> str:
         return f"[Source: Summary - {file_name}]"
     elif source_role == "internal_project_source":
         return ""
-    elif file_type.lower() in _LOCAL_ARTIFACT_FILE_TYPES:
+    elif file_type.lower() in LOCAL_ARTIFACT_FILE_TYPES:
         # A citation must point at something. The reference entry for these
         # file types carries a local-artifact label, and publication
         # reference curation removes exactly those entries — so an author-year
