@@ -1,5 +1,30 @@
 # Changelog
 
+## 4.22.1 - 2026-07-25
+
+### Fixed — doubled citation markers, found by writing to the new guidance
+
+The 4.21/4.22 quality guidance had only been verified as far as "the text
+appears in the brief". Closing that loop — authoring the beam lab report
+*following* the reader rubric and the structure discipline, then rendering
+it — surfaced a defect the old list-style prose never triggered.
+
+A sentence citing two evidence rows from the same source carries two
+separate `[CITE:...]` markers. Each resolves independently, so the
+document rendered "[1] [1]". The existing deduplication only covered ids
+inside a single marker, which is why the duplicate survived. Adjacent
+identical citations — numeric, author-year, or `[Source: ...]` — now
+collapse to one marker.
+
+The loop itself closed cleanly otherwise: 24 synthesis sentences (topic
+and concluding sentences carrying no citation of their own) passed the
+gates untouched, so the evidence contract does not stand in the way of
+paragraphs built Context → Content → Conclusion. The discussion now runs
+result → quantitative comparison → mechanism → verdict, citing the
+derived slope, R², and error statistics from 4.21.0.
+
+456 tests and both benchmark --checks pass.
+
 ## 4.22.0 - 2026-07-22
 
 ### Added — structure discipline from published writing standards

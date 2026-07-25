@@ -226,6 +226,28 @@ def _format_apa_reference_entry(file_name: str, file_type: str, source_id: str) 
     return fmt
 
 
+# One citation shape: numeric [3], author-year (Tsai, 2026), or an internal
+# [Source: file] marker.
+_CITATION_TOKEN = r"(?:\[\d+\]|\([^()]*\b\d{4}[a-z]?\)|\[Source:[^\]]*\])"
+_ADJACENT_DUPLICATE_CITATION_RE = re.compile(rf"({_CITATION_TOKEN})(?:\s*\1)+")
+
+
+def _collapse_adjacent_duplicate_citations(text: str) -> str:
+    """Collapse repeated adjacent identical citations to a single marker.
+
+    A sentence that cites two evidence rows from the same source carries two
+    separate ``[CITE:...]`` markers, which resolve independently and used to
+    render as "[1] [1]". Deduplication inside one marker cannot catch that,
+    because the duplicates come from different markers; the reader just sees
+    a doubled citation.
+    """
+    previous = None
+    while previous != text:
+        previous = text
+        text = _ADJACENT_DUPLICATE_CITATION_RE.sub(r"\1", text)
+    return text
+
+
 def _format_in_text_citation(evidence: dict) -> str:
     """Format an in-text citation based on source_role.
 
@@ -648,6 +670,7 @@ def resolve_citations_publication(
         if entry.get("cite_id") not in existing_resolved:
             new_audit.append(entry)
 
+    resolved_md = _collapse_adjacent_duplicate_citations(resolved_md)
     resolved_md = re.sub(r"[ \t]{2,}", " ", resolved_md)
     resolved_md = re.sub(r" +([,.;:])", r"\1", resolved_md)
     return resolved_md, new_audit, literature_refs, internal_trace_refs
