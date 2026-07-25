@@ -169,6 +169,242 @@ class DerivedStatsEvidenceTest(unittest.TestCase):
         self.assertEqual(units, [])
 
 
+class BudgetTotalDerivedStatsTest(unittest.TestCase):
+    """A budget is read for its total, and no row states it."""
+
+    def _quote_registry(self):
+        import json
+
+        rows = [
+            {"品項": "加速規", "單價": "6800", "數量": "2", "小計": "13600"},
+            {"品項": "訊號線", "單價": "450", "數量": "2", "小計": "900"},
+            {"品項": "耗材", "單價": "300", "數量": "1", "小計": "300"},
+        ]
+        return [{
+            "source_id": "s1",
+            "file_name": "quote.csv",
+            "file_path": "quote.csv",
+            "file_type": "csv",
+            "parsed_content": [
+                {"block_type": "csv_row", "content": json.dumps(r, ensure_ascii=False)}
+                for r in rows
+            ],
+        }]
+
+    def test_amount_column_total_is_citable(self):
+        from report_workflow.nodes.evidence_normalize import _derived_stats_units
+
+        units = _derived_stats_units(self._quote_registry(), "2026-07-25T00:00:00+00:00")
+        self.assertEqual(len(units), 1)
+        total = units[0]
+        self.assertEqual(total["derivation"]["method"], "column_total")
+        self.assertEqual(total["derivation"]["input_columns"], ["小計"])
+        self.assertEqual(total["evidence_grade"], "high")
+        self.assertIn("14,800", total["content"])
+        self.assertIn("13,600", total["content"])
+
+    def test_product_column_is_recognized(self):
+        from report_workflow.nodes.evidence_normalize import _is_product_column
+
+        numeric = {"unit price": [10.0, 4.0], "qty": [3.0, 5.0], "cost": [30.0, 20.0]}
+        self.assertTrue(_is_product_column(numeric, "cost"))
+        self.assertFalse(_is_product_column(numeric, "qty"))
+
+    def test_two_row_table_still_gets_a_total(self):
+        import json
+
+        from report_workflow.nodes.evidence_normalize import _derived_stats_units
+
+        rows = [{"item": "a", "total": "100"}, {"item": "b", "total": "250"}]
+        registry = [{
+            "source_id": "s1",
+            "file_name": "small.csv",
+            "file_path": "small.csv",
+            "file_type": "csv",
+            "parsed_content": [
+                {"block_type": "csv_row", "content": json.dumps(r)} for r in rows
+            ],
+        }]
+        units = _derived_stats_units(registry, "2026-07-25T00:00:00+00:00")
+        self.assertEqual(len(units), 1)
+        self.assertIn("350", units[0]["content"])
+
+
+class MarkdownTableProvenanceTest(unittest.TestCase):
+    """The same table must not score lower for living inside a Markdown file."""
+
+    TABLE = (
+        "| 項目 | 權重 | | --- | --- | | 計畫書與期中審查 | 30% | "
+        "| 實作完成度與數據品質 | 40% | | 期末書面報告 | 20% |"
+    )
+
+    def test_markdown_table_scores_like_a_structured_row(self):
+        from report_workflow.nodes.evidence_normalize import compute_provenance_score
+
+        score = compute_provenance_score(
+            {"file_type": "md"}, {"block_type": "paragraph", "content": self.TABLE}
+        )
+        self.assertAlmostEqual(score, 0.75, places=6)
+
+    def test_plain_prose_is_not_promoted(self):
+        from report_workflow.nodes.evidence_normalize import compute_provenance_score
+
+        score = compute_provenance_score(
+            {"file_type": "md"},
+            {"block_type": "paragraph", "content": "本組於 2026 年量測 3 次，結果一致。"},
+        )
+        self.assertAlmostEqual(score, 0.5, places=6)
+
+
+class ProposalFigureSectionTest(unittest.TestCase):
+    """`proposal` has no results-like section; a figure must not target one."""
+
+    def test_falls_back_to_a_section_the_blueprint_defines(self):
+        from report_workflow.nodes.figure_recommend import _section_for_recommendation
+
+        class _State:
+            plan = {
+                "blueprint": {
+                    "sections": {
+                        "executive_summary": {"section_type": "exec_summary"},
+                        "problem_statement": {"section_type": "problem"},
+                        "budget_resources": {"section_type": "budget"},
+                    }
+                }
+            }
+
+        self.assertEqual(_section_for_recommendation(_State()), "budget_resources")
+
+    def test_results_still_wins_when_present(self):
+        from report_workflow.nodes.figure_recommend import _section_for_recommendation
+
+        class _State:
+            plan = {"blueprint": {"sections": {"results": {"section_type": "results"}}}}
+
+        self.assertEqual(_section_for_recommendation(_State()), "results")
+
+
+class BarLabelColumnTest(unittest.TestCase):
+    def test_label_column_prefers_distinct_values(self):
+        from report_workflow.nodes.figure_recommend import _distinct_label_index
+
+        rows = [
+            ["品項", "規格", "小計"],
+            ["測試軸承", "健康件", "720"],
+            ["測試軸承", "外環缺陷", "1560"],
+            ["測試軸承", "內環缺陷", "1560"],
+            ["耗材", "黏著劑", "300"],
+        ]
+        self.assertEqual(_distinct_label_index(rows, [0, 1]), 1)
+
+    def test_single_categorical_column_is_kept(self):
+        from report_workflow.nodes.figure_recommend import _distinct_label_index
+
+        rows = [["name", "value"], ["a", "1"], ["b", "2"]]
+        self.assertEqual(_distinct_label_index(rows, [0]), 0)
+
+
+class LocalArtifactReferenceTest(unittest.TestCase):
+    """Every local-file label the citation formatter emits must be excluded."""
+
+    LABELS = ("[Text file]", "[Word document]", "[Dataset]", "[Data file]")
+
+    def test_no_local_artifact_reaches_the_publication_list(self):
+        from report_workflow.nodes.reference_verify import (
+            _check_reference_curation,
+            _is_publication_reference_candidate,
+        )
+
+        for label in self.LABELS:
+            ref = f"measurements. (n.d.). *measurements* {label}."
+            with self.subTest(label=label):
+                self.assertFalse(_is_publication_reference_candidate(ref))
+                self.assertFalse(_check_reference_curation(ref)[0])
+
+    def test_real_publication_is_still_kept(self):
+        from report_workflow.nodes.reference_verify import (
+            _is_publication_reference_candidate,
+        )
+
+        self.assertTrue(_is_publication_reference_candidate(
+            "Kording, K. (2017). Ten simple rules. *PLOS Comput Biol*, 13(9), "
+            "e1005619. doi: 10.1371/journal.pcbi.1005619"
+        ))
+
+
+class LocalArtifactCitationTest(unittest.TestCase):
+    """A citation must point at something that appears in the reference list."""
+
+    def test_local_file_sources_emit_no_in_text_citation(self):
+        from report_workflow.nodes.citation_bind import _format_in_text_citation
+
+        for file_type in ("csv", "json", "docx", "md", "txt"):
+            with self.subTest(file_type=file_type):
+                self.assertEqual(
+                    _format_in_text_citation({
+                        "source_role": "primary_source",
+                        "source_file_name": f"quote.{file_type}",
+                        "file_type": file_type,
+                    }),
+                    "",
+                )
+
+    def test_pdf_source_still_cites(self):
+        from report_workflow.nodes.citation_bind import _format_in_text_citation
+
+        citation = _format_in_text_citation({
+            "source_role": "research_document",
+            "source_file_name": "kording2017.pdf",
+            "file_type": "pdf",
+        })
+        self.assertTrue(citation.startswith("("))
+
+    def test_undated_duplicate_citations_collapse(self):
+        from report_workflow.nodes.citation_bind import (
+            _collapse_adjacent_duplicate_citations,
+        )
+
+        text = "兩者皆為優先補助項目(估價單 (n.d.))(估價單 (n.d.))(估價單 (n.d.))。"
+        self.assertEqual(
+            _collapse_adjacent_duplicate_citations(text),
+            "兩者皆為優先補助項目(估價單 (n.d.))。",
+        )
+
+
+class FactualityBlockMessageTest(unittest.TestCase):
+    def test_sentence_level_block_names_the_sentence_and_the_right_artifact(self):
+        from report_workflow.nodes.qa_gate import format_blocked_factuality_hint
+
+        hint = format_blocked_factuality_hint(
+            {
+                "claims": [
+                    {"claim_id": "c1", "status": "verified"},
+                    {
+                        "sentence_id": "sent_21",
+                        "status": "blocked",
+                        "checker": "FD",
+                        "reason": "Wording strength 'measured' is not allowed",
+                    },
+                ]
+            },
+            1,
+        )
+        self.assertIn("sent_21", hint)
+        self.assertIn("FD", hint)
+        self.assertIn("Wording strength", hint)
+        self.assertIn("sentence_map.jsonl", hint)
+        self.assertNotIn("(?)", hint)
+
+    def test_claim_level_block_still_names_the_claim(self):
+        from report_workflow.nodes.qa_gate import format_blocked_factuality_hint
+
+        hint = format_blocked_factuality_hint(
+            {"claims": [{"claim_id": "c7", "status": "blocked", "checker": "FA"}]}, 1
+        )
+        self.assertIn("c7", hint)
+        self.assertIn("claim_matrix.json", hint)
+
+
 class CjkTypographyTest(unittest.TestCase):
     def test_chinese_sentence_lines_join_without_space(self):
         from report_workflow.nodes.docx_render import _normalize_cjk_typography

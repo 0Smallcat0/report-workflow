@@ -195,6 +195,22 @@ def _column_values(rows: list[list[str]], index: int) -> list[str]:
     return [row[index] for row in rows[1:] if index < len(row)]
 
 
+def _distinct_label_index(rows: list[list[str]], categorical_indices: list[int]) -> int:
+    """Pick the categorical column that actually names each bar.
+
+    A bar chart reads its label column as an identity. A quote sheet whose
+    first categorical column repeats — three rows all named 測試軸承 — draws
+    bars the reader cannot tell apart, while a later column names every row.
+    """
+    best = categorical_indices[0]
+    best_distinct = len(_unique_non_empty(_column_values(rows, best)))
+    for index in categorical_indices[1:]:
+        distinct = len(_unique_non_empty(_column_values(rows, index)))
+        if distinct > best_distinct:
+            best, best_distinct = index, distinct
+    return best
+
+
 def _numeric_values(values: list[str]) -> list[float]:
     return [number for value in values if (number := _to_float(value)) is not None]
 
@@ -421,15 +437,32 @@ def _selection_warnings(profile: dict) -> list[str]:
     return warnings
 
 
+#: Section types that can carry a data figure, best first. `proposal` has no
+#: results-like section at all, so a data table belongs in its budget or
+#: deliverables section rather than in a section the blueprint never defines.
+_FIGURE_SECTION_TYPES = (
+    "results",
+    "data",
+    "findings",
+    "budget",
+    "deliverables",
+    "approach",
+    "evaluation",
+    "discussion",
+)
+
+
 def _section_for_recommendation(state: ReportState) -> str:
     outline_sections = (state.plan.get("outline") or {}).get("sections") or {}
-    for section_id in ("results", "data", "results_discussion", "findings"):
-        if section_id in outline_sections:
-            return section_id
-    blueprint = state.plan.get("blueprint") or {}
-    for section_id in ("results", "data", "results_discussion", "findings"):
-        if section_id in blueprint.get("sections", {}):
-            return section_id
+    blueprint_sections = (state.plan.get("blueprint") or {}).get("sections") or {}
+    for pool in (outline_sections, blueprint_sections):
+        for section_id in ("results", "data", "results_discussion", "findings"):
+            if section_id in pool:
+                return section_id
+    for section_type in _FIGURE_SECTION_TYPES:
+        for section_id, section in blueprint_sections.items():
+            if isinstance(section, dict) and section.get("section_type") == section_type:
+                return section_id
     return "results"
 
 
@@ -843,7 +876,7 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
             or _row_totals_are_composition_like(rows, measure_indices)
         )
     ):
-        cat_index = categorical_indices[0]
+        cat_index = _distinct_label_index(rows, categorical_indices)
         reason = (
             "Categorical rows with multiple non-negative part or composition series should be shown as a stacked bar."
         )
@@ -987,7 +1020,7 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
         )
 
     if categorical_indices and (measure_indices or composition_indices):
-        cat_index = categorical_indices[0]
+        cat_index = _distinct_label_index(rows, categorical_indices)
         y_indices = (measure_indices or composition_indices)[:3]
         reason = "Categorical labels with numeric values should be compared with a bar chart."
         chart_candidates.append(_chart_candidate("bar", 0.88, "high", reason))

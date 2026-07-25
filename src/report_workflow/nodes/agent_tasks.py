@@ -515,7 +515,8 @@ For `new_draft`, the editable artifacts are `claim_matrix.json`, `outline.json`,
 - For internal project documents, use `factual`, `methodological`, or `qualitative`
   claims unless the evidence explicitly allows `statistical`.
 - Mark medium-grade or qualitative source wording as hedged in `sentence_map.jsonl`;
-  reserve `measured` wording for high-grade or quantitative evidence.
+  reserve `measured` wording for high-grade evidence (FD blocks it on
+  medium-grade evidence even when that evidence is quantitative).
 - **Academic reports**: Every claim MUST have a `claim_role` field with value `primary`, `supporting`, or `background`.
   - `primary`: Core contribution claims (max 3). Must directly support the thesis/contribution.
   - `supporting`: Evidence that backs a primary claim.
@@ -647,7 +648,8 @@ Do not edit `merged_draft.md` directly. For `new_draft`, fix section files under
 - Every evidence-backed sentence must include `[CITE:<evidence_id>]` in the Markdown.
 - Do not invent claims not present in `claim_matrix.json`.
 - Do not write placeholder text such as "This section is under development".
-- Use `wording_strength="hedged"` unless the linked evidence is high-grade or quantitative.
+- Use `wording_strength="hedged"` unless the linked evidence is high-grade.
+  FD hard-blocks `measured` on medium-grade evidence, quantitative or not.
 - Write one Markdown file for each required blueprint section, plus any optional section included in `outline.json`.
 - **Publication text forbidden patterns** (hard blocks in the pipeline):
   - `[Source:]`, `[graphify:]`, `[Note:]`, or any internal workflow marker.

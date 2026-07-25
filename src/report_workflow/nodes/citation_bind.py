@@ -226,9 +226,13 @@ def _format_apa_reference_entry(file_name: str, file_type: str, source_id: str) 
     return fmt
 
 
-# One citation shape: numeric [3], author-year (Tsai, 2026), or an internal
-# [Source: file] marker.
-_CITATION_TOKEN = r"(?:\[\d+\]|\([^()]*\b\d{4}[a-z]?\)|\[Source:[^\]]*\])"
+# One citation shape: numeric [3], author-year (Tsai, 2026), undated
+# ((手冊 (n.d.))), or an internal [Source: file] marker. The undated shape
+# nests parentheses and carries no four-digit year, so the author-year
+# alternative cannot match it — repeats of an undated source rendered doubled.
+_CITATION_TOKEN = (
+    r"(?:\[\d+\]|\([^()]*\(n\.d\.\)\)|\([^()]*\b\d{4}[a-z]?\)|\[Source:[^\]]*\])"
+)
 _ADJACENT_DUPLICATE_CITATION_RE = re.compile(rf"({_CITATION_TOKEN})(?:\s*\1)+")
 
 
@@ -246,6 +250,13 @@ def _collapse_adjacent_duplicate_citations(text: str) -> str:
         previous = text
         text = _ADJACENT_DUPLICATE_CITATION_RE.sub(r"\1", text)
     return text
+
+
+#: File types whose APA reference entry carries a local-artifact label
+#: ([Text file], [Word document], [Dataset], [Data file]) and is therefore
+#: removed by publication reference curation. Keep in step with the
+#: type_formats table above and with reference_verify's curation rules.
+_LOCAL_ARTIFACT_FILE_TYPES = {"txt", "md", "csv", "json", "docx"}
 
 
 def _format_in_text_citation(evidence: dict) -> str:
@@ -274,6 +285,14 @@ def _format_in_text_citation(evidence: dict) -> str:
     elif source_role == "derived_summary":
         return f"[Source: Summary - {file_name}]"
     elif source_role == "internal_project_source":
+        return ""
+    elif file_type.lower() in _LOCAL_ARTIFACT_FILE_TYPES:
+        # A citation must point at something. The reference entry for these
+        # file types carries a local-artifact label, and publication
+        # reference curation removes exactly those entries — so an author-year
+        # citation here would send the reader to a bibliography that never
+        # lists it. A quote sheet cited three times rendered three dangling
+        # markers over an empty reference list.
         return ""
     elif source_role in ("research_document", "primary_source"):
         # APA author-year format

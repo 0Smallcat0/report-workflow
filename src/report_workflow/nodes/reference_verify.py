@@ -124,6 +124,19 @@ def _check_author_plausibility(author_str: str) -> tuple[bool, str]:
     return True, ""
 
 
+#: Bracketed labels citation_bind attaches to a local source file
+#: ([Text file], [Word document], [Dataset], [Data file]). Both the curation
+#: check and the publication-candidate test must recognize all of them: when
+#: the candidate test knew only [Text file], a .csv/.json/.docx source was
+#: carried into the publication reference list and then failed curation as
+#: "not a publication" — an unpublishable run caused by a source file that
+#: was never a citation in the first place.
+_LOCAL_ARTIFACT_LABEL_RE = re.compile(
+    r"\[text file\]|\[word document\]|\[dataset\]|\[data file\]",
+    re.IGNORECASE,
+)
+
+
 def _check_reference_curation(raw_ref: str) -> tuple[bool, str]:
     """Reject obviously internal, filename-derived, or placeholder references."""
     text = raw_ref.strip()
@@ -132,7 +145,7 @@ def _check_reference_curation(raw_ref: str) -> tuple[bool, str]:
     blocked_patterns = [
         (r"\bsource\s*&\s*corpus\b", "reference is derived from internal source_corpus placeholder"),
         (r"\bsource_corpus\b", "reference cites internal source_corpus artifact"),
-        (r"\[text file\]|\[word document\]|\[data file\]|\[dataset\]", "reference is a local file artifact, not a publication"),
+        (_LOCAL_ARTIFACT_LABEL_RE.pattern, "reference is a local file artifact, not a publication"),
         (r"\bgraph_report\b|\bgraphify\b", "reference cites internal graphify artifact"),
         (r"\bmain_report\b", "reference cites internal workflow artifact"),
         (r"https?://www\.backtrader\.com/?", "reference is a product website rather than a scholarly source"),
@@ -154,7 +167,9 @@ def _is_publication_reference_candidate(raw_ref: str) -> bool:
     if not text:
         return False
     lowered = text.lower()
-    if any(token in lowered for token in ("source_corpus", "source & corpus", "[text file]", "graphify", "graph_report")):
+    if any(token in lowered for token in ("source_corpus", "source & corpus", "graphify", "graph_report")):
+        return False
+    if _LOCAL_ARTIFACT_LABEL_RE.search(text):
         return False
     # Keep durable scholarly/book references and DOI/arXiv references.
     # The venue-token list alone silently dropped real citations whose venue
