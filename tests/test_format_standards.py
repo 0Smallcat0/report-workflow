@@ -169,6 +169,62 @@ class DerivedStatsEvidenceTest(unittest.TestCase):
         self.assertEqual(units, [])
 
 
+class CjkTypographyTest(unittest.TestCase):
+    def test_chinese_sentence_lines_join_without_space(self):
+        from report_workflow.nodes.docx_render import _normalize_cjk_typography
+
+        md = "五級荷重下撓度皆隨荷重增加。\n5 N 時實測撓度 1.52 mm,誤差 4.8%。\n每一點皆高於理論值。"
+        out = _normalize_cjk_typography(md)
+        self.assertEqual(
+            out,
+            "五級荷重下撓度皆隨荷重增加。5 N 時實測撓度 1.52 mm,誤差 4.8%。每一點皆高於理論值。",
+        )
+
+    def test_space_before_citation_marker_closes(self):
+        from report_workflow.nodes.docx_render import _normalize_cjk_typography
+
+        self.assertEqual(
+            _normalize_cjk_typography("誤差 4.8%。 [1]"), "誤差 4.8%。[1]"
+        )
+
+    def test_gap_left_by_stripped_marker_closes(self):
+        from report_workflow.nodes.docx_render import _normalize_cjk_typography
+
+        self.assertEqual(
+            _normalize_cjk_typography("受載時會產生微小轉動。 千分錶量測時亦抵住樑面。"),
+            "受載時會產生微小轉動。千分錶量測時亦抵住樑面。",
+        )
+
+    def test_chinese_latin_spacing_survives(self):
+        from report_workflow.nodes.docx_render import _normalize_cjk_typography
+
+        text = "撓度自 5 N 的 1.52 mm 增至 25 N 的 7.49 mm。"
+        self.assertEqual(_normalize_cjk_typography(text), text)
+
+    def test_paragraph_break_and_headings_survive(self):
+        from report_workflow.nodes.docx_render import _normalize_cjk_typography
+
+        md = "# 1. 結果與討論\n\n第一段結束。\n第一段續句。\n\n第二段開始。"
+        out = _normalize_cjk_typography(md)
+        self.assertIn("# 1. 結果與討論", out)
+        self.assertIn("第一段結束。第一段續句。", out)
+        self.assertIn("\n\n第二段開始。", out)
+
+    def test_table_rows_are_not_joined(self):
+        from report_workflow.nodes.docx_render import _normalize_cjk_typography
+
+        md = "表 1. 撓度比較\n\n| 荷重(N) | 實測(mm) |\n| --- | --- |\n| 5 | 1.52 |"
+        out = _normalize_cjk_typography(md)
+        self.assertIn("| 荷重(N) | 實測(mm) |\n| --- | --- |", out)
+
+    def test_code_fence_untouched(self):
+        from report_workflow.nodes.docx_render import _normalize_cjk_typography
+
+        md = "說明如下。\n```\n第一行。\n第二行。\n```"
+        out = _normalize_cjk_typography(md)
+        self.assertIn("第一行。\n第二行。", out)
+
+
 class DuplicateCitationCollapseTest(unittest.TestCase):
     def test_repeated_numeric_marker_collapses(self):
         from report_workflow.nodes.citation_bind import (

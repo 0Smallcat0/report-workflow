@@ -1,5 +1,32 @@
 # Changelog
 
+## 4.23.0 - 2026-07-25
+
+### Fixed — Chinese documents no longer carry English sentence spacing
+
+Running the Chinese half of the guidance loop (the beam lab report
+rewritten to the reader rubric and the structure discipline) exposed a
+typography defect that only becomes visible once paragraphs hold several
+sentences: Chinese sentences were separated by a space.
+
+Each authored sentence is its own markdown line, and pandoc turns an
+intra-paragraph newline into a space — correct for English, wrong for
+Chinese, which takes no inter-sentence spacing. Stripped internal-source
+markers left the same gap mid-line ("轉動。 千分錶"), as did authored
+citation markers ("4.8%。 [1]"). Chinese documents now get a typography
+normalization pass before rendering: CJK-to-CJK gaps close, spacing
+between Chinese and Latin ("撓度 1.52 mm") is left alone, and tables,
+headings, lists, and code fences are untouched. English documents skip
+the pass entirely and render byte-identically.
+
+Also verified in this pass: Chinese derived statistics (4.21.0) reach a
+rendered document for the first time — the discussion cites the
+least-squares slope, R², and mean error in Chinese — and the 4.22.1
+duplicate-citation fix holds on the Chinese path.
+
+463 tests, both benchmark --checks, and native end-to-end reruns of both
+the Chinese and English lab reports pass.
+
 ## 4.22.1 - 2026-07-25
 
 ### Fixed — doubled citation markers, found by writing to the new guidance
