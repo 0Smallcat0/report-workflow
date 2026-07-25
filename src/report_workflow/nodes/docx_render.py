@@ -29,8 +29,11 @@ from ..policies import get_policy
 logger = logging.getLogger(__name__)
 
 # References-section heading names across supported document languages
-# (blueprints ship "References", 參考文獻, or 參考資料).
-_REFS_HEADING_NAMES = r"(?:References?|參考文獻|參考資料)"
+# (blueprints ship "References", 參考文獻, or 參考資料). The regex and the
+# literal tuple below are built from one list: they were separate copies, and a
+# language added to one would have gone missing from the other.
+_REFS_HEADING_WORDS = ("References", "Reference", "參考文獻", "參考資料")
+_REFS_HEADING_NAMES = "(?:" + "|".join(_REFS_HEADING_WORDS) + ")"
 
 # Path to the reference DOCX template (for pandoc --reference-doc)
 _TEMPLATE_DIR = Path(__file__).resolve().parent.parent / "templates"
@@ -870,7 +873,7 @@ def _split_body_references(md_content: str, strict_refs: bool = True) -> tuple[s
     bullet_lines: list[str] = []
     for line in entries_block.splitlines():
         stripped = line.strip()
-        if not stripped or stripped in ("References", "參考文獻", "參考資料"):
+        if not stripped or stripped in _REFS_HEADING_WORDS:
             continue
         if stripped.startswith(("- ", "* ")):
             stripped = stripped[2:].strip()

@@ -25,6 +25,7 @@ from ..state import ReportState
 from ..errors import QAHardBlockError
 from ..runtime_support import write_json_artifact
 from ..policies import get_policy
+from .citation_bind import LOCAL_ARTIFACT_LABELS
 
 
 def _verify_doi(doi: str) -> tuple[bool, str]:
@@ -124,15 +125,12 @@ def _check_author_plausibility(author_str: str) -> tuple[bool, str]:
     return True, ""
 
 
-#: Bracketed labels citation_bind attaches to a local source file
-#: ([Text file], [Word document], [Dataset], [Data file]). Both the curation
-#: check and the publication-candidate test must recognize all of them: when
-#: the candidate test knew only [Text file], a .csv/.json/.docx source was
-#: carried into the publication reference list and then failed curation as
-#: "not a publication" — an unpublishable run caused by a source file that
-#: was never a citation in the first place.
+#: Derived from the one table in citation_bind that decides these labels, so a
+#: newly supported source format cannot leave this filter stale. When the two
+#: were hand-copied lists they drifted, and a .csv source was carried into the
+#: publication reference list only to fail curation as "not a publication".
 _LOCAL_ARTIFACT_LABEL_RE = re.compile(
-    r"\[text file\]|\[word document\]|\[dataset\]|\[data file\]",
+    "|".join(re.escape(f"[{label}]") for label in LOCAL_ARTIFACT_LABELS),
     re.IGNORECASE,
 )
 

@@ -15,7 +15,6 @@ from pathlib import Path
 from ..connectors.research_backends import (
     select_backend,
     get_backend_capability_matrix,
-    ensure_source_shape,
 )
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 

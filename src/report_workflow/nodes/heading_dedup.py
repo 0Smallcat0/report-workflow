@@ -5,39 +5,11 @@ Used after MERGE_DRAFT to clean up heading duplication caused by
 agent drafts containing copy-pasted subsections.
 """
 import re
-from dataclasses import dataclass
-
-
-@dataclass
-class HeadingOccurrence:
-    heading: str       # normalized (lowercased) heading text for comparison
-    original: str     # original heading text as it appears in source
-    line_number: int  # 1-based line where heading appears
-    level: int        # # = 1, ## = 2, ### = 3
 
 
 def _normalize_heading(text: str) -> str:
     """Normalize heading text for comparison (case-insensitive)."""
     return text.strip().lower()
-
-
-def _extract_headings(content: str) -> list[HeadingOccurrence]:
-    """Extract all markdown headings from content with line numbers."""
-    headings = []
-    lines = content.split("\n")
-    for i, line in enumerate(lines, 1):
-        stripped = line.strip()
-        if stripped.startswith("#"):
-            # Count heading level
-            level = len(re.match(r"^#+(?=\s)", stripped).group())
-            heading_text = stripped.lstrip("#").strip()
-            headings.append(HeadingOccurrence(
-                heading=_normalize_heading(heading_text),   # normalized for comparison
-                original=heading_text,                      # original case preserved
-                line_number=i,
-                level=level,
-            ))
-    return headings
 
 
 def _deduplicate_by_rebuild(content: str) -> str:

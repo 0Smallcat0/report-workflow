@@ -433,6 +433,56 @@ class LocalArtifactReferenceTest(unittest.TestCase):
         ))
 
 
+class LocalArtifactTableConsistencyTest(unittest.TestCase):
+    """One table drives the label, the citation, and the curation filter.
+
+    Iterating the table is the point: a newly supported source format that is
+    not flagged fails here instead of reaching a rendered document.
+    """
+
+    def test_every_local_type_is_curated_out_and_left_uncited(self):
+        from report_workflow.nodes.citation_bind import (
+            LOCAL_ARTIFACT_FILE_TYPES,
+            _format_apa_reference_entry,
+            _format_in_text_citation,
+        )
+        from report_workflow.nodes.reference_verify import (
+            _check_reference_curation,
+            _is_publication_reference_candidate,
+        )
+
+        for file_type in sorted(LOCAL_ARTIFACT_FILE_TYPES):
+            reference = _format_apa_reference_entry(
+                f"measurements.{file_type}", file_type, "s1"
+            )
+            with self.subTest(file_type=file_type):
+                self.assertFalse(_is_publication_reference_candidate(reference))
+                self.assertFalse(_check_reference_curation(reference)[0])
+                self.assertEqual(
+                    _format_in_text_citation({
+                        "source_role": "primary_source",
+                        "source_file_name": f"measurements.{file_type}",
+                        "file_type": file_type,
+                    }),
+                    "",
+                )
+
+    def test_a_pdf_source_is_still_a_publication(self):
+        from report_workflow.nodes.citation_bind import (
+            LOCAL_ARTIFACT_FILE_TYPES,
+            _format_in_text_citation,
+        )
+
+        self.assertNotIn("pdf", LOCAL_ARTIFACT_FILE_TYPES)
+        self.assertTrue(
+            _format_in_text_citation({
+                "source_role": "research_document",
+                "source_file_name": "kording2017.pdf",
+                "file_type": "pdf",
+            }).startswith("(")
+        )
+
+
 class LocalArtifactCitationTest(unittest.TestCase):
     """A citation must point at something that appears in the reference list."""
 
