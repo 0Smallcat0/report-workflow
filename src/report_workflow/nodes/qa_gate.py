@@ -15,6 +15,33 @@ from .remediation_router import write_remediation_plan
 logger = logging.getLogger(__name__)
 
 
+def format_blocked_factuality_hint(factuality_report: dict, blocked_count: int) -> str:
+    """Name what factuality blocked, and which artifact fixes it.
+
+    FD blocks a sentence, not a claim. Keying only on ``claim_id`` printed
+    "(?)" and sent the author to ``claim_matrix.json`` when the fix — a
+    ``wording_strength`` value — lives in ``sentence_map.jsonl``.
+    """
+    blocked_parts: list[str] = []
+    for entry in factuality_report.get("claims", []):
+        if entry.get("status") != "blocked":
+            continue
+        target = entry.get("claim_id") or entry.get("sentence_id") or "?"
+        reason = entry.get("reason") or ""
+        checker = entry.get("checker") or ""
+        detail = f" [{checker}] {reason}".rstrip() if reason else ""
+        blocked_parts.append(f"{target}{detail}")
+    return (
+        f"factuality blocked claims: {blocked_count} "
+        f"({'; '.join(blocked_parts)}). "
+        f"Fix the named artifact: claim_matrix.json for a claim id, "
+        f"sentence_map.jsonl for a sentence id (wording_strength), or "
+        f"evidence_ledger.jsonl; checkpoint files are NOT read by "
+        f"factuality_check. "
+        f"Delete factuality_report.json before re-running validate."
+    )
+
+
 def _split_cite_ids(raw: str) -> list[str]:
     return [part.strip() for part in re.split(r"[,;]", raw or "") if part.strip()]
 
@@ -592,21 +619,9 @@ def run_qa_gate(state: ReportState) -> ReportState:
 
         if blocked_count > 0:
             qa_decision = "hard_fail"
-            # Extract blocked claim IDs for actionable error message
-            blocked_claims = [
-                c.get("claim_id", "?")
-                for c in factuality_report.get("claims", [])
-                if c.get("status") == "blocked"
-            ]
-            blocked_ids_str = ", ".join(blocked_claims)
-            hint = (
-                f"factuality blocked claims: {blocked_count} "
-                f"({blocked_ids_str}). "
-                f"Edit claim_matrix.json and evidence_ledger.jsonl directly; "
-                f"checkpoint files are NOT read by factuality_check. "
-                f"Delete factuality_report.json before re-running validate."
+            hard_fail_reasons.append(
+                format_blocked_factuality_hint(factuality_report, blocked_count)
             )
-            hard_fail_reasons.append(hint)
         elif disputed_count > 0:
             qa_decision = "hard_fail"  # disputed = unverified inference, cannot waive
             hard_fail_reasons.append(f"factuality disputed claims: {disputed_count}")

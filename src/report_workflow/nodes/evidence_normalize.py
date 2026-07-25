@@ -177,6 +177,23 @@ def _parse_graphify_metadata(entry: dict, block: dict) -> dict:
     }
 
 
+_MD_TABLE_SEPARATOR_RE = re.compile(r"\|\s*:?-{2,}:?\s*(?:\|\s*:?-{2,}:?\s*)+\|")
+
+
+def _is_markdown_table(content: str) -> bool:
+    """True when a parsed paragraph block is really a Markdown pipe table.
+
+    Markdown and DOCX sources are ingested paragraph by paragraph, so a table
+    inside one arrives typed as prose. It then missed both the table bonus and
+    the structured-row bonus, and the same grading-weight table scored high as
+    a CSV row but medium inside a handbook — leaving FD to forbid measured
+    wording on numbers the source states exactly.
+    """
+    if content.count("|") < 4:
+        return False
+    return bool(_MD_TABLE_SEPARATOR_RE.search(content))
+
+
 def compute_provenance_score(entry: dict, block: dict) -> float:
     """Compute provenance score deterministically.
     
@@ -216,7 +233,8 @@ def compute_provenance_score(entry: dict, block: dict) -> float:
         score += 0.05
     
     # Block type bonuses
-    if block_type == "table":
+    markdown_table = _is_markdown_table(content)
+    if block_type == "table" or markdown_table:
         score += 0.1
     elif block_type == "figure_caption":
         score += 0.05
@@ -231,9 +249,9 @@ def compute_provenance_score(entry: dict, block: dict) -> float:
     # "quantitative". Without this bonus a CSV of the user's measurements
     # can never reach evidence_grade=high, and FD then forbids measured
     # wording on the very numbers the report exists to state.
-    if block_type in {"csv_row", "table_row", "data_row"} and len(
-        _NUMERIC_TOKEN_RE.findall(content)
-    ) >= 2:
+    if (
+        block_type in {"csv_row", "table_row", "data_row"} or markdown_table
+    ) and len(_NUMERIC_TOKEN_RE.findall(content)) >= 2:
         score += 0.15
     
     # Contains methodology keywords
@@ -258,6 +276,36 @@ _NUMERIC_TOKEN_RE = re.compile(r"\d+(?:[.,]\d+)?")
 _MEASURED_COL_RE = re.compile(r"measured|實測", re.IGNORECASE)
 _THEORETICAL_COL_RE = re.compile(r"theoretical|理論", re.IGNORECASE)
 _ERROR_COL_RE = re.compile(r"error|誤差", re.IGNORECASE)
+_AMOUNT_COL_RE = re.compile(
+    r"total|subtotal|amount|cost|price|spend|budget"
+    r"|小計|合計|總計|金額|費用|價格|預算|成本",
+    re.IGNORECASE,
+)
+
+
+def _format_amount(value: float) -> str:
+    """Thousands-separated, and only as precise as the data actually is."""
+    if abs(value - round(value)) < 1e-9:
+        return f"{round(value):,}"
+    return f"{value:,.2f}"
+
+
+def _is_product_column(numeric: dict[str, list[float]], candidate: str) -> bool:
+    """True when a column equals the elementwise product of two others.
+
+    A quote sheet's line-total column (單價 × 數量 = 小計) is the one worth
+    summing even when its header carries no recognizable amount word.
+    """
+    values = numeric[candidate]
+    others = [c for c in numeric if c != candidate]
+    for i, left in enumerate(others):
+        for right in others[i + 1:]:
+            if all(
+                abs(numeric[left][k] * numeric[right][k] - values[k]) <= 1e-6
+                for k in range(len(values))
+            ):
+                return True
+    return False
 
 
 def _linear_fit(xs: list[float], ys: list[float]) -> tuple[float, float]:
@@ -299,7 +347,9 @@ def _derived_stats_units(source_registry: list, created_at: str) -> list[dict]:
                 continue
             if isinstance(row, dict):
                 rows.append(row)
-        if len(rows) < 3:
+        # A fit or an error range needs three points; a column total is
+        # meaningful from two rows on, and a two-line budget still needs one.
+        if len(rows) < 2:
             continue
         columns = list(rows[0].keys())
         numeric: dict[str, list[float]] = {}
@@ -335,7 +385,7 @@ def _derived_stats_units(source_registry: list, created_at: str) -> list[dict]:
         file_name = entry.get("file_name", "")
 
         contents: list[tuple[str, dict]] = []
-        if measured_col and x_col:
+        if measured_col and x_col and len(rows) >= 3:
             slope, r2 = _linear_fit(numeric[x_col], numeric[measured_col])
             if zh:
                 text = (
@@ -365,7 +415,7 @@ def _derived_stats_units(source_registry: list, created_at: str) -> list[dict]:
                     },
                 )
             )
-        if error_col:
+        if error_col and len(rows) >= 3:
             values = numeric[error_col]
             e_min, e_max = min(values), max(values)
             e_mean = sum(values) / len(values)
@@ -381,6 +431,52 @@ def _derived_stats_units(source_registry: list, created_at: str) -> list[dict]:
                 )
             contents.append(
                 (text, {"method": "summary_stats", "input_columns": [error_col]})
+            )
+
+        # A budget, quote sheet, or cost table is read for its total, and the
+        # total is the one number on the page that no row states. Without it
+        # the author either omits the figure the reader came for or writes an
+        # arithmetic result the factuality gates correctly refuse to publish.
+        amount_cols = [
+            c
+            for c in columns
+            if c in numeric
+            and c not in (measured_col, theoretical_col, error_col)
+            and _AMOUNT_COL_RE.search(c)
+        ]
+        total_col = next(
+            (c for c in amount_cols if _is_product_column(numeric, c)),
+            amount_cols[-1] if amount_cols else None,
+        )
+        if total_col is None and len(numeric) >= 3:
+            total_col = next(
+                (
+                    c
+                    for c in columns
+                    if c in numeric
+                    and c not in (measured_col, theoretical_col, error_col)
+                    and _is_product_column(numeric, c)
+                ),
+                None,
+            )
+        if total_col:
+            values = numeric[total_col]
+            total = sum(values)
+            largest = max(values)
+            if zh:
+                text = (
+                    f"衍生統計(來源:{file_name}):{total_col} 欄合計為 "
+                    f"{_format_amount(total)},共 {len(values)} 筆,"
+                    f"單筆最高為 {_format_amount(largest)}。"
+                )
+            else:
+                text = (
+                    f"Derived statistics from {file_name}: the {total_col} column "
+                    f"totals {_format_amount(total)} across {len(values)} rows, "
+                    f"with a largest single value of {_format_amount(largest)}."
+                )
+            contents.append(
+                (text, {"method": "column_total", "input_columns": [total_col]})
             )
 
         for index, (content, derivation) in enumerate(contents):

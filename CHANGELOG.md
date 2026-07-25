@@ -1,5 +1,62 @@
 # Changelog
 
+## 4.24.0 - 2026-07-25
+
+### Fixed — a proposal can state its own budget, and cite nothing that isn't there
+
+First end-to-end dogfood of the `proposal` profile: a Chinese undergraduate
+capstone proposal built from a department handbook, a prior year's results
+summary, and a supplier quote sheet. It is the only built-in profile with no
+results-like section and no references section, and every defect below had
+survived because nothing had ever been written through it.
+
+- **The budget total is now derived evidence.** A quote sheet is read for a
+  number no row states. Evidence build now sums an amount-named column
+  (`小計`/`total`/`amount`/…) or a column verified to be the product of two
+  others, and registers it as a high-grade entry with
+  `derivation.method = "column_total"` — so the proposal rubric's own demand
+  ("the ask, the cost and the payoff on the first page") is satisfiable
+  without publishing arithmetic no gate can check. Totals need two rows, not
+  the three a regression needs.
+- **A Markdown table now scores like the same table as a CSV.** Markdown
+  sources are ingested paragraph by paragraph, so a table inside one arrived
+  typed as prose and missed both the table bonus and the structured-row
+  quantitative bonus: 0.5/medium against 0.75/high for identical data. FD
+  then forbade measured wording on numbers the source states exactly.
+- **A `.csv`, `.json` or `.docx` source no longer makes a run unpublishable.**
+  Reference curation blocks four local-file labels; the publication-candidate
+  test knew only `[Text file]`, so a dataset reference was carried into the
+  publication list and then hard-failed REFERENCE_QA as "not a publication".
+  Both now share one pattern.
+- **No in-text citation without a reference entry.** Those same local-file
+  sources rendered author-year markers over a reference list that curation
+  had emptied — a quote sheet cited three times produced three dangling
+  markers. Citations for local-file types are now omitted from publication
+  text, as internal project sources already were; traceability stays in the
+  sidecars.
+- **Undated repeats collapse.** The duplicate-citation collapser matched only
+  numeric and author-year shapes, so `(手冊 (n.d.))` — nested parentheses, no
+  four-digit year — rendered doubled. Every source without a publication date
+  was affected.
+- **Figures no longer target a section the blueprint does not define.**
+  `_section_for_recommendation` fell back to the literal `"results"`;
+  `proposal` has no such section, so the brief instructed authors to write
+  `sections.results.figure_ids` into an outline that would reject it. It now
+  falls back by section type, putting a quote table in `budget_resources`.
+- **Bar labels prefer the column that names each row.** The first categorical
+  column was used unconditionally, so three different bearings all drew as
+  `測試軸承`; the label column is now the categorical column with the most
+  distinct values. Boxplot grouping, which needs repeats, is untouched.
+- **A blocked sentence says which sentence.** FINAL_QA read only `claim_id`,
+  so an FD wording-strength block printed `(?)` and pointed at
+  `claim_matrix.json` when the fix lives in `sentence_map.jsonl`. The hint now
+  names the target, the checker and the reason, and is a testable function.
+- **The brief no longer contradicts the gate.** It told authors to reserve
+  `measured` wording for "high-grade or quantitative" evidence; FD accepts
+  high-grade only, so following the documented rule earned a hard block.
+
+479 tests and both benchmark --checks pass.
+
 ## 4.23.1 - 2026-07-25
 
 ### Changed — the README leads with the document, not the gate
