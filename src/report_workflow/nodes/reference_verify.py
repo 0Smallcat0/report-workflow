@@ -159,6 +159,17 @@ def _check_reference_curation(raw_ref: str) -> tuple[bool, str]:
     return True, ""
 
 
+# GB/T 7714 puts the reference type in a bracketed marker after the title:
+# [J] journal, [M] monograph, [C] conference, [D] dissertation, [P] patent,
+# [S] standard, [N] newspaper, [R] report — all publications — against [DS]
+# dataset, [DB] database, [CP] computer program, [EB/OL] online resource, and
+# [Z] "other". The APA-shaped signals below match none of these notations, so
+# without a branch of its own every GB/T reference reads as non-publication,
+# real journal articles included.
+_GBT_TYPE_MARKER_RE = re.compile(r"\[([A-Z]{1,2}(?:/[A-Z]{2})?)\]")
+_GBT_NON_PUBLICATION_TYPES = frozenset({"DS", "DB", "CP", "EB/OL", "OL", "Z"})
+
+
 def _is_publication_reference_candidate(raw_ref: str) -> bool:
     """Return True for references that are worth carrying into publication."""
     text = raw_ref.strip()
@@ -169,6 +180,12 @@ def _is_publication_reference_candidate(raw_ref: str) -> bool:
         return False
     if _LOCAL_ARTIFACT_LABEL_RE.search(text):
         return False
+    gbt_types = {match.upper() for match in _GBT_TYPE_MARKER_RE.findall(text)}
+    if gbt_types:
+        # Fail open. Only markers known to denote something other than a
+        # publication are dropped, so an unfamiliar or future type code keeps
+        # its reference rather than silently deleting a real citation.
+        return not (gbt_types & _GBT_NON_PUBLICATION_TYPES)
     # Keep durable scholarly/book references and DOI/arXiv references.
     # The venue-token list alone silently dropped real citations whose venue
     # carries none of the magic words ("Notices of the AMS, 61(5), 458-471."),
@@ -262,10 +279,12 @@ def _write_curated_reference_list(state: ReportState, refs: list[dict]) -> None:
     ref_list_path = state.citations.get("publication_reference_list_path", "")
     if not ref_list_path:
         return
-    if state.citations.get("publication_citation_style") == "gb_t_7714_2015":
-        state.citations["curated_reference_list_path"] = ref_list_path
-        state.citations["curated_reference_count"] = len(refs)
-        return
+    # GB/T 7714 entries are numbered rather than bulleted. That formatting
+    # difference used to skip curation altogether, which meant every
+    # Chinese-language report — GB/T is selected by document language — shipped
+    # an uncurated list, local artifacts and all. Curate either way; only the
+    # rendering of the surviving entries differs.
+    gb_t_numbered = state.citations.get("publication_citation_style") == "gb_t_7714_2015"
     path = Path(ref_list_path)
     curated: list[str] = []
     seen: set[str] = set()
@@ -283,11 +302,16 @@ def _write_curated_reference_list(state: ReportState, refs: list[dict]) -> None:
         seen.add(raw.lower())
 
     if curated:
-        content = (
-            f"{REFERENCE_LIST_HEADING}\n\n"
-            + "\n\n".join(f"- {item}" for item in curated)
-            + "\n"
-        )
+        if gb_t_numbered:
+            # Renumber from one: dropping an entry must not leave a gap in the
+            # sequence, and in-text markers are rebound to the curated list.
+            body = "\n\n".join(
+                f"[{number}] {re.sub(r'^\[\d+\]\s*', '', item)}"
+                for number, item in enumerate(curated, start=1)
+            )
+        else:
+            body = "\n\n".join(f"- {item}" for item in curated)
+        content = f"{REFERENCE_LIST_HEADING}\n\n{body}\n"
     else:
         content = ""
     path.write_text(content, encoding="utf-8")

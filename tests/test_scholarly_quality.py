@@ -337,25 +337,60 @@ class ScholarlyCitationTests(unittest.TestCase):
         self.assertEqual(default_gbt7714_standard(date(2026, 5, 11)), "GB/T 7714-2015")
         self.assertEqual(default_gbt7714_standard(date(2026, 7, 1)), "GB/T 7714-2025")
 
-    def test_gbt_7714_references_survive_reference_verify_curation(self):
+    def _curate_gbt(self, tmpdir, entries):
+        state = ReportState.new("publish engineering report", [], str(Path(tmpdir) / "out"))
+        state.spec["report_profile"] = "engineering_lab_report"
+        run_dir = run_dir_for(state)
+        ref_path = run_dir / "publication_reference_list.md"
+        body = "\n".join(f"[{n}] {e}" for n, e in enumerate(entries, start=1))
+        ref_path.write_text(f"## References\n\n{body}\n", encoding="utf-8")
+        state.citations["publication_reference_list_path"] = str(ref_path)
+        state.citations["publication_citation_style"] = "gb_t_7714_2015"
+        run_reference_verify(state)
+        return ref_path.read_text(encoding="utf-8")
+
+    def test_gbt_7714_publications_survive_reference_verify_curation(self):
+        """Real GB/T references must not be curated away.
+
+        The type marker carries the distinction: [J], [M], [D], [S] are
+        publications. The APA-shaped candidate test matches none of these
+        notations, so a GB/T journal article once read as non-publication —
+        which is why curation used to be skipped wholesale for this style.
+        """
         with tempfile.TemporaryDirectory() as tmpdir:
-            state = ReportState.new("publish engineering report", [], str(Path(tmpdir) / "out"))
-            state.spec["report_profile"] = "engineering_lab_report"
-            run_dir = run_dir_for(state)
-            ref_path = run_dir / "publication_reference_list.md"
-            ref_path.write_text(
-                "## References\n\n[1] Lab Team. Experiment Notes[Z]. 2026. (GB/T 7714-2015)\n",
-                encoding="utf-8",
-            )
-            state.citations["publication_reference_list_path"] = str(ref_path)
-            state.citations["publication_citation_style"] = "gb_t_7714_2015"
+            content = self._curate_gbt(tmpdir, [
+                "王小明. 板式熱交換器結垢對熱傳效能之影響[J]. 機械工程學報, 2024, 60(3): 45-52.",
+                "Incropera F P. Fundamentals of Heat and Mass Transfer[M]. New York: Wiley, 2007.",
+            ])
+            self.assertIn("機械工程學報", content)
+            self.assertIn("Fundamentals of Heat and Mass Transfer[M]", content)
 
-            result = run_reference_verify(state)
-            content = ref_path.read_text(encoding="utf-8")
-            report = json.loads(Path(result.runtime["reference_verify_report_path"]).read_text(encoding="utf-8"))
+    def test_gbt_7714_local_artifacts_are_curated_out(self):
+        """A source file is not a publication in either notation.
 
-            self.assertIn("[1] Lab Team. Experiment Notes[Z]. 2026.", content)
-            self.assertEqual(report["total_refs"], 1)
+        Skipping curation for GB/T meant every Chinese-language report shipped
+        its own CSV in the reference list — the APA path had excluded these
+        since 4.24.0, and the two notations disagreed.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = self._curate_gbt(tmpdir, [
+                "data[DS]. (GB/T 7714-2025)",
+                "Lab Team. Experiment Notes[Z]. 2026.",
+                "王小明. 板式熱交換器結垢[J]. 機械工程學報, 2024, 60(3): 45-52.",
+            ])
+            self.assertNotIn("[DS]", content)
+            self.assertNotIn("[Z]", content)
+            self.assertIn("機械工程學報", content)
+            # Renumbered from one, not left with the gap the drops would make.
+            self.assertIn("[1] 王小明", content)
+
+    def test_gbt_7714_unknown_type_marker_is_kept(self):
+        """Fail open: an unfamiliar type code must not silently delete a
+        reference. Dropping a real citation is worse than keeping a doubtful
+        one, because only the first is invisible to the author."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            content = self._curate_gbt(tmpdir, ["某作者. 新型式資料[XX]. 2026."])
+            self.assertIn("[XX]", content)
 
 
 class ScholarlyPackagingTests(unittest.TestCase):
