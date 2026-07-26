@@ -17,6 +17,37 @@ from ..artifact_contract import write_base_document_integrity
 from ..language import ZH_ORDINAL_PREFIX_RE
 
 
+def _drop_generated_toc(preamble: str) -> str:
+    """Remove a table of contents this pipeline rendered into the base document.
+
+    The front matter of a rendered report is title page, then the generated
+    TOC, then the body. Reading that document back in captures both, and the
+    next render adds its own TOC — so the scaffolding accumulates one copy per
+    revision. The placeholder line is ours verbatim and safe to drop anywhere;
+    the TOC title is an ordinary word, so it is only dropped when the
+    placeholder follows it.
+    """
+    from .docx_render import _TOC_PLACEHOLDERS, _TOC_TITLES
+
+    placeholders = set(_TOC_PLACEHOLDERS.values())
+    titles = set(_TOC_TITLES.values())
+
+    lines = preamble.split("\n")
+    kept: list[str] = []
+    for index, line in enumerate(lines):
+        stripped = line.strip()
+        if stripped in placeholders:
+            continue
+        if stripped in titles:
+            following = next(
+                (nxt.strip() for nxt in lines[index + 1:] if nxt.strip()), ""
+            )
+            if following in placeholders:
+                continue
+        kept.append(line)
+    return "\n".join(kept).strip()
+
+
 def _parse_docx_section(path: str) -> tuple[dict[str, str], dict[str, str]]:
     """Extract paragraphs from a .docx file as section_chunks.
 
@@ -82,6 +113,9 @@ def _parse_docx_section(path: str) -> tuple[dict[str, str], dict[str, str]]:
     # Flush last section
     if current_lines:
         sections[current_section_id] = "\n".join(current_lines)
+
+    if "preamble" in sections:
+        sections["preamble"] = _drop_generated_toc(sections["preamble"])
 
     return sections, titles
 

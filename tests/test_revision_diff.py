@@ -17,6 +17,52 @@ from report_workflow.agent_wrapper import (
 from report_workflow.state import register_job_run
 
 
+class GeneratedTocIngestTests(unittest.TestCase):
+    """Reading back our own output must not re-ingest our own scaffolding.
+
+    A rendered report's front matter is title page, then the generated table of
+    contents. Revising it captured both into the preamble while the next render
+    added a fresh TOC, so the scaffolding accumulated one copy per revision.
+    """
+
+    def _drop(self, text):
+        from report_workflow.nodes.base_document_parse import _drop_generated_toc
+
+        return _drop_generated_toc(text)
+
+    def test_generated_toc_is_removed_and_title_page_kept(self):
+        from report_workflow.nodes.docx_render import _TOC_PLACEHOLDERS, _TOC_TITLES
+
+        preamble = "\n".join([
+            "熱傳學實驗", "國立成功大學機械工程學系", "蔡知均", "2026 年 7 月",
+            _TOC_TITLES["zh"], _TOC_PLACEHOLDERS["zh"],
+        ])
+        cleaned = self._drop(preamble)
+        self.assertEqual(cleaned.split("\n"),
+                         ["熱傳學實驗", "國立成功大學機械工程學系", "蔡知均", "2026 年 7 月"])
+
+    def test_english_scaffolding_is_removed_too(self):
+        from report_workflow.nodes.docx_render import _TOC_PLACEHOLDERS, _TOC_TITLES
+
+        cleaned = self._drop(
+            f"Heat Transfer Lab\nJ. Tsai\n{_TOC_TITLES['en']}\n{_TOC_PLACEHOLDERS['en']}"
+        )
+        self.assertEqual(cleaned.split("\n"), ["Heat Transfer Lab", "J. Tsai"])
+
+    def test_a_real_heading_named_like_the_toc_is_kept(self):
+        """"目錄" is an ordinary word. Without the placeholder under it, an
+        author's own line by that name is theirs, not ours."""
+        cleaned = self._drop("報告封面\n目錄\n本章說明目錄的編排方式。")
+        self.assertIn("目錄", cleaned.split("\n"))
+
+    def test_repeated_revision_does_not_accumulate(self):
+        from report_workflow.nodes.docx_render import _TOC_PLACEHOLDERS, _TOC_TITLES
+
+        once = self._drop(f"封面\n{_TOC_TITLES['zh']}\n{_TOC_PLACEHOLDERS['zh']}")
+        twice = self._drop(f"{once}\n{_TOC_TITLES['zh']}\n{_TOC_PLACEHOLDERS['zh']}")
+        self.assertEqual(once, twice)
+
+
 class BaseDocumentHeadingRoundTripTests(unittest.TestCase):
     """Revising a document must not rewrite its headings.
 
