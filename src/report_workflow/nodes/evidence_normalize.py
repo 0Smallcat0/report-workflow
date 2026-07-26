@@ -543,7 +543,11 @@ def determine_evidence_type(content: str, block_type: str) -> str:
     # Structured data rows (CSV/table ingestion) carrying several numeric
     # values are measurements, whatever language surrounds them.
     numeric_tokens = _NUMERIC_TOKEN_RE.findall(content_lower)
-    if block_type in {"csv_row", "table_row", "data_row"} and len(numeric_tokens) >= 2:
+    # "table" is the whole-table block the PDF, DOCX, and markdown parsers all
+    # emit; the others are single-row shapes from CSV ingestion. Listing only
+    # the row shapes meant a measurement table from any source but a CSV fell
+    # through to keyword matching and came out qualitative.
+    if block_type in {"csv_row", "table_row", "data_row", "table"} and len(numeric_tokens) >= 2:
         return "quantitative"
     if len(numeric_tokens) >= 3 and content_lower.count(":") >= 3 and content_lower.count('"') >= 4:
         # JSON-ish record with several numeric fields.

@@ -1,4 +1,5 @@
 """Semi-structured parser for PDF, DOCX, TXT files."""
+import re
 
 
 def table_to_text(table: list[list[str]]) -> str:
@@ -175,6 +176,31 @@ def parse_txt(file_path: str) -> dict:
                 all_text_parts.append(content)
                 continue
 
+            # ---------- delimited table ----------
+            table_rows, table_end = _delimited_table_rows(lines, i)
+            if table_rows:
+                table_lines = [lines[n].rstrip() for n in range(i, table_end)]
+                content = "\n".join(table_lines)
+                all_text_parts.extend(table_lines)
+                line_start = i + 1
+                line_end = table_end
+                i = table_end
+                block_counter += 1
+                content_hash = hashlib.sha256(content.encode()).hexdigest()[:16]
+                blocks.append({
+                    "block_id": f"md_{block_counter}",
+                    "block_type": "table",
+                    "content": content,
+                    "page_number": None,
+                    "table_data": table_rows,
+                    "source_file_path": file_path,
+                    "line_start": line_start,
+                    "line_end": line_end,
+                    "content_hash": content_hash,
+                    "quote": content[:200] + ("..." if len(content) > 200 else ""),
+                })
+                continue
+
             # ---------- list item ----------
             if stripped.startswith("- ") or stripped.startswith("* ") or stripped.startswith("+ "):
                 list_items = []
@@ -257,6 +283,11 @@ def parse_txt(file_path: str) -> dict:
             para_lines = []
             para_start = i
             while i < len(lines) and lines[i].strip() and not lines[i].strip().startswith("#"):
+                # A pasted table usually follows its lead-in sentence with no
+                # blank line between them, so the paragraph has to yield to it
+                # or the whole table is swallowed as prose.
+                if para_lines and _delimited_table_rows(lines, i)[0]:
+                    break
                 para_lines.append(lines[i].rstrip())
                 all_text_parts.append(lines[i].rstrip())
                 i += 1
@@ -286,6 +317,66 @@ def parse_txt(file_path: str) -> dict:
         }
     except Exception as e:
         return {"blocks": [], "error": str(e), "success": False}
+
+
+_PIPE_SEPARATOR_ROW_RE = re.compile(r"^\s*\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)+\|?\s*$")
+_MIN_TABLE_ROWS = 2
+_MIN_TABLE_COLUMNS = 2
+
+
+def _split_table_row(line: str) -> list[str] | None:
+    """Cells of one delimited row, or None when the line is not one.
+
+    Two notations reach us. Pasting a selection out of a spreadsheet yields
+    tab-separated lines — the most common way a measurement table enters a
+    notes file — and hand-written markdown yields pipe rows. Both are tables;
+    only the delimiter differs.
+    """
+    stripped = line.strip()
+    if not stripped:
+        return None
+    if "\t" in line:
+        cells = [cell.strip() for cell in line.rstrip("\n").split("\t")]
+    elif stripped.count("|") >= _MIN_TABLE_COLUMNS - 1 and _PIPE_SEPARATOR_ROW_RE.match(stripped) is None:
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+    else:
+        return None
+    if len(cells) < _MIN_TABLE_COLUMNS:
+        return None
+    if not any(cells):
+        return None
+    return cells
+
+
+def _delimited_table_rows(lines: list[str], start: int) -> tuple[list[list[str]], int]:
+    """Consume a delimited table starting at ``start``.
+
+    Returns ``(rows, end_index)``, or ``([], start)`` when there is no table
+    here. A run must hold at least two rows of the same column count before it
+    counts, so an ordinary sentence that happens to contain a tab or a vertical
+    bar stays prose.
+    """
+    first = _split_table_row(lines[start])
+    if first is None:
+        return [], start
+
+    width = len(first)
+    rows = [first]
+    index = start + 1
+    while index < len(lines):
+        if _PIPE_SEPARATOR_ROW_RE.match(lines[index].strip()):
+            # Markdown's header underline carries no data.
+            index += 1
+            continue
+        cells = _split_table_row(lines[index])
+        if cells is None or len(cells) != width:
+            break
+        rows.append(cells)
+        index += 1
+
+    if len(rows) < _MIN_TABLE_ROWS:
+        return [], start
+    return rows, index
 
 
 def parse_markdown(file_path: str) -> dict:
@@ -370,6 +461,31 @@ def parse_markdown(file_path: str) -> dict:
                 all_text_parts.append(content)
                 continue
 
+            # ---------- delimited table ----------
+            table_rows, table_end = _delimited_table_rows(lines, i)
+            if table_rows:
+                table_lines = [lines[n].rstrip() for n in range(i, table_end)]
+                content = "\n".join(table_lines)
+                all_text_parts.extend(table_lines)
+                line_start = i + 1
+                line_end = table_end
+                i = table_end
+                block_counter += 1
+                content_hash = hashlib.sha256(content.encode()).hexdigest()[:16]
+                blocks.append({
+                    "block_id": f"md_{block_counter}",
+                    "block_type": "table",
+                    "content": content,
+                    "page_number": None,
+                    "table_data": table_rows,
+                    "source_file_path": file_path,
+                    "line_start": line_start,
+                    "line_end": line_end,
+                    "content_hash": content_hash,
+                    "quote": content[:200] + ("..." if len(content) > 200 else ""),
+                })
+                continue
+
             # ---------- list item ----------
             if stripped.startswith("- ") or stripped.startswith("* ") or stripped.startswith("+ "):
                 list_items = []
@@ -452,6 +568,11 @@ def parse_markdown(file_path: str) -> dict:
             para_lines = []
             para_start = i
             while i < len(lines) and lines[i].strip() and not lines[i].strip().startswith("#"):
+                # A pasted table usually follows its lead-in sentence with no
+                # blank line between them, so the paragraph has to yield to it
+                # or the whole table is swallowed as prose.
+                if para_lines and _delimited_table_rows(lines, i)[0]:
+                    break
                 para_lines.append(lines[i].rstrip())
                 all_text_parts.append(lines[i].rstrip())
                 i += 1
