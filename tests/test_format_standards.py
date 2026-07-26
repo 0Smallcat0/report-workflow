@@ -733,6 +733,36 @@ class PromptFragmentScanTest(unittest.TestCase):
         )
 
 
+class CjkTypographyLinkTargetTest(unittest.TestCase):
+    """Typography normalization must not rewrite a file path.
+
+    A run directory is named after the user's prompt, so its path routinely
+    holds a space between two CJK words. Closing that gap renamed the figure's
+    directory, pandoc found nothing there, and the report rendered silently
+    without its chart.
+    """
+
+    IMAGE = "![](C:/tmp/板式熱交換器效能量測 實驗報告--run_1/figures/1.png)"
+
+    def test_space_inside_an_image_path_survives(self):
+        from report_workflow.nodes.docx_render import _normalize_cjk_typography
+
+        self.assertEqual(_normalize_cjk_typography(self.IMAGE), self.IMAGE)
+
+    def test_space_inside_a_link_target_survives(self):
+        from report_workflow.nodes.docx_render import _normalize_cjk_typography
+
+        md = "[說明](C:/報告 目錄/a.md)"
+        self.assertEqual(_normalize_cjk_typography(md), md)
+
+    def test_prose_around_a_link_is_still_normalized(self):
+        from report_workflow.nodes.docx_render import _normalize_cjk_typography
+
+        out = _normalize_cjk_typography(f"轉動。 千分錶\n{self.IMAGE}")
+        self.assertIn("轉動。千分錶", out)
+        self.assertIn("量測 實驗報告", out)
+
+
 class CjkTypographyTest(unittest.TestCase):
     def test_chinese_sentence_lines_join_without_space(self):
         from report_workflow.nodes.docx_render import _normalize_cjk_typography
