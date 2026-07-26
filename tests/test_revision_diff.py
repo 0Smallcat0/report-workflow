@@ -17,6 +17,60 @@ from report_workflow.agent_wrapper import (
 from report_workflow.state import register_job_run
 
 
+class BaseDocumentImageCarryTests(unittest.TestCase):
+    """A figure is content the author put there, so a revision must keep it.
+
+    Reading only `w:t` text nodes dropped every embedded image: changing one
+    word in a report deleted its chart and left the caption standing over
+    nothing — the same shape as a References heading with no entries.
+    """
+
+    def _fixture(self, tmpdir):
+        from docx import Document
+        from docx.shared import Inches
+
+        import base64
+
+        png = Path(tmpdir) / "chart.png"
+        # Smallest valid PNG: 1x1, transparent.
+        png.write_bytes(base64.b64decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk"
+            "YPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+        ))
+        doc = Document()
+        doc.add_heading("1. 結果", level=1)
+        doc.add_paragraph("量測結果如下。")
+        doc.add_picture(str(png), width=Inches(2))
+        doc.add_paragraph("圖 1. 效能對流量。")
+        path = str(Path(tmpdir) / "base.docx")
+        doc.save(path)
+        return path
+
+    def test_image_is_extracted_and_linked_in_place(self):
+        from report_workflow.nodes.base_document_parse import _parse_docx_section
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            media_dir = Path(tmpdir) / "base_media"
+            sections, _titles = _parse_docx_section(
+                self._fixture(tmpdir), media_dir=media_dir
+            )
+            carrying = [sid for sid, text in sections.items() if "![](" in text]
+            self.assertEqual(len(carrying), 1, f"expected one section with an image: {sections}")
+            body = sections[carrying[0]]
+            self.assertLess(body.index("![]("), body.index("圖 1."),
+                            "image must stay above its caption")
+            self.assertTrue(list(media_dir.iterdir()), "no media was extracted")
+
+    def test_without_media_dir_nothing_is_extracted(self):
+        """The default stays text-only, so callers that never render images
+        (and the .md/.txt paths) are unaffected."""
+        from report_workflow.nodes.base_document_parse import _parse_docx_section
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sections, _titles = _parse_docx_section(self._fixture(tmpdir))
+            self.assertFalse([t for t in sections.values() if "![](" in t])
+
+
 class GeneratedTocIngestTests(unittest.TestCase):
     """Reading back our own output must not re-ingest our own scaffolding.
 
