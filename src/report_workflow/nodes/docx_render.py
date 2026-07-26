@@ -363,6 +363,16 @@ _CJK_LINE_END_RE = re.compile(r"[一-鿿㐀-䶿。，、；:：？！」』）�
 _CJK_BLOCK_PREFIXES = ("|", "#", ">", "-", "*", "+", "```", "[FIGURE", "[Source")
 
 
+_LINK_TARGET_RE = re.compile(r"\]\([^)]*\)")
+_CJK_GAP_RE = re.compile(
+    r"([一-鿿㐀-䶿。，、；:：？！」』）】》])[ \t]+([一-鿿㐀-䶿「『（【《\[])"
+)
+
+
+def _close_cjk_gaps(text: str) -> str:
+    return _CJK_GAP_RE.sub(r"\1\2", text)
+
+
 def _normalize_cjk_typography(md: str) -> str:
     """Chinese sentences do not take a space between them.
 
@@ -396,11 +406,19 @@ def _normalize_cjk_typography(md: str) -> str:
     # leaves "轉動。 千分錶", and an authored marker leaves "4.8%。 [1]".
     # Only CJK-to-CJK (or CJK-to-citation) gaps close; a space between
     # Chinese and Latin ("撓度 1.52 mm") is real spacing and stays.
-    return re.sub(
-        r"([一-鿿㐀-䶿。，、；:：？！」』）】》])[ \t]+([一-鿿㐀-䶿「『（【《\[])",
-        r"\1\2",
-        joined,
-    )
+    #
+    # Link and image targets are exempt. A run directory is named after the
+    # user's prompt, so its path routinely contains a space between two CJK
+    # words — closing that gap rewrote the figure's filename, pandoc found
+    # nothing there, and the document rendered silently without the image.
+    pieces: list[str] = []
+    cursor = 0
+    for match in _LINK_TARGET_RE.finditer(joined):
+        pieces.append(_close_cjk_gaps(joined[cursor:match.start()]))
+        pieces.append(match.group(0))
+        cursor = match.end()
+    pieces.append(_close_cjk_gaps(joined[cursor:]))
+    return "".join(pieces)
 
 
 def _xml_text_escape(text: str) -> str:
