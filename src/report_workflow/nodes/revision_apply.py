@@ -404,16 +404,33 @@ def run_revision_apply(state: ReportState) -> ReportState:
 
     merged_lines: list[str] = []
 
-    # 0. Document title. The base document's H1 lives in the preamble
+    # 0. Front matter. The base document's H1 lives in the preamble
     # (retitle-aware via base_titles); without this, a revised document
     # loses its title whenever the profile has no required front matter.
+    #
+    # A rendered .docx has no H1 there at all: its preamble is the title page
+    # itself — course, author, affiliation, date, as plain paragraphs. Matching
+    # only an H1 dropped the lot, so revising a report quietly removed the
+    # author's own name from it. When there is no heading to lift, the block
+    # carries through as it stood.
+    preamble_content = str(base_sections.get("preamble") or "").strip()
     doc_title = str(base_titles.get("preamble") or "").strip()
     if not doc_title:
-        title_match = re.match(r"\s*#\s+(.+)", str(base_sections.get("preamble") or ""))
+        title_match = re.match(r"\s*#\s+(.+)", preamble_content)
         if title_match:
             doc_title = title_match.group(1).strip()
     if doc_title:
         merged_lines.append(f"# {doc_title}\n")
+    elif preamble_content:
+        # One title-page line per paragraph. Consecutive markdown lines are a
+        # single paragraph, which ran course, author, affiliation, and date
+        # together into one unbroken string.
+        merged_lines.append(
+            "\n\n".join(
+                line.strip() for line in preamble_content.split("\n") if line.strip()
+            )
+            + "\n"
+        )
 
     # 1. Abstract — always first
     abstract_content = updated_sections.get(ABSTRACT_SECTION, "").strip()
