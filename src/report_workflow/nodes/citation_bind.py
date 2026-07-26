@@ -224,6 +224,14 @@ LOCAL_ARTIFACT_LABELS = tuple(
     sorted({label for label, is_local in _REFERENCE_LABELS.values() if is_local})
 )
 
+#: Heading for a reference list the pipeline generates itself (as opposed to one
+#: the author drafted). It is a top-level section like every other one, so it
+#: must not be demoted — at H2 a Word table of contents nests it under whatever
+#: section happens to precede it. `docx_render._localize_reference_heading`
+#: swaps the title for the blueprint's `title_zh` and keeps whatever level it
+#: finds here, so this string decides the level in the rendered document.
+REFERENCE_LIST_HEADING = "# References"
+
 
 def _format_apa_reference_entry(file_name: str, file_type: str, source_id: str) -> str:
     """Format a full APA reference entry for a research document."""
@@ -883,11 +891,11 @@ def run_citation_bind(state: ReportState) -> ReportState:
 
     publication_refs_md = ""
     if literature_refs and citation_style == "gb_t_7714_2015":
-        publication_refs_md = "## References\n\n"
+        publication_refs_md = f"{REFERENCE_LIST_HEADING}\n\n"
         for ref in literature_refs:
             publication_refs_md += f"{_clean_ref(ref)}\n\n"
     elif literature_refs:
-        publication_refs_md = "## References\n\n"
+        publication_refs_md = f"{REFERENCE_LIST_HEADING}\n\n"
         for ref in sorted(literature_refs):
             publication_refs_md += f"- {_clean_ref(ref)}\n\n"
 

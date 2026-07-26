@@ -795,7 +795,11 @@ def markdown_to_docx(
 
 def _add_hanging_indent_references(doc: Document, ref_md: str) -> None:
     """Append a formatted References section with hanging-indent paragraphs."""
-    ref_re = re.compile(rf"^## ({_REFS_HEADING_NAMES})\s*$", re.MULTILINE)
+    # Any level: the generated list and an authored one may differ, and the
+    # heading must render at whatever level the markdown declares rather than
+    # being forced to H2 — a demoted References nests under the section above
+    # it in a Word table of contents.
+    ref_re = re.compile(rf"^(#{{1,6}})\s+({_REFS_HEADING_NAMES})\s*$", re.MULTILINE)
     m = ref_re.search(ref_md)
     if not m:
         return
@@ -823,7 +827,7 @@ def _add_hanging_indent_references(doc: Document, ref_md: str) -> None:
         # with no references simply has no References section.
         return
 
-    doc.add_heading(m.group(1), level=2)
+    doc.add_heading(m.group(2), level=len(m.group(1)))
 
     hanging_left = Inches(0.5)
     hanging_first = Inches(-0.5)

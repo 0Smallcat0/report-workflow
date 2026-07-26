@@ -698,7 +698,10 @@ Count words after removing `[CITE:]` markers.
 **No `[CITE:]`, `[Source:]`, or `[graphify:]` markers in the abstract.**
 The abstract still needs `claim_ids` in `outline.json` — it declares which
 claims the abstract summarizes, and PLAN_LOCK hard-blocks an abstract with an
-empty `claim_ids` list. Only `references` and `appendix` may carry none.
+empty `claim_ids` list. Only `cover`, `references`, and `appendix` may carry
+none — they hold front matter, sources, and raw material, not assertions.
+A required `cover` section is still required in `outline.json`; it just carries
+an empty `claim_ids` list.
 
 ## Admissions-facing academic reports
 

@@ -26,6 +26,7 @@ from pathlib import Path
 from ..errors import QAHardBlockError
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..artifact_contract import validate_base_document_integrity
+from .citation_bind import REFERENCE_LIST_HEADING
 
 
 def _reference_ids(sections: dict[str, str], kind: str) -> set[str]:
@@ -438,18 +439,17 @@ def run_revision_apply(state: ReportState) -> ReportState:
             content = _strip_leading_heading_from_content(content, sid)
             merged_lines.append(f"# {_heading_for(sid)}\n\n{content}\n")
 
-    # 4. References — always last
-    # Uses ## so docx_render can detect and apply APA hanging-indent formatting.
+    # 4. References — always last, at the same level as every other section.
     refs_content = updated_sections.get(REFERENCES_SECTION, "").strip()
     if refs_content:
-        # Strip stray "References" plain-text label that may appear as the first line
-        # (the "## References" heading already provides the label)
+        # Strip stray "References" plain-text label that may appear as the first
+        # line (the heading already provides the label)
         refs_lines = refs_content.splitlines()
         if refs_lines and refs_lines[0].strip() == "References":
             refs_lines = refs_lines[1:]
         refs_content = "\n".join(refs_lines).strip()
         if refs_content:
-            merged_lines.append(f"## References\n\n{refs_content}\n")
+            merged_lines.append(f"{REFERENCE_LIST_HEADING}\n\n{refs_content}\n")
 
     merged_draft_md = "\n\n".join(merged_lines)
 

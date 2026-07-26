@@ -74,6 +74,37 @@ def _expected_figure_count(state: ReportState) -> int:
     return max(image_count, _outline_figure_count(state) - native_tables)
 
 
+def _figure_shortfall_hint(
+    state: ReportState, docx_text: str, outline_figure_ids: set[str]
+) -> str:
+    """Explain why figures are missing, using ids the run already knows.
+
+    A count on its own gives the author nothing to act on. The usual cause is
+    an id mismatch: the draft cites a figure id the builder never assigned, so
+    the placeholder is copied through unreplaced and the DOCX carries no image.
+    Both halves of that mismatch are already in hand here.
+    """
+    built_ids = [
+        str(figure.get("figure_id", "")).strip()
+        for figure in _manifest_figures(state)
+        if str(figure.get("figure_id", "")).strip()
+    ]
+    unresolved = sorted(set(re.findall(r"\[FIGURE:\s*([^\]\s]+)", docx_text, re.IGNORECASE)))
+
+    parts: list[str] = []
+    if unresolved:
+        parts.append(
+            "unresolved placeholder(s) " + ", ".join(f"[FIGURE:{fid}]" for fid in unresolved)
+        )
+    unknown = sorted(fid for fid in outline_figure_ids if fid not in {b.lower() for b in built_ids})
+    if unknown:
+        parts.append("outline figure_ids with no built figure: " + ", ".join(unknown))
+    if not parts:
+        return ""
+    built = ", ".join(built_ids) if built_ids else "none"
+    return f" — {'; '.join(parts)}. Built figure ids: {built}."
+
+
 def _expected_table_count(state: ReportState) -> int:
     count = sum(
         1
@@ -220,7 +251,10 @@ def run_post_render_validate(state: ReportState) -> ReportState:
     expected_tables = _expected_table_count(state)
     outline_figure_ids = _outline_figure_ids(state)
     if len(doc.inline_shapes) < expected_figures:
-        issues.append(f"expected {expected_figures} embedded figure(s), found {len(doc.inline_shapes)}")
+        issues.append(
+            f"expected {expected_figures} embedded figure(s), found {len(doc.inline_shapes)}"
+            + _figure_shortfall_hint(state, text, outline_figure_ids)
+        )
     if len(doc.tables) < expected_tables:
         issues.append(f"expected {expected_tables} Word table(s), found {len(doc.tables)}")
     reference_heading_count = sum(
