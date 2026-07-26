@@ -18,6 +18,42 @@ from report_workflow.nodes.docx_render import (
 )
 
 
+class ReferenceHeadingLevelTests(unittest.TestCase):
+    """The generated reference list is a top-level section like any other.
+
+    Found by rendering a real lab report (2026-07-27): every section came out
+    at Heading 1 and the appended references at Heading 2, so a Word table of
+    contents nested them under the appendix. The level was pinned in three
+    places at once — the writers, this matcher, and its `add_heading` call.
+    """
+
+    ENTRIES = (
+        "\n\n- Doe, J. (2025). A real source. Journal of Examples.\n"
+        "- Roe, R. (2024). Another source. Example Press.\n"
+    )
+
+    def _heading(self, ref_md):
+        doc = Document()
+        _add_hanging_indent_references(doc, ref_md)
+        headings = [p for p in doc.paragraphs if p.style.name.startswith("Heading")]
+        self.assertEqual(len(headings), 1, "expected exactly one References heading")
+        return headings[0]
+
+    def test_generated_list_renders_at_its_declared_level(self):
+        self.assertEqual(self._heading("# References" + self.ENTRIES).style.name, "Heading 1")
+
+    def test_authored_level_is_preserved_rather_than_forced(self):
+        self.assertEqual(self._heading("### References" + self.ENTRIES).style.name, "Heading 3")
+
+    def test_writers_agree_on_one_heading(self):
+        from report_workflow.nodes.citation_bind import REFERENCE_LIST_HEADING
+
+        self.assertTrue(REFERENCE_LIST_HEADING.startswith("# "))
+        self.assertEqual(
+            self._heading(REFERENCE_LIST_HEADING + self.ENTRIES).style.name, "Heading 1"
+        )
+
+
 class SplitBodyReferencesTests(unittest.TestCase):
     def test_empty_trailing_references_section_is_removed(self):
         md = "# Title\n\nBody prose.\n\n## References\n"

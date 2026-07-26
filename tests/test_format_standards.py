@@ -433,6 +433,57 @@ class LocalArtifactReferenceTest(unittest.TestCase):
         ))
 
 
+class ClaimlessSectionTypeTest(unittest.TestCase):
+    """A required cover page cannot cite anything, so it must not be asked to.
+
+    Found writing a real lab report (2026-07-27): `cover` is required in the
+    outline, and PLAN_LOCK then hard-blocked it for carrying no claims. Omitting
+    it failed the early gate; including it failed the last one, after all the
+    drafting was already done. Exemption is a property of the section type, not
+    a list of ids to remember per profile.
+    """
+
+    def _blueprints(self):
+        import glob
+
+        import yaml
+
+        for path in sorted(glob.glob("src/report_workflow/blueprints/*.yaml")):
+            with open(path, encoding="utf-8") as f:
+                yield path, yaml.safe_load(f)
+
+    def test_front_matter_never_requires_claims_in_any_profile(self):
+        from report_workflow.nodes.section_contract import (
+            CLAIMLESS_SECTION_TYPES,
+            section_requires_claims,
+        )
+
+        checked = 0
+        for path, blueprint in self._blueprints():
+            for section_id, section in (blueprint.get("sections") or {}).items():
+                expected = section.get("section_type") not in CLAIMLESS_SECTION_TYPES
+                self.assertEqual(
+                    section_requires_claims(blueprint, section_id), expected,
+                    f"{path}:{section_id} ({section.get('section_type')})",
+                )
+                checked += 1
+        self.assertGreater(checked, 0, "no blueprint sections were checked")
+
+    def test_a_required_section_may_still_be_claimless(self):
+        from report_workflow.nodes.section_contract import (
+            section_requires_claims,
+            validate_required_outline_sections,
+        )
+
+        blueprint = {"sections": {
+            "cover": {"required": True, "section_type": "front_matter"},
+            "results": {"required": True, "section_type": "results"},
+        }}
+        validate_required_outline_sections(blueprint, {"cover": {}, "results": {}})
+        self.assertFalse(section_requires_claims(blueprint, "cover"))
+        self.assertTrue(section_requires_claims(blueprint, "results"))
+
+
 class LocalArtifactTableConsistencyTest(unittest.TestCase):
     """One table drives the label, the citation, and the curation filter.
 

@@ -41,7 +41,8 @@ def run_section_plan_freeze(state: ReportState) -> ReportState:
                 f"this section covers to outline.json sections.{section_id}."
                 f"claim_ids. A summary section such as an abstract lists the "
                 f"claims it summarizes even though its text carries no "
-                f"[CITE:] markers; only references and appendix may be empty."
+                f"[CITE:] markers; only cover, references, and appendix "
+                f"sections may be empty."
             )
         assigned_claim_ids.update(claim_ids)
 

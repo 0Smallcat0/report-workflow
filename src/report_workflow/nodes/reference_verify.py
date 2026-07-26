@@ -25,7 +25,7 @@ from ..state import ReportState
 from ..errors import QAHardBlockError
 from ..runtime_support import write_json_artifact
 from ..policies import get_policy
-from .citation_bind import LOCAL_ARTIFACT_LABELS
+from .citation_bind import LOCAL_ARTIFACT_LABELS, REFERENCE_LIST_HEADING
 
 
 def _verify_doi(doi: str) -> tuple[bool, str]:
@@ -283,7 +283,11 @@ def _write_curated_reference_list(state: ReportState, refs: list[dict]) -> None:
         seen.add(raw.lower())
 
     if curated:
-        content = "## References\n\n" + "\n\n".join(f"- {item}" for item in curated) + "\n"
+        content = (
+            f"{REFERENCE_LIST_HEADING}\n\n"
+            + "\n\n".join(f"- {item}" for item in curated)
+            + "\n"
+        )
     else:
         content = ""
     path.write_text(content, encoding="utf-8")
