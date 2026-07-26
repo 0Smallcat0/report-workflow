@@ -1648,6 +1648,55 @@ class SourceParseNewTypesTests(unittest.TestCase):
 # Fix #2: evidence_count >= 10 and diversity enforcement
 # ------------------------------------------------------------------
 
+class EvidencePolicyReportingTests(unittest.TestCase):
+    """All three evidence-policy checks report the same way.
+
+    Two of them wrote only to the logger, so `evidence_policy_warnings` read
+    empty on a run that had visibly warned twice, and every message named
+    `academic_paper` whichever profile was actually running.
+    """
+
+    def _reasons_and_warnings(self, profile, roles, count=12):
+        from report_workflow.nodes.qa_gate import _source_diversity_reasons
+
+        state = ReportState.new("report", [], "out")
+        state.spec["report_profile"] = profile
+        entries = [
+            {"evidence_id": f"e{i}", "source_role": roles[i % len(roles)]}
+            for i in range(count)
+        ]
+        state.plan["claim_matrix"] = {"claims": []}
+        with patch("report_workflow.nodes.qa_gate._load_jsonl", return_value=entries):
+            reasons = _source_diversity_reasons(state)
+        return reasons, state.qa.get("evidence_policy_warnings", [])
+
+    def test_all_three_checks_reach_the_structured_report(self):
+        _reasons, warnings = self._reasons_and_warnings(
+            "engineering_lab_report", ["primary_source"]
+        )
+        joined = " | ".join(warnings)
+        self.assertIn("graph_analysis", joined)
+        self.assertIn("code_artifact", joined)
+        self.assertIn("research_document", joined)
+
+    def test_no_warning_names_a_profile_that_is_not_running(self):
+        _reasons, warnings = self._reasons_and_warnings(
+            "engineering_lab_report", ["primary_source"]
+        )
+        self.assertTrue(warnings, "expected evidence-policy warnings")
+        for warning in warnings:
+            self.assertNotIn("academic_paper", warning)
+
+    def test_hard_reason_names_the_running_profile(self):
+        reasons, _warnings = self._reasons_and_warnings(
+            "engineering_lab_report", ["primary_source"], count=3
+        )
+        shortfall = [r for r in reasons if "5 evidence entries" in r]
+        self.assertTrue(shortfall, f"expected an evidence-count reason: {reasons}")
+        self.assertIn("engineering_lab_report", shortfall[0])
+        self.assertNotIn("academic_paper", shortfall[0])
+
+
 class DiversityGateTests(unittest.TestCase):
     def test_evidence_count_below_5_hard_fails(self):
         """academic_paper with < 5 evidence entries -> hard fail."""

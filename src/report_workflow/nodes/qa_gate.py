@@ -239,7 +239,7 @@ def _source_diversity_reasons(state: ReportState) -> list[str]:
     # Lowered from 10 to 5 to be practical for code-only projects.
     if len(evidence_ledger) < 5:
         reasons.append(
-            f"academic_paper requires at least 5 evidence entries "
+            f"{family} requires at least 5 evidence entries "
             f"but found {len(evidence_ledger)}"
         )
 
@@ -277,12 +277,17 @@ def _source_diversity_reasons(state: ReportState) -> list[str]:
         # (we allow mixed derived_summary + primary, but not ONLY derived_summary)
 
     # Check 1: graph_analysis; downgraded to warning (not hard block).
-    # Code-only projects won't have graphify output
+    # Code-only projects won't have graphify output.
+    # All three checks below report the same way. Two of them used to go only to
+    # the logger, so `evidence_policy_warnings` read empty on a run that had
+    # visibly warned twice, and they named `academic_paper` whatever profile was
+    # actually running.
     if "graph_analysis" not in source_roles:
-        import logging
-        logging.getLogger(__name__).warning(
-            "academic_paper: no graph_analysis evidence found; "
-            "consider running graphify for richer analysis"
+        _append_qa_warning(
+            state,
+            "evidence_policy_warnings",
+            "no graph_analysis evidence found; "
+            "consider running graphify for richer analysis",
         )
 
     # Check 2: code_artifact is preferred for implementation-specific claims,
@@ -307,10 +312,11 @@ def _source_diversity_reasons(state: ReportState) -> list[str]:
     # Check 3: research_document; downgraded to warning (not hard block).
     # Code-only projects won't have literature PDFs
     if "research_document" not in source_roles:
-        import logging
-        logging.getLogger(__name__).warning(
-            "academic_paper: no research_document evidence found; "
-            "consider adding literature references for stronger claims"
+        _append_qa_warning(
+            state,
+            "evidence_policy_warnings",
+            "no research_document evidence found; "
+            "consider adding literature references for stronger claims",
         )
 
     # Fix #4: derived_summary alone check.
