@@ -17,6 +17,52 @@ from report_workflow.agent_wrapper import (
 from report_workflow.state import register_job_run
 
 
+class BaseDocumentHeadingRoundTripTests(unittest.TestCase):
+    """Revising a document must not rewrite its headings.
+
+    Section ids are slugs of the heading text, and the titles map was built as
+    an identity over those slugs, so every numbered heading came back out with
+    an underscore in it: "1. 實驗目的" rendered as "1._實驗目的". Ten headings in
+    a real lab report, in the DOCX the author would hand in.
+    """
+
+    HEADINGS = ["摘要", "1. 實驗目的", "2. 需求與規格矩陣", "10. 附錄"]
+
+    def _parse(self, tmpdir):
+        from docx import Document
+
+        from report_workflow.nodes.base_document_parse import _parse_docx_section
+
+        doc = Document()
+        for heading in self.HEADINGS:
+            doc.add_heading(heading, level=1)
+            doc.add_paragraph(f"{heading} 的內文。")
+        path = str(Path(tmpdir) / "base.docx")
+        doc.save(path)
+        return _parse_docx_section(path)
+
+    def test_titles_keep_the_heading_text_verbatim(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _sections, titles = self._parse(tmpdir)
+            self.assertEqual(sorted(titles.values()), sorted(self.HEADINGS))
+
+    def test_no_title_carries_a_slug_underscore(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _sections, titles = self._parse(tmpdir)
+            self.assertFalse(
+                [title for title in titles.values() if "_" in title],
+                f"slug leaked into a display title: {titles}",
+            )
+
+    def test_every_addressable_section_has_a_title(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            sections, titles = self._parse(tmpdir)
+            addressable = [sid for sid in sections if sid != "preamble"]
+            self.assertTrue(addressable)
+            for section_id in addressable:
+                self.assertIn(section_id, titles)
+
+
 class ComputeRevisionDiffTests(unittest.TestCase):
     """Test compute_revision_diff function."""
 

@@ -965,11 +965,22 @@ either way and are recorded explicitly in the revision diff report.
    - Returns a diff preview showing what each change would do
 3. If validation fails, fix `revision_plan.json` and call again.
 4. Optionally call `preview_revision_diff(job_id="...")` for a read-only preview.
-5. Once validated, call `submit_and_publish_report(job_id="...")`.
+5. Call `get_controlled_next_action` and complete whatever it still asks for.
+6. Once nothing is outstanding, call `submit_and_publish_report(job_id="...")`.
+
+A validated revision plan is not a publishable job. `revise_existing` requires
+the same `claim_matrix.json`, `outline.json`, `section_drafts/*.md`, and
+`sentence_map.jsonl` as a new draft; the plan is an additional artifact, not a
+replacement for them.
+
+`revision_plan.json` is the only surface that changes the **published text** —
+the merged draft is built from the base document with your changes applied, so
+section drafts are validated but do not become body content. Anything that must
+appear in the revised document, a `[FIGURE:<id>]` placeholder included, belongs
+in a change's `new_text`.
 
 Do not edit `base_document_sections.json`, checkpoint files, or rendered markdown
-artifacts directly. For `revise_existing`, the only supported authoring surface is
-`revision_plan.json`.
+artifacts directly.
 
 ## Best Practices
 - Modify 1-3 sections per revision plan. Large plans risk conflicts.
