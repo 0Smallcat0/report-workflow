@@ -48,7 +48,60 @@ def _drop_generated_toc(preamble: str) -> str:
     return "\n".join(kept).strip()
 
 
-def _parse_docx_section(path: str) -> tuple[dict[str, str], dict[str, str]]:
+def _extract_docx_media(archive, media_dir: Path) -> dict[str, str]:
+    """Copy embedded images out of the archive and map relationship id to path.
+
+    A figure is content the author put in the document. Reading only ``w:t``
+    text nodes dropped every image, so revising a report deleted its charts and
+    left their captions standing over nothing.
+    """
+    import re as _re
+
+    try:
+        rels_xml = archive.read("word/_rels/document.xml.rels").decode("utf-8")
+    except KeyError:
+        return {}
+
+    targets = dict(
+        _re.findall(r'Id="([^"]+)"[^>]*Target="(media/[^"]+)"', rels_xml)
+    )
+    if not targets:
+        return {}
+
+    media_dir.mkdir(parents=True, exist_ok=True)
+    extracted: dict[str, str] = {}
+    for rel_id, target in targets.items():
+        member = f"word/{target}"
+        try:
+            payload = archive.read(member)
+        except KeyError:
+            continue
+        out_path = media_dir / Path(target).name
+        out_path.write_bytes(payload)
+        extracted[rel_id] = str(out_path)
+    return extracted
+
+
+_DRAWING_BLIP_TAG = "{http://schemas.openxmlformats.org/drawingml/2006/main}blip"
+_DRAWING_EMBED_ATTR = (
+    "{http://schemas.openxmlformats.org/officeDocument/2006/relationships}embed"
+)
+
+
+def _image_markdown_for_paragraph(paragraph, media_by_rel: dict[str, str]) -> str:
+    """Markdown image links for every image embedded in one paragraph."""
+    links: list[str] = []
+    for blip in paragraph.iter(_DRAWING_BLIP_TAG):
+        rel_id = blip.get(_DRAWING_EMBED_ATTR)
+        target = media_by_rel.get(rel_id or "")
+        if target:
+            links.append(f"![]({target})")
+    return " ".join(links)
+
+
+def _parse_docx_section(
+    path: str, media_dir: Path | None = None
+) -> tuple[dict[str, str], dict[str, str]]:
     """Extract paragraphs from a .docx file as section_chunks.
 
     We avoid heavy dependencies by reading the docx XML directly via zipfile.
@@ -60,6 +113,10 @@ def _parse_docx_section(path: str) -> tuple[dict[str, str], dict[str, str]]:
     underscore through every numbered heading on the way back out
     ("1. 實驗目的" became "1._實驗目的"). The titles map keeps the heading text
     exactly as the document had it.
+
+    When ``media_dir`` is given, embedded images are extracted there and each
+    one is re-emitted as a markdown image link at the paragraph it occupied, so
+    a revision keeps the figures the base document already had.
     """
     import zipfile
 
@@ -70,6 +127,7 @@ def _parse_docx_section(path: str) -> tuple[dict[str, str], dict[str, str]]:
 
     try:
         with zipfile.ZipFile(path, "r") as z:
+            media_by_rel = _extract_docx_media(z, media_dir) if media_dir else {}
             # Read document.xml
             with z.open("word/document.xml") as f:
                 import xml.etree.ElementTree as ET
@@ -86,6 +144,10 @@ def _parse_docx_section(path: str) -> tuple[dict[str, str], dict[str, str]]:
                             if t.tag.endswith("}t") and t.text:
                                 texts.append(t.text)
                         line = "".join(texts).strip()
+                        if not line and media_by_rel:
+                            # An image sits alone in its own paragraph, with no
+                            # text to carry it. Re-emit it where it stood.
+                            line = _image_markdown_for_paragraph(elem, media_by_rel)
                         if not line:
                             continue
 
@@ -300,7 +362,9 @@ def run_base_document_parse(state: ReportState) -> ReportState:
 
     docx_titles: dict[str, str] = {}
     if file_type == "docx":
-        sections, docx_titles = _parse_docx_section(file_path)
+        sections, docx_titles = _parse_docx_section(
+            file_path, media_dir=WORKFLOW_RUNS_DIR / state.job_id / "base_media"
+        )
     elif file_type == "md":
         sections = _parse_markdown_sections(file_path)
     else:
