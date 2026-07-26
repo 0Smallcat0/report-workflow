@@ -433,6 +433,57 @@ class LocalArtifactReferenceTest(unittest.TestCase):
         ))
 
 
+class FigureShortfallHintTest(unittest.TestCase):
+    """A figure count on its own is not actionable.
+
+    Three ways to end up with fewer embedded figures than expected, and the
+    hint must distinguish them: a placeholder naming an id that was never
+    built, an outline referencing one, and a figure built that no section
+    mentions at all — the last surfaced in a revision run, where section
+    drafts are validated but never become body content.
+    """
+
+    def _state(self, tmpdir, built_ids):
+        import json as _json
+
+        from report_workflow.state import ReportState
+
+        state = ReportState.new("render report", [], str(Path(tmpdir) / "out"))
+        manifest = Path(tmpdir) / "figure_manifest.json"
+        manifest.write_text(
+            _json.dumps({"figures": [{"figure_id": fid} for fid in built_ids]}),
+            encoding="utf-8",
+        )
+        state.output["figure_manifest_path"] = str(manifest)
+        return state
+
+    def test_unresolved_placeholder_is_named(self):
+        from report_workflow.nodes.post_render_validate import _figure_shortfall_hint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            hint = _figure_shortfall_hint(
+                self._state(tmpdir, ["1"]), "prose [FIGURE:figrec_1] more", {"figrec_1"}
+            )
+            self.assertIn("[FIGURE:figrec_1]", hint)
+            self.assertIn("Built figure ids: 1", hint)
+
+    def test_built_but_unreferenced_figure_is_explained(self):
+        from report_workflow.nodes.post_render_validate import _figure_shortfall_hint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            hint = _figure_shortfall_hint(self._state(tmpdir, ["1"]), "prose only", set())
+            self.assertIn("no section references them", hint)
+            self.assertIn("Built figure ids: 1", hint)
+
+    def test_no_figures_at_all_stays_silent(self):
+        from report_workflow.nodes.post_render_validate import _figure_shortfall_hint
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self.assertEqual(
+                _figure_shortfall_hint(self._state(tmpdir, []), "prose only", set()), ""
+            )
+
+
 class ClaimlessSectionTypeTest(unittest.TestCase):
     """A required cover page cannot cite anything, so it must not be asked to.
 

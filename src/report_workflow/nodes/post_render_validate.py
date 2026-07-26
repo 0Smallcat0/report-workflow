@@ -99,6 +99,14 @@ def _figure_shortfall_hint(
     unknown = sorted(fid for fid in outline_figure_ids if fid not in {b.lower() for b in built_ids})
     if unknown:
         parts.append("outline figure_ids with no built figure: " + ", ".join(unknown))
+    if not parts and built_ids:
+        # Nothing is malformed — the figures were built and simply never
+        # referenced. Saying so is the difference between an author looking for
+        # a typo and an author placing a figure.
+        parts.append(
+            "no section references them; place [FIGURE:<id>] where the figure "
+            "belongs, or drop the figure"
+        )
     if not parts:
         return ""
     built = ", ".join(built_ids) if built_ids else "none"

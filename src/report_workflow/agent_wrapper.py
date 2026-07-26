@@ -793,10 +793,17 @@ def submit_revision_plan(job_id: str, workspace_root: str | None = None) -> dict
         return {
             "status": "ok",
             "job_id": job_id,
+            # This validates the plan, not the job. A revision still needs the
+            # same claim matrix, outline, section drafts, and sentence map as a
+            # new draft, and promising publication here sent authors into three
+            # successive rejections that each revealed one more requirement.
+            # The controlled router already knows what is outstanding; point at
+            # it rather than restating a list that would drift.
             "message": (
                 f"Revision plan validated: {diff_result['valid_changes']}/"
                 f"{diff_result['total_changes']} changes are valid. "
-                f"You can now call submit_and_publish_report."
+                f"Call get_controlled_next_action to see what this job still "
+                f"needs before submit_and_publish_report."
             ),
             "diff_report_path": report_path,
             "preview": diff_result["preview"],

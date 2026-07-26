@@ -17,16 +17,23 @@ from ..artifact_contract import write_base_document_integrity
 from ..language import ZH_ORDINAL_PREFIX_RE
 
 
-def _parse_docx_section(path: str) -> dict[str, str]:
+def _parse_docx_section(path: str) -> tuple[dict[str, str], dict[str, str]]:
     """Extract paragraphs from a .docx file as section_chunks.
 
     We avoid heavy dependencies by reading the docx XML directly via zipfile.
     Each top-level paragraph becomes a chunk; consecutive chunks with no
     heading are merged until a heading-1 is encountered (new section).
+
+    Returns ``(sections, titles)``. The section id is a slug of the heading, so
+    it cannot double as the heading itself — rendering the slug put an
+    underscore through every numbered heading on the way back out
+    ("1. 實驗目的" became "1._實驗目的"). The titles map keeps the heading text
+    exactly as the document had it.
     """
     import zipfile
 
     sections: dict[str, str] = {}
+    titles: dict[str, str] = {}
     current_section_id = "preamble"
     current_lines: list[str] = []
 
@@ -64,9 +71,10 @@ def _parse_docx_section(path: str) -> dict[str, str]:
                             if current_lines:
                                 sections[current_section_id] = "\n".join(current_lines)
                                 current_lines = []
-                            # Use the heading text as section id
+                            # Slug for addressing, heading text for display.
                             heading_text = line.lower().replace(" ", "_")
                             current_section_id = heading_text[:48]
+                            titles[current_section_id] = line
                         current_lines.append(line)
     except Exception as exc:
         raise QAHardBlockError(f"Failed to parse base document {path}: {exc}")
@@ -75,7 +83,7 @@ def _parse_docx_section(path: str) -> dict[str, str]:
     if current_lines:
         sections[current_section_id] = "\n".join(current_lines)
 
-    return sections
+    return sections, titles
 
 
 _NUMBERED_HEADING_RE = re.compile(r"^\s*\d+(?:\.\d+)*\.?\s+")
@@ -256,8 +264,9 @@ def run_base_document_parse(state: ReportState) -> ReportState:
             f"base_document must be .docx, .md, or .txt; got .{file_type}"
         )
 
+    docx_titles: dict[str, str] = {}
     if file_type == "docx":
-        sections = _parse_docx_section(file_path)
+        sections, docx_titles = _parse_docx_section(file_path)
     elif file_type == "md":
         sections = _parse_markdown_sections(file_path)
     else:
@@ -266,8 +275,11 @@ def run_base_document_parse(state: ReportState) -> ReportState:
 
     if file_type == "md":
         titles = _extract_markdown_section_titles(file_path)
+    elif file_type == "docx":
+        titles = docx_titles
     else:
-        # docx/txt parsing uses the heading text itself as the section id.
+        # A .txt base document has no headings to recover, so the section id
+        # is all there is; it is the whole file under "preamble" anyway.
         titles = {section_id: section_id for section_id in sections if section_id != "preamble"}
 
     run_dir = WORKFLOW_RUNS_DIR / state.job_id
