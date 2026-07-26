@@ -1536,6 +1536,74 @@ class EvidenceNormalizeNewFieldsTests(unittest.TestCase):
 # ------------------------------------------------------------------
 
 class SourceParseNewTypesTests(unittest.TestCase):
+    def test_pasted_spreadsheet_table_becomes_a_table_block(self):
+        """Copying a selection out of a spreadsheet yields tab-separated lines.
+
+        It is the most common way a measurement table enters a notes file, and
+        it used to be swallowed into the paragraph above it: no table_data, no
+        chart, and the numbers graded as prose.
+        """
+        from report_workflow.parsers.semi_structured_parser import parse_markdown
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "notes.md"
+            src.write_text(
+                "今天量了一輪，結果如下\n"
+                "流量\t冷側出口\t有效度\n"
+                "2\t49.8\t0.709\n"
+                "4\t48.1\t0.660\n"
+                "\n"
+                "之後再整理\n",
+                encoding="utf-8",
+            )
+            blocks = parse_markdown(str(src))["blocks"]
+            tables = [b for b in blocks if b["block_type"] == "table"]
+            self.assertEqual(len(tables), 1, f"expected one table block: {blocks}")
+            self.assertEqual(tables[0]["table_data"][0], ["流量", "冷側出口", "有效度"])
+            self.assertEqual(len(tables[0]["table_data"]), 3)
+            # The lead-in sentence keeps its own block rather than absorbing the table.
+            paragraphs = [b for b in blocks if b["block_type"] == "paragraph"]
+            self.assertTrue(any("今天量了一輪" in b["content"] for b in paragraphs))
+            self.assertFalse(any("49.8" in b["content"] for b in paragraphs))
+
+    def test_markdown_pipe_table_becomes_a_table_block(self):
+        from report_workflow.parsers.semi_structured_parser import parse_markdown
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "notes.md"
+            src.write_text(
+                "| flow | outlet |\n| --- | --- |\n| 2 | 49.8 |\n| 4 | 48.1 |\n",
+                encoding="utf-8",
+            )
+            tables = [b for b in parse_markdown(str(src))["blocks"]
+                      if b["block_type"] == "table"]
+            self.assertEqual(len(tables), 1)
+            self.assertEqual(tables[0]["table_data"][0], ["flow", "outlet"])
+            self.assertEqual(len(tables[0]["table_data"]), 3)
+
+    def test_prose_containing_one_tab_stays_prose(self):
+        """A run needs two rows of equal width, so a stray tab is not a table."""
+        from report_workflow.parsers.semi_structured_parser import parse_markdown
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "notes.md"
+            src.write_text("量測條件\t冷側 25 度，熱側 60 度。\n之後再確認定義。\n", encoding="utf-8")
+            blocks = parse_markdown(str(src))["blocks"]
+            self.assertFalse([b for b in blocks if b["block_type"] == "table"])
+
+    def test_whole_table_block_counts_as_quantitative(self):
+        """PDF, DOCX and markdown parsers all emit block_type "table".
+
+        Only the single-row CSV shapes were listed, so a measurement table from
+        any other source fell through to keyword matching and came out
+        qualitative — which blocks statistical claims on the user's own data.
+        """
+        from report_workflow.nodes.evidence_normalize import determine_evidence_type
+
+        rows = "流量\t冷側出口\t有效度\n2\t49.8\t0.709\n4\t48.1\t0.660"
+        self.assertEqual(determine_evidence_type(rows, "table"), "quantitative")
+        self.assertEqual(determine_evidence_type(rows, "csv_row"), "quantitative")
+
     def test_parse_markdown_splits_blocks(self):
         """parse_markdown splits .md files into blocks with line_start/line_end."""
         from report_workflow.parsers.semi_structured_parser import parse_markdown
