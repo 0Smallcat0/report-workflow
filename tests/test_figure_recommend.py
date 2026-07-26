@@ -25,6 +25,61 @@ def _state(tmpdir: str, profile: str = "engineering_lab_report") -> ReportState:
     return state
 
 
+class HeldConstantColumnTests(unittest.TestCase):
+    """Controlled variables are constants, and a constant is not a relationship.
+
+    Holding the two inlet temperatures fixed is standard experimental practice,
+    so they sit in the file ahead of the columns the report is actually about.
+    Positional axis selection used to plot the first of them and produce a
+    scatter of six identical points.
+    """
+
+    TABLE = [
+        ["流量 (L/min)", "冷側入口 (°C)", "冷側出口 (°C)", "實測有效度"],
+        ["2", "25.0", "49.8", "0.709"],
+        ["4", "25.0", "48.1", "0.660"],
+        ["6", "25.0", "46.3", "0.609"],
+        ["8", "25.0", "43.5", "0.529"],
+        ["10", "25.0", "41.2", "0.463"],
+        ["12", "25.0", "39.4", "0.411"],
+    ]
+
+    def _recommend(self, table_data):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            return recommend_figures_from_evidence(state, [{
+                "evidence_id": "E1",
+                "source_id": "phe",
+                "source_file_name": "data.csv",
+                "granularity": "table",
+                "content": "heat exchanger effectiveness sweep",
+                "table_data": table_data,
+            }])
+
+    def test_constant_column_is_never_an_axis(self):
+        plan = self._recommend(self.TABLE)[0]["figure_plan"]
+        self.assertNotIn("冷側入口", plan["ylabel"])
+        self.assertNotIn("冷側入口", plan["xlabel"])
+        self.assertGreater(len(set(plan["data"]["y"])), 1)
+
+    def test_exclusion_is_reported_not_silent(self):
+        warnings = self._recommend(self.TABLE)[0]["selection_warnings"]
+        self.assertTrue(
+            any("冷側入口 (°C)" in warning for warning in warnings),
+            f"dropped column should be named in selection_warnings: {warnings}",
+        )
+
+    def test_all_constant_measures_fall_back_instead_of_vanishing(self):
+        flat = [
+            ["設定點", "讀值 A", "讀值 B"],
+            ["1", "25.0", "60.0"],
+            ["2", "25.0", "60.0"],
+            ["3", "25.0", "60.0"],
+            ["4", "25.0", "60.0"],
+        ]
+        self.assertTrue(self._recommend(flat))
+
+
 class MonthlyTrendChartTests(unittest.TestCase):
     """A monthly table carrying one "%" column is a trend, not a composition."""
 

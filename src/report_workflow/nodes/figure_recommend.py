@@ -499,6 +499,36 @@ def _non_error_numeric_indices(headers: list[str], numeric_indices: list[int]) -
     return [index for index in numeric_indices if index not in error_index_set]
 
 
+def _varying_measure_indices(profile: dict, indices: list[int]) -> list[int]:
+    """Drop held-constant columns from relationship-axis candidates.
+
+    A column with a single distinct value is a controlled variable, not a
+    relationship. Held fixed on purpose — a constant inlet temperature, a
+    fixed set point — it plots as a flat line that carries no information,
+    and picking it positionally can crowd out the column the reader came for.
+
+    Composition, matrix, and distribution charts are deliberately not filtered:
+    there a constant column is a real share of the whole, not a dead axis.
+
+    Falls back to the original list when every candidate is constant, so a
+    degenerate table still produces its usual recommendation rather than none.
+    """
+    unique_counts = {
+        int(column["index"]): int(column.get("unique_count", 0))
+        for column in profile.get("columns", [])
+    }
+    varying = [index for index in indices if unique_counts.get(index, 0) > 1]
+    return varying or indices
+
+
+def _constant_column_headers(
+    profile: dict, headers: list[str], indices: list[int]
+) -> list[str]:
+    """Names of the candidates `_varying_measure_indices` would drop."""
+    kept = set(_varying_measure_indices(profile, indices))
+    return [headers[index] for index in indices if index not in kept]
+
+
 def _all_values_non_negative(rows: list[list[str]], numeric_indices: list[int]) -> bool:
     for index in numeric_indices:
         values = _numeric_values_for_rows(rows, index)
@@ -727,6 +757,16 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
     composition_indices = _indices_with_role(profile, "composition_value")
     error_indices = _error_indices(headers, numeric_indices)
     measure_indices = _non_error_numeric_indices(headers, numeric_indices)
+    # Relationship charts (scatter, line, bar) read one column against another,
+    # so a held-constant column is a dead axis there. Composition, matrix, and
+    # distribution branches below keep the unfiltered `measure_indices`.
+    relationship_indices = _varying_measure_indices(profile, measure_indices)
+    held_constant_headers = _constant_column_headers(profile, headers, measure_indices)
+    if held_constant_headers:
+        warnings.append(
+            "Held-constant columns were excluded from relationship chart axes: "
+            + ", ".join(held_constant_headers)
+        )
     chart_candidates: list[dict] = []
 
     if summary.get("parameter_table") and len(rows) - 1 <= MAX_TABLE_FIGURE_ROWS:
@@ -790,7 +830,7 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
     scatter_shape = (
         not time_indices
         and not categorical_indices
-        and len(measure_indices) >= 2
+        and len(relationship_indices) >= 2
         and len(rows) - 1 >= 3
     )
     if summary.get("mixed_measure_units") and not scatter_shape:
@@ -1024,7 +1064,7 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
 
     if time_indices and numeric_indices:
         x_index = time_indices[0]
-        y_indices = measure_indices[:3]
+        y_indices = relationship_indices[:3]
         if not y_indices:
             return None
         reason = "Ordered time/step data with numeric measurements should be shown as a line chart to preserve trend direction."
@@ -1047,7 +1087,7 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
 
     if categorical_indices and (measure_indices or composition_indices):
         cat_index = _distinct_label_index(rows, categorical_indices)
-        y_indices = (measure_indices or composition_indices)[:3]
+        y_indices = (relationship_indices or composition_indices)[:3]
         reason = "Categorical labels with numeric values should be compared with a bar chart."
         chart_candidates.append(_chart_candidate("bar", 0.88, "high", reason))
         return _make_recommendation(
@@ -1066,8 +1106,8 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
             selection_warnings=warnings,
         )
 
-    if len(measure_indices) >= 2 and len(rows) - 1 >= 3:
-        x_index, y_index = measure_indices[:2]
+    if len(relationship_indices) >= 2 and len(rows) - 1 >= 3:
+        x_index, y_index = relationship_indices[:2]
         reason = (
             "Two numeric measurement variables across multiple observations are suited "
             "to scatter plots for relationship inspection."
