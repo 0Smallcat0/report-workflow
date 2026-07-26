@@ -19,6 +19,47 @@ from report_workflow.run_workflow import WorkflowStage, WorkflowStep, prepare_wo
 from report_workflow.state import ReportState, run_dir_for  # noqa: E402
 
 
+class ScopeViolationMessageTests(unittest.TestCase):
+    """A blocked stage has to say how to get unblocked.
+
+    Writing every authoring artifact in one pass trips the guard, and the
+    response named the offending paths without stating a remedy. The remedy is
+    also not uniform: a file the author created clears by deleting it, one that
+    already existed clears only by restoring its content — and an author
+    directory holds a pipeline-generated `figure_plan.json`, so "delete
+    everything I wrote" keeps the stage blocked.
+    """
+
+    def _message(self, count=1):
+        from report_workflow.automation_harness import _scope_violation_message
+
+        violations = [
+            {"path": f"C:/run/section_drafts/s{i}.md",
+             "relative_path": f"section_drafts/s{i}.md",
+             "reason": "changed outside current stage write scope"}
+            for i in range(count)
+        ]
+        return _scope_violation_message("claim_matrix", violations)
+
+    def test_names_the_offending_path_and_the_stage(self):
+        message = self._message()
+        self.assertIn("section_drafts/s0.md", message)
+        self.assertIn("claim_matrix", message)
+
+    def test_states_both_remedies(self):
+        message = self._message()
+        self.assertIn("delete it if you created it", message)
+        self.assertIn("restore its previous content", message)
+
+    def test_warns_about_the_generated_file_in_an_author_directory(self):
+        self.assertIn("section_drafts/figure_plan.json", self._message())
+
+    def test_long_violation_lists_are_summarized(self):
+        message = self._message(count=9)
+        self.assertIn("and 4 more", message)
+        self.assertNotIn("section_drafts/s8.md", message)
+
+
 def _all_packages_present(_module_name):
     return object()
 
