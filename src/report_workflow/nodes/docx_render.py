@@ -586,7 +586,31 @@ def _render_via_pandoc(
 # Post-render validation
 # ------------------------------------------------------------------
 
-def _validate_docx(docx_path: str) -> list[str]:
+_MARKUP_STRIP_RE = re.compile(
+    r"```.*?```|!\[[^\]]*\]\([^)]*\)|\[[^\]]*\]\([^)]*\)|[#*_>`|-]", re.DOTALL
+)
+
+
+def _prose_length(text: str) -> int:
+    """Characters of actual prose, markup and whitespace removed."""
+    return len("".join(_MARKUP_STRIP_RE.sub(" ", text or "").split()))
+
+
+def _docx_text_length(doc: Document) -> int:
+    """Every character the document shows, tables included.
+
+    ``doc.paragraphs`` does not reach inside tables, so a report whose
+    results are a table counted as almost empty.
+    """
+    total = sum(len(p.text) for p in doc.paragraphs)
+    for table in doc.tables:
+        for row in table.rows:
+            for cell in row.cells:
+                total += len(cell.text)
+    return total
+
+
+def _validate_docx(docx_path: str, source_markdown: str | None = None) -> list[str]:
     """Validate a rendered DOCX file. Returns list of issues (empty = OK)."""
     issues = []
     path = Path(docx_path)
@@ -609,10 +633,21 @@ def _validate_docx(docx_path: str) -> list[str]:
         if len(headings) == 0:
             issues.append("DOCX has no headings; structure may be broken")
 
-        # Check total text length
-        total_text = sum(len(p.text) for p in doc.paragraphs)
-        if total_text < 500:
-            issues.append(f"DOCX total text is only {total_text} chars; likely incomplete")
+        # Did the render lose the content? Measured against the markdown it
+        # came from, not against a fixed character count. A 500-character
+        # floor asks "is this long enough in English": Chinese says the same
+        # thing in far fewer characters, so a complete report in Chinese was
+        # told it was "likely incomplete" while its English translation
+        # passed. The same threshold-tuned-in-English mistake as the block
+        # floor that discarded short CJK headings.
+        if source_markdown is not None:
+            rendered = _docx_text_length(doc)
+            source = _prose_length(source_markdown)
+            if source and rendered < source * 0.5:
+                issues.append(
+                    f"DOCX carries {rendered} chars of the source's {source}; "
+                    "content was lost in rendering"
+                )
 
     except Exception as exc:
         issues.append(f"Cannot open DOCX for validation: {exc}")
@@ -1420,7 +1455,7 @@ def run_docx_render(state: ReportState) -> ReportState:
         _style_tables_post_render(str(final_docx_path))
 
     # --- Post-render validation ---
-    validation_issues = _validate_docx(str(final_docx_path))
+    validation_issues = _validate_docx(str(final_docx_path), md_content)
     if validation_issues:
         logger.warning(
             f"[DOCX_RENDER] Post-render validation issues: {'; '.join(validation_issues)}"

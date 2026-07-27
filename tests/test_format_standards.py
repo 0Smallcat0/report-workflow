@@ -891,6 +891,73 @@ class DuplicateCitationCollapseTest(unittest.TestCase):
         text = "Both sources agree. [1] [2]"
         self.assertEqual(_collapse_adjacent_duplicate_citations(text), text)
 
+    def _rendered(self, tmpdir, paragraphs, table_rows=None):
+        from docx import Document
+
+        path = str(Path(tmpdir) / "out.docx")
+        document = Document()
+        for text in paragraphs:
+            document.add_paragraph(text)
+        if table_rows:
+            table = document.add_table(rows=len(table_rows),
+                                       cols=len(table_rows[0]))
+            for r, row in enumerate(table_rows):
+                for c, cell in enumerate(row):
+                    table.cell(r, c).text = cell
+        document.save(path)
+        return path
+
+    def test_a_complete_chinese_report_is_not_called_incomplete(self):
+        """The floor was 500 characters, which asks "long enough in English".
+
+        Chinese says the same thing in far fewer characters, so a finished
+        report was told it was likely incomplete while its English
+        translation passed — the same threshold-tuned-in-English mistake as
+        the block floor that discarded short CJK headings.
+        """
+        from report_workflow.nodes.docx_render import _validate_docx
+
+        source = ("# 板式熱交換器效能量測報告\n\n## 1. 實驗目的\n\n"
+                  "評估不同流量下的有效度，並與理論模型比較。\n\n"
+                  "## 2. 結果\n\n以最小平方法擬合，斜率為 2.45。\n")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = self._rendered(tmpdir, [
+                "板式熱交換器效能量測報告", "1. 實驗目的",
+                "評估不同流量下的有效度，並與理論模型比較。",
+                "2. 結果", "以最小平方法擬合，斜率為 2.45。"])
+            self.assertEqual(
+                [i for i in _validate_docx(path, source) if "chars" in i], [])
+
+    def test_losing_the_content_is_still_reported(self):
+        from report_workflow.nodes.docx_render import _validate_docx
+
+        source = "# 標題\n\n" + "本節說明流量與有效度之關係。" * 60
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = self._rendered(tmpdir, ["標題", "本節說明流量與有效度之關係。"])
+            issues = _validate_docx(path, source)
+            self.assertTrue(any("lost in rendering" in i for i in issues), issues)
+
+    def test_a_report_that_is_mostly_a_table_is_counted(self):
+        """doc.paragraphs does not reach inside tables, so a results table
+        counted as almost nothing."""
+        from docx import Document
+
+        from report_workflow.nodes.docx_render import _docx_text_length
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = self._rendered(
+                tmpdir, ["量測結果"],
+                [["流量 (L/min)", "實測有效度 (%)"], ["2.0", "72.4"], ["3.0", "76.1"]])
+            document = Document(path)
+            paragraphs_only = sum(len(p.text) for p in document.paragraphs)
+            self.assertGreater(_docx_text_length(document), paragraphs_only)
+
+    def test_markup_is_not_counted_as_prose(self):
+        from report_workflow.nodes.docx_render import _prose_length
+
+        self.assertEqual(_prose_length("# 標題\n\n| a | b |\n| --- | --- |\n"),
+                         _prose_length("標題 a b"))
+
     def test_a_file_name_does_not_name_authors(self):
         """A reference list may not name people who do not exist.
 
