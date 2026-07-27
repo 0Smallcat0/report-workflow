@@ -101,6 +101,7 @@ def run_source_parse(state: ReportState) -> ReportState:
         raise QAHardBlockError("No registered sources to parse")
 
     updated_registry = []
+    unreadable: list[str] = []
     for entry in source_registry:
         # base_document entries are handled by BASE_DOCUMENT_PARSE, skip here
         if entry.get("artifact_role") == "base_document":
@@ -145,11 +146,23 @@ def run_source_parse(state: ReportState) -> ReportState:
             # attached a zero-byte file that Markdown is unsupported.
             entry["parse_error"] = parsed.get("error") or reason
             if entry.get("artifact_role", "source_data") == "source_data":
-                raise QAHardBlockError(
-                    f"Failed to parse source {entry.get('file_name')}: {entry['parse_error']}"
+                # Collected, not raised here. Raising on the first one meant an
+                # author with three unreadable attachments discovered them one
+                # per run: fix, resubmit, meet the next. One pass already knows
+                # about all of them.
+                unreadable.append(
+                    f"{entry.get('file_name')}: {entry['parse_error']}"
                 )
 
         updated_registry.append(entry)
+
+    if unreadable:
+        if len(unreadable) == 1:
+            raise QAHardBlockError(f"Failed to parse source {unreadable[0]}")
+        listed = "; ".join(unreadable)
+        raise QAHardBlockError(
+            f"Failed to parse {len(unreadable)} sources — {listed}"
+        )
 
     if not any(entry.get("parsed_content") for entry in updated_registry):
         # In revise_existing mode with only base_document entries, BASE_DOCUMENT_PARSE handles them downstream
