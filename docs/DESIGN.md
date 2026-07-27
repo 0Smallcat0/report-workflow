@@ -218,6 +218,26 @@ Closing the negation/misattribution gap would require an NLI-style semantic
 checker, which would reintroduce a probabilistic component; the design keeps
 that trade-off explicit instead of blending the two.
 
+### Two things this does not detect, by decision
+
+**Disagreement between sources.** If two attached files state different
+values for the same quantity, nothing notices. A mechanical rule — same
+column, same key, different value — is easy to write and wrong most of the
+time: two CSVs whose `Voltage` columns differ are usually two experiments,
+not a contradiction. Firing on those would trade the measured 0% false-block
+rate for warnings an author learns to dismiss, which is worse than silence.
+Detecting real disagreement needs to know what each file *is*, and that is
+the semantic layer this design refuses. Both values reach the draft, both are
+cited, and the author decides.
+
+**Censored measurements as chart data.** A column written `<0.01` — below the
+detection limit, standard in lab data — profiles as categorical rather than
+as a measure, so it is tabulated and never plotted. Counting censored cells
+toward a column's numeric ratio would let a chart draw the half of a column
+that happens to be plain numbers without saying so, which is a worse failure
+than not drawing it. Claims citing such a cell are still checked: a bound is
+rejected as a stand-in for a reading (§2).
+
 ### Formatting boundary
 
 The renderer targets a clean, submission-ready *manuscript*: title page

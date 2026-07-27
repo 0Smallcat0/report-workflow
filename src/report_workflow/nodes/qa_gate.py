@@ -237,10 +237,25 @@ def _source_diversity_reasons(state: ReportState) -> list[str]:
         return reasons  # Empty ledger handled by other checks; skip diversity check here
 
     # Lowered from 10 to 5 to be practical for code-only projects.
-    if len(evidence_ledger) < 5:
+    #
+    # Distinct content, not entries. This check asks whether there is enough
+    # source material to write from, and five copies of one row is one piece
+    # of material. Counting entries meant the same file attached twice, or a
+    # spreadsheet's trailing blank rows, could carry a thin source set over
+    # the bar. The ledger itself keeps every entry — attaching a file twice
+    # is still visible there; it just stops counting twice here.
+    # An entry with no content falls back to its id rather than collapsing
+    # with every other contentless entry: whether a malformed ledger should
+    # fail this particular check is a separate question from duplication,
+    # and no observed run has produced one.
+    distinct_sources = {
+        (entry.get("content") or "").strip() or f"id:{entry.get('evidence_id')}"
+        for entry in evidence_ledger
+    }
+    if len(distinct_sources) < 5:
         reasons.append(
-            f"{family} requires at least 5 evidence entries "
-            f"but found {len(evidence_ledger)}"
+            f"{family} requires at least 5 evidence entries with distinct "
+            f"content but found {len(distinct_sources)}"
         )
 
     # Collect source_role distribution
@@ -569,7 +584,6 @@ def _write_qa_summary(state: ReportState) -> None:
         "citation_audit": state.citations.get("citation_audit", []),
         "sidecar_traceability": state.citations.get("sidecar_traceability", {}),
         "factuality_report_path": state.qa.get("factuality_report_path"),
-        "consistency_report_path": state.qa.get("consistency_report_path", ""),
     }
     with open(path, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, default=str)
