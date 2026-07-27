@@ -3,6 +3,19 @@ import csv
 import json
 import tomllib
 
+# What people type in a cell they have not filled in yet. Deliberately does not
+# include "0" or "false" — those are results, not absences — nor "?" , which a
+# survey may well use as a real answer code.
+PLACEHOLDER_CELL_VALUES = frozenset({
+    "", "-", "--", "---", "—", "–", "n/a", "n.a.", "na", "nil",
+    "null", "none", "nan", "tbd", "待填", "無", "无", "未測", "未测",
+})
+
+
+def is_placeholder_value(value: object) -> bool:
+    """True when a cell holds a stand-in rather than a value."""
+    return str(value).strip().lower() in PLACEHOLDER_CELL_VALUES
+
 
 def parse_csv(file_path: str) -> list[dict]:
     """Parse CSV file with the standard library."""
@@ -61,6 +74,13 @@ def parse_structured(file_path: str, file_type: str) -> dict:
             line = json.dumps(record, ensure_ascii=False)
             headers = [str(key) for key in record.keys()]
             values = [str(value) for value in record.values()]
+            # A row exported before anyone filled it in carries column names and
+            # nothing else. It used to become an evidence entry all the same, so
+            # an untouched export could clear the "at least 5 evidence entries"
+            # bar with five rows of dashes. Note "0" is a measurement, not a
+            # blank — only the placeholders below count as absent.
+            if values and all(is_placeholder_value(value) for value in values):
+                continue
             content_lines.append(line)
             blocks.append({
                 "block_id": f"block_{i}",
