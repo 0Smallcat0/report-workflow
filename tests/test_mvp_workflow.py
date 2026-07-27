@@ -1835,6 +1835,57 @@ class SourceEncodingTests(unittest.TestCase):
             self.assertIn("UTF-8", str(ctx.exception))
 
 
+class MultiEvidenceClaimTests(unittest.TestCase):
+    """Citing two sources means the claim rests on their union.
+
+    FE demanded that every cited entry satisfy every check, so the most
+    ordinary citation pattern in a lab report — the measurement row plus the
+    method paragraph that produced it — was blocked twice over: the row
+    carries no prose for the term check, the paragraph no number for the
+    numeric check. Each was failed by the entry that could not possibly
+    satisfy it.
+    """
+
+    ROW = {"evidence_id": "E_row",
+           "content": '{"Trial": "1", "Efficiency (%)": "88.4"}'}
+    METHOD = {"evidence_id": "E_method",
+              "content": "Efficiency was measured with the calorimetric "
+                         "protocol described in section 3."}
+
+    def _status(self, claim_text, evidence_ids):
+        from report_workflow.nodes.factuality_check import run_factuality_check_fe
+
+        matrix = {"claims": [{"claim_id": "C1", "claim_text": claim_text,
+                              "evidence_ids": evidence_ids}]}
+        result = run_factuality_check_fe(
+            [{"claim_id": "C1", "status": "verified"}], matrix,
+            [self.ROW, self.METHOD],
+        )
+        return result[0]["status"]
+
+    def test_measurement_plus_method_is_grounded(self):
+        self.assertEqual(
+            self._status("Efficiency reached 88.4% under the calorimetric protocol.",
+                         ["E_row", "E_method"]),
+            "verified",
+        )
+
+    def test_padding_citations_does_not_launder_a_fabricated_number(self):
+        """An entry with no matching number can never satisfy the number
+        check, so citing more sources cannot buy a claim past it."""
+        self.assertEqual(
+            self._status("Efficiency reached 92.7% under the calorimetric protocol.",
+                         ["E_row", "E_method"]),
+            "blocked",
+        )
+
+    def test_a_single_citation_behaves_exactly_as_before(self):
+        self.assertEqual(
+            self._status("Efficiency reached 92.7% in trial 1.", ["E_row"]),
+            "blocked",
+        )
+
+
 class RowEvidenceNumberTests(unittest.TestCase):
     """A CSV row keeps its units in the header and its numbers in the cells.
 
