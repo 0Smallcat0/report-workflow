@@ -71,6 +71,67 @@ class BaseDocumentImageCarryTests(unittest.TestCase):
             self.assertFalse([t for t in sections.values() if "![](" in t])
 
 
+class BaseDocumentTableCarryTests(unittest.TestCase):
+    """Revising your own report used to destroy the tables in it.
+
+    The parser walked every w:p in the document, and the paragraphs inside a
+    table cell are w:p too, so a six-row measurement table left as twenty-one
+    loose lines: "72.4" sat on a line of its own with nothing saying it was
+    the effectiveness measured at 2.0 L/min. The revised document rendered a
+    column of stray numbers where the table had been, and no claim could be
+    checked against the column a figure came from.
+    """
+
+    GRID = [("Flow Rate (L/min)", "Measured Effectiveness (%)"),
+            ("2.0", "72.4"), ("3.0", "76.1"), ("4.0", "79.3")]
+
+    def _sections(self, grid):
+        from docx import Document
+        from report_workflow.nodes.base_document_parse import _parse_docx_section
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = str(Path(tmpdir) / "report.docx")
+            document = Document()
+            document.add_heading("Results", level=1)
+            document.add_paragraph("Measurements taken with calibrated meters.")
+            table = document.add_table(rows=len(grid), cols=len(grid[0]))
+            for row_index, row in enumerate(grid):
+                for col_index, cell in enumerate(row):
+                    table.cell(row_index, col_index).text = cell
+            document.add_paragraph("Effectiveness rises with flow rate.")
+            document.save(path)
+            sections, _titles = _parse_docx_section(path)
+        return sections
+
+    def _results_body(self, grid=None):
+        sections = self._sections(grid or self.GRID)
+        return next(body for sid, body in sections.items() if "results" in sid)
+
+    def test_a_table_survives_as_a_table(self):
+        body = self._results_body()
+        self.assertIn("| Flow Rate (L/min) | Measured Effectiveness (%) |", body)
+        self.assertIn("| --- | --- |", body)
+
+    def test_a_number_keeps_the_row_it_came_from(self):
+        body = self._results_body()
+        self.assertIn("| 2.0 | 72.4 |", body)
+        # The old failure: each cell on its own line.
+        self.assertNotIn("\n72.4\n", body)
+
+    def test_prose_around_the_table_is_kept_in_order(self):
+        body = self._results_body()
+        before = body.index("calibrated meters")
+        table = body.index("| Flow Rate")
+        after = body.index("rises with flow rate")
+        self.assertLess(before, table)
+        self.assertLess(table, after)
+
+    def test_a_one_row_table_does_not_become_a_headerless_table(self):
+        body = self._results_body([("Total", "83.1")])
+        self.assertNotIn("---", body)
+        self.assertIn("Total 83.1", body)
+
+
 class BaseDocumentEncodingTests(unittest.TestCase):
     """The base document has its own readers, and they were missed.
 
