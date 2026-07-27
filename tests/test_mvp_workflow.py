@@ -1835,6 +1835,65 @@ class SourceEncodingTests(unittest.TestCase):
             self.assertIn("UTF-8", str(ctx.exception))
 
 
+class DerivedStatsContainerTests(unittest.TestCase):
+    """The same table analysed the same way whichever file it arrived in.
+
+    Derived statistics were gated on file_type, which stood in for "this
+    source has measurement rows". The loop tests that directly, so the proxy
+    only meant one thing in practice: a table saved as CSV produced a slope
+    and an R², and the identical table pasted into Word produced nothing —
+    the quantitative analysis a report is graded on depended on the
+    container the author happened to use.
+    """
+
+    GRID = [["Flow Rate (L/min)", "Measured Effectiveness (%)"],
+            ["2.0", "72.4"], ["3.0", "76.1"], ["4.0", "79.3"], ["5.0", "81.0"]]
+
+    def _derived(self, entry):
+        from report_workflow.nodes.evidence_normalize import _derived_stats_units
+
+        return _derived_stats_units([entry], "2026-07-27T00:00:00Z")
+
+    def _csv_entry(self):
+        rows = [
+            {"block_id": f"b{i}", "block_type": "csv_row",
+             "content": json.dumps(dict(zip(self.GRID[0], row)))}
+            for i, row in enumerate(self.GRID[1:])
+        ]
+        return {"file_type": "csv", "file_name": "perf.csv", "parsed_content": rows}
+
+    def _docx_entry(self):
+        return {"file_type": "docx", "file_name": "perf.docx", "parsed_content": [
+            {"block_id": "table_0", "block_type": "table",
+             "content": "whole grid as text", "table_data": self.GRID},
+        ]}
+
+    def test_a_word_table_is_analysed_like_a_csv(self):
+        from_csv = self._derived(self._csv_entry())
+        from_docx = self._derived(self._docx_entry())
+        self.assertTrue(from_csv)
+        self.assertEqual(len(from_docx), len(from_csv))
+        # Same numbers, not merely "some output": only the file name differs.
+        self.assertEqual(
+            from_docx[0]["content"].replace("perf.docx", "X"),
+            from_csv[0]["content"].replace("perf.csv", "X"),
+        )
+
+    def test_prose_alone_derives_nothing(self):
+        entry = {"file_type": "docx", "file_name": "notes.docx", "parsed_content": [
+            {"block_id": "p0", "block_type": "paragraph",
+             "content": "Effectiveness rose with flow rate across the run."},
+        ]}
+        self.assertEqual(self._derived(entry), [])
+
+    def test_a_table_with_one_data_row_derives_nothing(self):
+        entry = {"file_type": "docx", "file_name": "thin.docx", "parsed_content": [
+            {"block_id": "table_0", "block_type": "table", "content": "grid",
+             "table_data": [self.GRID[0], self.GRID[1]]},
+        ]}
+        self.assertEqual(self._derived(entry), [])
+
+
 class EmbeddedTableGranularityTests(unittest.TestCase):
     """A table in a DOCX arrived as one evidence entry for the whole grid.
 
