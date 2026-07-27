@@ -368,10 +368,14 @@ def _derived_stats_units(source_registry: list, created_at: str) -> list[dict]:
     """
     units: list[dict] = []
     for entry in source_registry:
-        if entry.get("file_type") not in STRUCTURED_TYPES:
-            continue
+        # No file-type gate. It stood in for "this source has measurement
+        # rows", and the loop below tests that directly — row-shaped blocks,
+        # numeric columns, enough of them. The proxy meant the same table
+        # produced a slope and an R² when saved as a CSV and nothing at all
+        # when saved as a Word document, so the analysis a report is graded
+        # on depended on which container the author happened to use.
         rows: list[dict] = []
-        for block in entry.get("parsed_content", []) or []:
+        for block in _expanded_blocks(entry.get("parsed_content", []) or []):
             if block.get("block_type") not in {"csv_row", "table_row", "data_row"}:
                 continue
             try:
