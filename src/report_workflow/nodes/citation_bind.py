@@ -176,20 +176,23 @@ def _format_apa_author_year(file_name: str, file_type: str = "unknown") -> str:
     we generate a citetag based on the file name and mark it as
     file-derived to distinguish from real literature references.
     """
-    # Extract meaningful base name
-    base = Path(file_name).stem
-    # Capitalize first letter
-    base = base.replace("_", " ").replace("-", " ")
-    # Take first meaningful word(s)
+    # A file name does not say who wrote the thing, or how many people did.
+    # Splitting it on underscores and joining the pieces with "&" or "et al."
+    # asserted both: "Shah2003_PlateExchangers.pdf" was cited as "Shah2003 &
+    # PlateExchangers", crediting a title fragment as a co-author, and
+    # "熱傳學_王小明_2019.pdf" became "熱傳學 et al." — the book's title
+    # standing in for the author, who was in the file name and was dropped.
+    # A reference list naming people who do not exist is the one thing this
+    # pipeline may not produce.
+    #
+    # So: the first token is used as a locating tag and nothing is claimed
+    # about authorship, in the same spirit as the "(n.d.)" rule below — the
+    # file name is shown in full in the entry's title position, where it
+    # asserts nothing.
+    base = Path(file_name).stem.replace("_", " ").replace("-", " ")
     parts = base.split()
-    if len(parts) > 2:
-        author = parts[0] + " et al."
-    elif len(parts) == 2:
-        author = parts[0] + " & " + parts[1]
-    else:
-        author = parts[0] if parts else "Unknown"
-
-    return f"{author} (n.d.)"
+    tag = parts[0] if parts else "Unknown"
+    return f"{tag} (n.d.)"
 
 
 #: file_type -> (bracketed label for its reference entry, is it a local file

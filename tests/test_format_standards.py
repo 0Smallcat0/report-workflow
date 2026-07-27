@@ -891,6 +891,53 @@ class DuplicateCitationCollapseTest(unittest.TestCase):
         text = "Both sources agree. [1] [2]"
         self.assertEqual(_collapse_adjacent_duplicate_citations(text), text)
 
+    def test_a_file_name_does_not_name_authors(self):
+        """A reference list may not name people who do not exist.
+
+        The tag was built by splitting the file name on underscores and
+        joining the pieces as surnames, so "Shah2003_PlateExchangers.pdf"
+        was cited as "Shah2003 & PlateExchangers" — a title fragment
+        credited as a co-author — and "熱傳學_王小明_2019.pdf" became
+        "熱傳學 et al.", the book's title standing in for the author, who
+        was in the file name and was dropped.
+        """
+        from report_workflow.nodes.citation_bind import _format_apa_author_year
+
+        self.assertEqual(
+            _format_apa_author_year("Shah2003_PlateExchangers.pdf", "pdf"),
+            "Shah2003 (n.d.)")
+        self.assertEqual(
+            _format_apa_author_year("熱傳學_王小明_2019.pdf", "pdf"), "熱傳學 (n.d.)")
+        self.assertEqual(
+            _format_apa_author_year("Kays_London_1984.pdf", "pdf"), "Kays (n.d.)")
+
+    def test_a_single_word_file_name_is_unchanged(self):
+        from report_workflow.nodes.citation_bind import _format_apa_author_year
+
+        self.assertEqual(
+            _format_apa_author_year("Incropera.pdf", "pdf"), "Incropera (n.d.)")
+
+    def test_the_entry_shows_the_whole_file_name_in_the_title(self):
+        """Nothing is lost: what the tag stops claiming, the title states."""
+        from report_workflow.nodes.citation_bind import _format_apa_reference_entry
+
+        entry = _format_apa_reference_entry("Kays_London_1984.pdf", "pdf", "sid")
+        self.assertIn("*Kays_London_1984*", entry)
+        self.assertNotIn("et al..", entry)
+        self.assertNotIn("&", entry)
+
+    def test_the_no_date_rule_is_kept(self):
+        """The year in a file name is still not asserted as a publication date.
+
+        That rule was learned from a fabricated bibliography entry reaching a
+        rendered paper, and reading 1984 out of a file name would be the same
+        kind of guess wearing a different hat.
+        """
+        from report_workflow.nodes.citation_bind import _format_apa_reference_entry
+
+        self.assertIn(
+            "(n.d.)", _format_apa_reference_entry("Kays_London_1984.pdf", "pdf", "s"))
+
     def test_author_year_and_source_markers(self):
         from report_workflow.nodes.citation_bind import (
             _collapse_adjacent_duplicate_citations,
