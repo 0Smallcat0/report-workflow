@@ -1,11 +1,11 @@
 """CORPUS_BUILD node - enumerate uploaded files into corpus_manifest."""
-import uuid
 from pathlib import Path
 from datetime import datetime
 from ..state import ReportState, run_dir_for
 from ..config import PROJECT_ROOT
 from ..errors import QAHardBlockError
 from ..runtime_support import write_json_artifact
+from ..artifact_contract import _hash_bytes
 
 try:
     import filetype
@@ -40,6 +40,34 @@ def detect_file_type(file_path: str) -> str:
     return "unknown"
 
 
+def _source_id_for(path: Path, taken: set[str]) -> str:
+    """A source id that depends on the file, not on when it was read.
+
+    This used to be a fresh uuid4 per run, and it seeds every evidence id —
+    both the ``E_<source_id>_…`` prefix and the hash after it. So running the
+    same unchanged CSV twice produced two ledgers with no id in common, and
+    a claim_matrix written against the first run cited nothing that existed
+    in the second. Resuming work the next day, or re-preparing after fixing
+    one source, threw away every citation the author had already made.
+
+    Seeded from the file's name, deliberately not its contents. Seeding on
+    contents would rotate this prefix on any edit, and with it every id in
+    the file — so fixing one typo in one source would still throw away the
+    citations for every untouched row. The per-block content hash already
+    changes exactly the ids whose text changed; the prefix should not.
+
+    Two different files sharing a name are separated by a counter, in
+    attachment order, which is itself stable across reruns.
+    """
+    seed = path.name
+    candidate = _hash_bytes(seed.encode("utf-8"))[:8]
+    collision = 1
+    while candidate in taken:
+        candidate = _hash_bytes(f"{seed}:{collision}".encode("utf-8"))[:8]
+        collision += 1
+    return candidate
+
+
 def run_corpus_build(state: ReportState) -> ReportState:
     """T5: CORPUS_BUILD - enumerate uploaded files into corpus_manifest."""
     uploaded_files = state.spec.get("uploaded_files", [])
@@ -50,7 +78,8 @@ def run_corpus_build(state: ReportState) -> ReportState:
     
     corpus_manifest = []
     source_registry = []
-    
+    taken_source_ids: set[str] = set()
+
     run_dir = run_dir_for(state)
     run_dir.mkdir(parents=True, exist_ok=True)
     
@@ -66,7 +95,8 @@ def run_corpus_build(state: ReportState) -> ReportState:
             
             file_size = path.stat().st_size
             file_type = detect_file_type(str(path))
-            source_id = str(uuid.uuid4())[:8]
+            source_id = _source_id_for(path, taken_source_ids)
+            taken_source_ids.add(source_id)
             
             manifest_entry = {
                 "source_id": source_id,
