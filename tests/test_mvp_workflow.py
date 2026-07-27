@@ -1835,6 +1835,49 @@ class SourceEncodingTests(unittest.TestCase):
             self.assertIn("UTF-8", str(ctx.exception))
 
 
+class RowEvidenceNumberTests(unittest.TestCase):
+    """A CSV row keeps its units in the header and its numbers in the cells.
+
+    The claim/evidence numeric check needed the unit written beside the
+    number, so a row of measurements yielded no numbers at all: an honest
+    claim citing the exact row was blocked as ungrounded, with the reason
+    "evidence has: (none)" while the row plainly held the figure. Worse, the
+    honest claim and a fabricated one were rejected in identical words — for
+    row evidence the check could not tell them apart.
+    """
+
+    ROW = {
+        "content": '{"Trial": "1", "Voltage (V)": "12.1", '
+                   '"Leakage (mA)": "<0.01", "Efficiency (%)": "88.4"}'
+    }
+
+    def _reasons(self, text):
+        from report_workflow.nodes.factuality_check import _check_content_overlap
+
+        return _check_content_overlap({"claim_text": text}, self.ROW)
+
+    def test_a_value_in_the_row_grounds_the_claim(self):
+        self.assertEqual(self._reasons("Efficiency reached 88.4% in trial 1."), [])
+        self.assertEqual(self._reasons("The measured voltage was 12.1 V."), [])
+
+    def test_a_fabricated_value_is_still_rejected(self):
+        reasons = self._reasons("Efficiency reached 92.7% in trial 1.")
+        self.assertTrue(reasons)
+        # The diagnosis must name what the row actually holds, not "(none)".
+        self.assertIn("88.4", reasons[0])
+
+    def test_a_detection_limit_is_not_a_reading(self):
+        """"<0.01" bounds the leakage; it does not measure it."""
+        reasons = self._reasons("Leakage current was 0.01 mA in trial 1.")
+        self.assertTrue(reasons)
+        self.assertIn("bound", reasons[0])
+
+    def test_precision_inflation_is_caught_in_rows_too(self):
+        reasons = self._reasons("Efficiency reached 88.42% in trial 1.")
+        self.assertTrue(reasons)
+        self.assertIn("precision", reasons[0])
+
+
 class UnfilledTableTests(unittest.TestCase):
     """A table exported before anyone filled it in is not measurements.
 

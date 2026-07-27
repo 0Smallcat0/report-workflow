@@ -15,6 +15,7 @@ from pathlib import Path
 
 from ..errors import QAHardBlockError
 from ..state import ReportState, WORKFLOW_RUNS_DIR
+from .figure_utils import unit_signature
 
 BLOCKING_CLAIM_STATUSES = {"blocked", "unverified", "disputed"}
 
@@ -313,6 +314,56 @@ def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
     return results
 
 
+_BOUND_PREFIX_RE = re.compile(r"^(<=|>=|<|>|≤|≥|≦|≧)\s*")
+
+
+def _row_numbers_with_unit(content: str) -> tuple[list, list] | None:
+    """Number/unit pairs from a serialized table row: (measured, bounded).
+
+    A CSV row keeps its units in the column names and its numbers in the
+    cells — `{"Efficiency (%)": "88.4"}`. The text extractor needs the unit
+    written next to the number, so it found nothing at all in a row of
+    measurements, and every honest claim citing one was blocked with
+    "evidence has: (none)" while the row plainly held the figure.
+
+    Bounded cells come back separately. "<0.01" is a detection limit, not a
+    reading, and must not satisfy a claim stating 0.01 as measured.
+
+    None when the content is not a serialized row, so prose evidence keeps
+    its existing behaviour.
+    """
+    try:
+        record = json.loads(content)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(record, dict):
+        return None
+
+    measured: list[tuple[str, str]] = []
+    bounded: list[tuple[str, str]] = []
+    for key, value in record.items():
+        header = str(key)
+        # Only a parenthetical or a percent sign states a unit. Reading the
+        # whole header would invent a unit named "trial".
+        unit = unit_signature(header) if ("(" in header or "%" in header) else ""
+        text = str(value).strip()
+        bound = _BOUND_PREFIX_RE.match(text)
+        if bound:
+            text = text[bound.end():].strip()
+        text = text.rstrip("%")
+        if not text:
+            continue
+        try:
+            _normalize_number_str(text)
+        except ValueError:
+            continue
+        if bound:
+            bounded.append((text, unit, f"{bound.group(1)}{text}"))
+        else:
+            measured.append((text, unit))
+    return measured, bounded
+
+
 def _normalize_number_str(s: str) -> float:
     """Parse a number string to float, stripping commas and ~ prefix."""
     import re as _re
@@ -491,6 +542,8 @@ def _check_content_overlap(
 
     # 2. Numeric overlap check — claim numbers must appear in evidence
     claim_numbers = _extract_numbers_with_unit(claim_text)
+    row_pairs = _row_numbers_with_unit(evidence_content)
+    row_measured, row_bounded = row_pairs if row_pairs else ([], [])
     for num_str, unit in claim_numbers:
         try:
             claim_val = _normalize_number_str(num_str)
@@ -498,8 +551,18 @@ def _check_content_overlap(
             continue
 
         # Search for same value in evidence (with same unit)
-        evidence_numbers = _extract_numbers_with_unit(evidence_content)
+        evidence_numbers = _extract_numbers_with_unit(evidence_content) + row_measured
         found = False
+        bounded_match: tuple[str, str] | None = None
+        for ev_num, ev_unit, ev_text in row_bounded:
+            if not _units_match(unit, ev_unit):
+                continue
+            try:
+                if abs(claim_val - _normalize_number_str(ev_num)) <= abs(claim_val * 0.01) + 1e-9:
+                    bounded_match = (ev_text, ev_unit)
+                    break
+            except ValueError:
+                continue
         inflated_match: tuple[str, str] | None = None
         for ev_num, ev_unit in evidence_numbers:
             # Units must match (after normalization)
@@ -522,7 +585,14 @@ def _check_content_overlap(
             break
 
         if not found:
-            if inflated_match:
+            if bounded_match:
+                reasons.append(
+                    f"Claim number {num_str!r}{unit} states as measured what the "
+                    f"evidence gives only as a bound "
+                    f"({bounded_match[0]!r}{bounded_match[1]} is a limit, "
+                    f"not a reading)"
+                )
+            elif inflated_match:
                 reasons.append(
                     f"Claim number {num_str!r}{unit} asserts more decimal "
                     f"precision than the evidence value "
