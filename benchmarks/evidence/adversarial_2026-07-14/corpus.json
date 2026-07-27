@@ -15,6 +15,13 @@
       "evidence_grade": "medium"
     },
     {
+      "evidence_id": "ev_lit_en",
+      "content": "Kays and London (1984) report that effectiveness for counter-flow plate exchangers rises with NTU but saturates above NTU = 3.",
+      "evidence_type": "qualitative",
+      "source_role": "research_document",
+      "evidence_grade": "medium"
+    },
+    {
       "evidence_id": "ev_minutes_plan",
       "content": "決議事項：工單系統與 CRM 的自動回填功能，由工程團隊在第三季導入。",
       "evidence_type": "qualitative",
@@ -117,6 +124,60 @@
       "wording_strength": "hedged",
       "dangling": false,
       "note": "transcript question cited as if it answered itself"
+    },
+    {
+      "case_id": "cs01",
+      "family": "cross_language_mismatch",
+      "is_hallucination": true,
+      "expected_verdict": "blocked",
+      "claim": {
+        "claim_id": "c_cs01",
+        "claim_text": "文獻指出有效度隨 Reynolds 數上升。",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_lit_en"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "Chinese claim names a term absent from the English evidence"
+    },
+    {
+      "case_id": "cs02",
+      "family": "honest",
+      "is_hallucination": false,
+      "expected_verdict": "published",
+      "claim": {
+        "claim_id": "c_cs02",
+        "claim_text": "文獻指出有效度隨 NTU 上升後趨於飽和。",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_lit_en"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "Chinese claim sharing the evidence's own Latin term"
+    },
+    {
+      "case_id": "cs03",
+      "family": "evasion_cross_script_no_shared_token",
+      "is_hallucination": true,
+      "expected_verdict": "published",
+      "claim": {
+        "claim_id": "c_cs03",
+        "claim_text": "文獻指出本產品的退款流程平均需時十二分鐘。",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_lit_en"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "unrelated Chinese claim, no Latin token and no digits to check"
     },
     {
       "case_id": "fc01",

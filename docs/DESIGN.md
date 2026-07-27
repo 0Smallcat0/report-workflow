@@ -251,6 +251,19 @@ around it, which buys a worse thing than the gap: confidence that is not
 earned. The case is kept in the adversarial corpus as a documented evasion,
 uncaught, so the recall figure states the cost rather than hiding it.
 
+**A Chinese claim on English evidence with nothing in common.** A report
+written in Chinese citing the English literature is the ordinary case here,
+and across scripts the only vocabulary both sides spell the same way is the
+technical kind a Chinese sentence keeps in Latin — NTU, CRM, R², an author's
+name. Where the claim carries such a term it is checked against the
+evidence, and a term the source never mentions is caught. Where it carries
+none, there is nothing to compare: comparing would mean translating, which
+is the semantic layer this design refuses. Reporting every such claim would
+block the honest case — a Chinese sentence summarising an English source in
+Chinese words — far more often than it caught a false one, and the measured
+0% false-block rate is worth more than the coverage. Kept in the adversarial
+corpus as a documented evasion.
+
 ### Formatting boundary
 
 The renderer targets a clean, submission-ready *manuscript*: title page
