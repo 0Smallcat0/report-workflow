@@ -1835,6 +1835,61 @@ class SourceEncodingTests(unittest.TestCase):
             self.assertIn("UTF-8", str(ctx.exception))
 
 
+class StableSourceIdTests(unittest.TestCase):
+    """Evidence ids must survive a rerun, or a citation is worth nothing.
+
+    The source id was a fresh uuid4 each run, and it seeds every evidence id
+    — both the "E_<source_id>_…" prefix and the hash after it. Running the
+    same unchanged CSV twice produced two ledgers with no id in common, so a
+    claim_matrix written against the first cited nothing that existed in the
+    second. Resuming the next day threw away every citation already made.
+    """
+
+    def _path(self, tmpdir, name, text):
+        from pathlib import Path
+
+        path = Path(tmpdir) / name
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def test_the_same_file_gets_the_same_id_twice(self):
+        from report_workflow.nodes.corpus_build import _source_id_for
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = self._path(tmpdir, "perf.csv", "a,b\n1,2\n")
+            self.assertEqual(_source_id_for(path, set()), _source_id_for(path, set()))
+
+    def test_editing_the_file_keeps_the_source_id(self):
+        """Fixing one typo must not invalidate the untouched rows' ids.
+
+        The per-block content hash already moves the ids whose text changed.
+        """
+        from report_workflow.nodes.corpus_build import _source_id_for
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = self._path(tmpdir, "perf.csv", "a,b\n1,2\n")
+            before = _source_id_for(path, set())
+            path.write_text("a,b\n1,2\n3,4\n", encoding="utf-8")
+            self.assertEqual(_source_id_for(path, set()), before)
+
+    def test_two_files_sharing_a_name_do_not_share_an_id(self):
+        from report_workflow.nodes.corpus_build import _source_id_for
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            first = self._path(tmpdir, "data.csv", "a,b\n1,2\n")
+            taken = {_source_id_for(first, set())}
+            second = _source_id_for(first, taken)
+            self.assertNotIn(second, taken)
+
+    def test_different_names_get_different_ids(self):
+        from report_workflow.nodes.corpus_build import _source_id_for
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            one = self._path(tmpdir, "perf.csv", "a,b\n1,2\n")
+            two = self._path(tmpdir, "notes.csv", "a,b\n1,2\n")
+            self.assertNotEqual(_source_id_for(one, set()), _source_id_for(two, set()))
+
+
 class ShortHeadingEvidenceTests(unittest.TestCase):
     """A Chinese heading is short by construction, and was dropped for it.
 
