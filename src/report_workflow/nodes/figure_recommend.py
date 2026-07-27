@@ -85,6 +85,15 @@ ID_HEADER_TERMS = {
     "sample number",
     "specimen id",
     "specimen number",
+    # A run counter is what a lab sheet actually heads its first column with,
+    # in either language, and none of the terms above reach it. 次數 is
+    # deliberately absent: a count is a measurement, not an identifier.
+    "trial",
+    "run no",
+    "test no",
+    "編號",
+    "序號",
+    "試次",
 }
 PARAMETER_TABLE_TERMS = {
     "parameter",
@@ -255,13 +264,33 @@ def _unique_non_empty(values: list[str]) -> list[str]:
     return unique
 
 
+_CJK_CHAR_RE = re.compile(r"[一-鿿㐀-䶿]")
+
+
 def _header_contains(header: str, terms: set[str]) -> bool:
-    normalized = re.sub(r"[^a-z0-9%#]+", " ", header.casefold()).strip()
+    """Whether a column header carries any of these terms.
+
+    The strip kept `[a-z0-9%#]` only, so a Chinese header normalised to the
+    empty string and matched nothing at all — the same way `unit_signature`
+    used to lose CJK. A trial-number column headed 試次 was therefore never
+    recognised as an identifier, went into the measure candidates, and became
+    a chart axis: a plot of serial number against a set point, with the actual
+    measurement left off.
+
+    CJK terms match as substrings because the script is not space-delimited;
+    a word boundary would never fire inside a compound like 試驗編號. Latin
+    terms keep their boundaries, so "trial" does not match "industrial".
+    """
+    normalized = re.sub(r"[^a-z0-9%#一-鿿㐀-䶿]+", " ", header.casefold()).strip()
     if not normalized:
         return False
     for term in terms:
-        term_norm = re.sub(r"[^a-z0-9%#]+", " ", term.casefold()).strip()
+        term_norm = re.sub(r"[^a-z0-9%#一-鿿㐀-䶿]+", " ", term.casefold()).strip()
         if not term_norm:
+            continue
+        if _CJK_CHAR_RE.search(term_norm):
+            if term_norm in normalized:
+                return True
             continue
         if " " in term_norm:
             if term_norm in normalized:

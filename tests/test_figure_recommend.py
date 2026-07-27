@@ -25,6 +25,58 @@ def _state(tmpdir: str, profile: str = "engineering_lab_report") -> ReportState:
     return state
 
 
+class HeaderTermMatchingTests(unittest.TestCase):
+    """A Chinese header used to normalise to nothing before matching.
+
+    `_header_contains` stripped everything outside `[a-z0-9%#]`, so 試次 became
+    the empty string and matched no term at all — the same way `unit_signature`
+    once lost CJK. A trial counter therefore never registered as an identifier,
+    entered the measure candidates, and became a chart axis: serial number
+    against a set point, with the measurement left off the plot.
+    """
+
+    def test_chinese_run_counters_are_identifiers(self):
+        from report_workflow.nodes.figure_recommend import ID_HEADER_TERMS, _header_contains
+
+        for header in ("試次", "試驗編號", "序號", "編號"):
+            self.assertTrue(_header_contains(header, ID_HEADER_TERMS), header)
+
+    def test_english_run_counters_are_identifiers(self):
+        from report_workflow.nodes.figure_recommend import ID_HEADER_TERMS, _header_contains
+
+        for header in ("Trial", "Trial No.", "Run ID", "Index"):
+            self.assertTrue(_header_contains(header, ID_HEADER_TERMS), header)
+
+    def test_measurements_are_not_identifiers(self):
+        from report_workflow.nodes.figure_recommend import ID_HEADER_TERMS, _header_contains
+
+        # 次數 is a count, which is a measurement; "Industrial" merely contains
+        # "trial" and a Latin term keeps its word boundaries.
+        for header in ("流量 (L/min)", "壓降 (kPa)", "次數", "Industrial Output", "不良率(%)"):
+            self.assertFalse(_header_contains(header, ID_HEADER_TERMS), header)
+
+    def test_a_run_counter_does_not_become_an_axis(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            recommendation = recommend_figures_from_evidence(state, [{
+                "evidence_id": "E1", "source_id": "p", "source_file_name": "pressure.txt",
+                "granularity": "table", "content": "pressure sweep",
+                "table_data": [
+                    ["試次", "流量", "壓降 (kPa)"],
+                    ["1", "4", "12.4"], ["2", "8", "38.1"],
+                    ["3", "10", "57.6"], ["4", "12", "79.2"],
+                ],
+            }])[0]
+            plan = recommendation["figure_plan"]
+            self.assertNotIn("試次", plan["xlabel"])
+            self.assertNotIn("試次", plan["ylabel"])
+            self.assertIn("壓降", plan["ylabel"])
+            self.assertTrue(
+                any("ID-like" in w for w in recommendation["selection_warnings"]),
+                recommendation["selection_warnings"],
+            )
+
+
 class HeldConstantColumnTests(unittest.TestCase):
     """Controlled variables are constants, and a constant is not a relationship.
 
@@ -334,8 +386,16 @@ class FigureRecommendationTests(unittest.TestCase):
 
             recommendations = recommend_figures_from_evidence(state, evidence)
 
-            self.assertEqual(recommendations[0]["recommended_figure_type"], "line")
+            # The point of this test is the grouping: three csv_row units from
+            # one file become a single recommendation carrying all three ids.
+            self.assertEqual(len(recommendations), 1)
             self.assertEqual(recommendations[0]["evidence_ids"], ["E1", "E2", "E3"])
+            # "Trial" is a run counter, and the selection rules say ID-like
+            # numeric columns are excluded from trend and relationship charts.
+            # It used to slip through the English-only term list and serve as an
+            # axis; with it excluded only Voltage remains, and one measure with
+            # nothing to plot it against stays a table.
+            self.assertEqual(recommendations[0]["recommended_figure_type"], "table")
 
     def test_recommends_histogram_for_single_numeric_distribution(self):
         with tempfile.TemporaryDirectory() as tmpdir:
