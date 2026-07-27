@@ -6,8 +6,11 @@ import tomllib
 
 def parse_csv(file_path: str) -> list[dict]:
     """Parse CSV file with the standard library."""
-    with open(file_path, newline="", encoding="utf-8-sig") as f:
-        return list(csv.DictReader(f))
+    import io
+
+    from .source_text import read_source_text
+
+    return list(csv.DictReader(io.StringIO(read_source_text(file_path), newline="")))
 
 
 def parse_xlsx(file_path: str) -> list[dict]:
@@ -19,8 +22,9 @@ def parse_xlsx(file_path: str) -> list[dict]:
 
 def parse_json(file_path: str) -> list[dict]:
     """Parse JSON file."""
-    with open(file_path, encoding="utf-8") as f:
-        data = json.load(f)
+    from .source_text import read_source_text
+
+    data = json.loads(read_source_text(file_path))
     if isinstance(data, list):
         return data
     elif isinstance(data, dict):

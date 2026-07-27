@@ -1716,6 +1716,57 @@ class SourceParseNewTypesTests(unittest.TestCase):
 # Fix #2: evidence_count >= 10 and diversity enforcement
 # ------------------------------------------------------------------
 
+class SourceEncodingTests(unittest.TestCase):
+    """Excel on a Traditional Chinese Windows machine writes Big5, not UTF-8.
+
+    Every reader opened its file as UTF-8, so the default CSV export of this
+    project's own target users failed at ingest with a raw codec error — in a
+    pipeline that ships Chinese blueprints, CJK abstract scaling and GB/T
+    citation formatting.
+    """
+
+    TEXT = "流量 (L/min),實測有效度\n2,0.709\n12,0.411\n"
+
+    def _write(self, tmpdir, name, encoding):
+        path = Path(tmpdir) / name
+        path.write_bytes(self.TEXT.encode(encoding))
+        return path
+
+    def test_big5_is_decoded(self):
+        from report_workflow.parsers.source_text import read_source_text
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = self._write(tmpdir, "big5.csv", "big5")
+            self.assertEqual(read_source_text(path), self.TEXT)
+
+    def test_utf8_and_bom_are_unchanged(self):
+        from report_workflow.parsers.source_text import read_source_text
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self.assertEqual(read_source_text(self._write(tmpdir, "a.csv", "utf-8")), self.TEXT)
+            self.assertEqual(read_source_text(self._write(tmpdir, "b.csv", "utf-8-sig")), self.TEXT)
+
+    def test_a_big5_csv_parses_into_rows(self):
+        from report_workflow.parsers.structured_parser import parse_csv
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            rows = parse_csv(str(self._write(tmpdir, "big5.csv", "big5")))
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(rows[0]["流量 (L/min)"], "2")
+            self.assertEqual(rows[1]["實測有效度"], "0.411")
+
+    def test_undecodable_bytes_are_refused_not_mangled(self):
+        """No latin-1 catch-all: silent mojibake is worse than a refusal."""
+        from report_workflow.parsers.source_text import read_source_text
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "binary.csv"
+            path.write_bytes(b"\xff\xfe\x00\x00\xff\xff")
+            with self.assertRaises(ValueError) as ctx:
+                read_source_text(path)
+            self.assertIn("UTF-8", str(ctx.exception))
+
+
 class DegenerateSourceDiagnosisTests(unittest.TestCase):
     """A parse failure must describe the file, not this build.
 

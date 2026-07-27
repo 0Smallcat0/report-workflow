@@ -103,8 +103,9 @@ def parse_txt(file_path: str) -> dict:
     import hashlib
 
     try:
-        with open(file_path, encoding="utf-8") as f:
-            lines = f.readlines()
+        from .source_text import read_source_lines
+
+        lines = read_source_lines(file_path)
 
         blocks = []
         all_text_parts = []
@@ -389,8 +390,9 @@ def parse_markdown(file_path: str) -> dict:
     import hashlib
 
     try:
-        with open(file_path, encoding="utf-8") as f:
-            lines = f.readlines()
+        from .source_text import read_source_lines
+
+        lines = read_source_lines(file_path)
 
         blocks = []
         all_text_parts = []
