@@ -1835,6 +1835,45 @@ class SourceEncodingTests(unittest.TestCase):
             self.assertIn("UTF-8", str(ctx.exception))
 
 
+class ClaimlessSectionBatchTests(unittest.TestCase):
+    """Every claimless section is named once, not one publish attempt each.
+
+    An outline with seven empty sections cost seven full publish attempts to
+    diagnose: PLAN_LOCK raised on the first one it met, so each run of the
+    whole validate pipeline bought the author exactly one more section name.
+    The source parser needed the same fix for unreadable attachments; this is
+    the gate next door.
+    """
+
+    def _freeze(self, claim_ids_by_section):
+        from report_workflow.nodes.section_plan_freeze import run_section_plan_freeze
+
+        state = ReportState.new("report", [], "out")
+        state.spec["report_profile"] = "engineering_lab_report"
+        state.plan["claim_matrix"] = {"claims": [
+            {"claim_id": "c1", "claim_text": "x", "evidence_ids": ["e1"]}]}
+        state.plan["blueprint"] = {"sections": {
+            sid: {"section_id": sid, "section_type": "body"}
+            for sid in claim_ids_by_section}}
+        state.plan["outline"] = {"sections": {
+            sid: {"section_id": sid, "claim_ids": ids}
+            for sid, ids in claim_ids_by_section.items()}}
+        return run_section_plan_freeze(state)
+
+    def test_all_claimless_sections_are_named_at_once(self):
+        with self.assertRaises(QAHardBlockError) as ctx:
+            self._freeze({"results": ["c1"], "abstract": [],
+                          "theory": [], "conclusion": []})
+        message = str(ctx.exception)
+        for section in ("abstract", "theory", "conclusion"):
+            self.assertIn(section, message)
+
+    def test_a_single_claimless_section_still_points_at_its_own_field(self):
+        with self.assertRaises(QAHardBlockError) as ctx:
+            self._freeze({"results": ["c1"], "abstract": []})
+        self.assertIn("sections.abstract.claim_ids", str(ctx.exception))
+
+
 class CitationSurvivesRerunTests(unittest.TestCase):
     """A citation written today must still validate after tomorrow's rerun.
 

@@ -33,18 +33,33 @@ def run_section_plan_freeze(state: ReportState) -> ReportState:
 
     known_claim_ids = {claim.get("claim_id") for claim in claims if claim.get("claim_id")}
     assigned_claim_ids = set()
+    # Collected, not raised on the first one. Every claimless section is
+    # already known by the time the loop ends, and reporting one per run made
+    # an outline with seven empty sections cost seven full publish attempts
+    # to diagnose — the whole validate pipeline re-run to learn one more
+    # section name. The same fix the source parser needed for unreadable
+    # attachments, in the gate next door.
+    claimless: list[str] = []
     for section_id, section in sections.items():
         claim_ids = section.get("claim_ids", [])
         if not claim_ids and not revise_mode and section_requires_claims(blueprint, section_id):
-            raise QAHardBlockError(
-                f"Outline section has no claims: {section_id}. Add the claim ids "
-                f"this section covers to outline.json sections.{section_id}."
-                f"claim_ids. A summary section such as an abstract lists the "
-                f"claims it summarizes even though its text carries no "
-                f"[CITE:] markers; only cover, references, and appendix "
-                f"sections may be empty."
-            )
+            claimless.append(section_id)
         assigned_claim_ids.update(claim_ids)
+
+    if claimless:
+        listed = ", ".join(claimless)
+        target = (
+            f"outline.json sections.{claimless[0]}.claim_ids"
+            if len(claimless) == 1
+            else "each of their claim_ids in outline.json"
+        )
+        raise QAHardBlockError(
+            f"Outline section has no claims: {listed}. Add the claim ids "
+            f"each section covers to {target}. A summary section such as an "
+            f"abstract lists the claims it summarizes even though its text "
+            f"carries no [CITE:] markers; only cover, references, and "
+            f"appendix sections may be empty."
+        )
 
     unknown = sorted(claim_id for claim_id in assigned_claim_ids if claim_id not in known_claim_ids)
     if unknown:
