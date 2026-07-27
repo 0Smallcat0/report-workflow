@@ -1835,6 +1835,66 @@ class SourceEncodingTests(unittest.TestCase):
             self.assertIn("UTF-8", str(ctx.exception))
 
 
+class SectionEmbeddedTableTests(unittest.TestCase):
+    """A base document arrives one block per section: heading, prose, table.
+
+    The table was citable only as part of the whole section, and derived
+    statistics need row-shaped input, so they could not see the measurements
+    at all. Asking to revise a report and add a fit analysis — with the data
+    sitting in that very report — could not be satisfied.
+    """
+
+    SECTION = (
+        "2. Results\n"
+        "Measurements taken July 2026 with calibrated thermocouples.\n"
+        "| Flow Rate (L/min) | Measured Effectiveness (%) |\n"
+        "| --- | --- |\n"
+        "| 2.0 | 72.4 |\n"
+        "| 3.0 | 76.1 |\n"
+        "| 4.0 | 79.3 |\n"
+        "Effectiveness rises with flow rate."
+    )
+
+    def _split(self, content):
+        from report_workflow.nodes.evidence_normalize import _embedded_table_row_blocks
+
+        return _embedded_table_row_blocks(
+            {"block_id": "base_results_0", "block_type": "paragraph", "content": content})
+
+    def test_rows_become_citable_on_their_own(self):
+        blocks = self._split(self.SECTION)
+        rows = [b for b in blocks if b["block_type"] == "table_row"]
+        self.assertEqual(len(rows), 3)
+        self.assertEqual(
+            json.loads(rows[0]["content"])["Measured Effectiveness (%)"], "72.4")
+
+    def test_prose_on_both_sides_is_kept_in_order(self):
+        blocks = self._split(self.SECTION)
+        kinds = [b["block_type"] for b in blocks]
+        self.assertEqual(kinds[0], "paragraph")
+        self.assertEqual(kinds[-1], "paragraph")
+        self.assertIn("calibrated thermocouples", blocks[0]["content"])
+        self.assertIn("rises with flow rate", blocks[-1]["content"])
+
+    def test_prose_without_a_table_is_left_alone(self):
+        self.assertIsNone(self._split(
+            "Effectiveness rose across the run and the gain diminished."))
+
+    def test_pipes_in_prose_do_not_make_a_table(self):
+        self.assertIsNone(self._split("Run it as: cat data | grep flow | wc -l"))
+
+    def test_a_revised_report_can_derive_from_its_own_table(self):
+        from report_workflow.nodes.evidence_normalize import _derived_stats_units
+
+        entry = {"file_type": "docx", "file_name": "old_report.docx",
+                 "parsed_content": [{"block_id": "base_results_0",
+                                     "block_type": "paragraph",
+                                     "content": self.SECTION}]}
+        derived = _derived_stats_units([entry], "2026-07-27T00:00:00Z")
+        self.assertTrue(derived)
+        self.assertIn("least-squares slope", derived[0]["content"])
+
+
 class DerivedStatsContainerTests(unittest.TestCase):
     """The same table analysed the same way whichever file it arrived in.
 

@@ -8,6 +8,7 @@ from ..errors import QAHardBlockError
 from ..artifact_contract import stable_evidence_id
 from ..language import CJK_RE
 from ..parsers.structured_parser import is_placeholder_value
+from ..parsers.semi_structured_parser import _delimited_table_rows
 
 
 STRUCTURED_TYPES = {"csv", "xlsx", "json"}
@@ -604,10 +605,64 @@ def _table_row_blocks(block: dict) -> list[dict] | None:
     return rows or None
 
 
+def _embedded_table_row_blocks(block: dict) -> list[dict] | None:
+    """Split a block whose text has a table in it into prose and rows.
+
+    A base document arrives as one block per section, and a section is
+    heading, prose and table together. The table was therefore citable only
+    as part of the whole section: no row could be cited on its own, and
+    derived statistics — which need row-shaped input — could not see the
+    measurements at all, so asking for a fit analysis while revising a
+    report that contains the data was unsatisfiable.
+
+    None when the block holds no table, so ordinary prose is untouched.
+    """
+    content = block.get("content") or ""
+    lines = content.split("\n")
+    out: list[dict] = []
+    prose: list[str] = []
+    base_id = block.get("block_id", "block")
+
+    def flush_prose() -> None:
+        text = "\n".join(prose).strip()
+        prose.clear()
+        if text:
+            out.append({**block, "block_id": f"{base_id}_p{len(out)}", "content": text})
+
+    index = 0
+    tables = 0
+    while index < len(lines):
+        rows, end = _delimited_table_rows(lines, index)
+        if not rows or len(rows) < 2:
+            prose.append(lines[index])
+            index += 1
+            continue
+        flush_prose()
+        headers = [str(cell).strip() for cell in rows[0]]
+        for offset, raw_row in enumerate(rows[1:], start=1):
+            values = [str(cell).strip() for cell in raw_row]
+            if all(is_placeholder_value(value) for value in values):
+                continue
+            record = {h: v for h, v in zip(headers, values) if h}
+            if not record:
+                continue
+            out.append({
+                **block,
+                "block_id": f"{base_id}_r{tables}_{offset}",
+                "block_type": "table_row",
+                "content": json.dumps(record, ensure_ascii=False),
+                "table_data": [headers, values],
+            })
+        tables += 1
+        index = end
+    flush_prose()
+    return out if tables else None
+
+
 def _expanded_blocks(parsed_content: list) -> list[dict]:
     expanded: list[dict] = []
     for block in parsed_content:
-        rows = _table_row_blocks(block)
+        rows = _table_row_blocks(block) or _embedded_table_row_blocks(block)
         # The grid is replaced, not supplemented: keeping both would file the
         # same measurements twice, once citable and once not.
         expanded.extend(rows if rows is not None else [block])
