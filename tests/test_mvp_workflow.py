@@ -2033,6 +2033,55 @@ class ShortHeadingEvidenceTests(unittest.TestCase):
         self.assertNotIn("12", kept)
 
 
+class CrossScriptClaimTests(unittest.TestCase):
+    """A Chinese report citing the English literature had no term check.
+
+    Of the four claim/evidence script pairs, three were guarded. The English
+    term check extracts [a-zA-Z]{5,} from the claim, finds none in a Chinese
+    sentence, and returns an empty key-term list — which passes. So the one
+    unguarded direction was the ordinary configuration here: write in
+    Chinese, cite the English source. The mirror was closed earlier; this is
+    its neighbour, and that is this project's most repeated defect shape.
+    """
+
+    ENGLISH = {"content": "Kays and London (1984) report that effectiveness "
+                          "for counter-flow plate exchangers rises with NTU "
+                          "but saturates above NTU = 3."}
+
+    def _reasons(self, claim_text):
+        from report_workflow.nodes.factuality_check import _check_content_overlap
+
+        return _check_content_overlap({"claim_text": claim_text}, self.ENGLISH)
+
+    def test_a_term_the_source_never_mentions_is_caught(self):
+        reasons = self._reasons("文獻指出有效度隨 Reynolds 數上升。")
+        self.assertTrue(reasons)
+        self.assertIn("Reynolds", reasons[0])
+
+    def test_the_evidences_own_term_grounds_the_claim(self):
+        self.assertEqual(self._reasons("文獻指出有效度隨 NTU 上升後趨於飽和。"), [])
+
+    def test_a_claim_with_no_shared_token_is_passed_knowingly(self):
+        """Documented: nothing the two scripts share, so nothing to compare.
+
+        Kept as a corpus evasion rather than blocked, because reporting it
+        would block honest Chinese summaries of English sources far more
+        often than it caught a false one.
+        """
+        self.assertEqual(
+            self._reasons("文獻指出本產品的退款流程平均需時十二分鐘。"), [])
+
+    def test_the_english_directions_still_behave(self):
+        from report_workflow.nodes.factuality_check import _check_content_overlap
+
+        chinese_evidence = {"content": "文獻指出板式熱交換器的有效度隨 NTU 上升。"}
+        unrelated = "The literature reports a mean refund time of twelve minutes."
+        self.assertTrue(_check_content_overlap({"claim_text": unrelated},
+                                               self.ENGLISH))
+        self.assertTrue(_check_content_overlap({"claim_text": unrelated},
+                                               chinese_evidence))
+
+
 class QuestionEvidenceTests(unittest.TestCase):
     """A question is not an answer.
 

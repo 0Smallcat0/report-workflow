@@ -555,6 +555,43 @@ def _is_question_only(text: str) -> bool:
     return not _ASSERTION_END_RE.search(stripped[:-1])
 
 
+_LATIN_TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9²³/-]{1,}")
+_LATIN_TOKEN_STOPWORDS = {"the", "and", "for", "with", "per", "vs", "et", "al"}
+
+
+def _check_cross_script_tokens(claim_text: str, evidence_content: str) -> list[str]:
+    """Check a CJK claim against Latin evidence on what the two can share.
+
+    Across scripts the only vocabulary both sides write the same way is the
+    technical kind a Chinese sentence keeps in Latin — NTU, CRM, R², a cited
+    author's name. Where the claim carries such a token, it must appear in
+    the evidence.
+
+    A claim carrying none is passed: there is genuinely nothing to compare,
+    and reporting it would block the ordinary honest case of a Chinese
+    sentence summarising an English source in Chinese words. That gap is
+    recorded as a documented evasion rather than papered over.
+    """
+    tokens = [
+        token for token in _LATIN_TOKEN_RE.findall(claim_text)
+        if token.lower() not in _LATIN_TOKEN_STOPWORDS
+    ]
+    if not tokens:
+        return []
+    evidence_lower = evidence_content.lower()
+    missing = [token for token in tokens if token.lower() not in evidence_lower]
+    coverage = 1 - len(missing) / len(tokens)
+    # Same 0.40 floor the English term check uses, deliberately: two shapes
+    # of the same rule in one file is how the neighbouring branch came to be
+    # forgotten in the first place.
+    if coverage >= 0.40:
+        return []
+    return [
+        f"Claim terms not in evidence ({coverage:.0%} coverage across scripts, "
+        f"threshold=40%): " + ", ".join(sorted(set(missing))[:5])
+    ]
+
+
 def _check_content_overlap(claim: dict, evidence: dict) -> list[str]:
     """Mismatch reasons for one claim against one evidence entry."""
     return [reason for _key, reason in _content_overlap_findings(claim, evidence)]
@@ -704,6 +741,15 @@ def _content_overlap_findings(
                 claim_text, evidence_content, source_role,
                 cross_language=True, row_shaped=row_shaped,
             )
+    elif len(_cjk_chars(claim_text)) >= 4:
+        # A Chinese claim citing English evidence — a report written in
+        # Chinese that cites the English literature, which is the ordinary
+        # case here. The English term check finds no [a-zA-Z]{5,} in a
+        # Chinese claim, returns an empty key-term list and passes
+        # unconditionally, so this was the one direction of the four with no
+        # vocabulary check at all. The mirror (English claim, CJK evidence)
+        # was closed earlier; this is its neighbour.
+        term_reasons = _check_cross_script_tokens(claim_text, evidence_content)
     else:
         term_reasons = _check_term_overlap(
             claim_text, evidence_content, source_role, row_shaped=row_shaped

@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-07-27T18:04:46",
+  "generated_at": "2026-07-27T19:38:14",
   "corpus": {
-    "total_cases": 62,
-    "honest_cases": 22,
-    "hallucinated_cases": 40,
+    "total_cases": 65,
+    "honest_cases": 23,
+    "hallucinated_cases": 42,
     "attack_families": [
       "cjk_fabrication",
       "cross_language_mismatch",
@@ -20,9 +20,9 @@
       "unit_mismatch",
       "wording_grade_violation"
     ],
-    "documented_evasions": 5,
-    "evidence_rows": 14,
-    "corpus_hash": "affa253a86869d1558cf901a6b779725514f1f09a6601a458b753ebb66e8aa6c"
+    "documented_evasions": 6,
+    "evidence_rows": 15,
+    "corpus_hash": "aa34d334d8dc6f552375857a19c6e26e908078ef0335fbac51f0e3c83dcd09ac"
   },
   "checkers": {
     "no_gate": {
@@ -30,6 +30,33 @@
         {
           "case_id": "qa01",
           "family": "question_as_answer",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "cs01",
+          "family": "cross_language_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "cs02",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "cs03",
+          "family": "evasion_cross_script_no_shared_token",
           "is_hallucination": true,
           "expected_verdict": null,
           "verdict": "published",
@@ -588,9 +615,9 @@
       ],
       "metrics": {
         "true_positives": 0,
-        "false_negatives": 40,
+        "false_negatives": 42,
         "false_positives": 0,
-        "true_negatives": 22,
+        "true_negatives": 23,
         "recall": 0.0,
         "false_positive_rate": 0.0,
         "precision": 0.0
@@ -601,6 +628,33 @@
         {
           "case_id": "qa01",
           "family": "question_as_answer",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "cs01",
+          "family": "cross_language_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "cs02",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "cs03",
+          "family": "evasion_cross_script_no_shared_token",
           "is_hallucination": true,
           "expected_verdict": null,
           "verdict": "published",
@@ -1159,10 +1213,10 @@
       ],
       "metrics": {
         "true_positives": 4,
-        "false_negatives": 36,
+        "false_negatives": 38,
         "false_positives": 0,
-        "true_negatives": 22,
-        "recall": 0.1,
+        "true_negatives": 23,
+        "recall": 0.0952,
         "false_positive_rate": 0.0,
         "precision": 1.0
       }
@@ -1177,6 +1231,33 @@
           "verdict": "blocked",
           "blocked_by": "FE",
           "reason": "Evidence only asks a question and states no answer, so it cannot ground this claim: 'Q: Which step in the refund process takes the longest?'"
+        },
+        {
+          "case_id": "cs01",
+          "family": "cross_language_mismatch",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Claim terms not in evidence (0% coverage across scripts, threshold=40%): Reynolds"
+        },
+        {
+          "case_id": "cs02",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "cs03",
+          "family": "evasion_cross_script_no_shared_token",
+          "is_hallucination": true,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
         },
         {
           "case_id": "fc01",
@@ -1729,11 +1810,11 @@
         }
       ],
       "metrics": {
-        "true_positives": 35,
-        "false_negatives": 5,
+        "true_positives": 36,
+        "false_negatives": 6,
         "false_positives": 0,
-        "true_negatives": 22,
-        "recall": 0.875,
+        "true_negatives": 23,
+        "recall": 0.8571,
         "false_positive_rate": 0.0,
         "precision": 1.0
       },
@@ -1749,8 +1830,8 @@
         },
         {
           "family": "cross_language_mismatch",
-          "cases": 2,
-          "caught": 2,
+          "cases": 3,
+          "caught": 3,
           "gates": [
             "FE"
           ],
@@ -1767,6 +1848,13 @@
         },
         {
           "family": "evasion_bare_number",
+          "cases": 1,
+          "caught": 0,
+          "gates": [],
+          "catch_rate": 0.0
+        },
+        {
+          "family": "evasion_cross_script_no_shared_token",
           "cases": 1,
           "caught": 0,
           "gates": [],
@@ -1905,7 +1993,7 @@
   "expected_mismatches": [],
   "determinism": {
     "runs": 5,
-    "verdict_hash": "7839fd16778d813cde6d135e4a6c582ae3f0d506740ccedd938ec0e46c464620",
+    "verdict_hash": "5697d83e8ebe3401aef45c104019524d7225ea1185c419a88d731a547f4515d9",
     "identical": true
   }
 }

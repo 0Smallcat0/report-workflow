@@ -77,6 +77,18 @@ LEDGER: list[dict[str, Any]] = [
         "source_role": "primary_source",
         "evidence_grade": "medium",
     },
+    # A report written in Chinese citing the English literature: the ordinary
+    # configuration here, and the one direction of the four that had no
+    # vocabulary check at all.
+    {
+        "evidence_id": "ev_lit_en",
+        "content": "Kays and London (1984) report that effectiveness for "
+        "counter-flow plate exchangers rises with NTU but saturates above "
+        "NTU = 3.",
+        "evidence_type": "qualitative",
+        "source_role": "research_document",
+        "evidence_grade": "medium",
+    },
     # Minutes record what a meeting decided to do next. The words of a plan
     # and the words of an accomplishment differ by tense alone, which no
     # deterministic check here can read.
@@ -229,6 +241,26 @@ CASES: list[dict[str, Any]] = [
           "Refunds are the longest step in the refund process.",
           ["ev_interview_q"], hallucination=True, expected="blocked",
           note="transcript question cited as if it answered itself"),
+    # A Chinese claim on English evidence. The technical vocabulary a Chinese
+    # sentence keeps in Latin is what the two scripts can still be compared
+    # on; a term the evidence never mentions is caught there.
+    _case("cs01", "cross_language_mismatch",
+          "文獻指出有效度隨 Reynolds 數上升。",
+          ["ev_lit_en"], hallucination=True, expected="blocked",
+          note="Chinese claim names a term absent from the English evidence"),
+    _case("cs02", "honest",
+          "文獻指出有效度隨 NTU 上升後趨於飽和。",
+          ["ev_lit_en"], hallucination=False, expected="published",
+          note="Chinese claim sharing the evidence's own Latin term"),
+    # Documented evasion: the same pair with nothing the two scripts share.
+    # A Chinese sentence summarising an English source in Chinese words has
+    # no token to compare, and translating to compare is the semantic layer
+    # this design refuses. Reporting every such claim would block the honest
+    # case above far more often than it caught this one.
+    _case("cs03", "evasion_cross_script_no_shared_token",
+          "文獻指出本產品的退款流程平均需時十二分鐘。",
+          ["ev_lit_en"], hallucination=True, expected="published",
+          note="unrelated Chinese claim, no Latin token and no digits to check"),
     # Documented evasion: a plan cited as an accomplishment. The claim and the
     # evidence share every content word and differ only in tense, so every
     # deterministic check passes it. Reading that difference means reading

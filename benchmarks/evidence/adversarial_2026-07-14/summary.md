@@ -1,17 +1,17 @@
 # Adversarial Anti-Hallucination Benchmark (2026-07-14)
 
-- Corpus: **62 cases** — 22 honest controls, 40 hallucinated claims across 14 attack families plus 5 documented evasion variants.
+- Corpus: **65 cases** — 23 honest controls, 42 hallucinated claims across 14 attack families plus 6 documented evasion variants.
 - Gate stack under test: FA (linkage) -> FB (statistical backing) -> FE (deep-audit content overlap) -> FD (wording vs evidence grade).
 - Deterministic, offline, no LLM: verdicts come from the exact checker functions in `src/report_workflow/nodes/factuality_check.py`.
-- Corpus hash: `affa253a86869d1558cf901a6b779725514f1f09a6601a458b753ebb66e8aa6c`
+- Corpus hash: `aa34d334d8dc6f552375857a19c6e26e908078ef0335fbac51f0e3c83dcd09ac`
 
 ## Headline comparison
 
 | Checker | Recall (hallucinations blocked) | False-positive rate (honest blocked) | Precision |
 | --- | --- | --- | --- |
-| `no_gate` | 0.0% (0/40) | 0.0% (0/22) | 0.0% |
-| `citation_presence` | 10.0% (4/40) | 0.0% (0/22) | 100.0% |
-| `full_gate_stack` | 87.5% (35/40) | 0.0% (0/22) | 100.0% |
+| `no_gate` | 0.0% (0/42) | 0.0% (0/23) | 0.0% |
+| `citation_presence` | 9.5% (4/42) | 0.0% (0/23) | 100.0% |
+| `full_gate_stack` | 85.7% (36/42) | 0.0% (0/23) | 100.0% |
 
 `citation_presence` is the shallow check many retrieval pipelines stop at:
 the citation ID exists, therefore the sentence is treated as grounded. It
@@ -22,7 +22,7 @@ never reads the evidence content, so every content-level fabrication ships.
 | Attack family | Cases | Caught | Catch rate | Gate(s) that fired |
 | --- | --- | --- | --- | --- |
 | cjk_fabrication | 2 | 2 | 100.0% | FE |
-| cross_language_mismatch | 2 | 2 | 100.0% | FE |
+| cross_language_mismatch | 3 | 3 | 100.0% | FE |
 | dangling_claim | 1 | 1 | 100.0% | FA |
 | fabricated_citation | 3 | 3 | 100.0% | FA |
 | fabricated_quote | 4 | 4 | 100.0% | FE |
@@ -44,6 +44,7 @@ and feed the limitations section of `docs/DESIGN.md`:
 
 | Case | Family | Why it slips through |
 | --- | --- | --- |
+| cs03 | evasion_cross_script_no_shared_token | unrelated Chinese claim, no Latin token and no digits to check |
 | fc01 | evasion_future_as_completed | minutes say the team will do it in Q3; the claim says it is done |
 | x01 | evasion_bare_number | invented count evades FE because a trailing number without a unit token is not extracted |
 | x02 | evasion_negation_flip | drops the 'should not' from the evidence; lexical overlap cannot see negation |
@@ -53,7 +54,7 @@ and feed the limitations section of `docs/DESIGN.md`:
 ## Determinism proof
 
 - 5 consecutive in-process runs produced identical verdicts: `identical = True`.
-- Verdict hash (sha256 over all full-stack verdicts): `7839fd16778d813cde6d135e4a6c582ae3f0d506740ccedd938ec0e46c464620`.
+- Verdict hash (sha256 over all full-stack verdicts): `5697d83e8ebe3401aef45c104019524d7225ea1185c419a88d731a547f4515d9`.
 - `python scripts/run_adversarial_benchmark.py --check` recomputes every verdict
   from source and fails if any verdict, metric, or hash drifts from this archive —
   the same command runs in CI on Linux, so the hash is also a cross-platform
