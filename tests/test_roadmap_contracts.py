@@ -39,6 +39,55 @@ class SourceRoleContractTests(unittest.TestCase):
         self.assertEqual(role_map["old_report.docx"], "base_document")
         self.assertEqual(role_map["measurements.csv"], "source_data")
 
+    def test_chinese_literature_pdf_is_a_research_document(self):
+        """The pdf/docx branch matched English keywords only.
+
+        Both counts came out zero for a Chinese paper, the strict comparison
+        failed, and it fell through to primary_source — so a Chinese journal
+        article could not be recognised as literature at all, and the
+        evidence-policy warning kept asking those users to attach the
+        references they had already attached. The md/txt branch above had
+        carried the Chinese tokens for a while; this branch, where literature
+        actually arrives, had not.
+        """
+        role = _determine_source_role(
+            {"file_name": "王小明2024_結垢.pdf", "file_type": "pdf"},
+            {"content": "本論文發表於機械工程學報，第 60 卷，探討結垢對熱傳的影響。"},
+        )
+        self.assertEqual(role, "research_document")
+
+    def test_chinese_filename_token_is_enough(self):
+        role = _determine_source_role(
+            {"file_name": "文獻回顧.pdf", "file_type": "pdf"},
+            {"content": "任何內容。"},
+        )
+        self.assertEqual(role, "research_document")
+
+    def test_a_chinese_handout_is_not_literature(self):
+        """Instructional material is a primary source, not a paper. Widening
+        the literature tokens must not swallow every Chinese document."""
+        role = _determine_source_role(
+            {"file_name": "handout.docx", "file_type": "docx"},
+            {"content": "本講義說明量測的操作條件，實驗步驟與方法如下，結果記錄於下表。"},
+        )
+        self.assertEqual(role, "primary_source")
+
+    def test_english_classification_is_unchanged(self):
+        self.assertEqual(
+            _determine_source_role(
+                {"file_name": "smith2020.pdf", "file_type": "pdf"},
+                {"content": "Smith et al. journal of heat transfer, doi: 10.1000/x"},
+            ),
+            "research_document",
+        )
+        self.assertEqual(
+            _determine_source_role(
+                {"file_name": "lab_data.docx", "file_type": "docx"},
+                {"content": "method and result of the experiment with participant data"},
+            ),
+            "primary_source",
+        )
+
     def test_source_data_markdown_notes_are_project_sources(self):
         role = _determine_source_role(
             {
