@@ -907,6 +907,54 @@ class DuplicateCitationCollapseTest(unittest.TestCase):
         document.save(path)
         return path
 
+    def test_a_relative_figure_link_resolves_against_its_own_draft(self):
+        """A relative link means relative to the file that contains it.
+
+        Resolving against the run directory alone put the path somewhere the
+        file was not, and pandoc then emitted the caption from the alt text
+        with no image under it — the document went out saying "圖 1." and
+        "由圖 1 可見" with nothing between them.
+        """
+        from report_workflow.nodes.docx_render import _absolutize_image_paths
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            draft_dir = Path(tmpdir) / "drafts"
+            (draft_dir / "figures").mkdir(parents=True)
+            (draft_dir / "figures" / "fig1.png").write_bytes(b"x")
+            run_dir = Path(tmpdir) / "run"
+            run_dir.mkdir()
+            out = _absolutize_image_paths(
+                "![圖 1](figures/fig1.png)", run_dir, draft_dir)
+            self.assertIn("drafts/figures/fig1.png", out.replace("\\", "/"))
+
+    def test_an_absolute_figure_link_is_left_alone(self):
+        from report_workflow.nodes.docx_render import _absolutize_image_paths
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original = f"![f]({Path(tmpdir).as_posix()}/a.png)"
+            self.assertEqual(
+                _absolutize_image_paths(original, Path(tmpdir), Path(tmpdir)),
+                original)
+
+    def test_a_figure_that_never_arrived_is_named(self):
+        """The repair pass already learned the file was missing and threw the
+        finding away, so the figure disappeared without a word."""
+        from report_workflow.nodes.docx_render import _validate_docx
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = self._rendered(tmpdir, ["標題", "圖 1. 有效度隨流量變化。"])
+            issues = _validate_docx(
+                path, "![圖 1](/nowhere/fig1.png)\n\n圖 1. 有效度隨流量變化。")
+            self.assertTrue(any("do not exist" in i for i in issues), issues)
+
+    def test_a_report_with_no_figures_is_not_nagged(self):
+        from report_workflow.nodes.docx_render import _validate_docx
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = self._rendered(tmpdir, ["標題", "本節沒有任何圖片。"])
+            issues = _validate_docx(path, "# 標題\n\n本節沒有任何圖片。")
+            self.assertEqual([i for i in issues if "figure" in i], [])
+
     def test_a_complete_chinese_report_is_not_called_incomplete(self):
         """The floor was 500 characters, which asks "long enough in English".
 

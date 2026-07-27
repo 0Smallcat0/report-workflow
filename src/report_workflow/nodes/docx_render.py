@@ -298,12 +298,20 @@ def _replace_figure_placeholders(md_content: str, figure_manifest: dict | None) 
     return _FIGURE_PLACEHOLDER_RE.sub(replace, md_content), replaced, unresolved
 
 
-def _absolutize_image_paths(md_content: str, base_dir: Path) -> str:
+def _absolutize_image_paths(
+    md_content: str, base_dir: Path, draft_dir: Path | None = None
+) -> str:
     """Rewrite local relative image links to absolute paths for pandoc.
 
     Pandoc's DOCX writer resolves image links relative to the process working
     directory in some Windows invocations, not always relative to the input
     markdown file. Absolute paths make figure embedding deterministic.
+
+    A relative link means relative to the file that contains it, so the
+    draft's own directory is tried first. Figures the pipeline builds carry
+    absolute paths and are unaffected; a link written by hand in a section
+    draft used to be resolved against the run directory alone, where it did
+    not exist, and the figure then vanished from the document without a word.
     """
 
     def replace(match: re.Match) -> str:
@@ -315,8 +323,13 @@ def _absolutize_image_paths(md_content: str, base_dir: Path) -> str:
         target_path = Path(target_no_title)
         if target_path.is_absolute():
             return match.group(0)
-        absolute = (base_dir / target_path).resolve().as_posix()
-        return f"![{alt}]({absolute})"
+        candidates = [base_dir / target_path]
+        if draft_dir is not None:
+            candidates.insert(0, draft_dir / target_path)
+        resolved = next(
+            (c for c in candidates if c.exists()), candidates[-1]
+        )
+        return f"![{alt}]({resolved.resolve().as_posix()})"
 
     return _IMAGE_LINK_RE.sub(replace, md_content)
 
@@ -641,6 +654,28 @@ def _validate_docx(docx_path: str, source_markdown: str | None = None) -> list[s
         # passed. The same threshold-tuned-in-English mistake as the block
         # floor that discarded short CJK headings.
         if source_markdown is not None:
+            # A figure the draft asked for must not vanish quietly. Pandoc
+            # emits the caption from the alt text whether or not it found the
+            # file, so the document goes out with "圖 1." and a body that
+            # says "由圖 1 可見" and no figure between them. The repair pass
+            # already learns which files are missing and then discards the
+            # finding.
+            wanted = list(_IMAGE_LINK_RE.finditer(source_markdown))
+            missing = [
+                m.group(2).strip().strip("<>") for m in wanted
+                if not Path(m.group(2).strip().strip("<>")).exists()
+            ]
+            if missing:
+                issues.append(
+                    f"{len(missing)} figure file(s) referenced by the draft do "
+                    f"not exist: {', '.join(missing[:3])}"
+                )
+            elif wanted and len(doc.inline_shapes) < len(wanted):
+                issues.append(
+                    f"draft references {len(wanted)} figure(s) but the document "
+                    f"embeds {len(doc.inline_shapes)}"
+                )
+
             rendered = _docx_text_length(doc)
             source = _prose_length(source_markdown)
             if source and rendered < source * 0.5:
@@ -1369,7 +1404,9 @@ def run_docx_render(state: ReportState) -> ReportState:
         md_content = md_content.rstrip() + "\n\n" + pub_ref_md
 
     run_dir = WORKFLOW_RUNS_DIR / state.job_id
-    md_content = _absolutize_image_paths(md_content, run_dir)
+    md_content = _absolutize_image_paths(
+        md_content, run_dir, Path(cited_md_path).parent
+    )
     if detect_document_language(md_content) == "zh":
         md_content = _normalize_cjk_typography(md_content)
     final_docx_path = run_dir / "rendered_report.docx"
