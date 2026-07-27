@@ -553,6 +553,63 @@ def _derived_stats_units(source_registry: list, created_at: str) -> list[dict]:
 _ROW_BLOCK_TYPES = {"csv_row", "table_row", "data_row"}
 
 
+def _table_row_blocks(block: dict) -> list[dict] | None:
+    """One block per data row of a table, or None to keep the block as is.
+
+    A table embedded in a DOCX or PDF arrived as a single block holding the
+    whole grid, so six rows of measurements became one evidence entry. No row
+    could be cited on its own, and the numeric check — which reads a row's
+    header and cell as a pair — saw a pipe-delimited blob, found no numbers
+    at all, and blocked honest claims about figures the table plainly held.
+    The rows were already parsed and carried along in ``table_data``;
+    nothing read them.
+
+    CSV ingestion has always emitted one entry per row. This gives a pasted
+    or embedded table the same granularity, in the same shape.
+    """
+    if block.get("block_type") != "table":
+        return None
+    table_data = block.get("table_data")
+    if not isinstance(table_data, list) or len(table_data) < 2:
+        return None
+    headers = [str(cell).strip() for cell in table_data[0]]
+    if not any(headers):
+        return None
+
+    rows = []
+    for offset, raw_row in enumerate(table_data[1:], start=1):
+        if not isinstance(raw_row, list):
+            continue
+        values = [str(cell).strip() for cell in raw_row]
+        if all(is_placeholder_value(value) for value in values):
+            continue
+        record = {
+            header: value
+            for header, value in zip(headers, values)
+            if header
+        }
+        if not record:
+            continue
+        rows.append({
+            **block,
+            "block_id": f"{block.get('block_id', 'table')}_r{offset}",
+            "block_type": "table_row",
+            "content": json.dumps(record, ensure_ascii=False),
+            "table_data": [headers, values],
+        })
+    return rows or None
+
+
+def _expanded_blocks(parsed_content: list) -> list[dict]:
+    expanded: list[dict] = []
+    for block in parsed_content:
+        rows = _table_row_blocks(block)
+        # The grid is replaced, not supplemented: keeping both would file the
+        # same measurements twice, once citable and once not.
+        expanded.extend(rows if rows is not None else [block])
+    return expanded
+
+
 def _row_values_lower(content: str, block_type: str) -> str | None:
     """Lowercased cell values of a structured row, placeholders dropped.
 
@@ -771,7 +828,7 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
         parsed_content = entry.get("parsed_content", [])
         if entry.get("artifact_role", "source_data") == "source_data" and not parsed_content:
             raise QAHardBlockError(f"Source has no parsed content: {entry.get('file_name')}")
-        for block in parsed_content:
+        for block in _expanded_blocks(parsed_content):
             content = block.get("content", "")
             if not content or len(content.strip()) < 10:
                 continue
