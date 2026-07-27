@@ -2086,6 +2086,42 @@ class DiversityGateTests(unittest.TestCase):
             reasons = _source_diversity_reasons(state)
         self.assertTrue(any("5 evidence entries" in r for r in reasons))
 
+    def test_the_same_content_twice_is_one_piece_of_material(self):
+        """Attaching a thin file twice used to clear the source-base bar.
+
+        A three-row CSV attached at two paths produced six entries, and this
+        check counted entries, so six cleared a bar three rows should not.
+        """
+        from report_workflow.nodes.qa_gate import _source_diversity_reasons
+        state = ReportState.new("report", [], "out")
+        state.spec["report_profile"] = "academic_paper"
+        rows = [f'{{"Trial": "{i}", "Voltage (V)": "12.{i}"}}' for i in range(3)]
+        doubled = [
+            {"evidence_id": f"e{i}", "source_role": "code_artifact", "content": content}
+            for i, content in enumerate(rows + rows)
+        ]
+        state.sources["evidence_ledger_path"] = ""
+        state.plan["claim_matrix"] = {"claims": []}
+        with patch("report_workflow.nodes.qa_gate._load_jsonl", return_value=doubled):
+            reasons = _source_diversity_reasons(state)
+        self.assertTrue(any("5 evidence entries" in r for r in reasons))
+        self.assertTrue(any("found 3" in r for r in reasons))
+
+    def test_five_genuinely_different_rows_still_clear_the_bar(self):
+        from report_workflow.nodes.qa_gate import _source_diversity_reasons
+        state = ReportState.new("report", [], "out")
+        state.spec["report_profile"] = "academic_paper"
+        entries = [
+            {"evidence_id": f"e{i}", "source_role": "code_artifact",
+             "content": f'{{"Trial": "{i}"}}'}
+            for i in range(5)
+        ]
+        state.sources["evidence_ledger_path"] = ""
+        state.plan["claim_matrix"] = {"claims": []}
+        with patch("report_workflow.nodes.qa_gate._load_jsonl", return_value=entries):
+            reasons = _source_diversity_reasons(state)
+        self.assertFalse(any("5 evidence entries" in r for r in reasons))
+
     def test_academic_paper_all_primary_source_warns_without_code_artifact(self):
         """Missing code_artifact is advisory when docs can support architecture claims."""
         from report_workflow.nodes.qa_gate import _source_diversity_reasons
