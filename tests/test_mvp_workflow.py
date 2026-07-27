@@ -1716,6 +1716,44 @@ class SourceParseNewTypesTests(unittest.TestCase):
 # Fix #2: evidence_count >= 10 and diversity enforcement
 # ------------------------------------------------------------------
 
+class MultipleUnreadableSourcesTests(unittest.TestCase):
+    """One pass already knows about every unreadable attachment.
+
+    Raising on the first meant an author with three of them discovered one per
+    run: fix, resubmit, meet the next.
+    """
+
+    def _run(self, tmpdir, names):
+        from report_workflow.nodes.source_parse import run_source_parse
+
+        state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
+        registry = []
+        for name in names:
+            path = Path(tmpdir) / name
+            path.write_text("", encoding="utf-8")
+            registry.append({
+                "file_name": name, "file_path": str(path),
+                "file_type": name.rsplit(".", 1)[-1], "artifact_role": "source_data",
+            })
+        state.sources["source_registry"] = registry
+        with self.assertRaises(QAHardBlockError) as ctx:
+            run_source_parse(state)
+        return str(ctx.exception)
+
+    def test_every_unreadable_source_is_named_once(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            message = self._run(tmpdir, ["a.md", "b.md", "c.md"])
+            for name in ("a.md", "b.md", "c.md"):
+                self.assertIn(name, message)
+            self.assertIn("3 sources", message)
+
+    def test_a_single_failure_reads_naturally(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            message = self._run(tmpdir, ["only.md"])
+            self.assertIn("only.md", message)
+            self.assertNotIn("1 sources", message)
+
+
 class SourceEncodingTests(unittest.TestCase):
     """Excel on a Traditional Chinese Windows machine writes Big5, not UTF-8.
 
