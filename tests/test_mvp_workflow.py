@@ -1755,6 +1755,36 @@ class SourceEncodingTests(unittest.TestCase):
             self.assertEqual(rows[0]["流量 (L/min)"], "2")
             self.assertEqual(rows[1]["實測有效度"], "0.411")
 
+    def test_code_with_big5_comments_is_not_mangled(self):
+        """`errors="replace"` did not fail — it succeeded with rubbish.
+
+        A Big5 source came back as U+FFFD with success=True, so mangled
+        comments entered the evidence ledger and could be cited in a report.
+        That is worse than the CSV case, which at least refused.
+        """
+        from report_workflow.parsers.code_parser import parse_code
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "sensor.py"
+            path.write_bytes(
+                '# 熱電偶讀取\ndef read_temp(pin):\n    """讀取溫度值。"""\n    return pin\n'
+                .encode("big5")
+            )
+            parsed = parse_code(str(path))
+            joined = " ".join(b.get("content") or "" for b in parsed.get("blocks") or [])
+            self.assertNotIn("�", joined)
+            self.assertIn("讀取溫度值", joined)
+
+    def test_undecodable_code_is_refused_not_mangled(self):
+        from report_workflow.parsers.code_parser import parse_code
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "blob.py"
+            path.write_bytes(b"\xff\xfe\x00\x00\xff\xff")
+            parsed = parse_code(str(path))
+            self.assertFalse(parsed.get("success"))
+            self.assertIn("UTF-8", parsed.get("error") or "")
+
     def test_undecodable_bytes_are_refused_not_mangled(self):
         """No latin-1 catch-all: silent mojibake is worse than a refusal."""
         from report_workflow.parsers.source_text import read_source_text

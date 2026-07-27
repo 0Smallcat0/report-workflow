@@ -301,15 +301,18 @@ def parse_code(file_path: str) -> dict:
     """
     import os
 
+    from .source_text import read_source_text
+
+    # `errors="replace"` used to stand in for the encodings this file did not
+    # try, and it does not fail: a Big5 source came back as U+FFFD rubbish with
+    # success=True, so mangled comments entered the evidence ledger and could
+    # be cited in a report. Decoding a file wrongly is worse than not reading
+    # it, so the shared decoder tries the encodings that actually occur and
+    # refuses anything it cannot read.
     try:
-        with open(file_path, encoding="utf-8") as f:
-            source = f.read()
-    except UnicodeDecodeError:
-        try:
-            with open(file_path, encoding="utf-8", errors="replace") as f:
-                source = f.read()
-        except Exception as e:
-            return {"blocks": [], "error": str(e), "success": False}
+        source = read_source_text(file_path)
+    except (OSError, ValueError) as e:
+        return {"blocks": [], "error": str(e), "success": False}
 
     ext = os.path.splitext(file_path)[1].lower()
     name = os.path.basename(file_path)
