@@ -240,13 +240,29 @@ def run_factuality_check_fe(
             results.append(checked)
             continue
 
-        all_reasons = []
+        # Citing several sources means the claim rests on their union, not on
+        # each one alone. Demanding that every cited entry satisfy every check
+        # blocked ordinary honest claims: a measurement row carries no prose
+        # for the term check, and the method paragraph that produced it
+        # carries no number for the numeric check, so citing both failed twice
+        # over. A check now counts as failed only when no cited evidence
+        # satisfied it. With a single citation this is exactly the old rule.
+        examined = 0
+        failures: dict[tuple, str] = {}
+        failure_counts: dict[tuple, int] = {}
         for evidence_id in claim_evidence_ids:
             evidence = evidence_by_id.get(evidence_id)
             if not evidence:
                 continue
-            mismatch_reasons = _check_content_overlap(claim, evidence)
-            all_reasons.extend(mismatch_reasons)
+            examined += 1
+            for key, reason in _content_overlap_findings(claim, evidence):
+                failure_counts[key] = failure_counts.get(key, 0) + 1
+                failures.setdefault(key, reason)
+
+        all_reasons = [
+            reason for key, reason in failures.items()
+            if failure_counts[key] >= examined
+        ]
 
         if all_reasons:
             results.append({
@@ -502,13 +518,23 @@ def _check_cjk_overlap(claim_text: str, evidence_content: str) -> list[str]:
     ]
 
 
-def _check_content_overlap(
+def _check_content_overlap(claim: dict, evidence: dict) -> list[str]:
+    """Mismatch reasons for one claim against one evidence entry."""
+    return [reason for _key, reason in _content_overlap_findings(claim, evidence)]
+
+
+def _content_overlap_findings(
     claim: dict,
     evidence: dict,
-) -> list[str]:
+) -> list[tuple[tuple, str]]:
     """Verify claim content is grounded in evidence content.
 
-    Returns a list of mismatch reasons (empty = OK).
+    Returns (key, reason) pairs; empty means this evidence satisfies every
+    check. The key names which check failed — ("number", "88.4", "%"),
+    ("quote", …), ("terms",) — so a caller weighing several cited evidence
+    can ask whether *any* of them satisfied a given check, rather than
+    demanding that every one satisfy all of them.
+
     Checks:
     1. Quote overlap: if claim has "quoted text" markers, verify the quote
        appears verbatim (or near-verbatim) in evidence content.
@@ -524,8 +550,7 @@ def _check_content_overlap(
     reasons = []
 
     if not evidence_content:
-        reasons.append("Evidence content is empty — cannot verify claim grounding")
-        return reasons
+        return [(("content",), "Evidence content is empty — cannot verify claim grounding")]
 
     # 1. Quote overlap check — look for "quoted text" patterns in claim
     #    e.g., 'The system "compiles ASTs" is key' → check "compiles ASTs" in evidence
@@ -536,9 +561,10 @@ def _check_content_overlap(
         # Strip trailing punctuation for matching
         phrase_stripped = phrase.rstrip('.,;:')
         if phrase_stripped.lower() not in evidence_content.lower():
-            reasons.append(
-                f"Quoted phrase {phrase_stripped!r} not found verbatim in evidence"
-            )
+            reasons.append((
+                ("quote", phrase_stripped.lower()),
+                f"Quoted phrase {phrase_stripped!r} not found verbatim in evidence",
+            ))
 
     # 2. Numeric overlap check — claim numbers must appear in evidence
     claim_numbers = _extract_numbers_with_unit(claim_text)
@@ -585,28 +611,29 @@ def _check_content_overlap(
             break
 
         if not found:
+            number_key = ("number", num_str, unit)
             if bounded_match:
-                reasons.append(
+                reasons.append((number_key, (
                     f"Claim number {num_str!r}{unit} states as measured what the "
                     f"evidence gives only as a bound "
                     f"({bounded_match[0]!r}{bounded_match[1]} is a limit, "
                     f"not a reading)"
-                )
+                )))
             elif inflated_match:
-                reasons.append(
+                reasons.append((number_key, (
                     f"Claim number {num_str!r}{unit} asserts more decimal "
                     f"precision than the evidence value "
                     f"{inflated_match[0]!r}{inflated_match[1]} supports"
-                )
+                )))
             else:
                 # Show what was found in evidence to help debugging
                 ev_nums_str = ", ".join(f"{n}{u}" for n, u in evidence_numbers) or "(none)"
-                reasons.append(
+                reasons.append((number_key, (
                     f"Claim number {num_str!r}{unit} not found in evidence content "
                     f"(evidence has: {ev_nums_str}). "
                     f"Note: numeric extractor supports both spaced and compact "
                     f"unit forms, such as '226 edges' and '226edges'."
-                )
+                )))
 
     # 3. Term overlap — key terms from claim should appear in evidence.
     #    CJK-heavy evidence takes the bigram path for CJK claims. A non-CJK
@@ -625,15 +652,17 @@ def _check_content_overlap(
     source_role = evidence.get("source_role", "primary_source")
     if _is_likely_non_ascii(evidence_content):
         if len(_cjk_chars(claim_text)) >= 4:
-            reasons.extend(_check_cjk_overlap(claim_text, evidence_content))
+            term_reasons = _check_cjk_overlap(claim_text, evidence_content)
         else:
-            reasons.extend(
-                _check_term_overlap(
-                    claim_text, evidence_content, source_role, cross_language=True
-                )
+            term_reasons = _check_term_overlap(
+                claim_text, evidence_content, source_role, cross_language=True
             )
     else:
-        reasons.extend(_check_term_overlap(claim_text, evidence_content, source_role))
+        term_reasons = _check_term_overlap(claim_text, evidence_content, source_role)
+    # One key for both paths: they are two implementations of the same
+    # "does the claim's vocabulary appear here" question, and a claim citing
+    # a Chinese source and an English one is satisfied by either.
+    reasons.extend((("terms",), reason) for reason in term_reasons)
 
     return reasons
 
