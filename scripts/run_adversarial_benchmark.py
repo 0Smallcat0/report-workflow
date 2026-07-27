@@ -59,6 +59,24 @@ CHECKER_CONFIGS = ("no_gate", "citation_presence", "full_gate_stack")
 # grounded in one of these rows; every hallucinated claim contradicts them,
 # fabricates beyond them, or cites IDs that do not exist here.
 LEDGER: list[dict[str, Any]] = [
+    # A transcript puts the question and its answer in the ledger side by side.
+    # Term overlap let the question ground the very claim it was asking about,
+    # so the pair is kept here: one must block, the other must stay publishable.
+    {
+        "evidence_id": "ev_interview_q",
+        "content": "Q: Which step in the refund process takes the longest?",
+        "evidence_type": "qualitative",
+        "source_role": "primary_source",
+        "evidence_grade": "medium",
+    },
+    {
+        "evidence_id": "ev_interview_a",
+        "content": "A: Refunds. We measured it at about 12 minutes per case "
+        "across three systems.",
+        "evidence_type": "quantitative",
+        "source_role": "primary_source",
+        "evidence_grade": "medium",
+    },
     {
         "evidence_id": "ev_time",
         "content": "Median processing time was 12.4 minutes for the manual "
@@ -193,6 +211,18 @@ def _case(
 # fabricated_quote), and cross_language_mismatch (English-claim-on-CJK-evidence
 # falls back to the English term check instead of a free pass).
 CASES: list[dict[str, Any]] = [
+    # A question is not an answer. Interview transcripts, FAQs and minutes all
+    # put questions in the ledger, and citing one used to ground the claim it
+    # was asking about — the evidence posed the question, the answer came from
+    # nowhere. The honest twin cites the answer line and must stay publishable.
+    _case("qa01", "question_as_answer",
+          "Refunds are the longest step in the refund process.",
+          ["ev_interview_q"], hallucination=True, expected="blocked",
+          note="transcript question cited as if it answered itself"),
+    _case("qa02", "honest",
+          "Refunds take about 12 minutes per case.",
+          ["ev_interview_a"], hallucination=False, expected="published",
+          note="same transcript, the answer line"),
     # Honest controls: claims a careful analyst could defend from the ledger.
     _case("h01", "honest", "The structured workflow cut the median processing time to 7.8 minutes.",
           ["ev_time"], hallucination=False, expected="published",

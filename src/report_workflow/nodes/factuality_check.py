@@ -533,6 +533,28 @@ def _check_cjk_overlap(claim_text: str, evidence_content: str) -> list[str]:
     ]
 
 
+_QUESTION_SPEAKER_RE = re.compile(r"^\s*(問|answer|question|q|a)\s*[:：.]\s*", re.IGNORECASE)
+_ASSERTION_END_RE = re.compile(r"[。．.!！;；]")
+
+
+def _is_question_only(text: str) -> bool:
+    """True when the text asks something and asserts nothing.
+
+    An interview transcript, a FAQ or minutes with a Q&A section put
+    questions in the ledger alongside answers, and term overlap let one
+    ground the very claim it was asking about: "問：目前最花時間的環節是
+    什麼？" grounded "退款是目前最花時間的環節。" The evidence posed the
+    question; the answer came from nowhere.
+
+    A line that also asserts something is left alone — only a bare question
+    is refused.
+    """
+    stripped = _QUESTION_SPEAKER_RE.sub("", (text or "").strip()).strip()
+    if not stripped.endswith(("?", "？")):
+        return False
+    return not _ASSERTION_END_RE.search(stripped[:-1])
+
+
 def _check_content_overlap(claim: dict, evidence: dict) -> list[str]:
     """Mismatch reasons for one claim against one evidence entry."""
     return [reason for _key, reason in _content_overlap_findings(claim, evidence)]
@@ -566,6 +588,14 @@ def _content_overlap_findings(
 
     if not evidence_content:
         return [(("content",), "Evidence content is empty — cannot verify claim grounding")]
+
+    if _is_question_only(evidence_content):
+        return [((
+            "question",
+        ), (
+            "Evidence only asks a question and states no answer, so it cannot "
+            f"ground this claim: {evidence_content.strip()[:80]!r}"
+        ))]
 
     # 1. Quote overlap check — look for "quoted text" patterns in claim
     #    e.g., 'The system "compiles ASTs" is key' → check "compiles ASTs" in evidence
