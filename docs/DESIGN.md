@@ -218,7 +218,7 @@ Closing the negation/misattribution gap would require an NLI-style semantic
 checker, which would reintroduce a probabilistic component; the design keeps
 that trade-off explicit instead of blending the two.
 
-### Two things this does not detect, by decision
+### What this does not detect, by decision
 
 **Disagreement between sources.** If two attached files state different
 values for the same quantity, nothing notices. A mechanical rule — same
@@ -237,6 +237,19 @@ toward a column's numeric ratio would let a chart draw the half of a column
 that happens to be plain numbers without saying so, which is a worse failure
 than not drawing it. Claims citing such a cell are still checked: a bound is
 rejected as a stand-in for a reading (§2).
+
+**A plan reported as an accomplishment.** Minutes record what a meeting
+decided to do next, and the words of a plan and of an accomplishment differ
+by tense alone: "the team will introduce auto-fill in Q3" and "auto-fill has
+been introduced" share every content word, every name and every number.
+Every check here passes the second citing the first. Catching it means
+reading modality — distinguishing *will*, *is due to*, *plans to* from *has*
+— across two languages and in sentences that often carry both at once
+("A shipped, B is scheduled"). A keyword list would fire on deadlines
+("complete by 10 July" contains *complete*) and miss anything phrased
+around it, which buys a worse thing than the gap: confidence that is not
+earned. The case is kept in the adversarial corpus as a documented evasion,
+uncaught, so the recall figure states the cost rather than hiding it.
 
 ### Formatting boundary
 

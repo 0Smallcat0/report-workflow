@@ -889,7 +889,15 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
             raise QAHardBlockError(f"Source has no parsed content: {entry.get('file_name')}")
         for block in _expanded_blocks(parsed_content):
             content = block.get("content", "")
-            if not content or len(content.strip()) < 10:
+            # The ten-character floor filters stray page numbers and rules.
+            # A heading is never that kind of noise — the parser already
+            # decided what it is — and Chinese headings sit under the floor
+            # by construction: "## 待辦追蹤" is seven characters where
+            # "## Action Items" is fifteen. The same minutes therefore kept
+            # their structure in English and lost it in Chinese, taking with
+            # them the words that said an item had not happened yet.
+            is_heading = block.get("block_type") == "heading"
+            if not content or (len(content.strip()) < 10 and not is_heading):
                 continue
 
             # Fix #4: Enforce required fields — empty content is a hard block

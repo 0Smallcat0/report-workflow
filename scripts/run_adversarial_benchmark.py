@@ -77,6 +77,16 @@ LEDGER: list[dict[str, Any]] = [
         "source_role": "primary_source",
         "evidence_grade": "medium",
     },
+    # Minutes record what a meeting decided to do next. The words of a plan
+    # and the words of an accomplishment differ by tense alone, which no
+    # deterministic check here can read.
+    {
+        "evidence_id": "ev_minutes_plan",
+        "content": "決議事項：工單系統與 CRM 的自動回填功能，由工程團隊在第三季導入。",
+        "evidence_type": "qualitative",
+        "source_role": "primary_source",
+        "evidence_grade": "medium",
+    },
     {
         "evidence_id": "ev_time",
         "content": "Median processing time was 12.4 minutes for the manual "
@@ -219,6 +229,20 @@ CASES: list[dict[str, Any]] = [
           "Refunds are the longest step in the refund process.",
           ["ev_interview_q"], hallucination=True, expected="blocked",
           note="transcript question cited as if it answered itself"),
+    # Documented evasion: a plan cited as an accomplishment. The claim and the
+    # evidence share every content word and differ only in tense, so every
+    # deterministic check passes it. Reading that difference means reading
+    # modality, which is the semantic layer this design refuses; see
+    # docs/DESIGN.md section 6. Kept here uncaught rather than papered over
+    # with a word list that would give false confidence.
+    _case("fc01", "evasion_future_as_completed",
+          "自動回填功能已導入工單系統與 CRM。",
+          ["ev_minutes_plan"], hallucination=True, expected="published",
+          note="minutes say the team will do it in Q3; the claim says it is done"),
+    _case("fc02", "honest",
+          "自動回填功能預計於第三季導入工單系統與 CRM。",
+          ["ev_minutes_plan"], hallucination=False, expected="published",
+          note="same evidence reported as the plan it is — must stay publishable"),
     _case("qa02", "honest",
           "Refunds take about 12 minutes per case.",
           ["ev_interview_a"], hallucination=False, expected="published",
