@@ -62,16 +62,30 @@ def parse_single_source(entry: dict) -> dict:
         if is_valid:
             return result
     else:
+        result = None
         reason = f"Unsupported file type: {file_type}"
 
-    result = parse_agent_fallback(str(path), file_type)
-    is_valid, fallback_reason = validate_parsed_output(result)
+    # What the type-specific parser itself concluded is the most specific
+    # diagnosis available — "Package not found" for a file that is not really a
+    # .docx, or no readable content for an empty one. The fallback below
+    # replaces `result`, so decide this first. Preferring the fallback's
+    # "not implemented in the local MVP" told a user who attached a zero-byte
+    # file that Markdown is unsupported: a statement about this build, offered
+    # as if it described their file.
+    primary_error = None
+    if isinstance(result, dict):
+        primary_error = result.get("error")
+        if not primary_error and not result.get("blocks"):
+            primary_error = "the file contains no readable content"
+
+    fallback = parse_agent_fallback(str(path), file_type)
+    is_valid, fallback_reason = validate_parsed_output(fallback)
     if is_valid:
-        return result
+        return fallback
 
     return {
         "blocks": [],
-        "error": result.get("error") or fallback_reason or reason,
+        "error": primary_error or fallback.get("error") or fallback_reason or reason,
         "success": False,
     }
 
@@ -119,6 +133,16 @@ def run_source_parse(state: ReportState) -> ReportState:
             entry["parse_error"] = None
         else:
             entry["parse_status"] = "failed"
+            # `reason` is what the type-specific validator concluded — the file
+            # is empty, or python-docx could not open it. `parsed["error"]` is
+            # the fallback parser announcing that it does not exist in this
+            # build. Preferring the latter told a user who attached a zero-byte
+            # file that Markdown is unsupported, blaming the format for a
+            # condition of their file. The diagnosis was already in hand.
+            # Most specific diagnosis first. The fallback's "not implemented in
+            # the local MVP" is the only one that describes this build rather
+            # than the file, so it comes last: preferring it told a user who
+            # attached a zero-byte file that Markdown is unsupported.
             entry["parse_error"] = parsed.get("error") or reason
             if entry.get("artifact_role", "source_data") == "source_data":
                 raise QAHardBlockError(

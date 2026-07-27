@@ -1716,6 +1716,52 @@ class SourceParseNewTypesTests(unittest.TestCase):
 # Fix #2: evidence_count >= 10 and diversity enforcement
 # ------------------------------------------------------------------
 
+class DegenerateSourceDiagnosisTests(unittest.TestCase):
+    """A parse failure must describe the file, not this build.
+
+    An empty file and a corrupt one both came back with the fallback parser
+    announcing it "is not implemented in the local MVP; deterministic parser
+    could not handle file_type='md'" — telling a student who attached a
+    zero-byte file that Markdown is unsupported. The specific diagnosis was
+    already computed and then discarded.
+    """
+
+    def _error(self, name, content):
+        from report_workflow.nodes.source_parse import parse_single_source
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / name
+            path.write_text(content, encoding="utf-8")
+            parsed = parse_single_source({
+                "file_name": name, "file_path": str(path),
+                "file_type": name.rsplit(".", 1)[-1], "artifact_role": "source_data",
+            })
+            return parsed.get("error") or ""
+
+    def test_an_empty_file_is_reported_as_empty(self):
+        error = self._error("empty.md", "")
+        self.assertIn("no readable content", error)
+        self.assertNotIn("local MVP", error)
+
+    def test_a_corrupt_document_reports_the_parser_diagnosis(self):
+        error = self._error("broken.docx", "not really a word file")
+        self.assertNotIn("local MVP", error)
+        self.assertTrue(error.strip(), "expected a diagnosis")
+
+    def test_a_readable_file_still_parses(self):
+        from report_workflow.nodes.source_parse import parse_single_source
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "notes.md"
+            path.write_text("# Notes\n\nA sentence with enough content to parse.\n",
+                            encoding="utf-8")
+            parsed = parse_single_source({
+                "file_name": "notes.md", "file_path": str(path),
+                "file_type": "md", "artifact_role": "source_data",
+            })
+            self.assertTrue(parsed.get("blocks"))
+
+
 class EvidencePolicyReportingTests(unittest.TestCase):
     """All three evidence-policy checks report the same way.
 
