@@ -15,6 +15,7 @@ from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
 from ..artifact_contract import write_base_document_integrity
 from ..language import ZH_ORDINAL_PREFIX_RE
+from ..parsers.source_text import read_source_text
 
 
 def _drop_generated_toc(preamble: str) -> str:
@@ -254,7 +255,7 @@ def _parse_markdown_sections(path: str) -> dict[str, str]:
     revise_existing: headings create section boundaries, while all tables,
     figures, lists, and subsection headings remain part of the section body.
     """
-    text = Path(path).read_text(encoding="utf-8-sig")
+    text = read_source_text(path)
     sections: dict[str, str] = {}
 
     heading_re = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
@@ -306,7 +307,7 @@ def _extract_markdown_section_titles(path: str) -> dict[str, str]:
     surfaced as English ("Introduction" for 「一、研究背景與動機」). The
     original text is authoritative; ids are only addressing.
     """
-    text = Path(path).read_text(encoding="utf-8-sig")
+    text = read_source_text(path)
     heading_re = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
     all_matches = list(heading_re.finditer(text))
     matches = [match for match in all_matches if len(match.group(1)) <= 2]
@@ -368,7 +369,7 @@ def run_base_document_parse(state: ReportState) -> ReportState:
     elif file_type == "md":
         sections = _parse_markdown_sections(file_path)
     else:
-        text = Path(file_path).read_text(encoding="utf-8")
+        text = read_source_text(file_path)
         sections = {"preamble": text}
 
     if file_type == "md":

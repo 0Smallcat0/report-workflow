@@ -71,6 +71,47 @@ class BaseDocumentImageCarryTests(unittest.TestCase):
             self.assertFalse([t for t in sections.values() if "![](" in t])
 
 
+class BaseDocumentEncodingTests(unittest.TestCase):
+    """The base document has its own readers, and they were missed.
+
+    dcf42f5 routed the four readers in `parsers/` through a shared decoder, but
+    `base_document_parse` reads markdown and text itself. Revising a Big5
+    document still failed at BASE_DOCUMENT_PARSE with the same codec error —
+    the fifth time in this repo that fixing one site left its neighbour.
+    """
+
+    BASE = "# 報告\n\n## 1. 實驗目的\n\n量測不同流量下的有效度。\n\n## 2. 結論\n\n尚待確認成因。\n"
+
+    def test_a_big5_markdown_base_document_parses(self):
+        from report_workflow.nodes.base_document_parse import _parse_markdown_sections
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "base.md"
+            path.write_bytes(self.BASE.encode("big5"))
+            # Section bodies; the heading text lives in the keys and titles.
+            joined = " ".join(_parse_markdown_sections(str(path)).values())
+            self.assertIn("量測不同流量下的有效度", joined)
+            self.assertIn("尚待確認成因", joined)
+
+    def test_big5_section_titles_keep_their_numbering(self):
+        from report_workflow.nodes.base_document_parse import _extract_markdown_section_titles
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "base.md"
+            path.write_bytes(self.BASE.encode("big5"))
+            titles = _extract_markdown_section_titles(str(path))
+            self.assertTrue(any("1. 實驗目的" == t for t in titles.values()), titles)
+
+    def test_utf8_base_documents_are_unchanged(self):
+        from report_workflow.nodes.base_document_parse import _parse_markdown_sections
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = Path(tmpdir) / "base.md"
+            path.write_text(self.BASE, encoding="utf-8")
+            joined = " ".join(_parse_markdown_sections(str(path)).values())
+            self.assertIn("量測不同流量下的有效度", joined)
+
+
 class GeneratedTocIngestTests(unittest.TestCase):
     """Reading back our own output must not re-ingest our own scaffolding.
 
