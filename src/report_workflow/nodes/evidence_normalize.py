@@ -286,7 +286,17 @@ def compute_provenance_score(entry: dict, block: dict) -> float:
 _NUMERIC_TOKEN_RE = re.compile(r"\d+(?:[.,]\d+)?")
 
 _MEASURED_COL_RE = re.compile(r"measured|實測", re.IGNORECASE)
-_THEORETICAL_COL_RE = re.compile(r"theoretical|理論", re.IGNORECASE)
+# A reference curve is rarely labelled "theoretical" on a real sheet. It is the
+# manufacturer's rated or nominal figure, and both runs that motivated this
+# carried exactly that — "Rated Effectiveness" and 廠商標稱有效度 — so the
+# comparison against it never fired in either language, despite the code
+# carrying an output template for both. Word boundaries on the English tokens
+# keep "Flow Rate" from reading as a rated value.
+_THEORETICAL_COL_RE = re.compile(
+    r"theoretical|theory|\brated\b|\bnominal\b|\bexpected\b|\bpredicted\b"
+    r"|理論|理论|標稱|标称|額定|额定",
+    re.IGNORECASE,
+)
 _ERROR_COL_RE = re.compile(r"error|誤差", re.IGNORECASE)
 _AMOUNT_COL_RE = re.compile(
     r"total|subtotal|amount|cost|price|spend|budget"

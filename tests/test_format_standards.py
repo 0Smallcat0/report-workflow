@@ -149,6 +149,48 @@ class DerivedStatsEvidenceTest(unittest.TestCase):
         self.assertEqual(regression["derivation"]["method"], "least_squares_fit")
         self.assertIn("mean", units[1]["content"])
 
+    def test_rated_column_is_the_reference_curve(self):
+        """A reference column is rarely labelled "theoretical" on a real sheet.
+
+        Both runs that motivated this carried the manufacturer's figure as
+        "Rated Effectiveness" and 廠商標稱有效度, so the comparison against it
+        never fired in either language — even though the code has carried an
+        output template for both all along. Without it the author has to
+        compute the ratio by hand, and the gates then correctly refuse to
+        publish a number with no evidence behind it.
+        """
+        from report_workflow.nodes.evidence_normalize import _derived_stats_units
+
+        units = _derived_stats_units(
+            self._registry(
+                ["Flow (L/min)", "Measured effectiveness", "Rated effectiveness", "Error (%)"]
+            ),
+            "2026-07-22T00:00:00+00:00",
+        )
+        self.assertTrue(units)
+        regression = units[0]
+        self.assertIn("Rated effectiveness", regression["content"])
+        self.assertIn("Rated effectiveness", regression["derivation"]["input_columns"])
+
+    def test_zh_nominal_column_is_the_reference_curve(self):
+        from report_workflow.nodes.evidence_normalize import _derived_stats_units
+
+        units = _derived_stats_units(
+            self._registry(["流量(L/min)", "實測有效度", "廠商標稱有效度", "誤差(%)"]),
+            "2026-07-22T00:00:00+00:00",
+        )
+        self.assertTrue(units)
+        self.assertIn("理論斜率", units[0]["content"])
+        self.assertIn("廠商標稱有效度", units[0]["derivation"]["input_columns"])
+
+    def test_a_flow_rate_column_is_not_a_rated_value(self):
+        """"Rate" is not "rated" — widening the tokens must not turn an
+        independent variable into the reference curve."""
+        from report_workflow.nodes.evidence_normalize import _THEORETICAL_COL_RE
+
+        self.assertIsNone(_THEORETICAL_COL_RE.search("Flow Rate (L/min)"))
+        self.assertIsNone(_THEORETICAL_COL_RE.search("Sampling rate (Hz)"))
+
     def test_zh_columns_produce_zh_content(self):
         from report_workflow.nodes.evidence_normalize import _derived_stats_units
 
