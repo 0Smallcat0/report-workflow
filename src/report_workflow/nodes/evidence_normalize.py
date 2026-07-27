@@ -7,6 +7,7 @@ from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
 from ..artifact_contract import stable_evidence_id
 from ..language import CJK_RE
+from ..parsers.structured_parser import is_placeholder_value
 
 
 STRUCTURED_TYPES = {"csv", "xlsx", "json"}
@@ -549,6 +550,29 @@ def _derived_stats_units(source_registry: list, created_at: str) -> list[dict]:
     return units
 
 
+_ROW_BLOCK_TYPES = {"csv_row", "table_row", "data_row"}
+
+
+def _row_values_lower(content: str, block_type: str) -> str | None:
+    """Lowercased cell values of a structured row, placeholders dropped.
+
+    None when the block is not a serialized row, so callers keep their
+    existing whole-content behaviour for prose and whole-table blocks.
+    """
+    if block_type not in _ROW_BLOCK_TYPES:
+        return None
+    try:
+        record = json.loads(content)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(record, dict):
+        return None
+    return " ".join(
+        str(value) for value in record.values()
+        if not is_placeholder_value(value)
+    ).lower()
+
+
 def determine_evidence_type(content: str, block_type: str) -> str:
     """Determine evidence type deterministically.
 
@@ -562,15 +586,29 @@ def determine_evidence_type(content: str, block_type: str) -> str:
     """
     content_lower = content.lower()
 
+    # For a structured row, the keys are column names — labels, not readings.
+    # Judging "is this a measurement" on the whole serialized record let a
+    # header do the deciding: a row of dashes under "Efficiency (%)" came out
+    # quantitative on the strength of the "%" in the column name. Weigh the
+    # values instead, ignoring cells nobody filled in. Only the quantitative
+    # decision narrows this way; a column named "Method" really does say
+    # something about the row, so the ladder below still reads the full record.
+    measured_lower = _row_values_lower(content, block_type)
+    if measured_lower is not None and not measured_lower.strip():
+        # Every cell was a placeholder; there is no measurement here.
+        return "qualitative"
+    quant_scope = content_lower if measured_lower is None else measured_lower
+
     # Structured data rows (CSV/table ingestion) carrying several numeric
     # values are measurements, whatever language surrounds them.
-    numeric_tokens = _NUMERIC_TOKEN_RE.findall(content_lower)
+    numeric_tokens = _NUMERIC_TOKEN_RE.findall(quant_scope)
     # "table" is the whole-table block the PDF, DOCX, and markdown parsers all
     # emit; the others are single-row shapes from CSV ingestion. Listing only
     # the row shapes meant a measurement table from any source but a CSV fell
     # through to keyword matching and came out qualitative.
     if block_type in {"csv_row", "table_row", "data_row", "table"} and len(numeric_tokens) >= 2:
         return "quantitative"
+    # Shape comes from the whole record; the numbers come from the values.
     if len(numeric_tokens) >= 3 and content_lower.count(":") >= 3 and content_lower.count('"') >= 4:
         # JSON-ish record with several numeric fields.
         return "quantitative"
@@ -579,7 +617,7 @@ def determine_evidence_type(content: str, block_type: str) -> str:
     quant_keywords = ["percentage", "%", "rate", "increase", "decrease", "number of",
                       "average", "mean", "median", "count", "data show", "statistical",
                       "百分比", "比率", "平均", "中位", "次數", "統計", "增加", "減少", "量測值"]
-    if any(kw in content_lower for kw in quant_keywords):
+    if any(kw in quant_scope for kw in quant_keywords):
         return "quantitative"
 
     # Methodological indicators (English + Chinese)

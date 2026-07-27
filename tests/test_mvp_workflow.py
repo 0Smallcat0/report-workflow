@@ -1835,6 +1835,51 @@ class SourceEncodingTests(unittest.TestCase):
             self.assertIn("UTF-8", str(ctx.exception))
 
 
+class UnfilledTableTests(unittest.TestCase):
+    """A table exported before anyone filled it in is not measurements.
+
+    Spreadsheet exports routinely carry trailing ",,," rows, and a table
+    prepared for an experiment that has not run yet is all dashes. Both used
+    to become evidence entries — and the QA gate's "at least 5 evidence
+    entries" counts entries, so three blank rows under two real readings
+    cleared a bar that two readings should not clear. The dashes were also
+    typed quantitative, because "%" appears in the column name.
+    """
+
+    def _blocks(self, text):
+        import os
+
+        from report_workflow.parsers.structured_parser import parse_structured
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "export.csv")
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write(text)
+            return parse_structured(path, "csv")["blocks"]
+
+    def test_trailing_blank_rows_are_not_evidence(self):
+        blocks = self._blocks(
+            "Trial,Voltage (V),Efficiency (%)\n1,12.1,88.4\n2,12.3,89.1\n,,\n,,\n,,\n"
+        )
+        self.assertEqual(len(blocks), 2)
+
+    def test_a_zero_reading_is_a_measurement_not_a_blank(self):
+        blocks = self._blocks("Trial,Leakage (mA)\n1,0\n2,0.0\n")
+        self.assertEqual(len(blocks), 2)
+
+    def test_placeholder_row_is_not_quantitative(self):
+        from report_workflow.nodes.evidence_normalize import determine_evidence_type
+
+        row = '{"Trial": "1", "Voltage (V)": "—", "Efficiency (%)": "N/A"}'
+        self.assertEqual(determine_evidence_type(row, "table_row"), "qualitative")
+
+    def test_a_filled_row_is_still_quantitative(self):
+        from report_workflow.nodes.evidence_normalize import determine_evidence_type
+
+        row = '{"Trial": "1", "Voltage (V)": "12.1", "Efficiency (%)": "88.4"}'
+        self.assertEqual(determine_evidence_type(row, "table_row"), "quantitative")
+
+
 class DegenerateSourceDiagnosisTests(unittest.TestCase):
     """A parse failure must describe the file, not this build.
 
