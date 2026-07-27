@@ -60,6 +60,14 @@ def _normalize_source_files(source_files: list[str | dict]) -> tuple[list[str], 
     """
     normalized_files: list[str] = []
     artifact_role_map: dict[str, str] = {}
+    # Attaching the same file twice is a routine slip — a double drag-select,
+    # or the same document reached by two paths. Each copy used to become its
+    # own source with its own ids, so every row of a CSV appeared three times
+    # over. That is not only noise: the evidence-count threshold in QA_GATE
+    # counts entries, so duplicates can carry a thin source set past a bar it
+    # should not clear. Only an identical resolved path is treated as a
+    # duplicate; two files that merely share a name may well be different.
+    seen_paths: dict[str, tuple[int, str]] = {}
 
     for index, item in enumerate(source_files or []):
         if isinstance(item, str):
@@ -85,13 +93,27 @@ def _normalize_source_files(source_files: list[str | dict]) -> tuple[list[str], 
                 f"expected one of {sorted(VALID_SOURCE_FILE_ROLES)}"
             )
 
+        try:
+            resolved = str(Path(path).expanduser().resolve())
+        except OSError:
+            resolved = path
+
+        previous = seen_paths.get(resolved)
+        if previous is not None:
+            previous_index, previous_role = previous
+            if previous_role != role:
+                raise ValueError(
+                    f"source_files[{index}] repeats {Path(path).name} with role "
+                    f"{role!r}, but source_files[{previous_index}] already gave it "
+                    f"role {previous_role!r}; one file cannot serve two roles"
+                )
+            continue
+        seen_paths[resolved] = (index, role)
+
         normalized_files.append(path)
         artifact_role_map[path] = role
         artifact_role_map[str(Path(path).name)] = role
-        try:
-            artifact_role_map[str(Path(path).expanduser().resolve())] = role
-        except OSError:
-            pass
+        artifact_role_map[resolved] = role
 
     return normalized_files, artifact_role_map
 

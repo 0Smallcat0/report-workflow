@@ -39,6 +39,32 @@ class SourceRoleContractTests(unittest.TestCase):
         self.assertEqual(role_map["old_report.docx"], "base_document")
         self.assertEqual(role_map["measurements.csv"], "source_data")
 
+    def test_the_same_file_attached_twice_counts_once(self):
+        """A double drag-select used to triple every row of a CSV.
+
+        Each copy became its own source with its own ids, and the QA gate
+        counts evidence entries, so duplicates could carry a thin source set
+        past a threshold it should not clear.
+        """
+        files, _roles = _normalize_source_files([
+            "notes.md", "notes.md", "data.csv",
+        ])
+        self.assertEqual(files, ["notes.md", "data.csv"])
+
+    def test_files_sharing_a_name_are_kept_apart(self):
+        """Two paths may well be two different files; only an identical
+        resolved path counts as a duplicate."""
+        files, _roles = _normalize_source_files(["a/data.csv", "b/data.csv"])
+        self.assertEqual(len(files), 2)
+
+    def test_one_file_cannot_serve_two_roles(self):
+        with self.assertRaises(ValueError) as ctx:
+            _normalize_source_files([
+                {"path": "report.docx", "role": "base_document"},
+                {"path": "report.docx", "role": "source_data"},
+            ])
+        self.assertIn("two roles", str(ctx.exception))
+
     def test_chinese_literature_pdf_is_a_research_document(self):
         """The pdf/docx branch matched English keywords only.
 
