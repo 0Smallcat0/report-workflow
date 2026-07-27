@@ -1,17 +1,17 @@
 # Adversarial Anti-Hallucination Benchmark (2026-07-14)
 
-- Corpus: **58 cases** — 20 honest controls, 38 hallucinated claims across 13 attack families plus 4 documented evasion variants.
+- Corpus: **60 cases** — 21 honest controls, 39 hallucinated claims across 14 attack families plus 4 documented evasion variants.
 - Gate stack under test: FA (linkage) -> FB (statistical backing) -> FE (deep-audit content overlap) -> FD (wording vs evidence grade).
 - Deterministic, offline, no LLM: verdicts come from the exact checker functions in `src/report_workflow/nodes/factuality_check.py`.
-- Corpus hash: `69b8a099fada7cb5ba07b6b0e3826a2ac091c0992e7c1d8908c32e13bd9dfd61`
+- Corpus hash: `01309589e3fc6972c1f2630fa88000132293266d2c1ef5f27740bbb7a5f0e4a4`
 
 ## Headline comparison
 
 | Checker | Recall (hallucinations blocked) | False-positive rate (honest blocked) | Precision |
 | --- | --- | --- | --- |
-| `no_gate` | 0.0% (0/38) | 0.0% (0/20) | 0.0% |
-| `citation_presence` | 10.5% (4/38) | 0.0% (0/20) | 100.0% |
-| `full_gate_stack` | 89.5% (34/38) | 0.0% (0/20) | 100.0% |
+| `no_gate` | 0.0% (0/39) | 0.0% (0/21) | 0.0% |
+| `citation_presence` | 10.3% (4/39) | 0.0% (0/21) | 100.0% |
+| `full_gate_stack` | 89.7% (35/39) | 0.0% (0/21) | 100.0% |
 
 `citation_presence` is the shallow check many retrieval pipelines stop at:
 the citation ID exists, therefore the sentence is treated as grounded. It
@@ -30,6 +30,7 @@ never reads the evidence content, so every content-level fabrication ships.
 | missing_evidence | 1 | 1 | 100.0% | FA |
 | off_topic_citation | 2 | 2 | 100.0% | FE |
 | precision_inflation | 2 | 2 | 100.0% | FE |
+| question_as_answer | 1 | 1 | 100.0% | FE |
 | status_laundering | 2 | 2 | 100.0% | FA |
 | type_mismatch | 2 | 2 | 100.0% | FA |
 | unit_mismatch | 3 | 3 | 100.0% | FE |
@@ -51,7 +52,7 @@ and feed the limitations section of `docs/DESIGN.md`:
 ## Determinism proof
 
 - 5 consecutive in-process runs produced identical verdicts: `identical = True`.
-- Verdict hash (sha256 over all full-stack verdicts): `3a4761bf3dd87184006f5ae5aeb4f220154fb37d999e97acacde7ab08d156971`.
+- Verdict hash (sha256 over all full-stack verdicts): `a50af5fe78aea66dd8b83e8bfa5a11e46446edea016ac3e76348cdd73a9d351e`.
 - `python scripts/run_adversarial_benchmark.py --check` recomputes every verdict
   from source and fails if any verdict, metric, or hash drifts from this archive —
   the same command runs in CI on Linux, so the hash is also a cross-platform

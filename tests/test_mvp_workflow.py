@@ -1835,6 +1835,50 @@ class SourceEncodingTests(unittest.TestCase):
             self.assertIn("UTF-8", str(ctx.exception))
 
 
+class QuestionEvidenceTests(unittest.TestCase):
+    """A question is not an answer.
+
+    Interview transcripts, FAQs and minutes put questions in the ledger next
+    to their answers. Term overlap let a question ground the very claim it
+    was asking about: "問：目前最花時間的環節是什麼？" grounded "退款是目前
+    最花時間的環節。" The evidence posed the question; the answer came from
+    nowhere and was certified as grounded.
+    """
+
+    def _reasons(self, claim_text, content):
+        from report_workflow.nodes.factuality_check import _check_content_overlap
+
+        return _check_content_overlap({"claim_text": claim_text}, {"content": content})
+
+    def test_a_question_cannot_answer_itself(self):
+        reasons = self._reasons(
+            "退款是目前最花時間的環節。", "問：目前最花時間的環節是什麼？")
+        self.assertTrue(reasons)
+        self.assertIn("only asks a question", reasons[0])
+
+    def test_an_english_transcript_question_is_refused_too(self):
+        self.assertTrue(self._reasons(
+            "Refunds are the longest step.", "Q: Which step takes the longest?"))
+
+    def test_the_answer_line_still_grounds_the_claim(self):
+        self.assertEqual(
+            self._reasons("退款平均需要 12 分鐘。",
+                          "答：退款。我們量過，一筆大概 12 分鐘。"),
+            [])
+
+    def test_a_line_that_asks_and_then_states_is_left_alone(self):
+        """Only a bare question is refused; a line that also asserts stands."""
+        from report_workflow.nodes.factuality_check import _is_question_only
+
+        self.assertFalse(_is_question_only("你們量過嗎？我們量過，是 12 分鐘。"))
+
+    def test_a_heading_stating_facts_is_not_a_question(self):
+        self.assertEqual(
+            self._reasons("受訪者 A 擔任客服組長，年資 6 年。",
+                          "## 受訪者 A（客服組長，年資 6 年）"),
+            [])
+
+
 class SectionEmbeddedTableTests(unittest.TestCase):
     """A base document arrives one block per section: heading, prose, table.
 
