@@ -1835,6 +1835,83 @@ class SourceEncodingTests(unittest.TestCase):
             self.assertIn("UTF-8", str(ctx.exception))
 
 
+class EmbeddedTableGranularityTests(unittest.TestCase):
+    """A table in a DOCX arrived as one evidence entry for the whole grid.
+
+    Six rows of measurements became a single pipe-delimited blob: no row
+    could be cited on its own, and the numeric check found no numbers in it
+    at all, so honest claims about figures the table plainly held came back
+    blocked — the same defect already fixed for CSV rows, in the branch next
+    door. The rows were parsed and carried in table_data; nothing read them.
+    """
+
+    BLOCK = {
+        "block_id": "table_0",
+        "block_type": "table",
+        "content": "Trial | Effectiveness (%)\n1 | 72.4\n6 | 83.1",
+        "table_data": [["Trial", "Outlet Temp (°C)", "Effectiveness (%)"],
+                       ["1", "41.2", "72.4"],
+                       ["6", "48.6", "83.1"]],
+    }
+
+    def test_a_table_becomes_one_block_per_row(self):
+        from report_workflow.nodes.evidence_normalize import _table_row_blocks
+
+        rows = _table_row_blocks(self.BLOCK)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["block_type"], "table_row")
+        self.assertEqual(
+            json.loads(rows[1]["content"])["Effectiveness (%)"], "83.1")
+
+    def test_prose_blocks_are_left_alone(self):
+        from report_workflow.nodes.evidence_normalize import _table_row_blocks
+
+        self.assertIsNone(_table_row_blocks(
+            {"block_type": "paragraph", "content": "Flow was raised stepwise."}))
+
+    def test_a_header_only_table_stays_whole(self):
+        from report_workflow.nodes.evidence_normalize import _table_row_blocks
+
+        self.assertIsNone(_table_row_blocks(
+            {"block_type": "table", "content": "h",
+             "table_data": [["Trial", "Effectiveness (%)"]]}))
+
+    def test_a_row_grounds_a_claim_about_its_own_figures(self):
+        from report_workflow.nodes.evidence_normalize import _table_row_blocks
+        from report_workflow.nodes.factuality_check import _check_content_overlap
+
+        row = {"content": _table_row_blocks(self.BLOCK)[1]["content"]}
+        # Degrees matter here: the column header writes "(°C)" and the claim
+        # writes "°C", and a chart-oriented normalizer folds that to "degc".
+        self.assertEqual(
+            _check_content_overlap(
+                {"claim_text": "Outlet temperature reached 48.6 °C in trial 6."}, row),
+            [])
+        self.assertEqual(
+            _check_content_overlap(
+                {"claim_text": "Effectiveness reached 83.1% at the highest flow rate."},
+                row),
+            [])
+
+    def test_a_fabricated_figure_is_still_rejected(self):
+        from report_workflow.nodes.evidence_normalize import _table_row_blocks
+        from report_workflow.nodes.factuality_check import _check_content_overlap
+
+        row = {"content": _table_row_blocks(self.BLOCK)[1]["content"]}
+        self.assertTrue(_check_content_overlap(
+            {"claim_text": "Effectiveness reached 91.5% at the highest flow rate."},
+            row))
+
+    def test_an_unrelated_claim_is_still_rejected(self):
+        from report_workflow.nodes.evidence_normalize import _table_row_blocks
+        from report_workflow.nodes.factuality_check import _check_content_overlap
+
+        row = {"content": _table_row_blocks(self.BLOCK)[1]["content"]}
+        self.assertTrue(_check_content_overlap(
+            {"claim_text": "The catalyst degraded after 200 cycles of operation."},
+            row))
+
+
 class MultiEvidenceClaimTests(unittest.TestCase):
     """Citing two sources means the claim rests on their union.
 

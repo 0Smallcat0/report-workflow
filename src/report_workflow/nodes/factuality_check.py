@@ -15,7 +15,6 @@ from pathlib import Path
 
 from ..errors import QAHardBlockError
 from ..state import ReportState, WORKFLOW_RUNS_DIR
-from .figure_utils import unit_signature
 
 BLOCKING_CLAIM_STATUSES = {"blocked", "unverified", "disputed"}
 
@@ -361,7 +360,17 @@ def _row_numbers_with_unit(content: str) -> tuple[list, list] | None:
         header = str(key)
         # Only a parenthetical or a percent sign states a unit. Reading the
         # whole header would invent a unit named "trial".
-        unit = unit_signature(header) if ("(" in header or "%" in header) else ""
+        #
+        # The parenthetical is taken verbatim rather than through
+        # unit_signature: that function builds a grouping key for charts and
+        # folds "°C" to "degc", which no claim ever writes, so "48.6 °C"
+        # failed to match the column that holds it.
+        unit = ""
+        paren = re.findall(r"\(([^)]+)\)", header)
+        if paren:
+            unit = paren[-1].strip()
+        elif "%" in header:
+            unit = "%"
         text = str(value).strip()
         bound = _BOUND_PREFIX_RE.match(text)
         if bound:
@@ -455,6 +464,7 @@ def _check_term_overlap(
     source_role: str,
     *,
     cross_language: bool = False,
+    row_shaped: bool = False,
 ) -> list[str]:
     """English key-term coverage of the claim against evidence content.
 
@@ -477,8 +487,13 @@ def _check_term_overlap(
     evidence_lower = evidence_content.lower()
     matched = sum(1 for t in key_terms if t in evidence_lower)
     coverage = matched / len(key_terms)
-    # Use lower threshold for code evidence (code vocab ≠ academic vocab)
-    threshold = 0.20 if source_role == "code_artifact" else 0.40
+    # Use lower threshold for code evidence (code vocab ≠ academic vocab).
+    # A data row is the same case and worse: its whole vocabulary is its
+    # column headers, so "effectiveness reached 83.1% at the highest flow
+    # rate" was failed for "reached" and "highest" — narrative words no row
+    # can contain. The numbers in such a claim are checked separately, and
+    # against the row's own header/value pairs.
+    threshold = 0.20 if (source_role == "code_artifact" or row_shaped) else 0.40
     if coverage >= threshold:
         return []
     missing = [t for t in key_terms if t not in evidence_lower]
@@ -650,15 +665,19 @@ def _content_overlap_findings(
         return total > 0 and (total - ascii_chars) / total > 0.3
 
     source_role = evidence.get("source_role", "primary_source")
+    row_shaped = row_pairs is not None
     if _is_likely_non_ascii(evidence_content):
         if len(_cjk_chars(claim_text)) >= 4:
             term_reasons = _check_cjk_overlap(claim_text, evidence_content)
         else:
             term_reasons = _check_term_overlap(
-                claim_text, evidence_content, source_role, cross_language=True
+                claim_text, evidence_content, source_role,
+                cross_language=True, row_shaped=row_shaped,
             )
     else:
-        term_reasons = _check_term_overlap(claim_text, evidence_content, source_role)
+        term_reasons = _check_term_overlap(
+            claim_text, evidence_content, source_role, row_shaped=row_shaped
+        )
     # One key for both paths: they are two implementations of the same
     # "does the claim's vocabulary appear here" question, and a claim citing
     # a Chinese source and an English one is satisfied by either.
