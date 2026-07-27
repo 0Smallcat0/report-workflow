@@ -74,6 +74,26 @@ def _expected_figure_count(state: ReportState) -> int:
     return max(image_count, _outline_figure_count(state) - native_tables)
 
 
+def _figure_build_error_hint(state: ReportState) -> str:
+    """Why the figure never arrived, if the builder already recorded it.
+
+    FIGURE_BUILD writes its failures into the manifest and carries on. That
+    reason is the one thing an author needs and it was going unread.
+    """
+    manifest_path = state.output.get("figure_manifest_path", "")
+    if not manifest_path or not Path(manifest_path).exists():
+        return ""
+    try:
+        with open(manifest_path, encoding="utf-8") as f:
+            manifest = json.load(f)
+    except Exception:
+        return ""
+    errors = [str(e).strip() for e in (manifest.get("errors") or []) if str(e).strip()]
+    if not errors:
+        return ""
+    return " — figure build reported: " + "; ".join(errors[:3])
+
+
 def _figure_shortfall_hint(
     state: ReportState, docx_text: str, outline_figure_ids: set[str]
 ) -> str:
@@ -258,6 +278,21 @@ def run_post_render_validate(state: ReportState) -> ReportState:
     expected_figures = _expected_figure_count(state)
     expected_tables = _expected_table_count(state)
     outline_figure_ids = _outline_figure_ids(state)
+
+    # A literal [FIGURE:id] in the deliverable is a defect on its own terms,
+    # whatever the counts say. This used to be reachable only through the
+    # count comparison below, and when every figure failed to build the
+    # expected count fell to zero, matched the zero that were embedded, and
+    # the check passed — while the placeholder text shipped in the document
+    # the author hands in, under a "validation passed" message.
+    leaked = sorted(set(re.findall(r"\[FIGURE:\s*([^\]\s]+)", text, re.IGNORECASE)))
+    if leaked:
+        issues.append(
+            "unrendered placeholder(s) left in the document: "
+            + ", ".join(f"[FIGURE:{fid}]" for fid in leaked)
+            + _figure_build_error_hint(state)
+        )
+
     if len(doc.inline_shapes) < expected_figures:
         issues.append(
             f"expected {expected_figures} embedded figure(s), found {len(doc.inline_shapes)}"
