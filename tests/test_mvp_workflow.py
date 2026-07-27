@@ -1835,6 +1835,94 @@ class SourceEncodingTests(unittest.TestCase):
             self.assertIn("UTF-8", str(ctx.exception))
 
 
+class CitationSurvivesRerunTests(unittest.TestCase):
+    """A citation written today must still validate after tomorrow's rerun.
+
+    Source ids are stable now, but that is a property of one function. What
+    an author actually needs is the whole path: prepare a source, cite a row,
+    edit the source, prepare again, and find the citation still resolves and
+    still passes the linkage gate. This pins that end to end so it cannot
+    regress quietly the way it did when ids were random per run.
+    """
+
+    CSV = "Flow Rate (L/min),Measured Effectiveness (%)\n2.0,72.4\n3.0,76.1\n4.0,79.3\n"
+
+    def _prepare(self, tmpdir, csv_path, tag):
+        import os
+
+        from report_workflow.agent_wrapper import start_report_task
+
+        result = start_report_task(
+            prompt="rerun check",
+            source_files=[str(csv_path)],
+            report_profile="engineering_lab_report",
+            output_dir=os.path.join(tmpdir, tag),
+            preflight_confirmed=True,
+            preflight_decisions={
+                "confirmed_by_user": True,
+                "install_decisions": {"notebook_sync": "skip"},
+                "feature_decisions": {"web_research": "disable",
+                                      "notebook_sync": "skip"},
+            },
+        )
+        import glob as _glob
+
+        workspace = _glob.glob(os.path.join(tmpdir, tag, "*" + result["job_id"]))[0]
+        ledger_path = os.path.join(workspace, "evidence_ledger.jsonl")
+        with open(ledger_path, encoding="utf-8") as handle:
+            return [json.loads(line) for line in handle if line.strip()]
+
+    def test_a_citation_survives_an_edit_to_another_row(self):
+        from pathlib import Path
+
+        from report_workflow.nodes.factuality_check import run_factuality_check_fa
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path = Path(tmpdir) / "perf.csv"
+            csv_path.write_text(self.CSV, encoding="utf-8")
+
+            day_one = self._prepare(tmpdir, csv_path, "day1")
+            cited = next(e["evidence_id"] for e in day_one
+                         if '"3.0"' in (e.get("content") or ""))
+
+            # Overnight the author adds a trial. The cited row is untouched.
+            with open(csv_path, "a", encoding="utf-8") as handle:
+                handle.write("5.0,81.0\n")
+            day_two = self._prepare(tmpdir, csv_path, "day2")
+
+            self.assertIn(cited, {e["evidence_id"] for e in day_two})
+
+            matrix = {"claims": [{
+                "claim_id": "c1", "status": "supported",
+                "claim_text": "Measured effectiveness reached 76.1% at 3.0 L/min.",
+                "evidence_ids": [cited]}]}
+            sentence_map = [{"claim_ids": ["c1"], "evidence_ids": [cited],
+                             "citation_ids": [cited]}]
+            verdict = run_factuality_check_fa(sentence_map, matrix, day_two)
+            self.assertNotEqual(verdict[0]["status"], "blocked", verdict[0].get("reason"))
+
+    def test_a_citation_to_a_row_that_changed_is_reported(self):
+        """The complement: a stale id must not pass quietly."""
+        from pathlib import Path
+
+        from report_workflow.nodes.factuality_check import run_factuality_check_fa
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path = Path(tmpdir) / "perf.csv"
+            csv_path.write_text(self.CSV, encoding="utf-8")
+            ledger = self._prepare(tmpdir, csv_path, "day1")
+            stale = "E_00000000_0000000000"
+            matrix = {"claims": [{
+                "claim_id": "c1", "status": "supported",
+                "claim_text": "Measured effectiveness reached 99.9%.",
+                "evidence_ids": [stale]}]}
+            sentence_map = [{"claim_ids": ["c1"], "evidence_ids": [stale],
+                             "citation_ids": [stale]}]
+            verdict = run_factuality_check_fa(sentence_map, matrix, ledger)
+            self.assertEqual(verdict[0]["status"], "blocked")
+            self.assertIn("unknown evidence", verdict[0]["reason"])
+
+
 class StableSourceIdTests(unittest.TestCase):
     """Evidence ids must survive a rerun, or a citation is worth nothing.
 
