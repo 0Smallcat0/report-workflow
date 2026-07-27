@@ -907,6 +907,69 @@ class DuplicateCitationCollapseTest(unittest.TestCase):
         document.save(path)
         return path
 
+    def _state_with(self, tmpdir, paragraphs, manifest=None):
+        import json
+
+        from docx import Document
+
+        from report_workflow.state import ReportState
+
+        path = str(Path(tmpdir) / "final.docx")
+        document = Document()
+        for text in paragraphs:
+            document.add_paragraph(text)
+        document.save(path)
+        state = ReportState.new("report", [], str(Path(tmpdir) / "out"))
+        state.spec["report_profile"] = "engineering_lab_report"
+        state.output["final_docx_path"] = path
+        if manifest is not None:
+            manifest_path = str(Path(tmpdir) / "figure_manifest.json")
+            with open(manifest_path, "w", encoding="utf-8") as handle:
+                json.dump(manifest, handle)
+            state.output["figure_manifest_path"] = manifest_path
+        return state
+
+    def test_a_raw_placeholder_never_reaches_the_deliverable(self):
+        """The document a student hands in carried "[FIGURE:fig_x]" as text.
+
+        The placeholder check lived inside the hint for a count mismatch, so
+        when every figure failed to build the expected count fell to zero,
+        matched the zero embedded, and publish reported "validation passed"
+        over a document with the raw placeholder still in it.
+        """
+        from report_workflow.errors import QAHardBlockError
+        from report_workflow.nodes.post_render_validate import run_post_render_validate
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = self._state_with(
+                tmpdir, ["量測數據", "[FIGURE:fig_effectiveness]"],
+                manifest={"figures": [], "errors": []})
+            with self.assertRaises(QAHardBlockError) as ctx:
+                run_post_render_validate(state)
+            self.assertIn("fig_effectiveness", str(ctx.exception))
+
+    def test_the_build_error_is_carried_into_the_message(self):
+        """FIGURE_BUILD records why and carries on; that reason was unread."""
+        from report_workflow.errors import QAHardBlockError
+        from report_workflow.nodes.post_render_validate import run_post_render_validate
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = self._state_with(
+                tmpdir, ["量測數據", "[FIGURE:fig_x]"],
+                manifest={"figures": [], "errors": ["fig_x: data must be an object"]})
+            with self.assertRaises(QAHardBlockError) as ctx:
+                run_post_render_validate(state)
+            self.assertIn("data must be an object", str(ctx.exception))
+
+    def test_a_document_without_placeholders_passes(self):
+        from report_workflow.nodes.post_render_validate import run_post_render_validate
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = self._state_with(
+                tmpdir, ["量測數據", "流量為 2.0 L/min 時，實測有效度為 72.4%。"],
+                manifest={"figures": [], "errors": []})
+            run_post_render_validate(state)
+
     def test_a_relative_figure_link_resolves_against_its_own_draft(self):
         """A relative link means relative to the file that contains it.
 
