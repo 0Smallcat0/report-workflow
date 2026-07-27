@@ -1835,6 +1835,61 @@ class SourceEncodingTests(unittest.TestCase):
             self.assertIn("UTF-8", str(ctx.exception))
 
 
+class ShortHeadingEvidenceTests(unittest.TestCase):
+    """A Chinese heading is short by construction, and was dropped for it.
+
+    Evidence blocks under ten characters are discarded as noise — stray page
+    numbers and rules. "## 待辦追蹤" is seven characters where "## Action
+    Items" is fifteen, so the same minutes kept their structure in English
+    and lost it in Chinese, taking with them the headings that said an item
+    had not happened yet.
+    """
+
+    MINUTES = (
+        "# 專案會議記錄\n\n"
+        "## 決議事項\n\n"
+        "1. 自動回填功能由工程團隊在第三季導入。\n\n"
+        "## 待辦追蹤\n\n"
+        "- David 將於下週提供資安審查結論。\n"
+    )
+
+    def _evidence_contents(self, text, name="minutes.md"):
+        import os
+
+        from report_workflow.parsers.semi_structured_parser import parse_markdown
+        from report_workflow.nodes.evidence_normalize import _expanded_blocks
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, name)
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write(text)
+            blocks = parse_markdown(path)["blocks"]
+        kept = []
+        for block in _expanded_blocks(blocks):
+            content = block.get("content", "")
+            is_heading = block.get("block_type") == "heading"
+            if not content or (len(content.strip()) < 10 and not is_heading):
+                continue
+            kept.append(content.strip())
+        return kept
+
+    def test_short_chinese_headings_survive(self):
+        kept = self._evidence_contents(self.MINUTES)
+        self.assertIn("## 決議事項", kept)
+        self.assertIn("## 待辦追蹤", kept)
+
+    def test_english_headings_were_never_the_problem(self):
+        """The same document in English always kept its structure."""
+        kept = self._evidence_contents(
+            "# Project Minutes\n\n## Action Items\n\n"
+            "- David will send the security review next week.\n")
+        self.assertIn("## Action Items", kept)
+
+    def test_genuine_noise_is_still_dropped(self):
+        kept = self._evidence_contents("# Project Minutes\n\n12\n\n---\n\nok\n")
+        self.assertNotIn("12", kept)
+
+
 class QuestionEvidenceTests(unittest.TestCase):
     """A question is not an answer.
 
