@@ -330,8 +330,16 @@ class ScholarlyCitationTests(unittest.TestCase):
         )
 
         self.assertNotIn("[1]", resolved)
-        self.assertIn("(source & paper (n.d.))", resolved.lower())
-        self.assertTrue(refs[0].startswith("source & paper."))
+        # Author-year form rather than numeric, which is what this test is
+        # about. It used to expect "source & paper" — the file name split on
+        # its underscore and joined as two surnames, which credited "paper"
+        # as a co-author of "source". A file name says nothing about who
+        # wrote a work or how many did, so the tag no longer claims to.
+        self.assertIn("(source (n.d.))", resolved.lower())
+        self.assertTrue(refs[0].startswith("source."))
+        # The file name is still shown in full, in the title position, where
+        # it states what the file is called and claims nothing more.
+        self.assertIn("*source_paper*", refs[0])
 
     def test_gbt_7714_2025_is_not_default_before_effective_date(self):
         self.assertEqual(default_gbt7714_standard(date(2026, 5, 11)), "GB/T 7714-2015")
