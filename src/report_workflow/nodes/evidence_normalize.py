@@ -78,16 +78,28 @@ def _determine_source_role(entry: dict, block: dict) -> str:
     if any(file_name.endswith(ext) for ext in code_extensions):
         return "code_artifact"
 
-    # Research / literature documents
+    # Research / literature documents.
+    #
+    # The md/txt branch above already carries the Chinese filename tokens; this
+    # branch had English keywords only, so for a Chinese PDF or Word document
+    # both counts were zero, the strict comparison failed, and every one of
+    # them came back primary_source. A Chinese journal paper could not be
+    # recognised as literature at all, and the evidence-policy warning kept
+    # telling those users to add literature references they had already
+    # attached. Literature is far more likely to arrive as a PDF than as
+    # markdown, so this is the branch that most needed the tokens.
     if file_type in {"pdf", "docx"}:
-        # Check for literature indicators vs. primary source indicators
         literature_indicators = ["et al.", "journal", "doi:", "pubmed", "arxiv",
-                                  "conference", "proceedings", "abstract"]
+                                  "conference", "proceedings", "abstract",
+                                  "期刊", "學報", "学报", "論文", "论文", "文獻",
+                                  "文献", "研討會", "研讨会", "卷", "頁碼", "页码"]
         primary_indicators = ["method", "methodology", "result", "finding",
-                               "participant", "subject", "experiment"]
+                               "participant", "subject", "experiment",
+                               "方法", "步驟", "步骤", "結果", "结果", "受試",
+                               "受试", "實驗", "实验", "量測", "测量"]
         lit_count = sum(1 for kw in literature_indicators if kw in content)
         pri_count = sum(1 for kw in primary_indicators if kw in content)
-        if lit_count > pri_count:
+        if literature_name or lit_count > pri_count:
             return "research_document"
         return "primary_source"
 
