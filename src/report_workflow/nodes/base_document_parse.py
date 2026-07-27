@@ -89,6 +89,40 @@ _DRAWING_EMBED_ATTR = (
 )
 
 
+def _docx_table_markdown(tbl) -> list[str]:
+    """One DOCX table as Markdown pipe-table lines.
+
+    A pipe table is the shape the rest of the pipeline already understands:
+    evidence typing recognises it, the renderer styles it back into a real
+    table, and a row keeps its header, so a number can still be checked
+    against the column it came from.
+    """
+    rows: list[list[str]] = []
+    for tr in tbl.iter():
+        if not tr.tag.endswith("}tr"):
+            continue
+        cells: list[str] = []
+        for tc in tr.iter():
+            if not tc.tag.endswith("}tc"):
+                continue
+            texts = [t.text for t in tc.iter() if t.tag.endswith("}t") and t.text]
+            cells.append(" ".join("".join(texts).split()))
+        if cells:
+            rows.append(cells)
+    if len(rows) < 2:
+        # A single row is not a table anyone can read as one; keep its text.
+        return [" ".join(cell for cell in rows[0] if cell)] if rows else []
+
+    width = max(len(row) for row in rows)
+    lines = []
+    for index, row in enumerate(rows):
+        padded = row + [""] * (width - len(row))
+        lines.append("| " + " | ".join(padded) + " |")
+        if index == 0:
+            lines.append("| " + " | ".join(["---"] * width) + " |")
+    return lines
+
+
 def _image_markdown_for_paragraph(paragraph, media_by_rel: dict[str, str]) -> str:
     """Markdown image links for every image embedded in one paragraph."""
     links: list[str] = []
@@ -137,7 +171,25 @@ def _parse_docx_section(
                 root = tree.getroot()
                 ns = {"w": "http://schemas.openxmlformats.org/wordprocessingml/2006/main"}
 
+                # Paragraphs inside a table are emitted by the table branch
+                # below. Without this, root.iter() reached them again on its
+                # own and every cell became a line of its own: a six-row
+                # measurement table left the document as twenty-one loose
+                # lines, so "72.4" sat there with nothing saying it was the
+                # effectiveness measured at 2.0 L/min. Revising your own
+                # report destroyed the tables in it.
+                cell_paragraphs: set = set()
                 for elem in root.iter():
+                    if elem.tag.endswith("}tbl"):
+                        for para in elem.iter():
+                            if para.tag.endswith("}p"):
+                                cell_paragraphs.add(id(para))
+                        table_lines = _docx_table_markdown(elem)
+                        if table_lines:
+                            current_lines.extend(table_lines)
+                        continue
+                    if elem.tag.endswith("}p") and id(elem) in cell_paragraphs:
+                        continue
                     if elem.tag.endswith("}p"):  # paragraph
                         # Extract text from paragraph
                         texts: list[str] = []
