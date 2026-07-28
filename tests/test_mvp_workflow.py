@@ -2306,6 +2306,53 @@ class SectionEmbeddedTableTests(unittest.TestCase):
         self.assertIn("least-squares slope", derived[0]["content"])
 
 
+class ContinuationTableTests(unittest.TestCase):
+    """A table continued onto the next page repeats no header.
+
+    Its first row is a measurement, and it was being taken as the column
+    names: six readings arrived as five, and the survivors came back as
+    {"81.0": "82.2"} — a column called 81.0 that exists nowhere and is ready
+    to be cited. Losing a row is bad; inventing a column is the failure this
+    pipeline may not commit.
+    """
+
+    def test_an_all_numeric_first_row_is_not_a_header(self):
+        from report_workflow.nodes.evidence_normalize import _table_row_blocks
+
+        self.assertIsNone(_table_row_blocks({
+            "block_id": "t", "block_type": "table", "content": "grid",
+            "table_data": [["5.0", "81.0"], ["6.0", "82.2"], ["7.0", "83.1"]]}))
+
+    def test_the_embedded_path_agrees(self):
+        """Both paths must refuse it; guarding one left the other naming
+        columns after measurements."""
+        from report_workflow.nodes.evidence_normalize import _embedded_table_row_blocks
+
+        blocks = _embedded_table_row_blocks({
+            "block_id": "b", "block_type": "paragraph",
+            "content": "| 5.0 | 81.0 |\n| --- | --- |\n| 6.0 | 82.2 |\n"})
+        rows = [b for b in (blocks or []) if b.get("block_type") == "table_row"]
+        self.assertEqual(rows, [])
+
+    def test_a_named_header_still_expands(self):
+        from report_workflow.nodes.evidence_normalize import _table_row_blocks
+
+        rows = _table_row_blocks({
+            "block_id": "t", "block_type": "table", "content": "grid",
+            "table_data": [["Flow Rate (L/min)", "Measured Effectiveness (%)"],
+                           ["2.0", "72.4"], ["3.0", "76.1"]]})
+        self.assertEqual(len(rows), 2)
+
+    def test_a_header_mixing_words_and_numbers_still_counts(self):
+        """"2026" as one column name among words is still a header."""
+        from report_workflow.nodes.evidence_normalize import _table_row_blocks
+
+        rows = _table_row_blocks({
+            "block_id": "t", "block_type": "table", "content": "grid",
+            "table_data": [["Region", "2026"], ["North", "12.5"]]})
+        self.assertEqual(len(rows), 1)
+
+
 class PdfTableParityTests(unittest.TestCase):
     """A ruled table in a PDF must reach the ledger like a CSV does.
 
