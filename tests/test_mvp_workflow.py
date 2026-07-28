@@ -2257,6 +2257,31 @@ class DerivedStatsAxisTests(unittest.TestCase):
         self.assertNotIn("Trial", derived[0]["derivation"]["input_columns"])
         self.assertNotIn("versus Trial", derived[0]["content"])
 
+    def test_a_held_constant_column_is_not_the_x_axis(self):
+        """A wide table carries several controls; one of them was the fit.
+
+        Ambient temperature held at 25.0 across every run produced "slope of
+        Measured Effectiveness (%) versus Ambient Temp (°C) is 0 with
+        R² = 0.0000" — filed as citable evidence. The figure path has refused
+        held-constant columns as axes since the round that found six
+        identical points drawn as a relationship.
+        """
+        derived = self._derived(
+            ["Ambient Temp (°C)", "Flow Rate (L/min)", "Measured Effectiveness (%)"],
+            [["25.0", "1.0", "66.1"], ["25.0", "2.0", "70.4"],
+             ["25.0", "3.0", "73.2"], ["25.0", "4.0", "75.0"]])
+        self.assertTrue(derived)
+        self.assertIn("Flow Rate (L/min)", derived[0]["derivation"]["input_columns"])
+        self.assertNotIn("Ambient Temp (°C)", derived[0]["derivation"]["input_columns"])
+
+    def test_with_every_candidate_held_constant_no_fit_is_published(self):
+        derived = self._derived(
+            ["Ambient Temp (°C)", "Supply Voltage (V)", "Measured Effectiveness (%)"],
+            [["25.0", "12.0", "66.1"], ["25.0", "12.0", "70.4"],
+             ["25.0", "12.0", "73.2"], ["25.0", "12.0", "75.0"]])
+        self.assertFalse(
+            [d for d in derived if "least-squares" in (d.get("content") or "")])
+
     def test_with_nothing_but_a_counter_no_fit_is_published(self):
         """Nothing to regress against is a reason to say nothing."""
         derived = self._derived(
