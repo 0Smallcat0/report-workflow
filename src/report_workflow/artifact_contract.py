@@ -253,7 +253,16 @@ def stable_evidence_id(entry: dict, block: dict) -> str:
     if line_start is not None and line_end is not None and content_hash:
         seed = f"{source_id}:{line_start}:{line_end}:{content_hash}"
     else:
-        seed = f"{source_id}:{block.get('block_id', '')}:{content_hash}:{block.get('content', '')[:200]}"
+        # block_id is positional — block_0, block_1 — so inserting a missed
+        # trial in the middle of a CSV renumbered every row below it and
+        # changed their ids, discarding the author's citations to rows whose
+        # text had not moved a character. When the caller supplies how many
+        # identical rows came before this one, that is used instead: it tells
+        # the two copies of a repeated row apart without tying either to a
+        # line number.
+        occurrence = block.get("content_occurrence")
+        position = f"n{occurrence}" if occurrence is not None else block.get("block_id", "")
+        seed = f"{source_id}:{position}:{content_hash}:{block.get('content', '')[:200]}"
     return "E_" + re.sub(r"[^A-Za-z0-9]+", "_", source_id).strip("_")[:12] + "_" + _hash_bytes(seed.encode("utf-8"))[:10]
 
 

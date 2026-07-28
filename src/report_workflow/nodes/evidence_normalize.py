@@ -912,7 +912,15 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
         parsed_content = entry.get("parsed_content", [])
         if entry.get("artifact_role", "source_data") == "source_data" and not parsed_content:
             raise QAHardBlockError(f"Source has no parsed content: {entry.get('file_name')}")
+        # How many identical rows came before this one. Two byte-identical
+        # rows — a reading logged twice — still need separate ids, but an
+        # absolute position ties every row to its line number, so inserting
+        # one row rewrites the ids of all the rows beneath it.
+        content_occurrences: dict[str, int] = {}
         for block in _expanded_blocks(parsed_content):
+            block_content = block.get("content", "")
+            content_occurrences[block_content] = content_occurrences.get(block_content, 0) + 1
+            block = {**block, "content_occurrence": content_occurrences[block_content]}
             content = block.get("content", "")
             # The ten-character floor filters stray page numbers and rules.
             # A heading is never that kind of noise — the parser already
