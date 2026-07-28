@@ -74,6 +74,24 @@ def _expected_figure_count(state: ReportState) -> int:
     return max(image_count, _outline_figure_count(state) - native_tables)
 
 
+#: "Figure 3." opening a paragraph, or "圖 3." — the caption itself.
+_FIGURE_CAPTION_RE = re.compile(
+    r"^(?:(?:Figure|Fig\.?)\s+|(?:圖|图)\s*)(\d+|[a-z])[:.、．：]\s*",
+    re.IGNORECASE,
+)
+
+#: The same figure named inside a sentence — "as Figure 3 shows", "由圖 3 可見".
+#: Both of these were English-only, so the three checks built on them — a
+#: reference with no caption, references with no embedded figure at all, and
+#: references to figures the outline never declared — had never run against a
+#: Chinese report. A word boundary does nothing next to CJK, hence the two
+#: alternatives rather than one pattern.
+_FIGURE_MENTION_RE = re.compile(
+    r"(?:\b(?:Figure|Fig\.?)\s+|(?:圖|图)\s*)(\d+|[a-z])(?![0-9])",
+    re.IGNORECASE,
+)
+
+
 #: A figure caption, in either language the renderer produces. The duplicate
 #: check matched "Figure 1." only, so a Chinese report — the ordinary case
 #: here — could carry two captions both reading "圖 1." and pass. The same
@@ -356,11 +374,11 @@ def run_post_render_validate(state: ReportState) -> ReportState:
     mention_ids: set[str] = set()
     for para in doc.paragraphs:
         para_text = " ".join(para.text.split())
-        caption_match = re.match(r"^Figure\s+(\d+|[a-z])[:.]\s+", para_text, re.IGNORECASE)
+        caption_match = _FIGURE_CAPTION_RE.match(para_text)
         if caption_match:
             caption_ids.add(caption_match.group(1).lower())
             continue
-        mention_ids.update(m.group(1).lower() for m in re.finditer(r"\bFigure\s+(\d+|[a-z])\b", para_text, re.IGNORECASE))
+        mention_ids.update(m.group(1).lower() for m in _FIGURE_MENTION_RE.finditer(para_text))
 
     if mention_ids:
         missing_captions = sorted(mention_ids - caption_ids)
