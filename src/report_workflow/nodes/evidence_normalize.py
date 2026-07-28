@@ -634,11 +634,21 @@ def _table_row_blocks(block: dict) -> list[dict] | None:
         values = [str(cell).strip() for cell in raw_row]
         if all(is_placeholder_value(value) for value in values):
             continue
+        # zip stops at the shorter side, so a row carrying more cells than the
+        # header has columns lost them without a word — an export that added a
+        # note beside a reading dropped the note. Extra cells are kept under
+        # their position, which is a true statement about where the value sat
+        # and claims nothing about what it measures. Naming them after a
+        # neighbouring header would invent structure, which is the failure the
+        # continuation-table round established this pipeline may not commit.
         record = {
             header: value
             for header, value in zip(headers, values)
             if header
         }
+        for position in range(len(headers), len(values)):
+            if str(values[position]).strip():
+                record[f"column {position + 1}"] = values[position]
         if not record:
             continue
         rows.append({
