@@ -2225,6 +2225,52 @@ class SectionEmbeddedTableTests(unittest.TestCase):
         self.assertIn("least-squares slope", derived[0]["content"])
 
 
+class RepeatedColumnNameTests(unittest.TestCase):
+    """An instrument names every thermocouple the same thing.
+
+    DictReader keys a row by column name, so three columns called
+    "Temperature (°C)" collapsed to one and the row arrived holding the last
+    reading only. Two measurements the source contained were destroyed at
+    ingestion, and the table was then reported as four columns instead of
+    six. pandas already renames duplicates for .xlsx; only the CSV path lost
+    them.
+    """
+
+    def _rows(self, text):
+        import os
+
+        from report_workflow.parsers.structured_parser import parse_csv
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = os.path.join(tmpdir, "probe.csv")
+            with open(path, "w", encoding="utf-8") as handle:
+                handle.write(text)
+            return parse_csv(path)
+
+    def test_every_repeated_column_survives(self):
+        rows = self._rows("Trial,Temperature (°C),Temperature (°C),"
+                          "Temperature (°C)\n1,24.9,45.1,61.2\n")
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["Temperature (°C)"], "24.9")
+        self.assertEqual(rows[0]["Temperature (°C) [2]"], "45.1")
+        self.assertEqual(rows[0]["Temperature (°C) [3]"], "61.2")
+
+    def test_the_first_column_keeps_the_name_as_written(self):
+        from report_workflow.parsers.structured_parser import _disambiguate_headers
+
+        self.assertEqual(
+            _disambiguate_headers(["Trial", "Value", "Value", "Other"]),
+            ["Trial", "Value", "Value [2]", "Other"])
+
+    def test_unique_headers_are_untouched(self):
+        rows = self._rows("Trial,Flow Rate (L/min)\n1,1.0\n2,2.0\n")
+        self.assertEqual([sorted(r) for r in rows],
+                         [["Flow Rate (L/min)", "Trial"]] * 2)
+
+    def test_a_header_only_file_yields_no_rows(self):
+        self.assertEqual(self._rows("Trial,Value\n"), [])
+
+
 class ProductColumnCoincidenceTests(unittest.TestCase):
     """Three steady columns can satisfy a product by accident.
 
