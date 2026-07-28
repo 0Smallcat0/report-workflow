@@ -341,6 +341,41 @@ class ScholarlyCitationTests(unittest.TestCase):
         # it states what the file is called and claims nothing more.
         self.assertIn("*source_paper*", refs[0])
 
+    def test_the_banned_phrase_list_speaks_chinese_too(self):
+        """One hundred and thirty-five phrases, none of them Chinese.
+
+        The matching is language-neutral; the vocabulary was not. A report in
+        Chinese — the ordinary case here — got no prose-quality enforcement
+        at all. Every entry added is the direct equivalent of one already on
+        the same list, so this widens the rule's reach without widening the
+        rule: "不言而喻" for "it goes without saying", "顯而易見" for
+        "obviously", "如前所述" for "as previously mentioned".
+        """
+        from report_workflow.policies.policy_pack import get_policy
+
+        for profile in ("engineering_lab_report", "business_report"):
+            banned = get_policy(profile).banned_phrases
+            chinese = [p for p in banned if any("一" <= c <= "鿿" for c in p)]
+            self.assertTrue(chinese, profile)
+
+    def test_an_appeal_to_the_obvious_is_caught_in_chinese(self):
+        from report_workflow.policies.policy_pack import get_policy
+
+        banned = set(get_policy("engineering_lab_report").banned_phrases)
+        self.assertTrue(any(p in "眾所周知，有效度會隨流量上升。" for p in banned))
+
+    def test_ordinary_chinese_prose_is_not_flagged(self):
+        """A measured sentence must survive: the cost of a filler list is
+        false positives, and a report that states its numbers is the thing
+        this tool exists to produce."""
+        from report_workflow.policies.policy_pack import get_policy
+
+        banned = set(get_policy("engineering_lab_report").banned_phrases)
+        for sentence in ("量測顯示有效度隨流量上升，斜率為 2.12。",
+                         "由最小平方法擬合得到 R² 為 0.9645。",
+                         "明顯的趨勢需要更多試驗才能確認。"):
+            self.assertFalse(any(p in sentence for p in banned), sentence)
+
     def test_gbt_7714_2025_is_not_default_before_effective_date(self):
         self.assertEqual(default_gbt7714_standard(date(2026, 5, 11)), "GB/T 7714-2015")
         self.assertEqual(default_gbt7714_standard(date(2026, 7, 1)), "GB/T 7714-2025")
