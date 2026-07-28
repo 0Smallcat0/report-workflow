@@ -941,6 +941,28 @@ class DuplicateCitationCollapseTest(unittest.TestCase):
                 return str(exc)
         return ""
 
+    def test_a_chinese_reference_to_a_missing_figure_is_caught(self):
+        """Three checks were built on an English-only pattern.
+
+        A reference with no caption, references with no embedded figure at
+        all, and references to figures the outline never declared — none had
+        ever run against a Chinese report, where the prose says "由圖 3 可見".
+        """
+        self.assertIn("figure references without matching captions",
+                      self._captions(["由圖 3 可見有效度上升。", "其他內容。"]))
+
+    def test_no_space_between_the_word_and_the_number(self):
+        """A word boundary does nothing next to CJK, so "圖3" must match too."""
+        self.assertIn("figure references without matching captions",
+                      self._captions(["由圖3可見有效度上升。", "其他內容。"]))
+
+    def test_english_references_still_behave(self):
+        self.assertIn("figure references without matching captions",
+                      self._captions(["As Figure 3 shows, effectiveness rises.", "Other."]))
+
+    def test_a_chinese_caption_alone_is_not_a_dangling_reference(self):
+        self.assertEqual(self._captions(["圖 1. 流量與有效度", "說明文字。"]), "")
+
     def test_a_repeated_chinese_caption_is_caught(self):
         """The duplicate check matched "Figure 1." only.
 
