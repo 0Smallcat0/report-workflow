@@ -2306,6 +2306,62 @@ class SectionEmbeddedTableTests(unittest.TestCase):
         self.assertIn("least-squares slope", derived[0]["content"])
 
 
+class RaggedRowTests(unittest.TestCase):
+    """A row carrying more cells than the header has columns.
+
+    zip stops at the shorter side, so the extra cell was dropped without a
+    word: an export that put a note beside a reading lost the note. Extra
+    cells are kept under their position, which states where the value sat
+    and claims nothing about what it measures — naming them after a
+    neighbouring header would invent structure.
+    """
+
+    def test_an_extra_cell_is_kept_under_its_position(self):
+        from report_workflow.nodes.evidence_normalize import _table_row_blocks
+
+        rows = _table_row_blocks({
+            "block_id": "t", "block_type": "table", "content": "grid",
+            "table_data": [["Flow (L/min)", "Effectiveness (%)"],
+                           ["2.0", "72.4"], ["3.0", "76.1", "re-test"]]})
+        self.assertEqual(json.loads(rows[1]["content"])["column 3"], "re-test")
+
+    def test_a_missing_cell_simply_leaves_the_key_out(self):
+        from report_workflow.nodes.evidence_normalize import _table_row_blocks
+
+        rows = _table_row_blocks({
+            "block_id": "t", "block_type": "table", "content": "grid",
+            "table_data": [["Flow (L/min)", "Effectiveness (%)", "Note"],
+                           ["2.0", "72.4", "ok"], ["3.0", "76.1"]]})
+        self.assertNotIn("Note", json.loads(rows[1]["content"]))
+
+    def test_a_blank_extra_cell_adds_nothing(self):
+        from report_workflow.nodes.evidence_normalize import _table_row_blocks
+
+        rows = _table_row_blocks({
+            "block_id": "t", "block_type": "table", "content": "grid",
+            "table_data": [["Flow (L/min)", "Effectiveness (%)"],
+                           ["2.0", "72.4"], ["3.0", "76.1", "  "]]})
+        self.assertEqual(list(json.loads(rows[1]["content"])),
+                         ["Flow (L/min)", "Effectiveness (%)"])
+
+    def test_the_embedded_path_keeps_the_row_as_prose(self):
+        """Documented asymmetry rather than a second fix.
+
+        The markdown splitter stops at a row whose width does not match, so
+        that row stays a line of prose. Nothing is lost and nothing is
+        invented; it is simply not citable row by row. Widening the shared
+        line parser reaches the Markdown and text sources too, which is more
+        than this change is for.
+        """
+        from report_workflow.nodes.evidence_normalize import _embedded_table_row_blocks
+
+        blocks = _embedded_table_row_blocks({
+            "block_id": "b", "block_type": "paragraph",
+            "content": "| Flow (L/min) | Effectiveness (%) |\n| --- | --- |\n"
+                       "| 2.0 | 72.4 |\n| 3.0 | 76.1 | re-test |\n"})
+        self.assertTrue(any("re-test" in b["content"] for b in blocks))
+
+
 class ContinuationTableTests(unittest.TestCase):
     """A table continued onto the next page repeats no header.
 
