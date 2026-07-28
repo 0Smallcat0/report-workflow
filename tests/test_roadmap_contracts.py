@@ -1003,6 +1003,53 @@ class DocumentationContractTests(unittest.TestCase):
             self.assertFalse((dest_dir / "agent_instructions.md").exists())
 
 
+class DeliverableNamingTests(unittest.TestCase):
+    """What the author actually collects, pinned by name.
+
+    Packaging copies the rendered document into the published directory as
+    report.docx and the draft beside it as report.md. Nothing tested that,
+    and the names are the whole interface between this tool and the person
+    submitting the work — renaming them would break every workflow built on
+    them without a single test going red.
+    """
+
+    def _package(self, tmpdir, *, with_docx=True):
+        from report_workflow.nodes.artifacts import run_artifacts
+        from report_workflow.state import ReportState, published_dir_for, run_dir_for
+
+        state = ReportState.new("報告", [], str(Path(tmpdir) / "out"))
+        state.spec["report_profile"] = "engineering_lab_report"
+        run_dir = run_dir_for(state)
+        run_dir.mkdir(parents=True, exist_ok=True)
+        draft = run_dir / "merged_draft.md"
+        draft.write_text("# 報告\n\n內容。\n", encoding="utf-8")
+        state.drafts["merged_draft_md"] = str(draft)
+        if with_docx:
+            docx = run_dir / "rendered_report.docx"
+            docx.write_bytes(b"PK\x03\x04placeholder")
+            state.output["final_docx_path"] = str(docx)
+        run_artifacts(state)
+        return published_dir_for(state)
+
+    def test_the_document_is_collected_as_report_docx(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            published = self._package(tmpdir)
+            self.assertTrue((published / "report.docx").exists())
+            self.assertTrue((published / "report.md").exists())
+
+    def test_a_missing_render_leaves_no_document_behind(self):
+        """Documented, not fixed: the copy skips a missing source silently.
+
+        RENDER_QA hard-blocks a missing DOCX before packaging runs, so this
+        is a latent hazard rather than an observed defect — recorded here so
+        the silence is at least visible to the next reader.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            published = self._package(tmpdir, with_docx=False)
+            self.assertFalse((published / "report.docx").exists())
+            self.assertTrue((published / "report.md").exists())
+
+
 class ProfilesStayDistinctTests(unittest.TestCase):
     """Two profiles over one source must not collapse into one shape.
 
