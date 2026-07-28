@@ -1,9 +1,9 @@
 {
-  "generated_at": "2026-07-28T20:31:37",
+  "generated_at": "2026-07-28T23:12:47",
   "corpus": {
-    "total_cases": 67,
-    "honest_cases": 24,
-    "hallucinated_cases": 43,
+    "total_cases": 69,
+    "honest_cases": 25,
+    "hallucinated_cases": 44,
     "attack_families": [
       "cjk_fabrication",
       "cross_language_mismatch",
@@ -20,9 +20,9 @@
       "unit_mismatch",
       "wording_grade_violation"
     ],
-    "documented_evasions": 5,
+    "documented_evasions": 6,
     "evidence_rows": 16,
-    "corpus_hash": "492544111f10c8f8da5ca95ed730c3610071ea3074218c6192a13afa4cdf1f97"
+    "corpus_hash": "1b1b0a0ed8df7fc6c96fb5ca744b6ee3d8fb60c25974b2d2bb526fb486e0aaf8"
   },
   "checkers": {
     "no_gate": {
@@ -31,6 +31,24 @@
           "case_id": "qa01",
           "family": "question_as_answer",
           "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "nf01",
+          "family": "evasion_negation_flip",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "nf02",
+          "family": "honest",
+          "is_hallucination": false,
           "expected_verdict": null,
           "verdict": "published",
           "blocked_by": null,
@@ -633,9 +651,9 @@
       ],
       "metrics": {
         "true_positives": 0,
-        "false_negatives": 43,
+        "false_negatives": 44,
         "false_positives": 0,
-        "true_negatives": 24,
+        "true_negatives": 25,
         "recall": 0.0,
         "false_positive_rate": 0.0,
         "precision": 0.0
@@ -647,6 +665,24 @@
           "case_id": "qa01",
           "family": "question_as_answer",
           "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "nf01",
+          "family": "evasion_negation_flip",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "nf02",
+          "family": "honest",
+          "is_hallucination": false,
           "expected_verdict": null,
           "verdict": "published",
           "blocked_by": null,
@@ -1249,10 +1285,10 @@
       ],
       "metrics": {
         "true_positives": 4,
-        "false_negatives": 39,
+        "false_negatives": 40,
         "false_positives": 0,
-        "true_negatives": 24,
-        "recall": 0.093,
+        "true_negatives": 25,
+        "recall": 0.0909,
         "false_positive_rate": 0.0,
         "precision": 1.0
       }
@@ -1267,6 +1303,24 @@
           "verdict": "blocked",
           "blocked_by": "FE",
           "reason": "Evidence only asks a question and states no answer, so it cannot ground this claim: 'Q: Which step in the refund process takes the longest?'"
+        },
+        {
+          "case_id": "nf01",
+          "family": "evasion_negation_flip",
+          "is_hallucination": true,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "nf02",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
         },
         {
           "case_id": "zq01",
@@ -1865,10 +1919,10 @@
       ],
       "metrics": {
         "true_positives": 38,
-        "false_negatives": 5,
+        "false_negatives": 6,
         "false_positives": 0,
-        "true_negatives": 24,
-        "recall": 0.8837,
+        "true_negatives": 25,
+        "recall": 0.8636,
         "false_positive_rate": 0.0,
         "precision": 1.0
       },
@@ -1923,7 +1977,7 @@
         },
         {
           "family": "evasion_negation_flip",
-          "cases": 1,
+          "cases": 2,
           "caught": 0,
           "gates": [],
           "catch_rate": 0.0
@@ -2040,7 +2094,7 @@
   "expected_mismatches": [],
   "determinism": {
     "runs": 5,
-    "verdict_hash": "8e91f269e455034aba51e5dcebb28e542ec9ed0268773e740b98a6cfa326eed2",
+    "verdict_hash": "b49a0ceb962c23df366d9d45f5176b41872e6d2f403718dc1a429eabd209f2ab",
     "identical": true
   }
 }

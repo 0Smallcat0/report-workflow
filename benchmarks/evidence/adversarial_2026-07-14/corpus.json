@@ -133,6 +133,42 @@
       "note": "transcript question cited as if it answered itself"
     },
     {
+      "case_id": "nf01",
+      "family": "evasion_negation_flip",
+      "is_hallucination": true,
+      "expected_verdict": "published",
+      "claim": {
+        "claim_id": "c_nf01",
+        "claim_text": "結構化流程並未使處理時間下降。",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_zh_quote"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "the source says it fell; negation needs modality, not vocabulary"
+    },
+    {
+      "case_id": "nf02",
+      "family": "honest",
+      "is_hallucination": false,
+      "expected_verdict": "published",
+      "claim": {
+        "claim_id": "c_nf02",
+        "claim_text": "結構化流程使處理時間下降。",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_zh_quote"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "the same sentence without the negation"
+    },
+    {
       "case_id": "zq01",
       "family": "fabricated_quote",
       "is_hallucination": true,

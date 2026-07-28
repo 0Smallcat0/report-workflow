@@ -1,17 +1,17 @@
 # Adversarial Anti-Hallucination Benchmark (2026-07-14)
 
-- Corpus: **67 cases** — 24 honest controls, 43 hallucinated claims across 14 attack families plus 5 documented evasion variants.
+- Corpus: **69 cases** — 25 honest controls, 44 hallucinated claims across 14 attack families plus 6 documented evasion variants.
 - Gate stack under test: FA (linkage) -> FB (statistical backing) -> FE (deep-audit content overlap) -> FD (wording vs evidence grade).
 - Deterministic, offline, no LLM: verdicts come from the exact checker functions in `src/report_workflow/nodes/factuality_check.py`.
-- Corpus hash: `492544111f10c8f8da5ca95ed730c3610071ea3074218c6192a13afa4cdf1f97`
+- Corpus hash: `1b1b0a0ed8df7fc6c96fb5ca744b6ee3d8fb60c25974b2d2bb526fb486e0aaf8`
 
 ## Headline comparison
 
 | Checker | Recall (hallucinations blocked) | False-positive rate (honest blocked) | Precision |
 | --- | --- | --- | --- |
-| `no_gate` | 0.0% (0/43) | 0.0% (0/24) | 0.0% |
-| `citation_presence` | 9.3% (4/43) | 0.0% (0/24) | 100.0% |
-| `full_gate_stack` | 88.4% (38/43) | 0.0% (0/24) | 100.0% |
+| `no_gate` | 0.0% (0/44) | 0.0% (0/25) | 0.0% |
+| `citation_presence` | 9.1% (4/44) | 0.0% (0/25) | 100.0% |
+| `full_gate_stack` | 86.4% (38/44) | 0.0% (0/25) | 100.0% |
 
 `citation_presence` is the shallow check many retrieval pipelines stop at:
 the citation ID exists, therefore the sentence is treated as grounded. It
@@ -44,6 +44,7 @@ and feed the limitations section of `docs/DESIGN.md`:
 
 | Case | Family | Why it slips through |
 | --- | --- | --- |
+| nf01 | evasion_negation_flip | the source says it fell; negation needs modality, not vocabulary |
 | fc01 | evasion_future_as_completed | minutes say the team will do it in Q3; the claim says it is done |
 | x01 | evasion_bare_number | invented count evades FE because a trailing number without a unit token is not extracted |
 | x02 | evasion_negation_flip | drops the 'should not' from the evidence; lexical overlap cannot see negation |
@@ -53,7 +54,7 @@ and feed the limitations section of `docs/DESIGN.md`:
 ## Determinism proof
 
 - 5 consecutive in-process runs produced identical verdicts: `identical = True`.
-- Verdict hash (sha256 over all full-stack verdicts): `8e91f269e455034aba51e5dcebb28e542ec9ed0268773e740b98a6cfa326eed2`.
+- Verdict hash (sha256 over all full-stack verdicts): `b49a0ceb962c23df366d9d45f5176b41872e6d2f403718dc1a429eabd209f2ab`.
 - `python scripts/run_adversarial_benchmark.py --check` recomputes every verdict
   from source and fails if any verdict, metric, or hash drifts from this archive —
   the same command runs in CI on Linux, so the hash is also a cross-platform
