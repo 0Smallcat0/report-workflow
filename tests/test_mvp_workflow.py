@@ -2306,6 +2306,72 @@ class SectionEmbeddedTableTests(unittest.TestCase):
         self.assertIn("least-squares slope", derived[0]["content"])
 
 
+class PdfTableParityTests(unittest.TestCase):
+    """A ruled table in a PDF must reach the ledger like a CSV does.
+
+    PDF is how measurements usually arrive, and the container had never been
+    run. It works: pdfplumber finds a ruled table, and the expansion added
+    for Word tables carries it the rest of the way, so the rows are citable
+    one at a time and the fit is derived. Pinned because nothing else covers
+    this container, and a silent regression here would be invisible.
+    """
+
+    ROWS = [["Flow Rate (L/min)", "Measured Effectiveness (%)"],
+            ["2.0", "72.4"], ["3.0", "76.1"], ["4.0", "79.3"], ["5.0", "81.0"]]
+
+    def _ledger(self, tmpdir, source):
+        import glob as _glob
+        import os
+
+        from report_workflow.agent_wrapper import start_report_task
+
+        result = start_report_task(
+            prompt="pdf parity", source_files=[source],
+            report_profile="engineering_lab_report",
+            output_dir=os.path.join(tmpdir, "out"),
+            preflight_confirmed=True,
+            preflight_decisions={
+                "confirmed_by_user": True,
+                "install_decisions": {"notebook_sync": "skip"},
+                "feature_decisions": {"web_research": "disable",
+                                      "notebook_sync": "skip"}},
+        )
+        workspace = _glob.glob(os.path.join(tmpdir, "out", "*" + result["job_id"]))[0]
+        with open(os.path.join(workspace, "evidence_ledger.jsonl"),
+                  encoding="utf-8") as handle:
+            return [json.loads(line) for line in handle if line.strip()]
+
+    def test_a_ruled_pdf_table_is_read_row_by_row(self):
+        from pathlib import Path
+
+        try:
+            import matplotlib
+            matplotlib.use("Agg")
+            import matplotlib.pyplot as plt
+            import pdfplumber  # noqa: F401
+        except Exception as exc:  # pragma: no cover - environment dependent
+            self.skipTest(f"PDF tooling unavailable: {exc}")
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            pdf_path = str(Path(tmpdir) / "perf.pdf")
+            figure, axes = plt.subplots(figsize=(8.27, 11.69))
+            axes.axis("off")
+            table = axes.table(cellText=self.ROWS[1:], colLabels=self.ROWS[0],
+                               loc="upper center")
+            table.auto_set_font_size(False)
+            table.set_fontsize(9)
+            table.scale(1, 1.6)
+            figure.savefig(pdf_path)
+            plt.close(figure)
+
+            ledger = self._ledger(tmpdir, pdf_path)
+            rows = [e for e in ledger if (e.get("content") or "").startswith("{")]
+            self.assertEqual(len(rows), 4)
+            self.assertEqual(
+                json.loads(rows[0]["content"])["Measured Effectiveness (%)"], "72.4")
+            self.assertTrue([e for e in ledger if e.get("derivation")])
+
+
 class RepeatedColumnNameTests(unittest.TestCase):
     """An instrument names every thermocouple the same thing.
 
