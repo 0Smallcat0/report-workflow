@@ -250,6 +250,20 @@ CASES: list[dict[str, Any]] = [
           "Refunds are the longest step in the refund process.",
           ["ev_interview_q"], hallucination=True, expected="blocked",
           note="transcript question cited as if it answered itself"),
+    # Negation flip in Chinese. The English case for this family is already
+    # documented as uncaught; this twin records that the gap is the same in
+    # both languages rather than another English-shaped rule. Without it, the
+    # next reader meets a Chinese claim slipping through and reasonably
+    # concludes it is a language blind spot — and reaches for a list of
+    # Chinese negation words, which is the semantic layer in disguise.
+    _case("nf01", "evasion_negation_flip",
+          "結構化流程並未使處理時間下降。",
+          ["ev_zh_quote"], hallucination=True, expected="published",
+          note="the source says it fell; negation needs modality, not vocabulary"),
+    _case("nf02", "honest",
+          "結構化流程使處理時間下降。",
+          ["ev_zh_quote"], hallucination=False, expected="published",
+          note="the same sentence without the negation"),
     # A quotation in Chinese quotation marks that inverts what the source
     # says. Caught now; before this round the scanner read ASCII quotes only,
     # so the claim below passed while its English twin was blocked verbatim.
