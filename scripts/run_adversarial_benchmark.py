@@ -277,10 +277,15 @@ CASES: list[dict[str, Any]] = [
     # no token to compare, and translating to compare is the semantic layer
     # this design refuses. Reporting every such claim would block the honest
     # case above far more often than it caught this one.
-    _case("cs03", "evasion_cross_script_no_shared_token",
+    # Recorded as a documented evasion when the numeric check could not read a
+    # Chinese numeral. It can now, so "十二分鐘" is a comparable token after
+    # all and this blocks. The cross-script gap is real but narrower than this
+    # case claimed: it covers a claim carrying nothing comparable at all —
+    # no Latin term, no digit, no Chinese numeral.
+    _case("cs03", "cross_language_mismatch",
           "文獻指出本產品的退款流程平均需時十二分鐘。",
-          ["ev_lit_en"], hallucination=True, expected="published",
-          note="unrelated Chinese claim, no Latin token and no digits to check"),
+          ["ev_lit_en"], hallucination=True, expected="blocked",
+          note="Chinese numeral names a figure the English source never states"),
     # Documented evasion: a plan cited as an accomplishment. The claim and the
     # evidence share every content word and differ only in tense, so every
     # deterministic check passes it. Reading that difference means reading

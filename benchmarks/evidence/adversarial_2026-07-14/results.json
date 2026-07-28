@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-28T19:58:53",
+  "generated_at": "2026-07-28T20:31:37",
   "corpus": {
     "total_cases": 67,
     "honest_cases": 24,
@@ -20,9 +20,9 @@
       "unit_mismatch",
       "wording_grade_violation"
     ],
-    "documented_evasions": 6,
+    "documented_evasions": 5,
     "evidence_rows": 16,
-    "corpus_hash": "1b63b761e21f54ec4b78854dcf5be00219496630d8131367ab06c3f897f7159e"
+    "corpus_hash": "492544111f10c8f8da5ca95ed730c3610071ea3074218c6192a13afa4cdf1f97"
   },
   "checkers": {
     "no_gate": {
@@ -74,7 +74,7 @@
         },
         {
           "case_id": "cs03",
-          "family": "evasion_cross_script_no_shared_token",
+          "family": "cross_language_mismatch",
           "is_hallucination": true,
           "expected_verdict": null,
           "verdict": "published",
@@ -690,7 +690,7 @@
         },
         {
           "case_id": "cs03",
-          "family": "evasion_cross_script_no_shared_token",
+          "family": "cross_language_mismatch",
           "is_hallucination": true,
           "expected_verdict": null,
           "verdict": "published",
@@ -1306,12 +1306,12 @@
         },
         {
           "case_id": "cs03",
-          "family": "evasion_cross_script_no_shared_token",
+          "family": "cross_language_mismatch",
           "is_hallucination": true,
-          "expected_verdict": "published",
-          "verdict": "published",
-          "blocked_by": null,
-          "reason": ""
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Claim number '12'分鐘 not found in evidence content (evidence has: (none)). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
         },
         {
           "case_id": "fc01",
@@ -1761,7 +1761,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Chinese claim terms not in evidence (17% bigram coverage, threshold=25%): 一致, 全面, 即全, 同意, 員一"
+          "reason": "Claim number '1'致同 not found in evidence content (evidence has: (none)). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'.; Chinese claim terms not in evidence (17% bigram coverage, threshold=25%): 一致, 全面, 即全, 同意, 員一"
         },
         {
           "case_id": "l01",
@@ -1864,11 +1864,11 @@
         }
       ],
       "metrics": {
-        "true_positives": 37,
-        "false_negatives": 6,
+        "true_positives": 38,
+        "false_negatives": 5,
         "false_positives": 0,
         "true_negatives": 24,
-        "recall": 0.8605,
+        "recall": 0.8837,
         "false_positive_rate": 0.0,
         "precision": 1.0
       },
@@ -1884,8 +1884,8 @@
         },
         {
           "family": "cross_language_mismatch",
-          "cases": 3,
-          "caught": 3,
+          "cases": 4,
+          "caught": 4,
           "gates": [
             "FE"
           ],
@@ -1902,13 +1902,6 @@
         },
         {
           "family": "evasion_bare_number",
-          "cases": 1,
-          "caught": 0,
-          "gates": [],
-          "catch_rate": 0.0
-        },
-        {
-          "family": "evasion_cross_script_no_shared_token",
           "cases": 1,
           "caught": 0,
           "gates": [],
@@ -2047,7 +2040,7 @@
   "expected_mismatches": [],
   "determinism": {
     "runs": 5,
-    "verdict_hash": "0c549e606464f38db100ea43299e4fe8364d9c038ac864438d70a0d1ba22cb32",
+    "verdict_hash": "8e91f269e455034aba51e5dcebb28e542ec9ed0268773e740b98a6cfa326eed2",
     "identical": true
   }
 }

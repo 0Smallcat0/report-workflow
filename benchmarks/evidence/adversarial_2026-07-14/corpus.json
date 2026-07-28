@@ -206,9 +206,9 @@
     },
     {
       "case_id": "cs03",
-      "family": "evasion_cross_script_no_shared_token",
+      "family": "cross_language_mismatch",
       "is_hallucination": true,
-      "expected_verdict": "published",
+      "expected_verdict": "blocked",
       "claim": {
         "claim_id": "c_cs03",
         "claim_text": "文獻指出本產品的退款流程平均需時十二分鐘。",
@@ -220,7 +220,7 @@
       },
       "wording_strength": "hedged",
       "dangling": false,
-      "note": "unrelated Chinese claim, no Latin token and no digits to check"
+      "note": "Chinese numeral names a figure the English source never states"
     },
     {
       "case_id": "fc01",
