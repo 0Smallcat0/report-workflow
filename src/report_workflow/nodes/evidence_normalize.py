@@ -410,12 +410,21 @@ def _derived_stats_units(source_registry: list, created_at: str) -> list[dict]:
         error_col = next(
             (c for c in columns if c in numeric and _ERROR_COL_RE.search(c)), None
         )
+        # A trial counter is numeric and is not a variable. Taking the first
+        # spare numeric column fitted effectiveness against "Trial" — the row
+        # number — and published it as a citable statistic with an R² beside
+        # it, so a report could say a measurement rises with its own index and
+        # be backed by the ledger. The figure path already refuses id columns
+        # as axes; this is the same judgement, one function away.
+        from .figure_recommend import ID_HEADER_TERMS, _header_contains
+
         x_col = next(
             (
                 c
                 for c in columns
                 if c in numeric
                 and c not in (measured_col, theoretical_col, error_col)
+                and not _header_contains(str(c), ID_HEADER_TERMS)
             ),
             None,
         )
