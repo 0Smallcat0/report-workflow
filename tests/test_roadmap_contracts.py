@@ -1003,5 +1003,52 @@ class DocumentationContractTests(unittest.TestCase):
             self.assertFalse((dest_dir / "agent_instructions.md").exists())
 
 
+class ProfilesStayDistinctTests(unittest.TestCase):
+    """Two profiles over one source must not collapse into one shape.
+
+    Run the same CSV as an engineering lab report and as a business report:
+    thirteen sections against four, APA citations against none. The parts
+    that differ are the parts a reader sees. What must not differ is the
+    traceability underneath — the internal trace map is built before the
+    publication citation layer and is not gated on citation style, so a
+    business report with no visible bibliography still carries a full
+    claim-to-evidence trace. That is the guarantee this tool exists for, and
+    it would be quiet to lose.
+    """
+
+    def test_the_two_profiles_do_not_share_a_citation_policy(self):
+        from report_workflow.policies.policy_pack import get_policy
+
+        lab = get_policy("engineering_lab_report").citation
+        business = get_policy("business_report").citation
+        self.assertEqual(lab.style, "APA")
+        self.assertEqual(business.style, "none")
+        self.assertTrue(lab.source_marker_hard_block)
+        self.assertFalse(business.source_marker_hard_block)
+
+    def test_a_business_report_needs_no_reference_section(self):
+        """Its blueprint has none, and with style 'none' that is correct
+        rather than an omission — a business report is not a paper."""
+        from report_workflow.policies.policy_pack import get_policy
+
+        self.assertEqual(get_policy("business_report").citation.style, "none")
+
+    def test_the_trace_map_is_not_written_by_the_citation_layer(self):
+        """Layer 1 runs before Layer 2 and knows nothing about style.
+
+        Pinned by position: the internal trace map must be assigned before
+        publication citation resolution begins, so no future style branch
+        can end up deciding whether a report is traceable at all.
+        """
+        import inspect
+
+        from report_workflow.nodes import citation_bind
+
+        source = inspect.getsource(citation_bind.run_citation_bind)
+        trace_at = source.index('state.citations["internal_trace_path"]')
+        publication_at = source.index("Layer 2")
+        self.assertLess(trace_at, publication_at)
+
+
 if __name__ == "__main__":
     unittest.main()
