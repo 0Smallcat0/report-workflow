@@ -1940,6 +1940,43 @@ class CitationSurvivesRerunTests(unittest.TestCase):
             verdict = run_factuality_check_fa(sentence_map, matrix, day_two)
             self.assertNotEqual(verdict[0]["status"], "blocked", verdict[0].get("reason"))
 
+    def test_inserting_a_missed_trial_keeps_the_rows_below_it(self):
+        """The previous round proved this for appending, which never moves
+        an existing row. Adding a trial in its proper place does, and the
+        ids were seeded on block_0, block_1 — so every row underneath was
+        renumbered and its citation discarded, though not a character of its
+        text had changed.
+        """
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path = Path(tmpdir) / "seq.csv"
+            head = "Trial,Flow Rate (L/min),Measured Effectiveness (%)\n"
+            csv_path.write_text(head + "1,1.0,66.1\n3,3.0,73.2\n4,4.0,75.0\n",
+                                encoding="utf-8")
+            before = {e["evidence_id"] for e in self._prepare(tmpdir, csv_path, "d1")
+                      if (e.get("content") or "").startswith("{")}
+            csv_path.write_text(
+                head + "1,1.0,66.1\n2,2.0,70.4\n3,3.0,73.2\n4,4.0,75.0\n",
+                encoding="utf-8")
+            after = {e["evidence_id"] for e in self._prepare(tmpdir, csv_path, "d2")
+                     if (e.get("content") or "").startswith("{")}
+            self.assertEqual(before & after, before)
+
+    def test_a_reading_logged_twice_still_gets_two_entries(self):
+        """Content alone cannot key a row: an instrument can log the same
+        line twice, and both are observations."""
+        from pathlib import Path
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            csv_path = Path(tmpdir) / "dup.csv"
+            csv_path.write_text(
+                "Trial,Flow Rate (L/min),Measured Effectiveness (%)\n"
+                "5,5.0,76.3\n5,5.0,76.3\n6,6.0,77.0\n", encoding="utf-8")
+            rows = [e for e in self._prepare(tmpdir, csv_path, "dup")
+                    if (e.get("content") or "").startswith("{")]
+            self.assertEqual(len({e["evidence_id"] for e in rows}), 3)
+
     def test_a_citation_to_a_row_that_changed_is_reported(self):
         """The complement: a stale id must not pass quietly."""
         from pathlib import Path
