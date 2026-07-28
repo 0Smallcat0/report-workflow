@@ -425,6 +425,14 @@ def _derived_stats_units(source_registry: list, created_at: str) -> list[dict]:
                 if c in numeric
                 and c not in (measured_col, theoretical_col, error_col)
                 and not _header_contains(str(c), ID_HEADER_TERMS)
+                # A column that never changes is a controlled variable. A wide
+                # table holds several — ambient temperature, supply voltage,
+                # humidity — and fitting against one produced "slope ... is 0
+                # with R² = 0.0000" as citable evidence. The figure path has
+                # refused held-constant columns as axes since the round that
+                # found six identical points plotted as a relationship; the
+                # same reading of the same data, one function away.
+                and len(set(numeric[c])) > 1
             ),
             None,
         )
