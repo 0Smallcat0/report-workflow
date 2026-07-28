@@ -265,6 +265,16 @@ Chinese words — far more often than it caught a false one, and the measured
 0% false-block rate is worth more than the coverage. Kept in the adversarial
 corpus as a documented evasion.
 
+**A PDF table drawn with whitespace instead of lines.** A ruled table in a
+PDF is read row by row and reaches the ledger exactly as the same table
+would from a CSV — citable per row, with the fit derived. A table laid out
+by alignment alone, with no ruling, is read as the prose it typographically
+is: one block of page text. Widening detection to whitespace columns would
+find those tables and would also carve ordinary paragraphs into rows that
+were never in the document. Inventing structure is a worse failure here than
+missing it, because a row that never existed can be cited, and prose that
+was merely mis-shelved cannot lie about a measurement.
+
 ### Formatting boundary
 
 The renderer targets a clean, submission-ready *manuscript*: title page
