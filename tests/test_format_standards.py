@@ -929,6 +929,39 @@ class DuplicateCitationCollapseTest(unittest.TestCase):
             state.output["figure_manifest_path"] = manifest_path
         return state
 
+    def _captions(self, caps):
+        from report_workflow.errors import QAHardBlockError
+        from report_workflow.nodes.post_render_validate import run_post_render_validate
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = self._state_with(tmpdir, caps, manifest={"figures": [], "errors": []})
+            try:
+                run_post_render_validate(state)
+            except QAHardBlockError as exc:
+                return str(exc)
+        return ""
+
+    def test_a_repeated_chinese_caption_is_caught(self):
+        """The duplicate check matched "Figure 1." only.
+
+        A Chinese report is the ordinary case here, and two captions both
+        reading "圖 1." passed — the same English-shaped rule that dropped
+        short CJK headings and called a finished Chinese report incomplete.
+        """
+        self.assertIn("duplicate figure caption",
+                      self._captions(["圖 1. 流量與有效度", "圖 1. 流量與有效度"]))
+
+    def test_simplified_characters_count_too(self):
+        self.assertIn("duplicate figure caption",
+                      self._captions(["图 1. 流量与有效度", "图 1. 流量与有效度"]))
+
+    def test_english_captions_still_behave(self):
+        self.assertIn("duplicate figure caption",
+                      self._captions(["Figure 1. Flow", "Figure 1. Flow"]))
+
+    def test_distinct_chinese_captions_pass(self):
+        self.assertEqual(self._captions(["圖 1. 流量與有效度", "圖 2. 溫度影響"]), "")
+
     def test_a_raw_placeholder_never_reaches_the_deliverable(self):
         """The document a student hands in carried "[FIGURE:fig_x]" as text.
 

@@ -74,6 +74,17 @@ def _expected_figure_count(state: ReportState) -> int:
     return max(image_count, _outline_figure_count(state) - native_tables)
 
 
+#: A figure caption, in either language the renderer produces. The duplicate
+#: check matched "Figure 1." only, so a Chinese report — the ordinary case
+#: here — could carry two captions both reading "圖 1." and pass. The same
+#: English-shaped rule that dropped short CJK headings and called a finished
+#: Chinese report incomplete, in a third place.
+_CAPTION_LABEL_RE = re.compile(
+    r"^((?:Figure|Fig\.?|圖|图)\s*\d+[.、．:：]?\s+[^.。]+[.。]?)",
+    re.IGNORECASE,
+)
+
+
 def _figure_build_error_hint(state: ReportState) -> str:
     """Why the figure never arrived, if the builder already recorded it.
 
@@ -310,7 +321,7 @@ def run_post_render_validate(state: ReportState) -> ReportState:
     figure_caption_labels: set[str] = set()
     for para in doc.paragraphs:
         text = " ".join(para.text.split())
-        match = re.match(r"^(Figure\s+\d+\.\s+[^.]+(?:\.)?)", text, re.IGNORECASE)
+        match = _CAPTION_LABEL_RE.match(text)
         if not match:
             continue
         label = match.group(1).lower()
