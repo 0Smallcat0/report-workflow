@@ -1,17 +1,17 @@
 # Adversarial Anti-Hallucination Benchmark (2026-07-14)
 
-- Corpus: **65 cases** — 23 honest controls, 42 hallucinated claims across 14 attack families plus 6 documented evasion variants.
+- Corpus: **67 cases** — 24 honest controls, 43 hallucinated claims across 14 attack families plus 6 documented evasion variants.
 - Gate stack under test: FA (linkage) -> FB (statistical backing) -> FE (deep-audit content overlap) -> FD (wording vs evidence grade).
 - Deterministic, offline, no LLM: verdicts come from the exact checker functions in `src/report_workflow/nodes/factuality_check.py`.
-- Corpus hash: `aa34d334d8dc6f552375857a19c6e26e908078ef0335fbac51f0e3c83dcd09ac`
+- Corpus hash: `1b63b761e21f54ec4b78854dcf5be00219496630d8131367ab06c3f897f7159e`
 
 ## Headline comparison
 
 | Checker | Recall (hallucinations blocked) | False-positive rate (honest blocked) | Precision |
 | --- | --- | --- | --- |
-| `no_gate` | 0.0% (0/42) | 0.0% (0/23) | 0.0% |
-| `citation_presence` | 9.5% (4/42) | 0.0% (0/23) | 100.0% |
-| `full_gate_stack` | 85.7% (36/42) | 0.0% (0/23) | 100.0% |
+| `no_gate` | 0.0% (0/43) | 0.0% (0/24) | 0.0% |
+| `citation_presence` | 9.3% (4/43) | 0.0% (0/24) | 100.0% |
+| `full_gate_stack` | 86.1% (37/43) | 0.0% (0/24) | 100.0% |
 
 `citation_presence` is the shallow check many retrieval pipelines stop at:
 the citation ID exists, therefore the sentence is treated as grounded. It
@@ -25,7 +25,7 @@ never reads the evidence content, so every content-level fabrication ships.
 | cross_language_mismatch | 3 | 3 | 100.0% | FE |
 | dangling_claim | 1 | 1 | 100.0% | FA |
 | fabricated_citation | 3 | 3 | 100.0% | FA |
-| fabricated_quote | 4 | 4 | 100.0% | FE |
+| fabricated_quote | 5 | 5 | 100.0% | FE |
 | invented_statistic | 7 | 7 | 100.0% | FE |
 | missing_evidence | 1 | 1 | 100.0% | FA |
 | off_topic_citation | 2 | 2 | 100.0% | FE |
@@ -54,7 +54,7 @@ and feed the limitations section of `docs/DESIGN.md`:
 ## Determinism proof
 
 - 5 consecutive in-process runs produced identical verdicts: `identical = True`.
-- Verdict hash (sha256 over all full-stack verdicts): `5697d83e8ebe3401aef45c104019524d7225ea1185c419a88d731a547f4515d9`.
+- Verdict hash (sha256 over all full-stack verdicts): `0c549e606464f38db100ea43299e4fe8364d9c038ac864438d70a0d1ba22cb32`.
 - `python scripts/run_adversarial_benchmark.py --check` recomputes every verdict
   from source and fails if any verdict, metric, or hash drifts from this archive —
   the same command runs in CI on Linux, so the hash is also a cross-platform
