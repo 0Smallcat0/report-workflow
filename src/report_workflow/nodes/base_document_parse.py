@@ -89,6 +89,31 @@ _DRAWING_EMBED_ATTR = (
 )
 
 
+_HEADING_ORDINAL_RE = re.compile(
+    r"^\s*(?:\d+(?:\.\d+)*|[一二三四五六七八九十百]+|[IVXivx]+|[A-Za-z])"
+    r"\s*[.、．)）:：]\s*"
+)
+
+
+def _section_id_for(heading: str, seen: dict[str, int]) -> str:
+    """Address a section by what it is called, not by its number.
+
+    The id was the heading slug, and a heading carries an ordinal the author
+    maintains by hand. Inserting a missing methods section renumbered every
+    heading below it, so "2. 結果" became "3. 結果" and a revision plan
+    written against the first no longer resolved — the same section, the same
+    words, a different identity. The number in a heading is a line number
+    wearing a different hat.
+
+    Two sections that read the same after the number comes off are told apart
+    by which came first, so an id stays unique without depending on position.
+    """
+    stripped = _HEADING_ORDINAL_RE.sub("", heading).strip() or heading.strip()
+    base = stripped.lower().replace(" ", "_")[:48] or "section"
+    seen[base] = seen.get(base, 0) + 1
+    return base if seen[base] == 1 else f"{base}_{seen[base]}"
+
+
 def _docx_table_markdown(tbl) -> list[str]:
     """One DOCX table as Markdown pipe-table lines.
 
@@ -157,6 +182,7 @@ def _parse_docx_section(
 
     sections: dict[str, str] = {}
     titles: dict[str, str] = {}
+    section_id_counts: dict[str, int] = {}
     current_section_id = "preamble"
     current_lines: list[str] = []
 
@@ -218,8 +244,7 @@ def _parse_docx_section(
                                 sections[current_section_id] = "\n".join(current_lines)
                                 current_lines = []
                             # Slug for addressing, heading text for display.
-                            heading_text = line.lower().replace(" ", "_")
-                            current_section_id = heading_text[:48]
+                            current_section_id = _section_id_for(line, section_id_counts)
                             titles[current_section_id] = line
                         current_lines.append(line)
     except Exception as exc:

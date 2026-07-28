@@ -71,6 +71,50 @@ class BaseDocumentImageCarryTests(unittest.TestCase):
             self.assertFalse([t for t in sections.values() if "![](" in t])
 
 
+class SectionIdSurvivesRenumberingTests(unittest.TestCase):
+    """A heading's number is a line number wearing a different hat.
+
+    Section ids were the heading slug, so inserting a missing methods
+    section renumbered every heading below it: "2. 結果" became "3. 結果"
+    and a revision plan written against the first no longer resolved — same
+    section, same words, different identity. Revise mode is the one mode
+    where the base document is expected to be edited between runs.
+    """
+
+    def _ids(self, headings):
+        from docx import Document
+
+        from report_workflow.nodes.base_document_parse import _parse_docx_section
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = str(Path(tmpdir) / "report.docx")
+            document = Document()
+            document.add_heading("板式熱交換器效能報告", level=1)
+            for title in headings:
+                document.add_heading(title, level=2)
+                document.add_paragraph(f"{title} 的內容。")
+            document.save(path)
+            return _parse_docx_section(path)
+
+    def test_renumbering_does_not_change_a_section_id(self):
+        before, _ = self._ids(["1. 實驗目的", "2. 結果", "3. 討論"])
+        after, _ = self._ids(["1. 實驗目的", "2. 實驗方法", "3. 結果", "4. 討論"])
+        self.assertTrue(set(before) <= set(after), sorted(set(before) - set(after)))
+
+    def test_the_heading_a_reader_sees_keeps_its_number(self):
+        _sections, titles = self._ids(["1. 實驗目的", "2. 結果"])
+        self.assertEqual(titles["結果"], "2. 結果")
+
+    def test_two_sections_reading_the_same_stay_distinct(self):
+        sections, _ = self._ids(["1. 結果", "2. 結果"])
+        self.assertEqual(len([s for s in sections if s.startswith("結果")]), 2)
+
+    def test_an_unnumbered_heading_is_unchanged(self):
+        sections, _ = self._ids(["Results", "Discussion"])
+        self.assertIn("results", sections)
+        self.assertIn("discussion", sections)
+
+
 class BaseDocumentTableCarryTests(unittest.TestCase):
     """Revising your own report used to destroy the tables in it.
 
