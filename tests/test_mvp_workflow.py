@@ -2306,6 +2306,47 @@ class SectionEmbeddedTableTests(unittest.TestCase):
         self.assertIn("least-squares slope", derived[0]["content"])
 
 
+class WordingStrengthMessageTests(unittest.TestCase):
+    """FD blocks a sentence, so its message has to name the sentence.
+
+    The gate reads the wording_strength the author declared rather than the
+    prose, which is why it behaves the same in every language — there is no
+    text for a rule to be shaped around. What it does have to get right is
+    the message: which sentence, what was claimed, and what is allowed
+    instead. Nothing tested that, and a block nobody can act on is a block
+    that gets worked around.
+    """
+
+    EVIDENCE = [{"evidence_id": "e1", "content": "訪談指出退款流程約需十二分鐘。",
+                 "evidence_grade": "medium", "source_role": "primary_source"}]
+
+    def _fd(self, strength):
+        from report_workflow.nodes.factuality_check import run_factuality_check_fd
+
+        matrix = {"claims": [{"claim_id": "c_refund",
+                              "claim_text": "退款流程需時十二分鐘。",
+                              "evidence_ids": ["e1"]}]}
+        sentence_map = [{"sentence_id": "s3", "claim_ids": ["c_refund"],
+                         "evidence_ids": ["e1"], "citation_ids": ["e1"],
+                         "wording_strength": strength}]
+        return run_factuality_check_fd(sentence_map, matrix, self.EVIDENCE)
+
+    def test_a_block_names_the_sentence_and_the_way_out(self):
+        blocked = self._fd("measured")
+        self.assertEqual(len(blocked), 1)
+        self.assertEqual(blocked[0]["sentence_id"], "s3")
+        self.assertEqual(blocked[0]["status"], "blocked")
+        self.assertIn("medium", blocked[0]["reason"])
+        self.assertIn("hedged", blocked[0]["reason"])
+
+    def test_hedged_wording_on_medium_evidence_passes(self):
+        self.assertEqual(self._fd("hedged"), [])
+
+    def test_the_gate_reads_a_declared_field_not_the_prose(self):
+        """Chinese and English behave identically because neither is read."""
+        self.assertEqual(self._fd("weak"), [])
+
+
 class RaggedRowTests(unittest.TestCase):
     """A row carrying more cells than the header has columns.
 
