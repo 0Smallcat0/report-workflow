@@ -17,13 +17,41 @@ def is_placeholder_value(value: object) -> bool:
     return str(value).strip().lower() in PLACEHOLDER_CELL_VALUES
 
 
+def _disambiguate_headers(headers: list[str]) -> list[str]:
+    """Make repeated column names distinct, keeping the first as written.
+
+    An instrument export names every thermocouple "Temperature (°C)".
+    DictReader keys rows by name, so the second and third readings overwrote
+    the first and left the row holding one temperature out of three — data
+    the source contained, destroyed at ingestion, with the table then
+    reported as having four columns instead of six. pandas already renames
+    duplicates for .xlsx, so only the CSV path lost them.
+    """
+    seen: dict[str, int] = {}
+    out: list[str] = []
+    for header in headers:
+        name = str(header)
+        seen[name] = seen.get(name, 0) + 1
+        out.append(name if seen[name] == 1 else f"{name} [{seen[name]}]")
+    return out
+
+
 def parse_csv(file_path: str) -> list[dict]:
     """Parse CSV file with the standard library."""
     import io
 
     from .source_text import read_source_text
 
-    return list(csv.DictReader(io.StringIO(read_source_text(file_path), newline="")))
+    reader = csv.reader(io.StringIO(read_source_text(file_path), newline=""))
+    try:
+        headers = _disambiguate_headers(next(reader))
+    except StopIteration:
+        return []
+    return [
+        dict(zip(headers, row))
+        for row in reader
+        if any(str(cell).strip() for cell in row)
+    ]
 
 
 def parse_xlsx(file_path: str) -> list[dict]:
