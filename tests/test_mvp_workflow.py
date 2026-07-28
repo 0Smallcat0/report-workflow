@@ -2225,6 +2225,47 @@ class SectionEmbeddedTableTests(unittest.TestCase):
         self.assertIn("least-squares slope", derived[0]["content"])
 
 
+class DerivedStatsAxisTests(unittest.TestCase):
+    """A trial counter is numeric and is not a variable.
+
+    The fit took the first spare numeric column, so a table whose first
+    column was "Trial" produced "slope of Measured Effectiveness (%) versus
+    Trial ... R² = 0.89" — a measurement regressed on its own row number,
+    written into the ledger as citable evidence. The figure path already
+    refuses id columns as axes; this is the same judgement one function away.
+    """
+
+    def _derived(self, headers, rows):
+        from report_workflow.nodes.evidence_normalize import _derived_stats_units
+
+        blocks = [
+            {"block_id": f"b{i}", "block_type": "csv_row",
+             "content": json.dumps(dict(zip(headers, row)))}
+            for i, row in enumerate(rows)
+        ]
+        entry = {"file_type": "csv", "file_name": "run.csv",
+                 "parsed_content": blocks}
+        return _derived_stats_units([entry], "2026-07-27T00:00:00Z")
+
+    def test_a_trial_counter_is_not_the_x_axis(self):
+        derived = self._derived(
+            ["Trial", "Flow Rate (L/min)", "Measured Effectiveness (%)"],
+            [["1", "1.0", "66.1"], ["2", "2.0", "70.4"],
+             ["3", "3.0", "73.2"], ["4", "4.0", "75.0"]])
+        self.assertTrue(derived)
+        self.assertIn("Flow Rate (L/min)", derived[0]["derivation"]["input_columns"])
+        self.assertNotIn("Trial", derived[0]["derivation"]["input_columns"])
+        self.assertNotIn("versus Trial", derived[0]["content"])
+
+    def test_with_nothing_but_a_counter_no_fit_is_published(self):
+        """Nothing to regress against is a reason to say nothing."""
+        derived = self._derived(
+            ["Trial", "Measured Effectiveness (%)"],
+            [["1", "66.1"], ["2", "70.4"], ["3", "73.2"], ["4", "75.0"]])
+        self.assertFalse(
+            [d for d in derived if "least-squares" in (d.get("content") or "")])
+
+
 class DerivedStatsContainerTests(unittest.TestCase):
     """The same table analysed the same way whichever file it arrived in.
 
