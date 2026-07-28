@@ -1574,6 +1574,53 @@ class FigurePlanAuditTests(unittest.TestCase):
             self.assertEqual(payload["recommendation_count"], 1)
 
 
+class FigurePlanShapeMessageTests(unittest.TestCase):
+    """A wrong data shape told the author about Python, not about their plan.
+
+    Every generator reads data with .get, so handing it a list surfaced as
+    "'list' object has no attribute 'get'" — recorded in the manifest and
+    shown to someone who was writing a report. The neighbouring check, for an
+    unknown figure_type, has always named what was wrong and what is
+    accepted; this one had nothing.
+    """
+
+    def _errors(self, figure_type, data):
+        from report_workflow.state import ReportState, run_dir_for
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("r", [], str(Path(tmpdir) / "out"))
+            state.spec["report_profile"] = "engineering_lab_report"
+            run_dir = run_dir_for(state)
+            (run_dir / "section_drafts").mkdir(parents=True, exist_ok=True)
+            with open(run_dir / "section_drafts" / "figure_plan.json",
+                      "w", encoding="utf-8") as handle:
+                json.dump({"figures": [{"figure_id": "fig_1",
+                                        "figure_type": figure_type,
+                                        "title": "t", "data": data}]}, handle)
+            built = run_figure_build(state)
+            manifest_path = Path(built.output["figure_manifest_path"])
+            return json.loads(manifest_path.read_text(encoding="utf-8"))["errors"]
+
+    def test_a_list_where_an_object_belongs_is_explained(self):
+        errors = self._errors("scatter", [{"x": 2.0, "y": 72.4}])
+        self.assertEqual(len(errors), 1)
+        self.assertIn("data must be an object, not list", errors[0])
+        self.assertNotIn("has no attribute", errors[0])
+
+    def test_the_keys_named_are_the_ones_that_type_reads(self):
+        self.assertIn('"x" and "y"', self._errors("scatter", [])[0])
+        self.assertIn('"labels" and "series"', self._errors("bar", "nope")[0])
+        self.assertIn('"labels" and "values"', self._errors("pie", [])[0])
+
+    def test_a_well_shaped_plan_is_untouched(self):
+        try:
+            import matplotlib  # noqa: F401
+        except Exception as exc:  # pragma: no cover - environment dependent
+            self.skipTest(f"matplotlib is not available: {exc}")
+        self.assertEqual(
+            self._errors("scatter", {"x": [2.0, 3.0], "y": [72.4, 76.1]}), [])
+
+
 class ExpandedFigureBuildTests(unittest.TestCase):
     def test_builds_all_new_supported_figure_types(self):
         try:
