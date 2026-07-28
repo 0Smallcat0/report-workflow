@@ -2225,6 +2225,40 @@ class SectionEmbeddedTableTests(unittest.TestCase):
         self.assertIn("least-squares slope", derived[0]["content"])
 
 
+class ProductColumnCoincidenceTests(unittest.TestCase):
+    """Three steady columns can satisfy a product by accident.
+
+    The line-total detector asks whether a column equals two others
+    multiplied, which finds a quote sheet's 單價 × 數量 = 小計 without needing
+    an amount word in the header. In a wide instrument log most columns are
+    held steady, and ambient 25.0 times inlet 60.0 is pump speed 1500 — so
+    rpm was summed across runs and published as "the column totals 45,000".
+    One coincidence in one row was generalised across every row, because
+    every row was the same.
+    """
+
+    def _is_product(self, numeric, candidate):
+        from report_workflow.nodes.evidence_normalize import _is_product_column
+
+        return _is_product_column(numeric, candidate)
+
+    def test_constant_columns_do_not_prove_a_product(self):
+        self.assertFalse(self._is_product(
+            {"Ambient Temp (°C)": [25.0] * 4, "Inlet Temp (°C)": [60.0] * 4,
+             "Pump Speed (rpm)": [1500.0] * 4}, "Pump Speed (rpm)"))
+
+    def test_a_real_line_total_still_counts(self):
+        self.assertTrue(self._is_product(
+            {"Unit Price": [10.0, 20.0, 30.0], "Qty": [2.0, 3.0, 4.0],
+             "Line Total": [20.0, 60.0, 120.0]}, "Line Total"))
+
+    def test_a_constant_factor_is_fine_when_the_total_varies(self):
+        """Qty fixed at two is still a relationship; the total moves."""
+        self.assertTrue(self._is_product(
+            {"Unit Price": [10.0, 20.0, 30.0], "Qty": [2.0, 2.0, 2.0],
+             "Line Total": [20.0, 40.0, 60.0]}, "Line Total"))
+
+
 class DerivedStatsAxisTests(unittest.TestCase):
     """A trial counter is numeric and is not a variable.
 

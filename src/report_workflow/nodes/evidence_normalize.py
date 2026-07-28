@@ -331,6 +331,14 @@ def _is_product_column(numeric: dict[str, list[float]], candidate: str) -> bool:
     summing even when its header carries no recognizable amount word.
     """
     values = numeric[candidate]
+    # A column that never changes cannot demonstrate a relationship. In a wide
+    # instrument log most columns are held steady, and any three of them can
+    # satisfy left × right == candidate by arithmetic accident: ambient 25.0
+    # times inlet 60.0 is pump speed 1500, so rpm was summed across runs and
+    # published as "the column totals 45,000". One coincidence in one row was
+    # being generalised across every row, because every row was the same.
+    if len(set(values)) <= 1:
+        return False
     others = [c for c in numeric if c != candidate]
     for i, left in enumerate(others):
         for right in others[i + 1:]:
