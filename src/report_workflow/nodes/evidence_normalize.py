@@ -583,6 +583,18 @@ def _derived_stats_units(source_registry: list, created_at: str) -> list[dict]:
 _ROW_BLOCK_TYPES = {"csv_row", "table_row", "data_row"}
 
 
+def _is_numeric_cell(value: str) -> bool:
+    """True when a cell is a bare number — a reading, not a column name."""
+    text = str(value).strip().replace(",", "").rstrip("%")
+    if not text:
+        return False
+    try:
+        float(text)
+    except ValueError:
+        return False
+    return True
+
+
 def _table_row_blocks(block: dict) -> list[dict] | None:
     """One block per data row of a table, or None to keep the block as is.
 
@@ -604,6 +616,15 @@ def _table_row_blocks(block: dict) -> list[dict] | None:
         return None
     headers = [str(cell).strip() for cell in table_data[0]]
     if not any(headers):
+        return None
+    # A table continued onto the next page repeats no header, so the first
+    # row there is a measurement. Taking it as one consumed that row — six
+    # readings arrived as five — and named the columns after its values, so
+    # the rest came back as {"81.0": "82.2"}: a column called 81.0 that
+    # exists nowhere, ready to be cited. Inventing structure is the failure
+    # this pipeline may not commit, so a row that is entirely numeric is not
+    # accepted as a header and the table stays whole text instead.
+    if all(_is_numeric_cell(header) for header in headers):
         return None
 
     rows = []
@@ -662,8 +683,15 @@ def _embedded_table_row_blocks(block: dict) -> list[dict] | None:
             prose.append(lines[index])
             index += 1
             continue
-        flush_prose()
         headers = [str(cell).strip() for cell in rows[0]]
+        # Same rule as the table_data path: an all-numeric first row is a
+        # reading, not a column name. Guarding only the other branch left
+        # this one still naming columns after measurements.
+        if all(_is_numeric_cell(header) for header in headers):
+            prose.append(lines[index])
+            index += 1
+            continue
+        flush_prose()
         for offset, raw_row in enumerate(rows[1:], start=1):
             values = [str(cell).strip() for cell in raw_row]
             if all(is_placeholder_value(value) for value in values):
