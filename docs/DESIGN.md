@@ -257,7 +257,8 @@ and across scripts the only vocabulary both sides spell the same way is the
 technical kind a Chinese sentence keeps in Latin — NTU, CRM, R², an author's
 name. Where the claim carries such a term it is checked against the
 evidence, and a term the source never mentions is caught. Where it carries
-none, there is nothing to compare: comparing would mean translating, which
+none — no Latin term, no digit, and no Chinese numeral, since those are read
+too — there is nothing to compare: comparing would mean translating, which
 is the semantic layer this design refuses. Reporting every such claim would
 block the honest case — a Chinese sentence summarising an English source in
 Chinese words — far more often than it caught a false one, and the measured

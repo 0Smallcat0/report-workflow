@@ -2184,8 +2184,12 @@ class CrossScriptClaimTests(unittest.TestCase):
         would block honest Chinese summaries of English sources far more
         often than it caught a false one.
         """
+        # The example used to spell a number in Chinese, which the numeric
+        # check can now read — so it stopped demonstrating this gap and
+        # started demonstrating the fix. A claim with nothing comparable at
+        # all is what the gap is actually about.
         self.assertEqual(
-            self._reasons("文獻指出本產品的退款流程平均需時十二分鐘。"), [])
+            self._reasons("文獻指出本產品的退款流程仍有改善空間。"), [])
 
     def test_the_english_directions_still_behave(self):
         from report_workflow.nodes.factuality_check import _check_content_overlap

@@ -318,6 +318,63 @@ _NUMERIC_IN_CLAIM_RE = re.compile(
 )
 
 
+_CJK_DIGITS = {"零": 0, "〇": 0, "一": 1, "二": 2, "兩": 2, "三": 3, "四": 4,
+               "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
+_CJK_UNITS = {"十": 10, "百": 100, "千": 1000}
+#: A Chinese numeral carrying a unit. Two guards, both learned by breaking
+#: the corpus with a first attempt that had neither:
+#:
+#: "第" marks an ordinal, not a quantity — 第三季 is the third quarter, and
+#: reading it as "3 季" made an honest claim about a plan look like a
+#: fabricated measurement.
+#:
+#: The unit is capped at two characters. An unbounded CJK run swallowed the
+#: rest of the sentence, so "三季導入" became a number with the unit
+#: "季導入", which nothing could ever match.
+_CJK_NUMBER_RE = re.compile(
+    r"(?<!第)([零〇一二兩三四五六七八九十百千]+(?:點[零〇一二三四五六七八九]+)?)"
+    r"\s*([a-zA-Z%°]+|[一-鿿]{1,2})"
+)
+
+
+def _cjk_numeral_value(text: str) -> float | None:
+    """A Chinese numeral as a number, or None when it is not worth guessing.
+
+    The numeric check reads digits, so a claim spelling its number out —
+    "降至三點二分鐘" — was never checked against the evidence at all, while
+    the same claim written 3.2 was caught. Full-width digits already worked,
+    because NFKC folds them; Chinese numerals are a different notation, not a
+    different width.
+
+    Deliberately narrow. 萬, 億 and 百分之 are refused rather than guessed at,
+    because a wrong reading here does not merely miss a fabrication — it
+    blocks an honest claim, which is the worse failure.
+    """
+    if not text or any(c in text for c in "萬万億亿分"):
+        return None
+    whole, _, fraction = text.partition("點")
+    total = 0
+    section = 0
+    digit: int | None = None
+    for char in whole:
+        if char in _CJK_DIGITS:
+            digit = _CJK_DIGITS[char]
+        elif char in _CJK_UNITS:
+            section += (1 if digit is None else digit) * _CJK_UNITS[char]
+            digit = None
+        else:
+            return None
+    total = section + (digit or 0)
+    if not fraction:
+        return float(total)
+    places = []
+    for char in fraction:
+        if char not in _CJK_DIGITS:
+            return None
+        places.append(str(_CJK_DIGITS[char]))
+    return float(f"{total}.{''.join(places)}")
+
+
 def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
     """Return list of (number_str, unit_str) from text."""
     _APOSTROPHE_SUFFIX_RE = re.compile(r"'[strelmv]|'ll|'ve|'d\b")
@@ -326,6 +383,12 @@ def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
     for m in _NUMERIC_IN_CLAIM_RE.finditer(normalized):
         unit = _APOSTROPHE_SUFFIX_RE.sub("", m.group(2).strip())
         results.append((m.group(1).lstrip("~"), unit))
+    for m in _CJK_NUMBER_RE.finditer(normalized):
+        value = _cjk_numeral_value(m.group(1))
+        if value is None:
+            continue
+        rendered = f"{value:g}"
+        results.append((rendered, m.group(2).strip()))
     return results
 
 
