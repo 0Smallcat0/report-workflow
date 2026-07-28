@@ -107,6 +107,22 @@ def _configure_cjk_fonts(matplotlib_module: Any) -> None:
 
 _MATPLOTLIB_AVAILABLE = None
 
+#: The keys each figure type reads out of ``data``, for the message an author
+#: gets when they hand it the wrong shape. Kept beside the schema comment
+#: above so the two cannot drift apart unnoticed.
+_DATA_KEYS_TEXT: dict[str, str] = {
+    "bar": '"labels" and "series"',
+    "stacked_bar": '"labels" and "series"',
+    "line": '"labels" and "series"',
+    "scatter": '"x" and "y"',
+    "pie": '"labels" and "values"',
+    "histogram": '"values"',
+    "boxplot": '"labels" and "series"',
+    "heatmap": '"x_labels", "y_labels" and "values"',
+    "error_bar": '"labels", "values" and "errors"',
+    "table": '"columns" and "rows"',
+}
+
 
 def _as_number(value: Any, label: str) -> float:
     if value is None or value == "":
@@ -704,6 +720,18 @@ def run_figure_build(state: ReportState) -> ReportState:
                 errors.append(
                     f"{figure_id}: unknown figure_type '{figure_type}'. "
                     f"Supported values: {SUPPORTED_FIGURE_TYPES_TEXT}"
+                )
+                continue
+            # Every generator reads data with .get, so a list here surfaced as
+            # "'list' object has no attribute 'get'" — a Python type error
+            # handed to someone who wrote a report, saying nothing about what
+            # to change. The figure_type branch above already names what was
+            # wrong and what is accepted; this is its neighbour.
+            if not isinstance(data, dict):
+                errors.append(
+                    f"{figure_id}: data must be an object, not "
+                    f"{type(data).__name__}. A {figure_type} figure reads "
+                    f"{_DATA_KEYS_TEXT.get(figure_type, 'named keys')} from it."
                 )
                 continue
             if figure_type == "bar":
