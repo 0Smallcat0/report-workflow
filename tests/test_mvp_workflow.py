@@ -2109,6 +2109,46 @@ class ShortHeadingEvidenceTests(unittest.TestCase):
         self.assertNotIn("12", kept)
 
 
+class ChineseQuotationTests(unittest.TestCase):
+    """A fabricated quotation was guarded in English and not in Chinese.
+
+    The scanner looked for ASCII double quotes, so 報告指出「結構化流程無法
+    縮短處理時間」— a quote inverting what the source says — passed, while
+    its English twin was caught verbatim. Quotation is the most direct form
+    of putting words in a source's mouth, and it was unchecked in the
+    language this tool is mostly used in.
+    """
+
+    EVIDENCE = {"content": "結構化流程將處理時間中位數降至 7.8 分鐘，錯誤率同步下降。"}
+
+    def _quote_flagged(self, claim_text):
+        from report_workflow.nodes.factuality_check import _check_content_overlap
+
+        reasons = _check_content_overlap({"claim_text": claim_text}, self.EVIDENCE)
+        return any("Quoted phrase" in reason for reason in reasons)
+
+    def test_a_quote_that_inverts_the_source_is_caught(self):
+        self.assertTrue(self._quote_flagged(
+            "報告指出「結構化流程無法縮短處理時間」，值得注意。"))
+
+    def test_an_invented_quote_is_caught(self):
+        self.assertTrue(self._quote_flagged("報告指出「錯誤率與處理時間並無關聯」。"))
+
+    def test_corner_brackets_count_too(self):
+        self.assertTrue(self._quote_flagged("報告指出『錯誤率與處理時間並無關聯』。"))
+
+    def test_a_verbatim_quote_passes(self):
+        self.assertFalse(self._quote_flagged("報告指出「處理時間中位數」有所下降。"))
+
+    def test_short_emphasis_marks_are_not_treated_as_quotation(self):
+        """Chinese uses 「」 to stress a term as well as to cite one.
+
+        The four-character floor is the English rule's own, kept rather than
+        lowered, so a two-character 「重要」 stays out of the scanner's way.
+        """
+        self.assertFalse(self._quote_flagged("這個「重要」的趨勢與處理時間中位數有關。"))
+
+
 class CrossScriptClaimTests(unittest.TestCase):
     """A Chinese report citing the English literature had no term check.
 

@@ -533,6 +533,23 @@ def _check_cjk_overlap(claim_text: str, evidence_content: str) -> list[str]:
     ]
 
 
+#: A quotation, in the marks each language actually uses. The scanner looked
+#: for ASCII double quotes only, so a Chinese claim quoting its source was
+#: never checked against it: 報告指出「結構化流程無法縮短處理時間」 — a quote
+#: that inverts what the evidence says — passed, while its English twin was
+#: caught verbatim. Fabricated quotation is the thing this gate exists for,
+#: and it was unguarded in the language the tool is mostly used in.
+#:
+#: The four-character floor is the English rule's own, kept rather than
+#: lowered: Chinese uses 「」 for emphasis as well as quotation, and a two- or
+#: three-character 「重要」 is a writer stressing a term, not citing one.
+_QUOTED_PHRASE_RE = re.compile(
+    r'"([^"]{4,200})"'
+    r"|「([^」]{4,200})」"
+    r"|『([^』]{4,200})』"
+    r"|“([^”]{4,200})”"
+)
+
 _QUESTION_SPEAKER_RE = re.compile(r"^\s*(問|answer|question|q|a)\s*[:：.]\s*", re.IGNORECASE)
 _ASSERTION_END_RE = re.compile(r"[。．.!！;；]")
 
@@ -638,7 +655,10 @@ def _content_overlap_findings(
     #    e.g., 'The system "compiles ASTs" is key' → check "compiles ASTs" in evidence
     #    Minimum length 4: short fabricated quotes ("audited") must not slip
     #    under the scanner; anything shorter is punctuation-level noise.
-    quoted_phrases = re.findall(r'"([^"]{4,200})"', claim_text)
+    quoted_phrases = [
+        next(group for group in match if group)
+        for match in _QUOTED_PHRASE_RE.findall(claim_text)
+    ]
     for phrase in quoted_phrases:
         # Strip trailing punctuation for matching
         phrase_stripped = phrase.rstrip('.,;:')

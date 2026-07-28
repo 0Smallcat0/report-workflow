@@ -22,6 +22,13 @@
       "evidence_grade": "medium"
     },
     {
+      "evidence_id": "ev_zh_quote",
+      "content": "結構化流程將處理時間中位數降至 7.8 分鐘，錯誤率同步下降。",
+      "evidence_type": "quantitative",
+      "source_role": "primary_source",
+      "evidence_grade": "high"
+    },
+    {
       "evidence_id": "ev_minutes_plan",
       "content": "決議事項：工單系統與 CRM 的自動回填功能，由工程團隊在第三季導入。",
       "evidence_type": "qualitative",
@@ -124,6 +131,42 @@
       "wording_strength": "hedged",
       "dangling": false,
       "note": "transcript question cited as if it answered itself"
+    },
+    {
+      "case_id": "zq01",
+      "family": "fabricated_quote",
+      "is_hallucination": true,
+      "expected_verdict": "blocked",
+      "claim": {
+        "claim_id": "c_zq01",
+        "claim_text": "報告指出「結構化流程無法縮短處理時間」，值得注意。",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_zh_quote"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "corner-bracket quotation absent from the source"
+    },
+    {
+      "case_id": "zq02",
+      "family": "honest",
+      "is_hallucination": false,
+      "expected_verdict": "published",
+      "claim": {
+        "claim_id": "c_zq02",
+        "claim_text": "報告指出「處理時間中位數」有所下降。",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_zh_quote"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "same marks, phrase present verbatim"
     },
     {
       "case_id": "cs01",

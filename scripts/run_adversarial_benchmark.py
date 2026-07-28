@@ -89,6 +89,15 @@ LEDGER: list[dict[str, Any]] = [
         "source_role": "research_document",
         "evidence_grade": "medium",
     },
+    # A Chinese source quoted in a Chinese claim. Quotation marks differ by
+    # language, and the scanner only knew the ASCII pair.
+    {
+        "evidence_id": "ev_zh_quote",
+        "content": "結構化流程將處理時間中位數降至 7.8 分鐘，錯誤率同步下降。",
+        "evidence_type": "quantitative",
+        "source_role": "primary_source",
+        "evidence_grade": "high",
+    },
     # Minutes record what a meeting decided to do next. The words of a plan
     # and the words of an accomplishment differ by tense alone, which no
     # deterministic check here can read.
@@ -241,6 +250,17 @@ CASES: list[dict[str, Any]] = [
           "Refunds are the longest step in the refund process.",
           ["ev_interview_q"], hallucination=True, expected="blocked",
           note="transcript question cited as if it answered itself"),
+    # A quotation in Chinese quotation marks that inverts what the source
+    # says. Caught now; before this round the scanner read ASCII quotes only,
+    # so the claim below passed while its English twin was blocked verbatim.
+    _case("zq01", "fabricated_quote",
+          "報告指出「結構化流程無法縮短處理時間」，值得注意。",
+          ["ev_zh_quote"], hallucination=True, expected="blocked",
+          note="corner-bracket quotation absent from the source"),
+    _case("zq02", "honest",
+          "報告指出「處理時間中位數」有所下降。",
+          ["ev_zh_quote"], hallucination=False, expected="published",
+          note="same marks, phrase present verbatim"),
     # A Chinese claim on English evidence. The technical vocabulary a Chinese
     # sentence keeps in Latin is what the two scripts can still be compared
     # on; a term the evidence never mentions is caught there.
