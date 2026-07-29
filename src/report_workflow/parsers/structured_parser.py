@@ -36,20 +36,59 @@ def _disambiguate_headers(headers: list[str]) -> list[str]:
     return out
 
 
+def _cell_count(row) -> int:
+    filled = 0
+    for cell in row:
+        text = str(cell).strip()
+        if text and text.lower() != "nan":
+            filled += 1
+    return filled
+
+
+def _leading_noise_rows(rows: list) -> int:
+    """How many rows sit above a table's real header.
+
+    A monthly export opens with its own name in A1 and a blank line under it.
+    Read as the header, that title became the first column's name, the other
+    columns became Unnamed, and the real header — 月份, 不良率(%), 產量(件) —
+    was demoted to a citable data row, taking the unit out of the column name
+    that the unit checks read. In CSV it was worse: a one-cell header truncated
+    every data row to one column and the other two measurements were gone.
+
+    A title fills one cell and a spacer none, while any header worth the name
+    spans at least two, so only leading rows holding at most one value are
+    skipped, and only when the row directly below them is the widest in the
+    table. A header with a blank corner cell still holds two or more values and
+    is never passed over.
+    """
+    widest = max((_cell_count(row) for row in rows), default=0)
+    if widest < 2:
+        return 0
+    skipped = 0
+    for row in rows[:5]:
+        if _cell_count(row) <= 1 and skipped + 1 < len(rows):
+            skipped += 1
+            continue
+        break
+    if not skipped or _cell_count(rows[skipped]) != widest:
+        return 0
+    return skipped
+
+
 def parse_csv(file_path: str) -> list[dict]:
     """Parse CSV file with the standard library."""
     import io
 
     from .source_text import read_source_text
 
-    reader = csv.reader(io.StringIO(read_source_text(file_path), newline=""))
-    try:
-        headers = _disambiguate_headers(next(reader))
-    except StopIteration:
+    rows = list(csv.reader(io.StringIO(read_source_text(file_path), newline="")))
+    if not rows:
         return []
+    rows = rows[_leading_noise_rows(rows):]
+    headers = _disambiguate_headers(rows[0])
     return [
         dict(zip(headers, row))
-        for row in reader
+        for row in rows[1:]
         if any(str(cell).strip() for cell in row)
     ]
 
@@ -57,7 +96,9 @@ def parse_csv(file_path: str) -> list[dict]:
 def parse_xlsx(file_path: str) -> list[dict]:
     """Parse XLSX file using pandas."""
     import pandas as pd
-    df = pd.read_excel(file_path)
+    raw = pd.read_excel(file_path, header=None)
+    skip = _leading_noise_rows(raw.values.tolist())
+    df = pd.read_excel(file_path, header=skip)
     return df.to_dict(orient="records")
 
 
