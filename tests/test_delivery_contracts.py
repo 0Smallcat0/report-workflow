@@ -458,6 +458,35 @@ class QualityGateContractTests(unittest.TestCase):
             run_artifacts(state)
         self.assertIn("gone.csv", str(ctx.exception))
 
+    def test_a_missing_base_document_is_named_as_a_base_document(self):
+        # A base document is not a cited source — it is the document being
+        # revised. The role comes from the registry, which stores resolved
+        # paths while uploaded_files keeps the caller's spelling, so the two
+        # are compared resolved; matching raw strings labelled every base
+        # document a plain source.
+        import tempfile
+        import uuid
+        from report_workflow.nodes.artifacts import run_artifacts
+
+        tmpdir = Path(tempfile.mkdtemp())
+        absent = tmpdir / "原稿.docx"
+
+        state = ReportState.new("revise", [], str(tmpdir / "out"))
+        state.job_id = f"test_missing_base_{uuid.uuid4().hex}"
+        state.qa["qa_decision"] = "pass"
+        state.qa["artifact_completeness_status"] = "pass"
+        # The caller's spelling goes through a redundant "." segment; the
+        # registry holds the resolved form, as the real pipeline writes it.
+        state.spec["uploaded_files"] = [str(tmpdir / "." / "原稿.docx")]
+        state.sources["source_registry"] = [{
+            "source_id": "S", "file_name": "原稿.docx",
+            "file_path": str(absent.resolve()), "artifact_role": "base_document",
+        }]
+
+        with self.assertRaises(QAHardBlockError) as ctx:
+            run_artifacts(state)
+        self.assertIn("base_document", str(ctx.exception))
+
     def test_publishing_still_succeeds_when_every_source_is_present(self):
         import tempfile
         import uuid
