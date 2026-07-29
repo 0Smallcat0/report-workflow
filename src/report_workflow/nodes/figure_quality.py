@@ -41,14 +41,17 @@ _FIGURE_PLACEHOLDER_RE = re.compile(r"\[FIGURE:\s*([^\]\s]+)(?:\s+([^\]]+))?\]",
 # shows") or Chinese (「如圖 1 所示」「圖 2 顯示」). Chinese reports previously
 # counted zero prose references because the pattern was English-only.
 _FIGURE_PROSE_RE = re.compile(
-    r"(?:\b(?:see\s+figure\s+|figure\s+)|(?:如)?圖\s*)"
+    r"(?:\b(?:see\s+figure\s+|figure\s+)|(?:如)?[圖图]\s*)"
     r"([a-z]|\d+|[a-z0-9_.-]*[\d_.-][a-z0-9_.-]*)\b(?!\s*[:：])",
     re.IGNORECASE,
 )
 
-# Pattern: caption start, e.g. "Figure 1:" / "圖 1:" at start of line/sentence.
+# Pattern: caption start, e.g. "Figure 1." / "Figure 1:" / "圖 1：" at start of
+# a line. The delimiter may stand in for the space: Chinese writes 「圖 1：說明」
+# with no space after the fullwidth colon, and requiring one found no caption
+# at all.
 _FIGURE_CAPTION_RE = re.compile(
-    r"(?:^|(?<=\n))(\[?(?:Figure|圖)\s*([a-z]|\d+|[a-z0-9_.-]*[\d_.-][a-z0-9_.-]*)\]?[:：]?\s+)",
+    r"(?:^|(?<=\n))(\[?(?:Figure|[圖图])\s*([a-z]|\d+|[a-z0-9_.-]*[\d_.-][a-z0-9_.-]*)\]?(?:[:：.。]\s*|\s+))",
     re.IGNORECASE | re.MULTILINE,
 )
 
@@ -62,7 +65,11 @@ def _extract_prose_refs(text: str) -> set[str]:
 
 
 def _extract_captions(text: str) -> set[str]:
-    return {m.group(2).lower() for m in _FIGURE_CAPTION_RE.finditer(text)}
+    # "Figure 1. Title" captured the id as "1." — the id alternative accepts
+    # dots because "Figure 1.2" is a real id, so it swallowed the caption's own
+    # delimiter. An id ending in its delimiter never equals the figure it names,
+    # so every period-style caption was reported missing, in English too.
+    return {m.group(2).lower().rstrip(".-_") for m in _FIGURE_CAPTION_RE.finditer(text)}
 
 
 def _extract_known_prose_refs(text: str, known_ids: set[str]) -> set[str]:

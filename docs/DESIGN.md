@@ -275,6 +275,18 @@ were never in the document. Inventing structure is a worse failure here than
 missing it, because a row that never existed can be cited, and prose that
 was merely mis-shelved cannot lie about a measurement.
 
+**A Chinese figure or table that carries no caption line.** When a revision
+deletes a figure or table reference, the plan must say so explicitly and
+state what replaces it. English finds those references in prose, because
+"Figure" is a rare word and a bare mention is reliable. 圖 and 表 are ordinary
+morphemes — 發表 2 篇, 試圖 3 次, 代表 3 家 — and matching them the same way
+put false positives on 5 of 9 ordinary report sentences for 表 and 3 of 9 for
+圖. The Chinese side therefore anchors on a caption line, which is document
+structure rather than vocabulary. A figure referenced only in running prose,
+with its caption living in a text box or omitted, is not tracked and its
+removal is not challenged. That is a miss; the alternative was hard-blocking
+honest sentences, and this design rates a false block as the worse failure.
+
 ### Formatting boundary
 
 The renderer targets a clean, submission-ready *manuscript*: title page
