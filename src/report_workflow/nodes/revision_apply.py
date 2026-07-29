@@ -29,10 +29,27 @@ from ..artifact_contract import validate_base_document_integrity
 from .citation_bind import REFERENCE_LIST_HEADING
 
 
+# An English mention is matched in prose: "Figure" is a rare word, so a bare
+# mention is a reliable reference. 圖 and 表 are frequent morphemes — 發表 2 篇,
+# 試圖 3 次, 代表 3 家 — and matching them the same way put false positives on
+# 5 of 9 ordinary report sentences for 表 and 3 of 9 for 圖. So the Chinese side
+# anchors on a caption line instead, which is document structure rather than
+# vocabulary. The cost is a miss when a figure carries no caption line; blocking
+# an honest sentence would be the worse failure.
+_CJK_REFERENCE_LABELS = {"Figure": "圖|图", "Table": "表"}
+
+
 def _reference_ids(sections: dict[str, str], kind: str) -> set[str]:
-    pattern = re.compile(rf"\b{kind}\s+(\d+|[A-Za-z])\b", re.IGNORECASE)
     text = "\n".join(sections.values())
-    return {match.group(1).lower() for match in pattern.finditer(text)}
+    pattern = re.compile(rf"\b{kind}\s+(\d+|[A-Za-z])\b", re.IGNORECASE)
+    found = {match.group(1).lower() for match in pattern.finditer(text)}
+    labels = _CJK_REFERENCE_LABELS.get(kind)
+    if labels:
+        caption = re.compile(
+            rf"(?m)^[\s>*_]*(?:{labels})\s*(\d+|[A-Za-z])\s*(?:[.。、：:]|\s|$)"
+        )
+        found |= {match.group(1).lower() for match in caption.finditer(text)}
+    return found
 
 
 def _preservation_reason_allowed(changes: list[dict], reason: str) -> bool:

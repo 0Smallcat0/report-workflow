@@ -402,6 +402,58 @@ class QualityGateContractTests(unittest.TestCase):
             run_revision_apply(state)
         self.assertIn("remove_figure_reference", str(ctx.exception))
 
+    def test_revision_apply_blocks_chinese_figure_and_table_deletion(self):
+        # The same guard, on the language this tool is mostly used in. Matching
+        # only "Figure"/"Table" left a Chinese report with no protection at all.
+        for label, body, expected in (
+            ("figure", "圖 1. 系統架構\n如圖 1 所示。", "remove_figure_reference"),
+            ("table", "表 1. 參數設定\n如表 1 所示。", "remove_table_reference"),
+        ):
+            with self.subTest(label):
+                state = ReportState.new("revise", [], "out")
+                state.spec["task_intent"] = "revise_existing"
+                state.plan["blueprint"] = {"section_order": ["results"]}
+                state.sources["base_document_sections"] = {"results": body}
+                run_dir = WORKFLOW_RUNS_DIR / state.job_id
+                sections_path = run_dir / "base_document_sections.json"
+                sections_path.write_text(
+                    json.dumps(state.sources["base_document_sections"], ensure_ascii=False),
+                    encoding="utf-8",
+                )
+                state.sources["base_document_sections_path"] = str(sections_path)
+                (run_dir / "revision_plan.json").write_text(json.dumps({
+                    "changes": [{
+                        "section_id": "results",
+                        "change_type": "delete",
+                        "original_text": body,
+                        "new_text": "",
+                        "editorial": True,
+                    }]
+                }, ensure_ascii=False), encoding="utf-8")
+
+                with self.assertRaises(QAHardBlockError) as ctx:
+                    run_revision_apply(state)
+                self.assertIn(expected, str(ctx.exception))
+
+    def test_chinese_reference_ids_ignore_ordinary_prose(self):
+        # 圖 and 表 are common morphemes; a prose mention is not a reference.
+        # Counting them would hard-block honest sentences, which is worse than
+        # missing an uncaptioned figure.
+        from report_workflow.nodes.revision_apply import _reference_ids
+
+        prose = {"s": "\n".join([
+            "本團隊發表 2 篇相關論文。",
+            "受訪者代表 3 家供應商。",
+            "量表 5 點尺度計分。",
+            "試圖 3 次後放棄。",
+        ])}
+        self.assertEqual(_reference_ids(prose, "Figure"), set())
+        self.assertEqual(_reference_ids(prose, "Table"), set())
+
+        captioned = {"s": "圖 1. 效能對流量。\n表 2. 參數設定\n本團隊發表 2 篇論文。"}
+        self.assertEqual(_reference_ids(captioned, "Figure"), {"1"})
+        self.assertEqual(_reference_ids(captioned, "Table"), {"2"})
+
     def test_revision_apply_requires_preservation_decision_for_figure_removal(self):
         state = ReportState.new("revise", [], "out")
         state.spec["task_intent"] = "revise_existing"

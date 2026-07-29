@@ -228,5 +228,46 @@ class ReferenceHeadingRenderTest(unittest.TestCase):
         self.assertIn("維運手冊", loose_refs)
 
 
+class FigureCaptionRecognitionTest(unittest.TestCase):
+    """A caption the tool itself writes must be recognised as a caption.
+
+    Both figure checkers reported "no caption" on captions that were there:
+    the period style in every language, and every Chinese caption in the
+    scholarly checker. A review issue raised on every figure of every report
+    is noise the author learns to skip.
+    """
+
+    STYLES = (
+        ("Figure 1. Throughput vs load.", "As Figure 1 shows, it rises."),
+        ("Figure 1: Throughput vs load.", "As Figure 1 shows, it rises."),
+        ("圖 1. 流量與有效度。", "如圖 1 所示。"),
+        ("圖 1：流量與有效度。", "如圖 1 所示。"),
+        ("图 1. 流量与有效度。", "如图 1 所示。"),
+    )
+
+    def test_every_caption_style_is_recognised(self):
+        from report_workflow.nodes.figure_quality import (
+            _extract_known_captions,
+            _extract_known_prose_refs,
+        )
+        from report_workflow.nodes.scholarly_quality import _figure_mentions
+
+        for caption, prose in self.STYLES:
+            with self.subTest(caption):
+                body = f"[FIGURE: 1]\n\n{caption}\n\n{prose}"
+                self.assertIn("1", _extract_known_captions(body, {"1"}))
+                self.assertIn("1", _extract_known_prose_refs(body, {"1"}))
+                _placeholder, _prose, has_caption = _figure_mentions(body, "1")
+                self.assertTrue(has_caption)
+
+    def test_a_missing_caption_is_still_reported(self):
+        from report_workflow.nodes.figure_quality import _extract_known_captions
+        from report_workflow.nodes.scholarly_quality import _figure_mentions
+
+        body = "[FIGURE: 1]\n\n數值上升。"
+        self.assertEqual(_extract_known_captions(body, {"1"}), set())
+        self.assertEqual(_figure_mentions(body, "1"), (True, False, False))
+
+
 if __name__ == "__main__":
     unittest.main()

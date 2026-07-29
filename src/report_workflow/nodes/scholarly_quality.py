@@ -444,9 +444,14 @@ def _labels_from_figure_data(data: dict) -> list[str]:
 
 
 def _figure_mentions(body: str, figure_id: str) -> tuple[bool, bool, bool]:
-    placeholder = bool(re.search(rf"\[FIGURE:\s*{re.escape(figure_id)}(?:\s|\])", body, re.IGNORECASE))
-    prose = bool(re.search(rf"\bfigure\s+{re.escape(figure_id)}\b", body, re.IGNORECASE))
-    caption = bool(re.search(rf"(?:^|\n)\s*(?:\*+)?Figure\s+{re.escape(figure_id)}\s*[:.]", body, re.IGNORECASE))
+    # The tool writes 圖 captions in Chinese documents, so matching only
+    # "Figure" reported every Chinese figure as caption-less — a review issue
+    # on every figure of every Chinese report, advising an English caption.
+    fid = re.escape(figure_id)
+    label = rf"(?:figure\s+|[圖图]\s*){fid}"
+    placeholder = bool(re.search(rf"\[FIGURE:\s*{fid}(?:\s|\])", body, re.IGNORECASE))
+    prose = bool(re.search(rf"(?:\bfigure\s+{fid}\b|[圖图]\s*{fid})", body, re.IGNORECASE))
+    caption = bool(re.search(rf"(?:^|\n)\s*(?:\*+)?{label}\s*[:：.。、]", body, re.IGNORECASE))
     return placeholder, prose, caption
 
 
@@ -522,7 +527,7 @@ def _check_figures(state: ReportState, body: str, issues: list[dict[str, Any]]) 
                 "figure_caption_missing",
                 "review",
                 f"Figure {figure_id} is used or referenced without a nearby self-contained caption.",
-                "Add a caption beginning with 'Figure <id>:' that explains what is plotted and the data basis.",
+                "Add a caption line beginning with 'Figure <id>.' (or 「圖 <id>.」) that explains what is plotted and the data basis.",
                 figure_id=figure_id,
             )
 
