@@ -146,7 +146,8 @@ def write_artifact_contract(path: str | Path, contract: dict) -> None:
             if isinstance(first, dict) and CONTRACT_KEY in first:
                 lines = lines[1:]
         artifact.write_text(
-            json.dumps({CONTRACT_KEY: contract}, default=str) + "\n" + "\n".join(lines) + ("\n" if lines else ""),
+            json.dumps({CONTRACT_KEY: contract}, ensure_ascii=False, default=str)
+            + "\n" + "\n".join(lines) + ("\n" if lines else ""),
             encoding="utf-8",
         )
         return
@@ -155,7 +156,13 @@ def write_artifact_contract(path: str | Path, contract: dict) -> None:
     if not isinstance(payload, dict):
         payload = {}
     payload[CONTRACT_KEY] = contract
-    artifact.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+    # ensure_ascii matches how the author's artifacts are written everywhere
+    # else; stamping a contract onto a Chinese claim_matrix used to hand back
+    # escaped text where the author had written prose. These files are compared
+    # field by field, not by file hash, so the encoding disturbs no check.
+    artifact.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False, default=str), encoding="utf-8"
+    )
 
 
 def validate_artifact_contract(state: ReportState, path: str | Path, *, allow_missing: bool = True) -> None:
@@ -380,7 +387,15 @@ def remap_evidence_ids(
         }
         for path in (run_dir / "claim_matrix.json", run_dir / "outline.json", run_dir / "sentence_map.jsonl"):
             if path.exists():
+                # Stamping is a write, and it was invisible: touched_files is
+                # only appended by the id-rewriting branches above, which do
+                # nothing when the ids map one-to-one — the ordinary case since
+                # source ids became content-derived. So the usual run rewrote
+                # three of the author's artifacts and reported touching none.
+                before = path.read_text(encoding="utf-8")
                 write_artifact_contract(path, contract)
+                if path.read_text(encoding="utf-8") != before:
+                    touched_files.append(str(path))
 
     unmapped = sorted(unresolved_ids)
     return {

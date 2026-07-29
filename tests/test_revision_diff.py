@@ -17,6 +17,54 @@ from report_workflow.agent_wrapper import (
 from report_workflow.state import register_job_run
 
 
+class RemapEvidenceReportingTests(unittest.TestCase):
+    """A repair tool must report the files it rewrote, readably.
+
+    Stamping the fresh _contract onto claim_matrix.json, outline.json, and
+    sentence_map.jsonl is a write, but touched_files was only appended by the
+    id-rewriting branches — which do nothing when the ids map one-to-one, the
+    ordinary case since source ids became content-derived. So the usual run
+    rewrote three of the author's artifacts and reported touching none, and
+    escaped their Chinese while it was there.
+    """
+
+    def test_contract_stamping_is_reported_and_stays_readable(self):
+        import uuid
+        from report_workflow.artifact_contract import remap_evidence_ids
+        from report_workflow.state import ReportState, run_dir_for
+
+        def build(prompt: str) -> tuple[str, str]:
+            tmpdir = Path(tempfile.mkdtemp())
+            state = ReportState.new(prompt, [], str(tmpdir / "out"))
+            state.job_id = f"test_remap_{uuid.uuid4().hex}"
+            state.checkpoint("TEST")
+            run_dir = run_dir_for(state.job_id, workspace_root=state.output["workspace_root"])
+            (run_dir / "evidence_ledger.jsonl").write_text(
+                json.dumps({"evidence_id": "E_a_1", "content": "不良率 4.2%"},
+                           ensure_ascii=False) + "\n",
+                encoding="utf-8",
+            )
+            (run_dir / "claim_matrix.json").write_text(
+                json.dumps({"claims": [{"claim_id": "c1",
+                                        "claim_text": "不良率為 4.2%。",
+                                        "evidence_ids": ["E_a_1"]}]},
+                           ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+            return state.job_id, state.output["workspace_root"]
+
+        old_job, old_root = build("舊案")
+        new_job, new_root = build("新案")
+
+        result = remap_evidence_ids(
+            new_job, old_job, write=True,
+            workspace_root=new_root, previous_workspace_root=old_root,
+        )
+        claim_path = run_dir_for(new_job, workspace_root=new_root) / "claim_matrix.json"
+        self.assertIn(str(claim_path), result["files_touched"])
+        self.assertIn("不良率為 4.2%。", claim_path.read_text(encoding="utf-8"))
+
+
 class InvalidateCacheTests(unittest.TestCase):
     """The command must say what happened and not garble the checkpoint.
 
