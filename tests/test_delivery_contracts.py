@@ -452,6 +452,53 @@ class QualityGateContractTests(unittest.TestCase):
         rows = parse_csv(str(path))
         self.assertEqual(rows, [{"月份": "1", "不良率(%)": "1.8", "產量(件)": "1230"}])
 
+    def test_a_scanned_pdf_says_it_is_a_scan(self):
+        # A department hands out scanned PDFs. "The file contains no readable
+        # content" is equally true of an empty file, so the author was told
+        # something that reads like "your file is broken" instead of the one
+        # fact that lets them act: there are pages, there is no text layer.
+        import tempfile
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_pdf import PdfPages
+        from report_workflow.parsers.semi_structured_parser import parse_semi_structured
+
+        tmpdir = Path(tempfile.mkdtemp())
+        path = tmpdir / "掃描.pdf"
+        with PdfPages(str(path)) as pdf:
+            figure = plt.figure(figsize=(4, 4))
+            axes = figure.add_axes([0, 0, 1, 1])
+            axes.axis("off")
+            axes.imshow([[0, 255], [255, 0]], cmap="gray")
+            pdf.savefig(figure)
+            plt.close(figure)
+
+        result = parse_semi_structured(str(path), "pdf")
+        self.assertFalse(result["success"])
+        self.assertIn("no text layer", result["error"])
+        self.assertIn("1 page", result["error"])
+
+    def test_a_text_pdf_still_parses(self):
+        import tempfile
+        import matplotlib
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        from matplotlib.backends.backend_pdf import PdfPages
+        from report_workflow.parsers.semi_structured_parser import parse_semi_structured
+
+        tmpdir = Path(tempfile.mkdtemp())
+        path = tmpdir / "text.pdf"
+        with PdfPages(str(path)) as pdf:
+            figure = plt.figure(figsize=(4, 3))
+            figure.text(0.1, 0.5, "defect rate 1.8%")
+            pdf.savefig(figure)
+            plt.close(figure)
+
+        result = parse_semi_structured(str(path), "pdf")
+        self.assertTrue(result["success"])
+        self.assertTrue(result["blocks"])
+
     def test_a_merged_word_header_keeps_both_readings(self):
         # A spec sheet merges one label across two columns. python-docx hands
         # back the label twice with a newline between, which broke the header
