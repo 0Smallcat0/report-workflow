@@ -251,7 +251,7 @@ def build_parser() -> argparse.ArgumentParser:
     inv.add_argument(
         "--sources",
         action="store_true",
-        help="Also invalidate cached sources (base_document_sections, evidence_ledger)",
+        help="Also drop the cached base_document_sections copy from the checkpoint (the evidence ledger is always read from disk, so there is no cached copy to drop)",
     )
     inv.add_argument(
         "--drafts",
@@ -459,12 +459,27 @@ def _run_invalidate_cache(job_id: str, invalidate_sources: bool, invalidate_draf
         data["sources"] = sources
 
     if not changes:
-        print("No cache to invalidate. Use --sources or --drafts to specify what to invalidate.")
+        # "Use --sources or --drafts" was printed even when one of them had
+        # just been given, telling the author to do the thing they had done.
+        selected = [
+            name
+            for name, enabled in (("--sources", invalidate_sources), ("--drafts", invalidate_drafts))
+            if enabled
+        ]
+        if selected:
+            print(
+                f"Nothing to invalidate: {' and '.join(selected)} matched no cached "
+                "entries in this checkpoint."
+            )
+        else:
+            print("Nothing selected. Use --sources or --drafts to say what to invalidate.")
         return 0
 
-    # Write updated checkpoint
+    # Write updated checkpoint. ensure_ascii matches how state.py writes it;
+    # without it this rewrite silently turned every Chinese filename, prompt,
+    # and heading in the checkpoint into \uXXXX.
     with open(latest, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, default=str)
+        json.dump(data, f, indent=2, ensure_ascii=False, default=str)
 
     print(f"Invalidated cache for job {job_id}:")
     for change in changes:

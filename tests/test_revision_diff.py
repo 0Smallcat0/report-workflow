@@ -17,6 +17,53 @@ from report_workflow.agent_wrapper import (
 from report_workflow.state import register_job_run
 
 
+class InvalidateCacheTests(unittest.TestCase):
+    """The command must say what happened and not garble the checkpoint.
+
+    Passing --sources printed "Use --sources or --drafts", telling the author
+    to do the thing they had just done; and the rewrite dropped
+    ensure_ascii=False, so every Chinese value in the checkpoint came back as
+    \\uXXXX even though state.py had written it readable.
+    """
+
+    def _run(self, *, sources: bool, drafts: bool):
+        import contextlib
+        import io
+        import uuid
+        from report_workflow.cli import _run_invalidate_cache
+        from report_workflow.state import ReportState, run_dir_for
+
+        tmpdir = Path(tempfile.mkdtemp())
+        state = ReportState.new("月報分析", [], str(tmpdir / "out"))
+        state.job_id = f"test_invalidate_{uuid.uuid4().hex}"
+        state.drafts["merged_draft_md"] = "月報草稿.md"
+        state.checkpoint("TEST")
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            _run_invalidate_cache(
+                state.job_id, sources, drafts,
+                workspace_root=state.output["workspace_root"],
+            )
+        latest = run_dir_for(
+            state.job_id, workspace_root=state.output["workspace_root"]
+        ) / "checkpoint_latest.json"
+        return buffer.getvalue(), latest.read_text(encoding="utf-8")
+
+    def test_a_flag_that_matched_nothing_does_not_ask_for_that_flag(self):
+        output, _raw = self._run(sources=True, drafts=False)
+        self.assertIn("--sources matched no cached entries", output)
+
+    def test_no_flag_still_asks_for_one(self):
+        output, _raw = self._run(sources=False, drafts=False)
+        self.assertIn("Nothing selected", output)
+
+    def test_the_rewritten_checkpoint_stays_readable(self):
+        output, raw = self._run(sources=False, drafts=True)
+        self.assertIn("Cleared drafts.merged_draft_md", output)
+        self.assertIn("月報分析", raw)
+        self.assertNotIn("\\u6708", raw)
+
+
 class DiffCheckpointReferenceTests(unittest.TestCase):
     """`diff --against` accepts what its help says it accepts.
 
