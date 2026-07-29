@@ -20,6 +20,7 @@ from ..artifact_packaging.template_reports import (
     build_template_field_fill_report,
     build_template_style_map,
 )
+from ..errors import QAHardBlockError
 from ..runtime_support import write_artifact_lineage
 from ..state import ReportState, published_dir_for, run_dir_for
 
@@ -320,10 +321,27 @@ def run_artifacts(state: ReportState) -> ReportState:
 
     uploaded = [str(p) for p in state.spec.get("uploaded_files", []) if p]
     source_names = _unique_source_names(uploaded)
+    unpackaged: list[str] = []
     for src_path in uploaded:
         copied = _copy_file(src_path, sources_dir, source_names.get(src_path))
         if copied:
             artifacts_meta["files"].append({"role": "source", "path": copied})
+        else:
+            unpackaged.append(src_path)
+    if unpackaged:
+        # A source that moved between prepare and publish was skipped in
+        # silence: the bundle shipped short, artifacts.json listed only what
+        # made it, and the report went on citing claims traced to a file the
+        # package does not contain. The point of the package is that a reader
+        # can open it and check; one that quietly omits a cited source cannot
+        # be checked and does not say so.
+        raise QAHardBlockError(
+            "Registered source file(s) could not be packaged: "
+            + ", ".join(unpackaged)
+            + ". The published bundle would not contain sources the report "
+            "cites. Restore the file(s) at those paths, or re-run prepare with "
+            "the sources at their current locations."
+        )
 
     for role, path in traceability_paths.items():
         copied = _copy_file(path, traceability_dir)
