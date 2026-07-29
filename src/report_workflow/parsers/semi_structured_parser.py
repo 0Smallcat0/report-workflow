@@ -71,10 +71,32 @@ def parse_docx(file_path: str) -> dict:
                 "page_number": None,
                 "table_data": None
             })
+        def _cell_text(raw: str) -> str:
+            """One cell read as one cell.
+
+            A header merged across two columns comes back from python-docx as
+            both underlying cells, each holding the label twice with a newline
+            between. Kept verbatim, the header row broke into three lines of
+            different widths, the data row no longer lined up with it, and the
+            row 機台 A1 / 5 / 7 reached the ledger as
+            {"機台": "A1", "解析度(μm)\\n解析度(μm)": "7"} — the 5 μm reading
+            dropped at ingestion and a column keyed on text nobody wrote.
+
+            Repeated identical segments are the library's echo of one merged
+            label, so one is kept; anything else joins with a space, because a
+            cell holding two different lines really does hold both.
+            """
+            segments = [part.strip() for part in str(raw).splitlines() if part.strip()]
+            if not segments:
+                return ""
+            if len(set(segments)) == 1:
+                return segments[0]
+            return " ".join(segments)
+
         for t_idx, table in enumerate(doc.tables):
             rows = []
             for row in table.rows:
-                rows.append([cell.text.strip() for cell in row.cells])
+                rows.append([_cell_text(cell.text) for cell in row.cells])
             table_text = table_to_text(rows)
             blocks.append({
                 "block_id": f"table_{t_idx}",
