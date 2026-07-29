@@ -435,6 +435,48 @@ class QualityGateContractTests(unittest.TestCase):
                     run_revision_apply(state)
                 self.assertIn(expected, str(ctx.exception))
 
+    def test_a_source_missing_at_publish_time_is_not_skipped_in_silence(self):
+        # A source moved between prepare and publish was skipped without a
+        # word: the bundle shipped short, artifacts.json listed only what made
+        # it, and the report kept citing claims traced to the absent file.
+        import tempfile
+        import uuid
+        from report_workflow.nodes.artifacts import run_artifacts
+
+        tmpdir = Path(tempfile.mkdtemp())
+        present = tmpdir / "kept.csv"
+        present.write_text("a,b\n1,2\n", encoding="utf-8")
+        absent = tmpdir / "gone.csv"
+
+        state = ReportState.new("report", [], str(tmpdir / "out"))
+        state.job_id = f"test_missing_source_{uuid.uuid4().hex}"
+        state.qa["qa_decision"] = "pass"
+        state.qa["artifact_completeness_status"] = "pass"
+        state.spec["uploaded_files"] = [str(present), str(absent)]
+
+        with self.assertRaises(QAHardBlockError) as ctx:
+            run_artifacts(state)
+        self.assertIn("gone.csv", str(ctx.exception))
+
+    def test_publishing_still_succeeds_when_every_source_is_present(self):
+        import tempfile
+        import uuid
+        from report_workflow.nodes.artifacts import run_artifacts
+
+        tmpdir = Path(tempfile.mkdtemp())
+        for name in ("a.csv", "b.csv"):
+            (tmpdir / name).write_text("x,y\n1,2\n", encoding="utf-8")
+
+        state = ReportState.new("report", [], str(tmpdir / "out"))
+        state.job_id = f"test_present_sources_{uuid.uuid4().hex}"
+        state.qa["qa_decision"] = "pass"
+        state.qa["artifact_completeness_status"] = "pass"
+        state.spec["uploaded_files"] = [str(tmpdir / "a.csv"), str(tmpdir / "b.csv")]
+
+        state = run_artifacts(state)
+        published = Path(state.output["published_dir"]) / "sources"
+        self.assertEqual(sorted(p.name for p in published.iterdir()), ["a.csv", "b.csv"])
+
     def test_same_named_sources_both_reach_the_published_bundle(self):
         # Both files landed on published/sources/月報.csv, so the bundle kept
         # whichever was copied last. A reader checking the report's 2024 claim
