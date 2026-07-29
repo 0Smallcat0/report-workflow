@@ -228,6 +228,71 @@ class ReferenceHeadingRenderTest(unittest.TestCase):
         self.assertIn("維運手冊", loose_refs)
 
 
+class RevisedHeadingLanguageTest(unittest.TestCase):
+    """A revised Chinese report kept its own section headings.
+
+    The abstract and reference headings were hardcoded English while every
+    other section took its heading from the base document, so revising a
+    Chinese report renamed 摘要 to "Abstract" and 參考文獻 to "References" in
+    the delivered document. Nothing downstream localizes a body heading back.
+    """
+
+    def _revise(self, headings: dict[str, str], target: str) -> list[str]:
+        import json
+        import tempfile
+        from pathlib import Path
+        from report_workflow.state import ReportState, WORKFLOW_RUNS_DIR
+        from report_workflow.nodes.base_document_parse import run_base_document_parse
+        from report_workflow.nodes.revision_apply import run_revision_apply
+
+        tmpdir = tempfile.mkdtemp()
+        src = Path(tmpdir) / "base.md"
+        src.write_text(
+            "\n\n".join(f"# {h}\n\n{body}" for h, body in headings.items()),
+            encoding="utf-8",
+        )
+        state = ReportState.new("revise", [], str(Path(tmpdir) / "out"))
+        state.spec["task_intent"] = "revise_existing"
+        state.sources["source_registry"] = [{
+            "source_id": "S", "file_name": src.name, "file_path": str(src),
+            "file_type": "md", "artifact_role": "base_document",
+        }]
+        state = run_base_document_parse(state)
+        section_id = next(
+            sid for sid, body in state.sources["base_document_sections"].items()
+            if body.strip().endswith(target)
+        )
+        (WORKFLOW_RUNS_DIR / state.job_id / "revision_plan.json").write_text(
+            json.dumps({"changes": [{
+                "section_id": section_id, "change_type": "replace",
+                "original_text": target, "new_text": target + target[-1],
+                "claim_ids": ["c1"], "evidence_ids": ["e1"],
+            }]}, ensure_ascii=False), encoding="utf-8")
+        state = run_revision_apply(state)
+        merged = Path(state.drafts["merged_draft_md"]).read_text(encoding="utf-8")
+        return [line[2:].strip() for line in merged.splitlines() if line.startswith("# ")]
+
+    def test_chinese_headings_survive_a_revision(self):
+        order = self._revise(
+            {"摘要": "本報告檢視導入成效。", "討論": "樣本期間偏短。",
+             "參考文獻": "1. 內部月報，2025。"},
+            "樣本期間偏短。",
+        )
+        self.assertIn("摘要", order)
+        self.assertIn("參考文獻", order)
+        self.assertNotIn("Abstract", order)
+        self.assertNotIn("References", order)
+
+    def test_english_headings_are_unchanged(self):
+        order = self._revise(
+            {"Abstract": "This report reviews it.", "Discussion": "The window is short.",
+             "References": "1. Internal report, 2025."},
+            "The window is short.",
+        )
+        self.assertIn("Abstract", order)
+        self.assertIn("References", order)
+
+
 class FigureCaptionRecognitionTest(unittest.TestCase):
     """A caption the tool itself writes must be recognised as a caption.
 

@@ -26,7 +26,6 @@ from pathlib import Path
 from ..errors import QAHardBlockError
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..artifact_contract import validate_base_document_integrity
-from .citation_bind import REFERENCE_LIST_HEADING
 
 
 # An English mention is matched in prose: "Figure" is a rare word, so a bare
@@ -455,17 +454,19 @@ def run_revision_apply(state: ReportState) -> ReportState:
             + "\n"
         )
 
-    # 1. Abstract — always first
-    abstract_content = updated_sections.get(ABSTRACT_SECTION, "").strip()
-    if abstract_content:
-        abstract_content = _strip_leading_heading_from_content(abstract_content, ABSTRACT_SECTION)
-        merged_lines.append(f"# Abstract\n\n{abstract_content}\n")
-
     # Original heading text from the base document (loaded above, with any
     # retitle changes already applied); slug-derived titles are the fallback
     # only (they mangle Chinese and aliased headings).
     def _heading_for(sid: str) -> str:
         return base_titles.get(sid) or sid.replace("_", " ").title()
+
+    # 1. Abstract — always first. Its heading comes from the base document like
+    # every other section's: a hardcoded "Abstract" renamed 摘要 in a Chinese
+    # report, and nothing downstream localizes a body heading back.
+    abstract_content = updated_sections.get(ABSTRACT_SECTION, "").strip()
+    if abstract_content:
+        abstract_content = _strip_leading_heading_from_content(abstract_content, ABSTRACT_SECTION)
+        merged_lines.append(f"# {_heading_for(ABSTRACT_SECTION)}\n\n{abstract_content}\n")
 
     # 2. Body sections in the base document's own order. The blueprint's
     # order only ever matched a base document by coincidence: a partially
@@ -489,7 +490,7 @@ def run_revision_apply(state: ReportState) -> ReportState:
             refs_lines = refs_lines[1:]
         refs_content = "\n".join(refs_lines).strip()
         if refs_content:
-            merged_lines.append(f"{REFERENCE_LIST_HEADING}\n\n{refs_content}\n")
+            merged_lines.append(f"# {_heading_for(REFERENCES_SECTION)}\n\n{refs_content}\n")
 
     merged_draft_md = "\n\n".join(merged_lines)
 
