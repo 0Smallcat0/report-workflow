@@ -73,5 +73,35 @@ class ApplyChangesRegressionTests(unittest.TestCase):
         self.assertTrue(any("Unknown change_type" in u for u in unapplied))
 
 
+class UnknownSectionTests(unittest.TestCase):
+    def test_unknown_section_does_not_land_in_the_preamble(self):
+        # An anchor-less insert aimed at a section id that does not exist used
+        # to be retargeted at the preamble, where the title lift dropped it —
+        # the sentence vanished and the diff report still counted it applied.
+        sections = {"preamble": "# 標題", "discussion": "討論內容。"}
+        updated, unapplied = _apply_changes(
+            sections,
+            [{
+                "section_id": "第四章討論",
+                "change_type": "insert",
+                "original_text": "",
+                "new_text": "第三季不良率為 1.8%。",
+            }],
+        )
+        self.assertEqual(updated["preamble"], "# 標題")
+        self.assertEqual(len(unapplied), 1)
+        self.assertIn("第四章討論", unapplied[0])
+        self.assertIn("discussion", unapplied[0])
+
+    def test_empty_section_still_accepts_an_anchorless_insert(self):
+        sections = {"appendix": ""}
+        updated, unapplied = _apply_changes(
+            sections,
+            [{"section_id": "appendix", "change_type": "insert", "original_text": "", "new_text": "附錄。"}],
+        )
+        self.assertEqual(unapplied, [])
+        self.assertIn("附錄。", updated["appendix"])
+
+
 if __name__ == "__main__":
     unittest.main()

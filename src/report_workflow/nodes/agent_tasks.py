@@ -930,7 +930,7 @@ Write `{run_dir / "revision_plan.json"}` with this shape:
 
 ## Change Types
 - `replace`: swap `original_text` with `new_text` in the given section
-- `insert`: insert `new_text` after `original_text` (or at section start if `original_text` is empty)
+- `insert`: insert `new_text` after `original_text` (or at the end of the section if `original_text` is empty)
 - `delete`: remove `original_text` from the section
 - `retitle`: rename the section's heading to `new_text` (no `original_text` needed)
 - `remove_section`: drop the whole section, heading included (no `original_text` needed)

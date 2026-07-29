@@ -71,9 +71,15 @@ def compute_revision_diff(
         elif change_type == "insert" and not new_text.strip():
             status = "unresolvable"
             reason = "No-op insert change: new_text is empty"
-        elif not section_content and section_id != "preamble":
+        elif section_id not in base_sections:
+            # Membership, not emptiness. A heading with nothing under it is a
+            # section the author may legitimately insert into; reporting it as
+            # missing sent them hunting for an id that was already right.
             status = "unresolvable"
-            reason = f"Section '{section_id}' not found in base document"
+            reason = (
+                f"Section '{section_id}' not found in base document; "
+                f"sections are: {', '.join(sorted(base_sections))}"
+            )
         elif change_type in ("replace", "delete") and original_text:
             if original_text not in section_content:
                 status = "unresolvable"

@@ -78,10 +78,16 @@ def _apply_changes(
         new_text = change.get("new_text", "")
 
         if section_id not in updated:
-            # Fallback to preamble if section not found
-            section_id = "preamble"
+            # No fallback. Retargeting an unknown section at the preamble put
+            # the author's new sentence on the title page, where the title lift
+            # then dropped it — and the diff report still counted it applied.
+            unapplied.append(
+                f"[{change_type}] unknown section_id '{section_id}'; "
+                f"base document sections are: {', '.join(sorted(updated))}"
+            )
+            continue
 
-        content = updated.get(section_id, "")
+        content = updated[section_id]
 
         if change_type == "replace":
             if original_text in content:
