@@ -40,6 +40,21 @@ def parse_pdf(file_path: str) -> dict:
                     })
                     if table_text:
                         all_text.append(table_text)
+            page_count = len(pdf.pages)
+        if not blocks and page_count:
+            # Pages opened fine and held no text: that is a scan, and saying so
+            # is a fact the reader can act on. The generic "contains no readable
+            # content" is equally true of an empty file, so a student attaching
+            # the handout their department scanned was told something that reads
+            # like "your file is broken".
+            return {
+                "blocks": [],
+                "error": (
+                    f"the PDF has {page_count} page(s) but no text layer, which is what a "
+                    "scan looks like; supply a text-based PDF or run OCR on this one first"
+                ),
+                "success": False,
+            }
         return {
             "blocks": blocks,
             "raw_content": "\n\n".join(all_text),
