@@ -511,18 +511,30 @@ def _run_diagnose(job_id: str, verbose: bool, workspace_root: str | None = None)
             print("  OK: base_document_sections matches disk file")
     print()
 
-    # 4. Check revision_plan application status
-    revision_unapplied = data.get("runtime", {}).get("revision_unapplied", [])
+    # 4. Check revision_plan application status. "All changes applied" is a
+    # claim about work that happened, so it needs evidence that it did: the
+    # absence of an unapplied list also describes a job with no revision plan
+    # at all, and a diagnostic that reports success for work never attempted
+    # is worst exactly when someone runs it to find out what went wrong.
+    runtime = data.get("runtime", {})
+    revision_unapplied = runtime.get("revision_unapplied", [])
+    task_intent = data.get("spec", {}).get("task_intent", "new_draft")
+    print("--- Revision Plan ---")
     if revision_unapplied:
-        print("--- Revision Plan Issues ---")
         print(f"  {len(revision_unapplied)} change(s) could not be applied:")
         for reason in revision_unapplied:
             print(f"    - {reason}")
-        print()
-    else:
-        print("--- Revision Plan ---")
+        # ...and the summary said "no issues found" underneath that list.
+        issues.append(
+            f"{len(revision_unapplied)} revision change(s) were not applied to the document"
+        )
+    elif task_intent != "revise_existing":
+        print(f"  not a revision run (task_intent={task_intent}); nothing to apply")
+    elif runtime.get("revision_diff_report_path"):
         print("  OK: all changes applied successfully")
-        print()
+    else:
+        print("  revision run has not reached REVISION_APPLY yet; nothing applied")
+    print()
 
     # 5. Check banned phrases in current merged_draft
     merged_path = drafts.get("merged_draft_md")

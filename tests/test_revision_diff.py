@@ -17,6 +17,64 @@ from report_workflow.agent_wrapper import (
 from report_workflow.state import register_job_run
 
 
+class DiagnoseRevisionStatusTests(unittest.TestCase):
+    """`diagnose` must not report work it has no evidence of.
+
+    "OK: all changes applied successfully" was printed whenever the unapplied
+    list was absent — which is also what a brand-new draft with no revision
+    plan looks like, and what a revision that never reached REVISION_APPLY
+    looks like. A diagnostic is read exactly when someone is trying to find
+    out what went wrong.
+    """
+
+    def _diagnose(self, **state_setup) -> str:
+        import contextlib
+        import io
+        from report_workflow.cli import _run_diagnose
+        from report_workflow.state import ReportState
+
+        tmpdir = tempfile.mkdtemp()
+        state = ReportState.new("報告", [], str(Path(tmpdir) / "out"))
+        for key, value in state_setup.get("spec", {}).items():
+            state.spec[key] = value
+        for key, value in state_setup.get("runtime", {}).items():
+            state.runtime[key] = value
+        state.checkpoint("TEST")
+        buffer = io.StringIO()
+        with contextlib.redirect_stdout(buffer):
+            _run_diagnose(state.job_id, verbose=False,
+                          workspace_root=state.output["workspace_root"])
+        return buffer.getvalue()
+
+    def test_a_new_draft_is_not_reported_as_a_successful_revision(self):
+        output = self._diagnose()
+        self.assertNotIn("all changes applied successfully", output)
+        self.assertIn("not a revision run", output)
+
+    def test_a_revision_before_apply_is_not_reported_as_applied(self):
+        output = self._diagnose(spec={"task_intent": "revise_existing"})
+        self.assertNotIn("all changes applied successfully", output)
+        self.assertIn("has not reached REVISION_APPLY", output)
+
+    def test_an_applied_revision_still_reports_success(self):
+        output = self._diagnose(
+            spec={"task_intent": "revise_existing"},
+            runtime={"revision_diff_report_path": "revision_diff_report.json"},
+        )
+        self.assertIn("all changes applied successfully", output)
+
+    def test_unapplied_changes_reach_the_summary(self):
+        output = self._diagnose(
+            spec={"task_intent": "revise_existing"},
+            runtime={
+                "revision_diff_report_path": "revision_diff_report.json",
+                "revision_unapplied": ["[replace] '圖 1' not found in section 'results'"],
+            },
+        )
+        self.assertIn("could not be applied", output)
+        self.assertNotIn("OK: no issues found", output)
+
+
 class BaseDocumentImageCarryTests(unittest.TestCase):
     """A figure is content the author put there, so a revision must keep it.
 
