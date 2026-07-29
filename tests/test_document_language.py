@@ -228,6 +228,29 @@ class ReferenceHeadingRenderTest(unittest.TestCase):
         self.assertIn("維運手冊", loose_refs)
 
 
+class TemplateFieldKeyTest(unittest.TestCase):
+    """A Chinese template's placeholders must be visible to the report.
+
+    _normalize_field_key kept only [a-z0-9], so 課程名稱 normalised to the
+    empty string and was dropped: the field-fill report found no placeholders
+    in a template full of them and signed off with status pass.
+    """
+
+    def test_a_chinese_field_name_survives_normalisation(self):
+        from report_workflow.artifact_packaging.template_reports import _normalize_field_key
+
+        self.assertEqual(_normalize_field_key("課程名稱"), "課程名稱")
+        self.assertEqual(_normalize_field_key("Course Name"), "course_name")
+
+    def test_chinese_placeholders_are_found(self):
+        from report_workflow.artifact_packaging.template_reports import (
+            _extract_template_placeholders,
+        )
+
+        found = _extract_template_placeholders("課程：{{課程名稱}}\n學號：{{學號}}")
+        self.assertEqual(sorted(item["key"] for item in found), ["學號", "課程名稱"])
+
+
 class BaseSectionsReadabilityTest(unittest.TestCase):
     """The file the revision brief sends the author to must be readable.
 

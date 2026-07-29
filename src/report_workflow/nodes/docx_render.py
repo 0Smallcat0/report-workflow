@@ -1533,6 +1533,13 @@ def run_docx_render(state: ReportState) -> ReportState:
     state.output["final_docx_path"] = str(final_docx_path)
     state.output["rendered_docx_path"] = str(final_docx_path)
     state.output["renderer_used"] = renderer_used
-    state.output["reference_docx_path"] = str(_REFERENCE_DOC) if _REFERENCE_DOC.exists() else ""
-    state.output["reference_docx_applied"] = bool(used_pandoc and _REFERENCE_DOC.exists())
+    # The template that was actually used, which is the user's whenever they
+    # supplied one. Recording the packaged default here sent both template
+    # reports to read a file the author never gave: the style map compared the
+    # output against the built-in reference, and the field-fill report scanned
+    # the built-in for placeholders, found none, and reported field_count 0 with
+    # status pass — a clean bill of health for a template whose fields it had
+    # not looked at.
+    state.output["reference_docx_path"] = str(reference_doc) if reference_doc.exists() else ""
+    state.output["reference_docx_applied"] = bool(used_pandoc and reference_doc.exists())
     return state

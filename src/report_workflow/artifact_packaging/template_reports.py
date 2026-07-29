@@ -100,7 +100,13 @@ def _document_style_summary(path: str | None) -> dict:
 
 
 def _normalize_field_key(value: str) -> str:
-    return re.sub(r"[^a-z0-9]+", "_", str(value).casefold()).strip("_")
+    # Letters and digits in any script. Restricted to [a-z0-9], a field named
+    # 課程名稱 normalised to the empty string and was dropped, so a Chinese
+    # template's placeholders were invisible to the report built to check them
+    # — field_count 0, status pass — and the values passed with
+    # --template-field could never match anything to be reported filled.
+    # ASCII keys are unchanged: "Course Name" still gives course_name.
+    return re.sub(r"\W+", "_", str(value).casefold(), flags=re.UNICODE).strip("_")
 
 
 def _field_label(key: str) -> str:
