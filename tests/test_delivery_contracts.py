@@ -435,6 +435,64 @@ class QualityGateContractTests(unittest.TestCase):
                     run_revision_apply(state)
                 self.assertIn(expected, str(ctx.exception))
 
+    def test_removing_a_whole_section_does_not_demand_a_figure_decision(self):
+        # remove_section is already a declared structural change, recorded in
+        # removed_sections. Counting its figures left the author one exit:
+        # figure_preservation_decision='remove_because_no_source_asset', which
+        # asserts the asset does not exist when it plainly does — a false entry
+        # in the audit trail the gate exists to protect.
+        state = ReportState.new("revise", [], "out")
+        state.spec["task_intent"] = "revise_existing"
+        state.plan["blueprint"] = {"section_order": ["results"]}
+        state.sources["base_document_sections"] = {
+            "results": "導入後不良率下降。\n圖 1. 月別不良率。",
+            "discussion": "樣本期間偏短。",
+        }
+        run_dir = WORKFLOW_RUNS_DIR / state.job_id
+        sections_path = run_dir / "base_document_sections.json"
+        sections_path.write_text(
+            json.dumps(state.sources["base_document_sections"], ensure_ascii=False),
+            encoding="utf-8",
+        )
+        state.sources["base_document_sections_path"] = str(sections_path)
+        (run_dir / "revision_plan.json").write_text(json.dumps({
+            "changes": [{"section_id": "results", "change_type": "remove_section"}]
+        }, ensure_ascii=False), encoding="utf-8")
+
+        state = run_revision_apply(state)
+        report = json.loads(
+            Path(state.runtime["revision_diff_report_path"]).read_text(encoding="utf-8")
+        )
+        self.assertEqual(report["removed_sections"], ["results"])
+
+    def test_a_caption_deleted_without_removing_its_section_still_blocks(self):
+        state = ReportState.new("revise", [], "out")
+        state.spec["task_intent"] = "revise_existing"
+        state.plan["blueprint"] = {"section_order": ["results"]}
+        state.sources["base_document_sections"] = {
+            "results": "導入後不良率下降。\n圖 1. 月別不良率。",
+        }
+        run_dir = WORKFLOW_RUNS_DIR / state.job_id
+        sections_path = run_dir / "base_document_sections.json"
+        sections_path.write_text(
+            json.dumps(state.sources["base_document_sections"], ensure_ascii=False),
+            encoding="utf-8",
+        )
+        state.sources["base_document_sections_path"] = str(sections_path)
+        (run_dir / "revision_plan.json").write_text(json.dumps({
+            "changes": [{
+                "section_id": "results",
+                "change_type": "delete",
+                "original_text": "圖 1. 月別不良率。",
+                "new_text": "",
+                "editorial": True,
+            }]
+        }, ensure_ascii=False), encoding="utf-8")
+
+        with self.assertRaises(QAHardBlockError) as ctx:
+            run_revision_apply(state)
+        self.assertIn("remove_figure_reference", str(ctx.exception))
+
     def test_chinese_reference_ids_ignore_ordinary_prose(self):
         # 圖 and 表 are common morphemes; a prose mention is not a reference.
         # Counting them would hard-block honest sentences, which is worse than

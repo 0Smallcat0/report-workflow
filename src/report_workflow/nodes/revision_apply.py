@@ -313,8 +313,6 @@ def run_revision_apply(state: ReportState) -> ReportState:
         )
 
     # Apply changes
-    base_figures = _reference_ids(base_sections, "Figure")
-    base_tables = _reference_ids(base_sections, "Table")
     updated_sections, unapplied = _apply_changes(base_sections, content_changes)
 
     # Structural changes: whole-section removal and retitling. Both are
@@ -332,6 +330,20 @@ def run_revision_apply(state: ReportState) -> ReportState:
             new_title = str(change.get("new_text", "")).strip()
             retitled_sections[sid] = new_title
             base_titles[sid] = new_title
+    # The preservation gate catches a figure or table reference that vanishes as
+    # a side effect of a content edit. A section the plan explicitly removed is
+    # not a side effect: it is already a declared structural change, recorded in
+    # removed_sections below. Counting its figures here left the author only one
+    # way through the gate — figure_preservation_decision='remove_because_no_
+    # source_asset', which asserts the asset does not exist when it plainly does.
+    # A gate whose only exit is a false entry in the audit trail is worse than
+    # no gate, because the audit trail is the point.
+    surviving_base = {
+        sid: text for sid, text in base_sections.items()
+        if sid not in removed_section_ids
+    }
+    base_figures = _reference_ids(surviving_base, "Figure")
+    base_tables = _reference_ids(surviving_base, "Table")
     updated_figures = _reference_ids(updated_sections, "Figure")
     updated_tables = _reference_ids(updated_sections, "Table")
     removed_figures = sorted(base_figures - updated_figures)
