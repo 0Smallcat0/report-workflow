@@ -452,6 +452,41 @@ class QualityGateContractTests(unittest.TestCase):
         rows = parse_csv(str(path))
         self.assertEqual(rows, [{"月份": "1", "不良率(%)": "1.8", "產量(件)": "1230"}])
 
+    def test_a_merged_word_header_keeps_both_readings(self):
+        # A spec sheet merges one label across two columns. python-docx hands
+        # back the label twice with a newline between, which broke the header
+        # into rows of different widths; the row A1 / 5 / 7 then reached the
+        # ledger as one reading keyed on text nobody wrote.
+        import tempfile
+        from docx import Document
+        from report_workflow.parsers.semi_structured_parser import parse_semi_structured
+        from report_workflow.nodes.evidence_normalize import _table_row_blocks
+
+        tmpdir = Path(tempfile.mkdtemp())
+        document = Document()
+        table = document.add_table(rows=2, cols=3)
+        header = table.rows[0].cells
+        header[0].text = "機台"
+        header[1].text = "解析度(μm)"
+        header[2].text = "解析度(μm)"
+        header[1].merge(header[2])
+        body = table.rows[1].cells
+        body[0].text = "A1"
+        body[1].text = "5"
+        body[2].text = "7"
+        path = tmpdir / "規格.docx"
+        document.save(str(path))
+
+        blocks = parse_semi_structured(str(path), "docx")["blocks"]
+        table_block = next(b for b in blocks if b["block_type"] == "table")
+        self.assertNotIn("\n", table_block["table_data"][0][1])
+
+        rows = _table_row_blocks(table_block)
+        self.assertEqual(
+            json.loads(rows[0]["content"]),
+            {"機台": "A1", "解析度(μm)": "5", "解析度(μm) [2]": "7"},
+        )
+
     def test_every_sheet_of_a_workbook_reaches_the_records(self):
         # One year per tab is how these workbooks arrive. Only the first sheet
         # was read, so the other year's rows never reached the ledger and

@@ -7,7 +7,7 @@ from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
 from ..artifact_contract import stable_evidence_id
 from ..language import CJK_RE
-from ..parsers.structured_parser import is_placeholder_value
+from ..parsers.structured_parser import _disambiguate_headers, is_placeholder_value
 from ..parsers.semi_structured_parser import _delimited_table_rows
 
 
@@ -614,7 +614,11 @@ def _table_row_blocks(block: dict) -> list[dict] | None:
     table_data = block.get("table_data")
     if not isinstance(table_data, list) or len(table_data) < 2:
         return None
-    headers = [str(cell).strip() for cell in table_data[0]]
+    # Repeated names are kept apart the way the CSV path already keeps them:
+    # a header merged across two columns yields the same label twice, and
+    # keying a row by name let the second column overwrite the first, so the
+    # row 機台 A1 / 5 / 7 reached the ledger holding one reading out of two.
+    headers = _disambiguate_headers([str(cell).strip() for cell in table_data[0]])
     if not any(headers):
         return None
     # A table continued onto the next page repeats no header, so the first
