@@ -18,6 +18,33 @@ def agent_tasks_dir(state: ReportState) -> Path:
     return path
 
 
+def _source_labels(entries: list[dict]) -> dict[str, str]:
+    """Label sources so two files with the same basename can be told apart.
+
+    Monthly exports arrive as 2024/月報.csv and 2025/月報.csv. The brief showed
+    both as "月報.csv", so an author choosing between two rows of numbers had
+    nothing to choose by — and citing the wrong year's row passes every gate,
+    because the number does match the evidence it cites. Only the label
+    changes; source_file_name still holds the file's actual name.
+    """
+    paths_by_name: dict[str, set[str]] = {}
+    for entry in entries:
+        paths_by_name.setdefault(entry.get("source_file_name", ""), set()).add(
+            entry.get("source_file_path", "")
+        )
+    labels: dict[str, str] = {}
+    for name, paths in paths_by_name.items():
+        if len(paths) < 2:
+            for path in paths:
+                labels[path] = name
+            continue
+        by_parent = {path: f"{Path(path).parent.name}/{name}" for path in paths}
+        distinct = len(set(by_parent.values())) == len(paths)
+        for path in paths:
+            labels[path] = by_parent[path] if distinct else path
+    return labels
+
+
 def _read_jsonl_compact_summary(path: str | None, limit: int = 20) -> str:
     """Build a compact evidence summary for task briefs.
 
@@ -27,20 +54,20 @@ def _read_jsonl_compact_summary(path: str | None, limit: int = 20) -> str:
     """
     if not path or not Path(path).exists():
         return "(no evidence ledger found)"
+    with open(path, encoding="utf-8") as f:
+        entries = [json.loads(line) for line in f if line.strip()]
+    labels = _source_labels(entries)
     rows = []
     total = 0
-    with open(path, encoding="utf-8") as f:
-        for line in f:
-            if line.strip():
-                total += 1
-                if len(rows) < limit:
-                    entry = json.loads(line)
-                    eid = entry.get("evidence_id", "?")
-                    src = entry.get("source_file_name", "?")
-                    etype = entry.get("evidence_type", "?")
-                    quote = (entry.get("quote", "") or "")[:80].replace("\n", " ")
-                    allowed = ", ".join(entry.get("allowed_claim_types", []))
-                    rows.append(f"  {eid} | {src} | {etype} | allowed:[{allowed}] | {quote}")
+    for entry in entries:
+        total += 1
+        if len(rows) < limit:
+            eid = entry.get("evidence_id", "?")
+            src = labels.get(entry.get("source_file_path", ""), "") or entry.get("source_file_name", "?")
+            etype = entry.get("evidence_type", "?")
+            quote = (entry.get("quote", "") or "")[:80].replace("\n", " ")
+            allowed = ", ".join(entry.get("allowed_claim_types", []))
+            rows.append(f"  {eid} | {src} | {etype} | allowed:[{allowed}] | {quote}")
     header = f"Total evidence entries: {total} (showing first {min(total, limit)})\n"
     header += "  evidence_id | source_file | evidence_type | allowed_claim_types | quote_preview\n"
     header += "  " + "-" * 80 + "\n"
