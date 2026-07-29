@@ -23,6 +23,7 @@ from docx.oxml import OxmlElement
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
 from ..language import detect_document_language, localized_section_title
+from ..parsers.office_math import cell_text, element_text
 from ..runtime_support import PLACEHOLDER_TEXT
 from ..policies import get_policy
 
@@ -614,12 +615,18 @@ def _docx_text_length(doc: Document) -> int:
 
     ``doc.paragraphs`` does not reach inside tables, so a report whose
     results are a table counted as almost empty.
+
+    ``paragraph.text`` is the runs only and an equation is not a run, so the
+    theory section this pipeline itself renders from TeX counted as nothing on
+    the way out while its source counted in full. Not seen failing — it takes a
+    report that is more than half equations to cross the threshold — but the
+    measurement was of something other than what the docstring claims.
     """
-    total = sum(len(p.text) for p in doc.paragraphs)
+    total = sum(len(element_text(p._p)) for p in doc.paragraphs)
     for table in doc.tables:
         for row in table.rows:
             for cell in row.cells:
-                total += len(cell.text)
+                total += len(cell_text(cell._tc))
     return total
 
 

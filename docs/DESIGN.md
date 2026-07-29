@@ -303,6 +303,23 @@ not implemented. Submitting to a venue still means pouring the content into
 that venue's template — the contract here is that the content survives the
 pour: headings, citations, numbers, and figures arrive real and traceable.
 
+### Equations read in, not round-tripped
+
+A Word equation in an attached source is read as the text an engineer would
+write in prose — `Re=ρVD/μ`, `2F/(ρU^2A)`, `sqrt(2gh)` — so the formula reaches
+the evidence ledger saying what its author wrote. Reading only the runs, as
+every reader here did, dropped it: an inline formula left the sentence still
+promising a definition it no longer carried, and one set on its own line
+produced no block at all. Collecting the raw text nodes instead, as the
+revision reader did, was worse — ρVD over μ came back as `ρVDμ`, a different
+formula written into the author's own report as if they had typed it.
+
+What is **not** promised is a round trip. An equation read out of a base
+document comes back as that readable text, not as a native Word equation; only
+math the draft itself writes in TeX renders to OMML. Accents and matrices are
+carried in a flattened notation. The contract is that the formula survives and
+means what it meant, not that its typesetting does.
+
 ## 7. Generalization
 
 Report generation is one instance of **evidence-bounded generation**: wherever

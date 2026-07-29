@@ -36,6 +36,40 @@ from report_workflow.errors import QAHardBlockError
 from report_workflow.state import ReportState, WORKFLOW_RUNS_DIR
 
 
+# The XML Word writes for an equation. python-docx cannot build one, so the
+# fixtures below paste it in as Word would have: inline within a sentence, and
+# set on its own line.
+_MATH_NAMESPACES = (
+    'xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math" '
+    'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"'
+)
+_INLINE_OMML = f"""<m:oMath {_MATH_NAMESPACES}>
+  <m:r><m:t>Re</m:t></m:r>
+  <m:r><m:t>=</m:t></m:r>
+  <m:f>
+    <m:num><m:r><m:t>&#961;VD</m:t></m:r></m:num>
+    <m:den><m:r><m:t>&#956;</m:t></m:r></m:den>
+  </m:f>
+</m:oMath>"""
+_DISPLAY_OMML = f"""<m:oMathPara {_MATH_NAMESPACES}>
+  <m:oMath>
+    <m:r><m:t>C_D</m:t></m:r>
+    <m:r><m:t>=</m:t></m:r>
+    <m:f>
+      <m:num><m:r><m:t>2F</m:t></m:r></m:num>
+      <m:den>
+        <m:r><m:t>&#961;</m:t></m:r>
+        <m:sSup>
+          <m:e><m:r><m:t>U</m:t></m:r></m:e>
+          <m:sup><m:r><m:t>2</m:t></m:r></m:sup>
+        </m:sSup>
+        <m:r><m:t>A</m:t></m:r>
+      </m:den>
+    </m:f>
+  </m:oMath>
+</m:oMathPara>"""
+
+
 def _strategy_project_identity():
     return {
         "required_terms": ["deterministic compilation", "StrategyIR", "AST", "Taiwan equities"],
@@ -587,6 +621,55 @@ class QualityGateContractTests(unittest.TestCase):
             json.loads(rows[0]["content"]),
             {"機台": "A1", "解析度(μm)": "5", "解析度(μm) [2]": "7"},
         )
+
+    def test_a_word_equation_survives_ingestion(self):
+        # A lab report states its theory in Word equations. Reading only the
+        # runs left the sentence promising a definition it no longer carried,
+        # and an equation set on its own line produced no block at all.
+        import tempfile
+        from docx import Document
+        from docx.oxml import parse_xml
+        from report_workflow.parsers.semi_structured_parser import parse_semi_structured
+
+        tmpdir = Path(tempfile.mkdtemp())
+        document = Document()
+        paragraph = document.add_paragraph()
+        paragraph.add_run("雷諾數定義為 ")
+        paragraph._p.append(parse_xml(_INLINE_OMML))
+        paragraph.add_run(" ，取 D = 25 mm。")
+        document.add_paragraph()._p.append(parse_xml(_DISPLAY_OMML))
+        path = tmpdir / "理論.docx"
+        document.save(str(path))
+
+        blocks = parse_semi_structured(str(path), "docx")["blocks"]
+        contents = [block["content"] for block in blocks]
+        self.assertEqual(contents[0], "雷諾數定義為 Re=ρVD/μ ，取 D = 25 mm。")
+        # The denominator carries an exponent, so writing it inline without
+        # brackets would read as 2F over ρ, times U squared, times A.
+        self.assertEqual(contents[1], "C_D=2F/(ρU^2A)")
+
+    def test_a_word_equation_is_not_flattened_when_revising(self):
+        # This reader collected every "}t", which reaches m:t as well, and
+        # joined them with nothing: ρVD over μ came back as ρVDμ and would have
+        # been written into the author's own report as if they had typed it.
+        import tempfile
+        from docx import Document
+        from docx.oxml import parse_xml
+        from report_workflow.nodes.base_document_parse import _parse_docx_section
+
+        tmpdir = Path(tempfile.mkdtemp())
+        document = Document()
+        document.add_heading("理論背景", level=1)
+        paragraph = document.add_paragraph()
+        paragraph.add_run("雷諾數定義為 ")
+        paragraph._p.append(parse_xml(_INLINE_OMML))
+        path = tmpdir / "原報告.docx"
+        document.save(str(path))
+
+        sections, _titles = _parse_docx_section(str(path))
+        body = "\n".join(sections.values())
+        self.assertIn("Re=ρVD/μ", body)
+        self.assertNotIn("ρVDμ", body)
 
     def test_every_sheet_of_a_workbook_reaches_the_records(self):
         # One year per tab is how these workbooks arrive. Only the first sheet
