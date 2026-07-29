@@ -357,18 +357,43 @@ def _run_diff(base_id: str, against_arg: str, workspace_root: str | None = None)
     """Compare two checkpoints and print differences."""
     from .state import run_dir_for
 
-    def load_checkpoint(job_id: str) -> dict:
-        job_id_clean = job_id.replace(".json", "")
-        cp_path = run_dir_for(job_id_clean, workspace_root=workspace_root) / "checkpoint_latest.json"
-        if not cp_path.exists():
-            cp_path = cp_path.parent / f"checkpoint_{job_id_clean}.json"
-        if not cp_path.exists():
-            raise FileNotFoundError(f"No checkpoint found for {job_id}")
-        with open(cp_path, encoding="utf-8") as f:
-            return json.load(f)
+    def load_checkpoint(ref: str, *, base_dir: Path | None = None) -> dict:
+        """Resolve a checkpoint reference.
 
-    base = load_checkpoint(base_id)
-    other = load_checkpoint(against_arg)
+        --against advertises "job id or checkpoint file", and this command is
+        named for comparing two checkpoints — but every reference was passed
+        straight to run_dir_for as a job id, so a path, a checkpoint name, and
+        a checkpoint filename all ended the same way: "No local workflow run
+        found for job <the thing you typed>". The one comparison the command
+        exists for, two checkpoints of the same run, could not be reached.
+        """
+        path = Path(ref)
+        if path.is_file():
+            return json.loads(path.read_text(encoding="utf-8"))
+        stem = ref[:-5] if ref.endswith(".json") else ref
+        if base_dir is not None:
+            named = base_dir / (ref if ref.endswith(".json") else f"checkpoint_{stem}.json")
+            if named.is_file():
+                return json.loads(named.read_text(encoding="utf-8"))
+        run_dir = run_dir_for(stem, workspace_root=workspace_root)
+        cp_path = run_dir / "checkpoint_latest.json"
+        if not cp_path.exists():
+            raise FileNotFoundError(f"No checkpoint found for {ref}")
+        return json.loads(cp_path.read_text(encoding="utf-8"))
+
+    try:
+        base = load_checkpoint(base_id)
+        other = load_checkpoint(
+            against_arg, base_dir=run_dir_for(base_id, workspace_root=workspace_root)
+        )
+    except FileNotFoundError as exc:
+        print(
+            f"Could not resolve --against '{against_arg}': {str(exc).rstrip('.')}. "
+            "Give a checkpoint file path, a checkpoint name from this run "
+            "(for example AGENT_TASKS), or another job id.",
+            file=sys.stderr,
+        )
+        return 1
 
     print(f"--- diff: {base_id} vs {against_arg} ---")
     differences = _compute_diff(base, other)

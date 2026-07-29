@@ -17,6 +17,58 @@ from report_workflow.agent_wrapper import (
 from report_workflow.state import register_job_run
 
 
+class DiffCheckpointReferenceTests(unittest.TestCase):
+    """`diff --against` accepts what its help says it accepts.
+
+    Every reference went straight to run_dir_for as a job id, so a checkpoint
+    path, a checkpoint name, and a checkpoint filename all ended in "No local
+    workflow run found for job <what you typed>" — leaving the one comparison
+    the command is named for, two checkpoints of one run, unreachable.
+    """
+
+    def _job(self):
+        import uuid
+        from report_workflow.state import ReportState, run_dir_for
+
+        tmpdir = Path(tempfile.mkdtemp())
+        state = ReportState.new("報告", [], str(tmpdir / "out"))
+        state.job_id = f"test_diff_{uuid.uuid4().hex}"
+        state.checkpoint("EARLY")
+        state.spec["report_profile"] = "engineering_lab_report"
+        state.checkpoint("LATE")
+        return state, run_dir_for(state.job_id, workspace_root=state.output["workspace_root"])
+
+    def _diff(self, state, against: str) -> tuple[int, str]:
+        import contextlib
+        import io
+        from report_workflow.cli import _run_diff
+
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = _run_diff(
+                state.job_id, against, workspace_root=state.output["workspace_root"]
+            )
+        return code, out.getvalue() + err.getvalue()
+
+    def test_a_checkpoint_name_resolves_within_the_run(self):
+        state, _run_dir = self._job()
+        code, text = self._diff(state, "EARLY")
+        self.assertEqual(code, 0)
+        self.assertIn("report_profile", text)
+
+    def test_a_checkpoint_path_resolves(self):
+        state, run_dir = self._job()
+        code, text = self._diff(state, str(run_dir / "checkpoint_EARLY.json"))
+        self.assertEqual(code, 0)
+        self.assertIn("report_profile", text)
+
+    def test_an_unresolvable_reference_is_reported_not_raised(self):
+        state, _run_dir = self._job()
+        code, text = self._diff(state, "no_such_thing")
+        self.assertEqual(code, 1)
+        self.assertIn("Could not resolve --against", text)
+
+
 class DiagnoseRevisionStatusTests(unittest.TestCase):
     """`diagnose` must not report work it has no evidence of.
 
