@@ -462,7 +462,12 @@ def run_base_document_parse(state: ReportState) -> ReportState:
     run_dir.mkdir(parents=True, exist_ok=True)
     sections_path = run_dir / "base_document_sections.json"
     with open(sections_path, "w", encoding="utf-8") as f:
-        json.dump(sections, f, indent=2)
+        # The revision brief sends the author here for section ids and for the
+        # exact original_text a change must quote; escaped, a Chinese document
+        # reads as \uXXXX and cannot be copied from. Its sibling titles file
+        # one line down already wrote readable text. The sections hash is taken
+        # over the parsed dict, so the encoding does not move it.
+        json.dump(sections, f, indent=2, ensure_ascii=False)
     titles_path = run_dir / "base_document_titles.json"
     with open(titles_path, "w", encoding="utf-8") as f:
         json.dump(titles, f, indent=2, ensure_ascii=False)

@@ -228,6 +228,39 @@ class ReferenceHeadingRenderTest(unittest.TestCase):
         self.assertIn("維運手冊", loose_refs)
 
 
+class BaseSectionsReadabilityTest(unittest.TestCase):
+    """The file the revision brief sends the author to must be readable.
+
+    A change must quote original_text exactly or it will not apply, and the
+    author copies it from base_document_sections.json. Written with escapes, a
+    Chinese document reads as \\uXXXX there — while its sibling titles file,
+    written one line later, was already readable.
+    """
+
+    def test_sections_are_written_unescaped(self):
+        import tempfile
+        from pathlib import Path
+        from report_workflow.state import ReportState, WORKFLOW_RUNS_DIR
+        from report_workflow.nodes.base_document_parse import run_base_document_parse
+
+        tmpdir = Path(tempfile.mkdtemp())
+        src = tmpdir / "base.md"
+        src.write_text("# 結果\n\n導入後不良率下降。\n", encoding="utf-8")
+        state = ReportState.new("revise", [], str(tmpdir / "out"))
+        state.spec["task_intent"] = "revise_existing"
+        state.sources["source_registry"] = [{
+            "source_id": "S", "file_name": src.name, "file_path": str(src),
+            "file_type": "md", "artifact_role": "base_document",
+        }]
+        state = run_base_document_parse(state)
+
+        raw = (WORKFLOW_RUNS_DIR / state.job_id / "base_document_sections.json").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("導入後不良率下降。", raw)
+        self.assertNotIn("\\u5c0e", raw)
+
+
 class RevisedHeadingLanguageTest(unittest.TestCase):
     """A revised Chinese report kept its own section headings.
 
