@@ -452,6 +452,39 @@ class QualityGateContractTests(unittest.TestCase):
         rows = parse_csv(str(path))
         self.assertEqual(rows, [{"月份": "1", "不良率(%)": "1.8", "產量(件)": "1230"}])
 
+    def test_the_same_file_attached_twice_does_not_clear_the_evidence_bar(self):
+        # Dragging the same export in from two folders registers two sources
+        # and doubles the ledger — six entries for three readings. The bar is
+        # about how much material there is, so it counts distinct content. That
+        # is enforced by one set comprehension and explained by a comment;
+        # nothing went red if someone counted entries again.
+        from report_workflow.nodes.qa_gate import _source_diversity_reasons
+
+        readings = [
+            {"evidence_id": f"E_a_{i}", "content": f'{{"月份": "{i}", "不良率(%)": "1.{i}"}}'}
+            for i in range(1, 4)
+        ]
+        duplicated = readings + [
+            {**row, "evidence_id": row["evidence_id"].replace("E_a_", "E_b_")}
+            for row in readings
+        ]
+
+        import tempfile
+
+        tmpdir = Path(tempfile.mkdtemp())
+        ledger = tmpdir / "evidence_ledger.jsonl"
+        ledger.write_text(
+            "\n".join(json.dumps(row, ensure_ascii=False) for row in duplicated) + "\n",
+            encoding="utf-8",
+        )
+        state = ReportState.new("分析不良率", [], str(tmpdir / "out"))
+        state.spec["report_profile"] = "academic_paper"
+        state.sources["evidence_ledger_path"] = str(ledger)
+        state.plan["claim_matrix"] = {"claims": []}
+        reasons = " ".join(_source_diversity_reasons(state))
+        self.assertIn("distinct", reasons)
+        self.assertIn("found 3", reasons)
+
     def test_an_unsupported_type_is_described_to_the_author_not_the_maintainer(self):
         # Lecture slides are what a student has. They were told "agent fallback
         # parser is not implemented in the local MVP; deterministic parser could
