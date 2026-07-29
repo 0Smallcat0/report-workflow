@@ -62,8 +62,22 @@ def parse_single_source(entry: dict) -> dict:
         if is_valid:
             return result
     else:
+        # Say it in the reader's terms. A student who attached lecture slides
+        # was told "agent fallback parser is not implemented in the local MVP;
+        # deterministic parser could not handle file_type='pptx'" — three
+        # phrases about this build's internals and not one about their file or
+        # what to do with it. The comment below already names this failure for
+        # the empty-file case; the unsupported branch left result as None, so
+        # primary_error stayed unset and the fallback's wording won here too.
         result = None
-        reason = f"Unsupported file type: {file_type}"
+        supported = ", ".join(
+            sorted(set(STRUCTURED_TYPES) | set(SEMI_STRUCTURED_TYPES) | set(CODE_TYPES))
+        )
+        reason = (
+            f".{file_type} files are not read by this tool. Supported: {supported}. "
+            "Export the content to one of those — slides and pages usually go to "
+            ".pdf, and plain notes to .md or .txt — and attach that instead."
+        )
 
     # What the type-specific parser itself concluded is the most specific
     # diagnosis available — "Package not found" for a file that is not really a
@@ -85,7 +99,11 @@ def parse_single_source(entry: dict) -> dict:
 
     return {
         "blocks": [],
-        "error": primary_error or fallback.get("error") or fallback_reason or reason,
+        # `reason` outranks the fallback's wording: when a parser produced a
+        # dict, primary_error already holds the specific diagnosis, so reason
+        # only decides the case where no parser ran at all — the unsupported
+        # type, where it is the most specific thing anyone knows.
+        "error": primary_error or reason or fallback.get("error") or fallback_reason,
         "success": False,
     }
 

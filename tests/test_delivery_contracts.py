@@ -452,6 +452,27 @@ class QualityGateContractTests(unittest.TestCase):
         rows = parse_csv(str(path))
         self.assertEqual(rows, [{"月份": "1", "不良率(%)": "1.8", "產量(件)": "1230"}])
 
+    def test_an_unsupported_type_is_described_to_the_author_not_the_maintainer(self):
+        # Lecture slides are what a student has. They were told "agent fallback
+        # parser is not implemented in the local MVP; deterministic parser could
+        # not handle file_type='pptx'" — three phrases about this build and none
+        # about their file. The unsupported branch left result as None, so the
+        # specific reason never outranked the fallback's wording.
+        import tempfile
+        import zipfile
+        from report_workflow.nodes.source_parse import parse_single_source
+
+        tmpdir = Path(tempfile.mkdtemp())
+        path = tmpdir / "slides.pptx"
+        with zipfile.ZipFile(path, "w") as archive:
+            archive.writestr("[Content_Types].xml", "<?xml version='1.0'?><Types/>")
+
+        result = parse_single_source({"file_path": str(path), "file_type": "pptx"})
+        self.assertFalse(result["success"])
+        self.assertIn(".pptx files are not read by this tool", result["error"])
+        self.assertIn("pdf", result["error"])
+        self.assertNotIn("local MVP", result["error"])
+
     def test_a_scanned_pdf_says_it_is_a_scan(self):
         # A department hands out scanned PDFs. "The file contains no readable
         # content" is equally true of an empty file, so the author was told
