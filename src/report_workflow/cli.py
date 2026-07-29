@@ -740,7 +740,7 @@ def main(argv: list[str] | None = None) -> int:
                 workspace_root=args.workspace_root,
                 previous_workspace_root=args.from_workspace_root,
             )
-            print(json.dumps(result, indent=2, default=str))
+            print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
             return 0 if result.get("status") == "ok" else 2
 
         if args.command == "export":
@@ -756,7 +756,10 @@ def main(argv: list[str] | None = None) -> int:
                 return 1
             with open(cp_path, encoding="utf-8") as f:
                 data = json.load(f)
-            output = json.dumps(data, indent=2, default=str)
+            # The checkpoint itself is written ensure_ascii=False; exporting it
+            # escaped turned every Chinese filename, prompt, and heading into
+            # \uXXXX in the one command whose purpose is reading the state.
+            output = json.dumps(data, indent=2, ensure_ascii=False, default=str)
             if args.output:
                 Path(args.output).write_text(output, encoding="utf-8")
                 print(f"Exported to {args.output}")
