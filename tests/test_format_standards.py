@@ -769,9 +769,11 @@ class PromptFragmentScanTest(unittest.TestCase):
         from report_workflow.nodes.docx_render import _pre_render_sanity_check
 
         md = f"# 主要發現\n\n{self.PROMPT}\n"
-        self.assertIn(
-            "Raw prompt fragment leaked into publication text",
-            _pre_render_sanity_check(md, {}, [self.PROMPT]),
+        issues = _pre_render_sanity_check(md, {}, [self.PROMPT])
+        # The message quotes the offending fragment so the author can find it.
+        self.assertTrue(
+            [i for i in issues if i.startswith("Raw prompt fragment leaked into publication text")],
+            issues,
         )
 
 

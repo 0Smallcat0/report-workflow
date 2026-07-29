@@ -435,6 +435,40 @@ class QualityGateContractTests(unittest.TestCase):
                     run_revision_apply(state)
                 self.assertIn(expected, str(ctx.exception))
 
+    def test_same_named_sources_both_reach_the_published_bundle(self):
+        # Both files landed on published/sources/月報.csv, so the bundle kept
+        # whichever was copied last. A reader checking the report's 2024 claim
+        # opened the survivor and read 2025's numbers.
+        from report_workflow.nodes.artifacts import _unique_source_names
+
+        names = _unique_source_names([
+            r"C:\a\2024\月報.csv",
+            r"C:\a\2025\月報.csv",
+            r"C:\a\規格.pdf",
+        ])
+        self.assertEqual(names[r"C:\a\2024\月報.csv"], "2024_月報.csv")
+        self.assertEqual(names[r"C:\a\2025\月報.csv"], "2025_月報.csv")
+        self.assertEqual(names[r"C:\a\規格.pdf"], "規格.pdf")
+
+    def test_identically_foldered_sources_still_get_distinct_names(self):
+        from report_workflow.nodes.artifacts import _unique_source_names
+
+        names = _unique_source_names([r"C:\a\data\月報.csv", r"C:\b\data\月報.csv"])
+        self.assertEqual(len(set(names.values())), 2)
+
+    def test_a_blocked_render_names_the_text_that_tripped_it(self):
+        # "Raw prompt fragment leaked into publication text" with no fragment
+        # quoted leaves nothing to search the drafts for.
+        from report_workflow.nodes.docx_render import _pre_render_sanity_check
+
+        prompt = "比較 2024 與 2025 產線不良率"
+        issues = _pre_render_sanity_check(
+            f"# 報告\n\n{prompt}\n", forbidden_fragments=[prompt]
+        )
+        leak = [i for i in issues if "Raw prompt fragment" in i]
+        self.assertTrue(leak, issues)
+        self.assertIn(prompt, leak[0])
+
     def test_same_named_sources_are_told_apart_in_the_brief(self):
         # Monthly exports arrive as 2024/月報.csv and 2025/月報.csv. Shown as
         # "月報.csv" twice, an author picking between two rows of numbers has
