@@ -367,6 +367,35 @@ class ComputeRevisionDiffTests(unittest.TestCase):
         self.assertEqual(len(result["unresolvable"]), 1)
         self.assertIn("not found", result["unresolvable"][0]["reason"])
 
+    def test_unknown_section_reason_names_the_real_sections(self):
+        plan = {"changes": [
+            {
+                "section_id": "第四章討論",
+                "change_type": "insert",
+                "original_text": "",
+                "new_text": "新增一段。",
+            },
+        ]}
+        result = compute_revision_diff(self.base, plan)
+        reason = result["unresolvable"][0]["reason"]
+        self.assertIn("discussion", reason)
+        self.assertIn("results", reason)
+
+    def test_empty_section_is_not_reported_missing(self):
+        # A heading with nothing under it exists and can be inserted into.
+        base = dict(self.base, appendix="")
+        plan = {"changes": [
+            {
+                "section_id": "appendix",
+                "change_type": "insert",
+                "original_text": "",
+                "new_text": "附錄內容。",
+            },
+        ]}
+        result = compute_revision_diff(base, plan)
+        self.assertEqual(result["unresolvable"], [])
+        self.assertEqual(result["preview"][0]["status"], "valid")
+
     def test_unknown_change_type(self):
         plan = {"changes": [
             {
