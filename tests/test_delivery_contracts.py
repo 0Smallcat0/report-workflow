@@ -435,6 +435,44 @@ class QualityGateContractTests(unittest.TestCase):
                     run_revision_apply(state)
                 self.assertIn(expected, str(ctx.exception))
 
+    def test_a_title_row_above_the_header_does_not_become_the_header(self):
+        # A monthly export opens with its own name in A1. Read as the header,
+        # the title named the first column, the rest became Unnamed, the real
+        # header turned into a citable data row, and in CSV the one-cell header
+        # truncated every row to a single column — two measurements gone.
+        import tempfile
+        from report_workflow.parsers.structured_parser import parse_csv
+
+        tmpdir = Path(tempfile.mkdtemp())
+        path = tmpdir / "月報.csv"
+        path.write_text(
+            "2025 年第一季產線月報\n\n月份,不良率(%),產量(件)\n1,1.8,1230\n",
+            encoding="utf-8",
+        )
+        rows = parse_csv(str(path))
+        self.assertEqual(rows, [{"月份": "1", "不良率(%)": "1.8", "產量(件)": "1230"}])
+
+    def test_a_header_with_a_blank_corner_is_not_skipped(self):
+        # The guard must not reach past a real header: a matrix table leaves
+        # its corner cell empty and still holds two or more values.
+        import tempfile
+        from report_workflow.parsers.structured_parser import parse_csv
+
+        tmpdir = Path(tempfile.mkdtemp())
+        path = tmpdir / "matrix.csv"
+        path.write_text(",甲線,乙線\n1月,1.8,2.1\n", encoding="utf-8")
+        rows = parse_csv(str(path))
+        self.assertEqual(rows, [{"": "1月", "甲線": "1.8", "乙線": "2.1"}])
+
+    def test_a_plain_table_is_untouched(self):
+        import tempfile
+        from report_workflow.parsers.structured_parser import parse_csv
+
+        tmpdir = Path(tempfile.mkdtemp())
+        path = tmpdir / "plain.csv"
+        path.write_text("月份,不良率(%)\n1,1.8\n", encoding="utf-8")
+        self.assertEqual(parse_csv(str(path)), [{"月份": "1", "不良率(%)": "1.8"}])
+
     def test_a_source_missing_at_publish_time_is_not_skipped_in_silence(self):
         # A source moved between prepare and publish was skipped without a
         # word: the bundle shipped short, artifacts.json listed only what made
