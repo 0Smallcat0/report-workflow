@@ -773,13 +773,25 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "remap-evidence":
             from .artifact_contract import remap_evidence_ids
-            result = remap_evidence_ids(
-                args.to_job,
-                args.from_job,
-                write=args.write,
-                workspace_root=args.workspace_root,
-                previous_workspace_root=args.from_workspace_root,
-            )
+            try:
+                result = remap_evidence_ids(
+                    args.to_job,
+                    args.from_job,
+                    write=args.write,
+                    workspace_root=args.workspace_root,
+                    previous_workspace_root=args.from_workspace_root,
+                )
+            except FileNotFoundError as exc:
+                # --workspace-root locates the current run only, so pointing it
+                # at the new workspace and omitting --from-workspace-root ended
+                # the process as a crash that never mentioned the flag that
+                # would have found the previous run.
+                print(
+                    f"{str(exc).rstrip('.')}. If the previous run lives under a "
+                    "different workspace, give it with --from-workspace-root.",
+                    file=sys.stderr,
+                )
+                return 1
             print(json.dumps(result, indent=2, ensure_ascii=False, default=str))
             return 0 if result.get("status") == "ok" else 2
 
