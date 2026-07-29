@@ -1090,11 +1090,19 @@ def _pre_render_sanity_check(
         if leaked_terms:
             issues.append("Front matter keywords contain implementation-noise terms: " + ", ".join(leaked_terms))
 
-    if re.search(r"^\s*\*\*\s+\S", front_matter_head, re.MULTILINE):
-        issues.append("Front matter contains leftover Markdown bold marker")
+    bold_hit = re.search(r"^\s*\*\*\s+\S.*$", front_matter_head, re.MULTILINE)
+    if bold_hit:
+        issues.append(
+            "Front matter contains leftover Markdown bold marker: "
+            f'"{" ".join(bold_hit.group(0).split())[:120]}"'
+        )
 
-    if re.search(r"source_corpus", md_content, re.IGNORECASE):
-        issues.append("Internal source_corpus reference leaked into publication text")
+    corpus_hit = re.search(r"^.*source_corpus.*$", md_content, re.IGNORECASE | re.MULTILINE)
+    if corpus_hit:
+        line = " ".join(corpus_hit.group(0).split())[:120]
+        issues.append(
+            f'Internal source_corpus reference leaked into publication text: "{line}"'
+        )
 
     # Link and image targets are structural: pandoc consumes them and the
     # reader never sees them. Figures are written under the run directory,
@@ -1109,7 +1117,13 @@ def _pre_render_sanity_check(
         if len(clean) < 20:
             continue
         if clean.lower() in normalized_prose:
-            issues.append("Raw prompt fragment leaked into publication text")
+            # Name the text, not just the rule. Without the fragment quoted
+            # there is nothing to search the drafts for, and the author has to
+            # read this function's source to find out what tripped it.
+            excerpt = clean if len(clean) <= 80 else clean[:80] + "…"
+            issues.append(
+                f'Raw prompt fragment leaked into publication text: "{excerpt}"'
+            )
             break
 
     # 4. Unresolved CITE markers

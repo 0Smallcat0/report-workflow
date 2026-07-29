@@ -37,6 +37,34 @@ def _copy_file(src: str | None, dest_dir: Path, dest_name: str | None = None) ->
     return str(dest)
 
 
+def _unique_source_names(paths: list[str]) -> dict[str, str]:
+    """Destination names that keep two same-named sources apart.
+
+    2024/月報.csv and 2025/月報.csv both landed on published/sources/月報.csv, so
+    the bundle shipped whichever was copied last. A reader checking the report's
+    2024 claim opened the surviving file and read 2025's numbers — the
+    traceability package contradicting the report it exists to substantiate,
+    with every gate green, because no gate compares the bundle against the
+    registry.
+    """
+    by_name: dict[str, list[str]] = {}
+    for path in paths:
+        by_name.setdefault(Path(path).name, []).append(path)
+    names: dict[str, str] = {}
+    for name, group in by_name.items():
+        if len(group) == 1:
+            names[group[0]] = name
+            continue
+        for path in group:
+            parent = Path(path).parent.name
+            names[path] = f"{parent}_{name}" if parent else name
+        if len({names[path] for path in group}) != len(group):
+            for index, path in enumerate(group, start=1):
+                stem, suffix = Path(path).stem, Path(path).suffix
+                names[path] = f"{stem}_{index}{suffix}"
+    return names
+
+
 def _collect_paths(subdir: Path, glob_pat: str) -> list[str]:
     try:
         return [str(p) for p in subdir.glob(glob_pat)]
@@ -290,8 +318,10 @@ def run_artifacts(state: ReportState) -> ReportState:
                 stem = fname.replace(".jsonl", "").replace(".json", "")
                 artifacts_meta["files"].append({"role": f"evidence_{stem}", "path": copied})
 
-    for src_path in state.spec.get("uploaded_files", []):
-        copied = _copy_file(src_path, sources_dir)
+    uploaded = [str(p) for p in state.spec.get("uploaded_files", []) if p]
+    source_names = _unique_source_names(uploaded)
+    for src_path in uploaded:
+        copied = _copy_file(src_path, sources_dir, source_names.get(src_path))
         if copied:
             artifacts_meta["files"].append({"role": "source", "path": copied})
 
