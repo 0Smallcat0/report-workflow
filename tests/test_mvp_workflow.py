@@ -251,7 +251,13 @@ class SourcePipelineTests(unittest.TestCase):
 
             with self.assertRaises(QAHardBlockError) as ctx:
                 run_source_parse(state)
-        self.assertIn("agent fallback parser is not implemented", str(ctx.exception))
+        # The point is that it refuses rather than pretending to have parsed.
+        # It used to say so in the build's own vocabulary — "agent fallback
+        # parser is not implemented in the local MVP" — which told the author
+        # nothing about their file; now it names the type and what to attach.
+        message = str(ctx.exception)
+        self.assertIn(".unknown files are not read by this tool", message)
+        self.assertIn("Supported:", message)
 
     def test_methods_protocol_preserves_non_graph_project_methods(self):
         with tempfile.TemporaryDirectory() as tmpdir:
