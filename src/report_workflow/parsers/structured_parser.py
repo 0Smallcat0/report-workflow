@@ -94,12 +94,41 @@ def parse_csv(file_path: str) -> list[dict]:
 
 
 def parse_xlsx(file_path: str) -> list[dict]:
-    """Parse XLSX file using pandas."""
+    """Parse XLSX file using pandas — every sheet, not only the first.
+
+    A workbook that keeps one year per tab had its other tabs read by nobody:
+    those rows never reached the ledger and nothing said they existed. When
+    more than one sheet holds data each record carries the name of the sheet it
+    came from, because rows reading 1.8 and 4.2 with no way to tell which year
+    is the confusion that gets the wrong one cited. A single-sheet workbook —
+    the ordinary case — is parsed exactly as before, with no added key.
+    """
     import pandas as pd
-    raw = pd.read_excel(file_path, header=None)
-    skip = _leading_noise_rows(raw.values.tolist())
-    df = pd.read_excel(file_path, header=skip)
-    return df.to_dict(orient="records")
+
+    book = pd.read_excel(file_path, sheet_name=None, header=None)
+    sheets: list[tuple[str, list[dict]]] = []
+    for name, raw in book.items():
+        if raw.empty:
+            continue
+        skip = _leading_noise_rows(raw.values.tolist())
+        frame = pd.read_excel(file_path, sheet_name=name, header=skip)
+        records = frame.to_dict(orient="records")
+        if records:
+            sheets.append((str(name), records))
+
+    if len(sheets) <= 1:
+        return sheets[0][1] if sheets else []
+
+    combined: list[dict] = []
+    for name, records in sheets:
+        for record in records:
+            key = "sheet"
+            suffix = 2
+            while key in record:
+                key = f"sheet [{suffix}]"
+                suffix += 1
+            combined.append({key: name, **record})
+    return combined
 
 
 def parse_json(file_path: str) -> list[dict]:

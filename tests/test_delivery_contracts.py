@@ -452,6 +452,50 @@ class QualityGateContractTests(unittest.TestCase):
         rows = parse_csv(str(path))
         self.assertEqual(rows, [{"月份": "1", "不良率(%)": "1.8", "產量(件)": "1230"}])
 
+    def test_every_sheet_of_a_workbook_reaches_the_records(self):
+        # One year per tab is how these workbooks arrive. Only the first sheet
+        # was read, so the other year's rows never reached the ledger and
+        # nothing said they existed.
+        import tempfile
+        from openpyxl import Workbook
+        from report_workflow.parsers.structured_parser import parse_xlsx
+
+        tmpdir = Path(tempfile.mkdtemp())
+        book = Workbook()
+        first = book.active
+        first.title = "2025"
+        first.append(["月份", "不良率(%)"])
+        first.append([1, 1.8])
+        second = book.create_sheet("2024")
+        second.append(["月份", "不良率(%)"])
+        second.append([1, 4.2])
+        path = tmpdir / "年度比較.xlsx"
+        book.save(str(path))
+
+        records = parse_xlsx(str(path))
+        self.assertEqual(
+            records,
+            [
+                {"sheet": "2025", "月份": 1, "不良率(%)": 1.8},
+                {"sheet": "2024", "月份": 1, "不良率(%)": 4.2},
+            ],
+        )
+
+    def test_a_single_sheet_workbook_gains_no_extra_column(self):
+        import tempfile
+        from openpyxl import Workbook
+        from report_workflow.parsers.structured_parser import parse_xlsx
+
+        tmpdir = Path(tempfile.mkdtemp())
+        book = Workbook()
+        sheet = book.active
+        sheet.append(["月份", "不良率(%)"])
+        sheet.append([1, 1.8])
+        path = tmpdir / "單分頁.xlsx"
+        book.save(str(path))
+
+        self.assertEqual(parse_xlsx(str(path)), [{"月份": 1, "不良率(%)": 1.8}])
+
     def test_a_header_with_a_blank_corner_is_not_skipped(self):
         # The guard must not reach past a real header: a matrix table leaves
         # its corner cell empty and still holds two or more values.
