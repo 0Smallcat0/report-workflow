@@ -329,18 +329,41 @@ def run_artifacts(state: ReportState) -> ReportState:
         else:
             unpackaged.append(src_path)
     if unpackaged:
-        # A source that moved between prepare and publish was skipped in
+        # An input that moved between prepare and publish was skipped in
         # silence: the bundle shipped short, artifacts.json listed only what
-        # made it, and the report went on citing claims traced to a file the
-        # package does not contain. The point of the package is that a reader
-        # can open it and check; one that quietly omits a cited source cannot
-        # be checked and does not say so.
+        # made it, and the report went on standing on a file the package does
+        # not contain. The point of the package is that a reader can open it
+        # and check; one that quietly omits an input cannot be checked and does
+        # not say so.
+        #
+        # Roles come from the registry because a base document is not a cited
+        # source — it is the document being revised, and telling its author
+        # that the report "cites" it is telling them about a different file.
+        # Keyed on the resolved path: the registry stores path.resolve() while
+        # uploaded_files keeps the path as the caller gave it, and on Windows
+        # those differ whenever a short 8.3 component is involved. Matching the
+        # raw strings quietly labelled every base document a plain source.
+        def _key(value: str) -> str:
+            try:
+                return str(Path(value).resolve()).casefold()
+            except OSError:
+                return str(value).casefold()
+
+        roles = {
+            _key(str(entry.get("file_path", ""))): str(entry.get("artifact_role", "") or "source")
+            for entry in state.sources.get("source_registry", [])
+        }
+        listed = ", ".join(
+            f"{Path(path).name} ({roles.get(_key(path), 'source')}): {path}"
+            for path in unpackaged
+        )
         raise QAHardBlockError(
-            "Registered source file(s) could not be packaged: "
-            + ", ".join(unpackaged)
-            + ". The published bundle would not contain sources the report "
-            "cites. Restore the file(s) at those paths, or re-run prepare with "
-            "the sources at their current locations."
+            "Registered input file(s) could not be packaged: "
+            + listed
+            + ". The published bundle is what shows a reader what the report "
+            "was built from, and it would go out without these. Restore the "
+            "file(s) at those paths, or re-run prepare with the inputs at "
+            "their current locations."
         )
 
     for role, path in traceability_paths.items():
