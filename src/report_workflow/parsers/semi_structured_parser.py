@@ -68,11 +68,17 @@ def parse_docx(file_path: str) -> dict:
     """Parse DOCX using python-docx."""
     try:
         from docx import Document
+
+        from .office_math import cell_text, element_text
         doc = Document(file_path)
         blocks = []
         all_text = []
         for i, para in enumerate(doc.paragraphs):
-            text = para.text.strip()
+            # element_text rather than para.text: the latter is the runs only,
+            # so a paragraph holding a Word equation arrived with a hole where
+            # the formula had been, and one holding nothing else arrived empty
+            # and was skipped here without trace.
+            text = element_text(para._p).strip()
             if not text:
                 continue
             all_text.append(text)
@@ -111,7 +117,7 @@ def parse_docx(file_path: str) -> dict:
         for t_idx, table in enumerate(doc.tables):
             rows = []
             for row in table.rows:
-                rows.append([_cell_text(cell.text) for cell in row.cells])
+                rows.append([_cell_text(cell_text(cell._tc)) for cell in row.cells])
             table_text = table_to_text(rows)
             blocks.append({
                 "block_id": f"table_{t_idx}",

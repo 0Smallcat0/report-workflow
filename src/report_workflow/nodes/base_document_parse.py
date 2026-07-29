@@ -15,6 +15,7 @@ from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
 from ..artifact_contract import write_base_document_integrity
 from ..language import ZH_ORDINAL_PREFIX_RE
+from ..parsers.office_math import element_text
 from ..parsers.source_text import read_source_text
 
 
@@ -130,8 +131,7 @@ def _docx_table_markdown(tbl) -> list[str]:
         for tc in tr.iter():
             if not tc.tag.endswith("}tc"):
                 continue
-            texts = [t.text for t in tc.iter() if t.tag.endswith("}t") and t.text]
-            cells.append(" ".join("".join(texts).split()))
+            cells.append(" ".join(element_text(tc).split()))
         if cells:
             rows.append(cells)
     if len(rows) < 2:
@@ -217,12 +217,12 @@ def _parse_docx_section(
                     if elem.tag.endswith("}p") and id(elem) in cell_paragraphs:
                         continue
                     if elem.tag.endswith("}p"):  # paragraph
-                        # Extract text from paragraph
-                        texts: list[str] = []
-                        for t in elem.iter():
-                            if t.tag.endswith("}t") and t.text:
-                                texts.append(t.text)
-                        line = "".join(texts).strip()
+                        # Every "}t" descendant reaches m:t as well, so an
+                        # equation's pieces used to be concatenated with
+                        # nothing between them and ρVD over μ came back as
+                        # ρVDμ — a different formula, written into the author's
+                        # own report as if they had typed it.
+                        line = element_text(elem).strip()
                         if not line and media_by_rel:
                             # An image sits alone in its own paragraph, with no
                             # text to carry it. Re-emit it where it stood.
