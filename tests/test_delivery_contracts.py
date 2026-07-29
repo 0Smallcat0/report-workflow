@@ -435,6 +435,39 @@ class QualityGateContractTests(unittest.TestCase):
                     run_revision_apply(state)
                 self.assertIn(expected, str(ctx.exception))
 
+    def test_same_named_sources_are_told_apart_in_the_brief(self):
+        # Monthly exports arrive as 2024/月報.csv and 2025/月報.csv. Shown as
+        # "月報.csv" twice, an author picking between two rows of numbers has
+        # nothing to pick by, and citing the wrong year passes every gate.
+        from report_workflow.nodes.agent_tasks import _source_labels
+
+        labels = _source_labels([
+            {"source_file_name": "月報.csv", "source_file_path": r"C:\a\2024\月報.csv"},
+            {"source_file_name": "月報.csv", "source_file_path": r"C:\a\2025\月報.csv"},
+            {"source_file_name": "規格.pdf", "source_file_path": r"C:\a\規格.pdf"},
+        ])
+        self.assertEqual(labels[r"C:\a\2024\月報.csv"], "2024/月報.csv")
+        self.assertEqual(labels[r"C:\a\2025\月報.csv"], "2025/月報.csv")
+        self.assertEqual(labels[r"C:\a\規格.pdf"], "規格.pdf")
+
+    def test_a_lone_source_keeps_its_plain_name(self):
+        from report_workflow.nodes.agent_tasks import _source_labels
+
+        labels = _source_labels(
+            [{"source_file_name": "月報.csv", "source_file_path": r"C:\a\2024\月報.csv"}]
+        )
+        self.assertEqual(labels[r"C:\a\2024\月報.csv"], "月報.csv")
+
+    def test_identical_parent_names_fall_back_to_the_full_path(self):
+        from report_workflow.nodes.agent_tasks import _source_labels
+
+        labels = _source_labels([
+            {"source_file_name": "月報.csv", "source_file_path": r"C:\a\data\月報.csv"},
+            {"source_file_name": "月報.csv", "source_file_path": r"C:\b\data\月報.csv"},
+        ])
+        self.assertEqual(len(set(labels.values())), 2)
+        self.assertIn(r"C:\a\data\月報.csv", labels.values())
+
     def test_removing_a_whole_section_does_not_demand_a_figure_decision(self):
         # remove_section is already a declared structural change, recorded in
         # removed_sections. Counting its figures left the author one exit:
