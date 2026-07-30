@@ -263,7 +263,11 @@ def compute_provenance_score(entry: dict, block: dict) -> float:
     # "quantitative". Without this bonus a CSV of the user's measurements
     # can never reach evidence_grade=high, and FD then forbids measured
     # wording on the very numbers the report exists to state.
-    if (
+    measured_columns = _measured_numeric_columns(content, block_type)
+    if measured_columns is not None:
+        if measured_columns >= 1:
+            score += 0.15
+    elif (
         block_type in {"csv_row", "table_row", "data_row"} or markdown_table
     ) and len(_NUMERIC_TOKEN_RE.findall(content)) >= 2:
         score += 0.15
@@ -756,6 +760,45 @@ def _row_values_lower(content: str, block_type: str) -> str | None:
     ).lower()
 
 
+def _measured_numeric_columns(content: str, block_type: str) -> int | None:
+    """How many of a row's columns hold a reading rather than a label or an id.
+
+    None when the block is not a serialized row.
+
+    Counting numeric tokens across the whole row asked for two of them, and a
+    lab sheet's commonest shape has one: a condition or a trial in the first
+    column and the reading in the second. Those rows fell through to
+    qualitative and — the same threshold guards the provenance bonus — never
+    reached evidence_grade=high either, so FD forbade "measured" wording on the
+    author's own readings. That is the failure the bonus beside it was added to
+    prevent; it just could not see this shape.
+
+    A trial counter is numeric and is not a reading, so the id vocabulary the
+    figure path already maintains decides which columns count. One reading is a
+    reading.
+    """
+    if block_type not in _ROW_BLOCK_TYPES:
+        return None
+    try:
+        record = json.loads(content)
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(record, dict):
+        return None
+
+    from .figure_recommend import ID_HEADER_TERMS, _header_contains
+
+    measured = 0
+    for column, value in record.items():
+        if is_placeholder_value(value):
+            continue
+        if _header_contains(str(column), ID_HEADER_TERMS):
+            continue
+        if _NUMERIC_TOKEN_RE.findall(str(value).lower()):
+            measured += 1
+    return measured
+
+
 def determine_evidence_type(content: str, block_type: str) -> str:
     """Determine evidence type deterministically.
 
@@ -789,7 +832,13 @@ def determine_evidence_type(content: str, block_type: str) -> str:
     # emit; the others are single-row shapes from CSV ingestion. Listing only
     # the row shapes meant a measurement table from any source but a CSV fell
     # through to keyword matching and came out qualitative.
-    if block_type in {"csv_row", "table_row", "data_row", "table"} and len(numeric_tokens) >= 2:
+    measured_columns = _measured_numeric_columns(content, block_type)
+    if measured_columns is not None:
+        if measured_columns >= 1:
+            return "quantitative"
+    elif block_type in {"csv_row", "table_row", "data_row", "table"} and len(numeric_tokens) >= 2:
+        # A whole table, or a row that did not arrive as a record, has no
+        # column names to tell readings from counters; density decides there.
         return "quantitative"
     # Shape comes from the whole record; the numbers come from the values.
     if len(numeric_tokens) >= 3 and content_lower.count(":") >= 3 and content_lower.count('"') >= 4:
