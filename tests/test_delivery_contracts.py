@@ -1,4 +1,5 @@
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -928,14 +929,16 @@ class QualityGateContractTests(unittest.TestCase):
         # opened the survivor and read 2025's numbers.
         from report_workflow.nodes.artifacts import _unique_source_names
 
-        names = _unique_source_names([
-            r"C:\a\2024\月報.csv",
-            r"C:\a\2025\月報.csv",
-            r"C:\a\規格.pdf",
-        ])
-        self.assertEqual(names[r"C:\a\2024\月報.csv"], "2024_月報.csv")
-        self.assertEqual(names[r"C:\a\2025\月報.csv"], "2025_月報.csv")
-        self.assertEqual(names[r"C:\a\規格.pdf"], "規格.pdf")
+        # Built with the running platform's separator: a hardcoded Windows path
+        # is one long filename on Linux, where nothing has a folder to be told
+        # apart by, so this passed here and failed on CI.
+        first = os.path.join("a", "2024", "月報.csv")
+        second = os.path.join("a", "2025", "月報.csv")
+        spec = os.path.join("a", "規格.pdf")
+        names = _unique_source_names([first, second, spec])
+        self.assertEqual(names[first], "2024_月報.csv")
+        self.assertEqual(names[second], "2025_月報.csv")
+        self.assertEqual(names[spec], "規格.pdf")
 
     def test_identically_foldered_sources_still_get_distinct_names(self):
         from report_workflow.nodes.artifacts import _unique_source_names
@@ -962,14 +965,17 @@ class QualityGateContractTests(unittest.TestCase):
         # nothing to pick by, and citing the wrong year passes every gate.
         from report_workflow.nodes.agent_tasks import _source_labels
 
+        first = os.path.join("a", "2024", "月報.csv")
+        second = os.path.join("a", "2025", "月報.csv")
+        spec = os.path.join("a", "規格.pdf")
         labels = _source_labels([
-            {"source_file_name": "月報.csv", "source_file_path": r"C:\a\2024\月報.csv"},
-            {"source_file_name": "月報.csv", "source_file_path": r"C:\a\2025\月報.csv"},
-            {"source_file_name": "規格.pdf", "source_file_path": r"C:\a\規格.pdf"},
+            {"source_file_name": "月報.csv", "source_file_path": first},
+            {"source_file_name": "月報.csv", "source_file_path": second},
+            {"source_file_name": "規格.pdf", "source_file_path": spec},
         ])
-        self.assertEqual(labels[r"C:\a\2024\月報.csv"], "2024/月報.csv")
-        self.assertEqual(labels[r"C:\a\2025\月報.csv"], "2025/月報.csv")
-        self.assertEqual(labels[r"C:\a\規格.pdf"], "規格.pdf")
+        self.assertEqual(labels[first], "2024/月報.csv")
+        self.assertEqual(labels[second], "2025/月報.csv")
+        self.assertEqual(labels[spec], "規格.pdf")
 
     def test_a_lone_source_keeps_its_plain_name(self):
         from report_workflow.nodes.agent_tasks import _source_labels
