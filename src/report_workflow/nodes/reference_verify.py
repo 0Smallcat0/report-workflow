@@ -274,6 +274,10 @@ def _load_refs_from_citation_bind(state: ReportState) -> list[dict]:
     return refs
 
 
+#: The number a GB/T entry already carries, stripped before it is renumbered.
+_EXISTING_NUMBER_RE = re.compile(r"^\[\d+\]\s*")
+
+
 def _write_curated_reference_list(state: ReportState, refs: list[dict]) -> None:
     """Rewrite publication_reference_list.md using curation-passing references."""
     ref_list_path = state.citations.get("publication_reference_list_path", "")
@@ -308,8 +312,12 @@ def _write_curated_reference_list(state: ReportState, refs: list[dict]) -> None:
             # claim this comment used to make and no code anywhere kept — so a
             # dropped entry leaves its [n] pointing at nothing. POST_RENDER
             # refuses the deliverable when that happens rather than let it ship.
+            # The substitution is hoisted out of the f-string: a backslash
+            # inside an f-string expression is a syntax error before Python
+            # 3.12, and this project supports 3.11. Byte-compiling on a newer
+            # interpreter cannot see it.
             body = "\n\n".join(
-                f"[{number}] {re.sub(r'^\[\d+\]\s*', '', item)}"
+                "[{}] {}".format(number, _EXISTING_NUMBER_RE.sub("", item))
                 for number, item in enumerate(curated, start=1)
             )
         else:

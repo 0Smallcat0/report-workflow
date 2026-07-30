@@ -1912,6 +1912,11 @@ class CitationSurvivesRerunTests(unittest.TestCase):
         )
         import glob as _glob
 
+        # A run that fails comes back as a payload with no job_id, and
+        # subscripting it raised KeyError: 'job_id' — which says nothing about
+        # why the run failed. On a machine where this reproduces, the payload
+        # is the diagnosis.
+        self.assertIn("job_id", result, f"start_report_task returned: {result}")
         workspace = _glob.glob(os.path.join(tmpdir, tag, "*" + result["job_id"]))[0]
         ledger_path = os.path.join(workspace, "evidence_ledger.jsonl")
         with open(ledger_path, encoding="utf-8") as handle:

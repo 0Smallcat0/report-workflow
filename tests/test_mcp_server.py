@@ -13,7 +13,20 @@ from report_workflow.mcp_server import (
     workflow_status_payload,
 )
 
-MCP_AVAILABLE = importlib.util.find_spec("mcp") is not None
+def _mcp_available() -> bool:
+    """Whether the module the server actually imports can be imported.
+
+    Probing "mcp" alone found the top-level package on a runner where
+    mcp.server.fastmcp does not exist, so the guard let the test through and it
+    errored instead of skipping. Probe what is used, not what it starts with.
+    """
+    try:
+        return importlib.util.find_spec("mcp.server.fastmcp") is not None
+    except (ImportError, ModuleNotFoundError, ValueError):
+        return False
+
+
+MCP_AVAILABLE = _mcp_available()
 
 EVIDENCE = [
     {

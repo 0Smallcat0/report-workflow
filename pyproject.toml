@@ -45,6 +45,10 @@ dependencies = [
   "filetype>=1.2.0",
   "pdfplumber>=0.10.0",
   "pandas>=2.0",
+  # pandas reads .xlsx through openpyxl and does not declare it, and the merged
+  # cell ranges are read from it directly. Undeclared, a clean install accepted
+  # a workbook as a supported source type and then could not open it.
+  "openpyxl>=3.1",
   "pyyaml>=6.0",
   "matplotlib>=3.7",
   "Pillow>=10.0.0",
