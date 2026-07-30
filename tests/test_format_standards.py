@@ -517,6 +517,43 @@ class FigureShortfallHintTest(unittest.TestCase):
             self.assertIn("no section references them", hint)
             self.assertIn("Built figure ids: 1", hint)
 
+    def test_a_chart_that_cannot_draw_its_own_labels_says_so(self):
+        # The font list falls back to DejaVu Sans, which has no CJK glyphs, so
+        # on a machine with no Chinese font — an ordinary Linux runner, or the
+        # Colab notebook this project advertises — every Chinese axis label
+        # became an empty box and the report went out carrying them.
+        # matplotlib warns about each character; nobody was listening.
+        import matplotlib
+
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as plt
+        from report_workflow.nodes.figure_build import _save_figure
+
+        def issues_for(fonts, label):
+            previous = matplotlib.rcParams["font.sans-serif"]
+            matplotlib.rcParams["font.sans-serif"] = fonts
+            figure, axes = plt.subplots()
+            try:
+                axes.plot([2.0, 3.0], [72.4, 76.1])
+                axes.set_xlabel(label)
+                with tempfile.TemporaryDirectory() as tmpdir:
+                    reported = _save_figure(
+                        figure, axes, "fig_1", "line", {},
+                        Path(tmpdir) / "fig.png", 100,
+                    )
+            finally:
+                plt.close(figure)
+                matplotlib.rcParams["font.sans-serif"] = previous
+            return [i for i in reported if i["type"] == "characters_missing_from_font"]
+
+        found = issues_for(["DejaVu Sans"], "流量 (L/min)")
+        self.assertTrue(found)
+        self.assertIn("empty boxes", found[0]["detail"])
+        self.assertIn("font", found[0]["repair_hint"])
+
+        # No false alarm when the characters are drawable.
+        self.assertFalse(issues_for(["DejaVu Sans"], "Flow rate (L/min)"))
+
     def test_the_word_after_figure_is_not_a_figure_number(self):
         # "kept in figure metadata rather than recomputed in prose" hard-blocked
         # a rendered report for citing figure "m" — the first letter of the next
