@@ -1187,6 +1187,37 @@ class QualityGateContractTests(unittest.TestCase):
             run_revision_apply(state)
         self.assertIn("preservation", str(ctx.exception).lower())
 
+    def test_editing_the_base_document_after_prepare_is_caught(self):
+        # Fixing what looks like a typo between prepare and the revision being
+        # applied is an ordinary thing to do, and 79.3 -> 89.3 changes neither
+        # the file's size nor — as far as this check went — anything it
+        # recorded. The revision would have been applied to text the file no
+        # longer contained.
+        import tempfile
+        from report_workflow.artifact_contract import validate_base_document_integrity
+
+        tmpdir = Path(tempfile.mkdtemp())
+        base = tmpdir / "報告.md"
+        base.write_text("# 結果\n\n量測有效度為 79.3%。\n", encoding="utf-8")
+        sections = {"結果": "量測有效度為 79.3%。"}
+        state = ReportState.new("revise", [], str(tmpdir / "out"))
+        entry = {"file_path": str(base), "file_name": base.name}
+        integrity_path = Path(write_base_document_integrity(state, sections, entry))
+
+        # Nothing changed: the check must stay out of the way.
+        validate_base_document_integrity(state, sections)
+
+        base.write_text("# 結果\n\n量測有效度為 89.3%。\n", encoding="utf-8")
+        with self.assertRaises(QAHardBlockError) as ctx:
+            validate_base_document_integrity(state, sections)
+        self.assertIn("報告.md", str(ctx.exception))
+
+        # A run recorded before the field existed must not start failing.
+        payload = json.loads(integrity_path.read_text(encoding="utf-8"))
+        payload.pop("source_content_hash")
+        integrity_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+        validate_base_document_integrity(state, sections)
+
     def test_base_document_integrity_blocks_direct_section_mutation(self):
         state = ReportState.new("revise", [], "out")
         state.spec["task_intent"] = "revise_existing"
