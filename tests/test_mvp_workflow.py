@@ -1903,6 +1903,10 @@ class CitationSurvivesRerunTests(unittest.TestCase):
             report_profile="engineering_lab_report",
             output_dir=os.path.join(tmpdir, tag),
             preflight_confirmed=True,
+            # Accepting degraded rendering is a decision, and saying so out
+            # loud is a second one: the pipeline refuses to proceed on the word
+            # alone. Both are needed wherever pandoc is absent.
+            allow_degraded_render=True,
             preflight_decisions={
                 "confirmed_by_user": True,
                 # A decision for every tool the preflight can ask about, not
@@ -2493,6 +2497,10 @@ class PdfTableParityTests(unittest.TestCase):
             report_profile="engineering_lab_report",
             output_dir=os.path.join(tmpdir, "out"),
             preflight_confirmed=True,
+            # Accepting degraded rendering is a decision, and saying so out
+            # loud is a second one: the pipeline refuses to proceed on the word
+            # alone. Both are needed wherever pandoc is absent.
+            allow_degraded_render=True,
             preflight_decisions={
                 "confirmed_by_user": True,
                 # A decision for every tool the preflight can ask about, not
