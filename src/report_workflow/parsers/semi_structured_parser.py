@@ -160,10 +160,10 @@ def parse_txt(file_path: str) -> dict:
             stripped = raw_line.strip()
 
             # ---------- heading ----------
-            if stripped.startswith("#"):
+            if HEADING_RE.match(stripped):
                 # Consume all leading heading lines
                 heading_texts = []
-                while i < len(lines) and lines[i].strip().startswith("#"):
+                while i < len(lines) and HEADING_RE.match(lines[i].strip()):
                     heading_texts.append(lines[i].rstrip())
                     all_text_parts.append(lines[i].rstrip())
                     i += 1
@@ -326,7 +326,7 @@ def parse_txt(file_path: str) -> dict:
             # ---------- paragraph (collect non-blank lines until blank or heading) ----------
             para_lines = []
             para_start = i
-            while i < len(lines) and lines[i].strip() and not lines[i].strip().startswith("#"):
+            while i < len(lines) and lines[i].strip() and not HEADING_RE.match(lines[i].strip()):
                 # A pasted table usually follows its lead-in sentence with no
                 # blank line between them, so the paragraph has to yield to it
                 # or the whole table is swallowed as prose.
@@ -423,6 +423,41 @@ def _delimited_table_rows(lines: list[str], start: int) -> tuple[list[list[str]]
     return rows, index
 
 
+#: A heading needs whitespace after its hashes. Without that rule an Obsidian
+#: tag line — "#熱傳 #實驗 #待複查", which is how a note is filed — was typed as a
+#: heading, and CommonMark does not call it one either.
+HEADING_RE = re.compile(r"^#{1,6}(?:\s|$)")
+
+#: Obsidian's own comment: %%like this%%, inline or fenced by lines holding
+#: nothing else. The author cannot see it in their reading view, which is the
+#: point of it, so a note saying "the 4.0 reading is not calibrated, do not use
+#: the number" became citable evidence and — revising that note — was printed
+#: into the document they hand in. Removed with its line count intact, so every
+#: line number still points at the real line of the real file.
+_OBSIDIAN_COMMENT_INLINE_RE = re.compile(r"%%(?!\s*$)[^\n]*?%%")
+_OBSIDIAN_COMMENT_FENCE_RE = re.compile(r"^\s*%%\s*$")
+
+
+def strip_obsidian_comments(text: str) -> str:
+    """Blank out %% comments, keeping one line for every line that was there."""
+    if "%%" not in text:
+        return text
+    out: list[str] = []
+    inside = False
+    for line in text.splitlines(keepends=True):
+        ending = line[len(line.rstrip("\r\n")):]
+        body = line.rstrip("\r\n")
+        if _OBSIDIAN_COMMENT_FENCE_RE.match(body):
+            inside = not inside
+            out.append(ending)
+            continue
+        if inside:
+            out.append(ending)
+            continue
+        out.append(_OBSIDIAN_COMMENT_INLINE_RE.sub("", body) + ending)
+    return "".join(out)
+
+
 _FRONT_MATTER_FENCE_RE = re.compile(r"^\s*(?:---|\.\.\.)\s*$")
 _FRONT_MATTER_KEY_RE = re.compile(r"^[A-Za-z_][\w .-]*:(?:\s|$)")
 _FRONT_MATTER_ITEM_RE = re.compile(r"^\s*-\s+\S")
@@ -472,9 +507,11 @@ def parse_markdown(file_path: str) -> dict:
     import hashlib
 
     try:
-        from .source_text import read_source_lines
+        from .source_text import read_source_text
 
-        lines = read_source_lines(file_path)
+        lines = strip_obsidian_comments(read_source_text(file_path)).splitlines(
+            keepends=True
+        )
 
         blocks = []
         all_text_parts = []
@@ -489,10 +526,10 @@ def parse_markdown(file_path: str) -> dict:
             stripped = raw_line.strip()
 
             # ---------- heading ----------
-            if stripped.startswith("#"):
+            if HEADING_RE.match(stripped):
                 # Consume all leading heading lines
                 heading_texts = []
-                while i < len(lines) and lines[i].strip().startswith("#"):
+                while i < len(lines) and HEADING_RE.match(lines[i].strip()):
                     heading_texts.append(lines[i].rstrip())
                     all_text_parts.append(lines[i].rstrip())
                     i += 1
@@ -654,7 +691,7 @@ def parse_markdown(file_path: str) -> dict:
             # ---------- paragraph ----------
             para_lines = []
             para_start = i
-            while i < len(lines) and lines[i].strip() and not lines[i].strip().startswith("#"):
+            while i < len(lines) and lines[i].strip() and not HEADING_RE.match(lines[i].strip()):
                 # A pasted table usually follows its lead-in sentence with no
                 # blank line between them, so the paragraph has to yield to it
                 # or the whole table is swallowed as prose.
