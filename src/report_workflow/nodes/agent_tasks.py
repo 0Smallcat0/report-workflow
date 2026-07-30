@@ -1029,6 +1029,28 @@ artifacts directly.
     return state
 
 
+def missing_agent_artifacts(state, fallback: str = "") -> list[str]:
+    """Every artifact this run still needs, in the order the briefs ask for them.
+
+    The blocking nodes each called write_agent_task_briefs — which computes the
+    whole list one line above — and then overwrote it with the single path that
+    happened to trip first. A run with four artifacts outstanding reported one,
+    the author supplied it, ran again, and was told about the next: four round
+    trips to learn four things that were all known at the first.
+
+    It also degraded `status`, whose whole job is to say where the run is: after
+    one failed validate it listed one requirement where it had listed four,
+    because the exception's list was written back over the full one.
+    """
+    from pathlib import Path as _Path
+
+    required = state.runtime.get("required_agent_artifacts") or []
+    missing = [item for item in required if not _Path(item).exists()]
+    if missing:
+        return missing
+    return [fallback] if fallback else []
+
+
 def _generate_section_skeletons(state: ReportState, run_dir: Path) -> None:
     """Create starter skeleton files for each required section.
 

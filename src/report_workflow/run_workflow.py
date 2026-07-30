@@ -304,7 +304,8 @@ def _run_nodes(state: ReportState, nodes: list[tuple[str, object]]) -> ReportSta
         except AgentWorkRequired as e:
             print(f"[WORKFLOW] Node {node_name!r} requires agent artifacts: {e}", file=sys.stderr)
             state.runtime["error"] = f"{node_name}: {e}"
-            state.runtime["required_agent_artifacts"] = e.missing_artifacts
+            # The run's full requirement list stays; what is missing right now
+            # rides on the exception and on the job event below.
             state.status = "awaiting_agent_artifacts"
             append_job_event(state, node_name, "agent_work_required", state.status, {"missing_artifacts": e.missing_artifacts})
             state.checkpoint("AWAITING_AGENT_ARTIFACTS")

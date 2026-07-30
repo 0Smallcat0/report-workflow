@@ -6,7 +6,7 @@ from ..errors import AgentWorkRequired, QAHardBlockError
 from ..runtime_support import run_dir_for, write_json_artifact
 from ..state import ReportState
 from ..artifact_contract import make_artifact_contract, validate_artifact_contract, write_artifact_contract
-from .agent_tasks import write_agent_task_briefs
+from .agent_tasks import missing_agent_artifacts, write_agent_task_briefs
 from .section_contract import validate_required_outline_sections
 
 
@@ -30,9 +30,9 @@ def run_outline_plan(state: ReportState) -> ReportState:
     path = _outline_path(state)
     if not path.exists():
         write_agent_task_briefs(state)
-        state.runtime["required_agent_artifacts"] = [str(path)]
+        missing = missing_agent_artifacts(state, str(path))
         state.update_status("awaiting_agent_artifacts")
-        raise AgentWorkRequired(f"Agent artifact required: {path}", [str(path)])
+        raise AgentWorkRequired(f"Agent artifact required: {path}", missing)
 
     result = _load_outline(path)
     validate_artifact_contract(state, path, allow_missing=True)

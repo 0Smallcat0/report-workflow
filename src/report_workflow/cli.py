@@ -333,7 +333,10 @@ def _verbose_validate(job_id: str, deep_audit: bool = False, workspace_root: str
         except AgentWorkRequired as exc:
             print(f"  [BLOCK] {node_name}: agent artifacts required: {exc}", file=sys.stderr)
             state.runtime["error"] = f"{node_name}: {exc}"
-            state.runtime["required_agent_artifacts"] = exc.missing_artifacts
+            # Writing the exception's list back over the full one made `status`
+            # report one requirement where prepare had reported four — the
+            # command whose job is to say where the run is, narrowed by the
+            # attempt to move it forward.
             state.status = "awaiting_agent_artifacts"
             raise
         except QAHardBlockError as exc:

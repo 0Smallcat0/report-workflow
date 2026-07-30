@@ -15,7 +15,7 @@ from ..state import ReportState
 from ..policies import get_policy
 from ..artifact_contract import load_jsonl_without_contract, make_artifact_contract, validate_artifact_contract, write_artifact_contract
 from ..artifact_contract import validate_evidence_ledger_provenance
-from .agent_tasks import write_agent_task_briefs
+from .agent_tasks import missing_agent_artifacts, write_agent_task_briefs
 
 
 def _claim_matrix_path(state: ReportState) -> Path:
@@ -99,9 +99,12 @@ def run_claim_plan(state: ReportState) -> ReportState:
     path = _claim_matrix_path(state)
     if not path.exists():
         write_agent_task_briefs(state)
-        state.runtime["required_agent_artifacts"] = [str(path)]
+        # Report everything still outstanding, not only the one that tripped
+        # first, and leave required_agent_artifacts as the full list so status
+        # keeps saying what the run needs.
+        missing = missing_agent_artifacts(state, str(path))
         state.update_status("awaiting_agent_artifacts")
-        raise AgentWorkRequired(f"Agent artifact required: {path}", [str(path)])
+        raise AgentWorkRequired(f"Agent artifact required: {path}", missing)
 
     claim_matrix = _load_claim_matrix(path)
     validate_artifact_contract(state, path, allow_missing=True)
