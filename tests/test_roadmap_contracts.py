@@ -888,12 +888,25 @@ class DocumentationContractTests(unittest.TestCase):
         legacy_triplet = "|".join(["academic_report", "work_report", "hybrid_report"])
         self.assertNotIn(legacy_triplet, text)
 
-    def test_pillow_dependency_is_consistent(self):
-        pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
-        requirements = Path("requirements.txt").read_text(encoding="utf-8")
+    def test_every_dependency_is_consistent(self):
+        """The two lists of the same fact must not drift.
 
-        self.assertIn("Pillow>=10.0.0", pyproject)
-        self.assertIn("Pillow>=10.0.0", requirements)
+        This named one package and checked it appeared in both files, so
+        openpyxl could be added to pyproject and left out of requirements.txt —
+        the file the README tells people to install, so the documented setup
+        produced an environment that accepts a .xlsx source and then cannot
+        open it. Compare all of them, not a favourite.
+        """
+        import tomllib
+
+        with open("pyproject.toml", "rb") as handle:
+            declared = tomllib.load(handle)["project"]["dependencies"]
+        listed = [
+            line.strip()
+            for line in Path("requirements.txt").read_text(encoding="utf-8").splitlines()
+            if line.strip() and not line.strip().startswith("#")
+        ]
+        self.assertEqual(sorted(listed), sorted(declared))
 
     def test_short_skill_documents_yaml_tool_surface(self):
         skill_text = Path("agent_skill/SKILL.md").read_text(encoding="utf-8")
