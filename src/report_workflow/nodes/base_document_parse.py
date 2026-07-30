@@ -204,17 +204,28 @@ def _parse_docx_section(
                 # lines, so "72.4" sat there with nothing saying it was the
                 # effectiveness measured at 2.0 L/min. Revising your own
                 # report destroyed the tables in it.
-                cell_paragraphs: set = set()
+                emitted_elsewhere: set = set()
                 for elem in root.iter():
                     if elem.tag.endswith("}tbl"):
                         for para in elem.iter():
                             if para.tag.endswith("}p"):
-                                cell_paragraphs.add(id(para))
+                                emitted_elsewhere.add(id(para))
                         table_lines = _docx_table_markdown(elem)
                         if table_lines:
                             current_lines.extend(table_lines)
                         continue
-                    if elem.tag.endswith("}p") and id(elem) in cell_paragraphs:
+                    if elem.tag.endswith("}txbxContent"):
+                        # A text box's paragraphs are read out with the
+                        # paragraph that anchors the box. Reached again on their
+                        # own here, a cover built out of text boxes arrived
+                        # three times over: twice inside that line, because
+                        # Word writes the same words under both mc:Choice and
+                        # mc:Fallback, and once more as loose lines of its own.
+                        for para in elem.iter():
+                            if para.tag.endswith("}p"):
+                                emitted_elsewhere.add(id(para))
+                        continue
+                    if elem.tag.endswith("}p") and id(elem) in emitted_elsewhere:
                         continue
                     if elem.tag.endswith("}p"):  # paragraph
                         # Every "}t" descendant reaches m:t as well, so an

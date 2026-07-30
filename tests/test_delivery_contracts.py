@@ -70,6 +70,37 @@ _DISPLAY_OMML = f"""<m:oMathPara {_MATH_NAMESPACES}>
 </m:oMathPara>"""
 
 
+# A text box, written the way Word writes one: the modern shape under
+# mc:Choice and the same words again under mc:Fallback for older readers.
+_TEXTBOX_NAMESPACES = " ".join([
+    'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"',
+    'xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"',
+    'xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"',
+    'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"',
+    'xmlns:wps="http://schemas.microsoft.com/office/word/2010/wordprocessingShape"',
+    'xmlns:v="urn:schemas-microsoft-com:vml"',
+])
+_TEXTBOX_BODY = (
+    "<w:p><w:r><w:t>國立成功大學機械工程學系</w:t></w:r></w:p>"
+    "<w:p><w:r><w:t>流體力學實驗 第三組</w:t></w:r></w:p>"
+)
+_TEXTBOX_RUN = f"""<w:r {_TEXTBOX_NAMESPACES}>
+  <mc:AlternateContent>
+    <mc:Choice Requires="wps">
+      <w:drawing><wp:inline><a:graphic>
+        <a:graphicData uri="http://schemas.microsoft.com/office/word/2010/wordprocessingShape">
+          <wps:wsp><wps:txbx><w:txbxContent>{_TEXTBOX_BODY}</w:txbxContent></wps:txbx></wps:wsp>
+        </a:graphicData>
+      </a:graphic></wp:inline></w:drawing>
+    </mc:Choice>
+    <mc:Fallback>
+      <w:pict><v:shape><v:textbox><w:txbxContent>{_TEXTBOX_BODY}</w:txbxContent></v:textbox></v:shape></w:pict>
+    </mc:Fallback>
+  </mc:AlternateContent>
+</w:r>"""
+_TEXTBOX_LINES = "國立成功大學機械工程學系\n流體力學實驗 第三組"
+
+
 def _strategy_project_identity():
     return {
         "required_terms": ["deterministic compilation", "StrategyIR", "AST", "Taiwan equities"],
@@ -647,6 +678,33 @@ class QualityGateContractTests(unittest.TestCase):
         # The denominator carries an exponent, so writing it inline without
         # brackets would read as 2F over ρ, times U squared, times A.
         self.assertEqual(contents[1], "C_D=2F/(ρU^2A)")
+
+    def test_a_cover_built_out_of_text_boxes_arrives_once(self):
+        # A text box's paragraphs are not body paragraphs, so a cover page built
+        # out of them was invisible. Reading every descendant instead brought it
+        # in twice, because Word writes the same words under mc:Choice and
+        # mc:Fallback, and the revision reader added a third copy by treating
+        # those paragraphs as top-level ones.
+        import tempfile
+        from docx import Document
+        from docx.oxml import parse_xml
+        from report_workflow.parsers.semi_structured_parser import parse_semi_structured
+        from report_workflow.nodes.base_document_parse import _parse_docx_section
+
+        tmpdir = Path(tempfile.mkdtemp())
+        document = Document()
+        document.add_paragraph()._p.append(parse_xml(_TEXTBOX_RUN))
+        document.add_paragraph("1. 實驗目的")
+        path = tmpdir / "封面.docx"
+        document.save(str(path))
+
+        blocks = parse_semi_structured(str(path), "docx")["blocks"]
+        self.assertEqual(blocks[0]["content"], _TEXTBOX_LINES)
+
+        sections, _titles = _parse_docx_section(str(path))
+        body = "\n".join(sections.values())
+        self.assertEqual(body.count("國立成功大學機械工程學系"), 1)
+        self.assertIn(_TEXTBOX_LINES, body)
 
     def test_a_word_equation_is_not_flattened_when_revising(self):
         # This reader collected every "}t", which reaches m:t as well, and

@@ -30,6 +30,14 @@ formula reaches the ledger, and reaches it saying what the author wrote.
 #: its own line.
 _MATH_ROOTS = ("oMath", "oMathPara")
 
+#: Word's compatibility wrapper. Exactly one of its branches is the document.
+_ALTERNATE_CONTENT = "AlternateContent"
+
+#: A text box. Its paragraphs are not body paragraphs — a cover page built out
+#: of text boxes is invisible to ``doc.paragraphs`` — so they are read here,
+#: with whoever walks the body responsible for not reading them twice.
+_TEXT_BOX = "txbxContent"
+
 _COMBINING_MACRON = "̄"
 _COMBINING_CIRCUMFLEX = "̂"
 
@@ -258,6 +266,23 @@ def _collect(node, parts: list[str]) -> None:
         name = _local(child.tag)
         if name in _MATH_ROOTS:
             parts.append(_render(child))
+        elif name == _ALTERNATE_CONTENT:
+            # A choice, not a list. Word writes the modern shape under
+            # mc:Choice and the same words again under mc:Fallback for older
+            # readers, so walking both put the cover of a report — the
+            # department, the group number — into the ledger twice. Which
+            # branch a reader takes cannot be decided from the file alone; the
+            # first Choice is what Word writes for, and a Fallback is read only
+            # when there is no Choice at all.
+            branch = _child(child, "Choice")
+            if branch is None:
+                branch = _child(child, "Fallback")
+            if branch is not None:
+                _collect(branch, parts)
+        elif name == _TEXT_BOX:
+            # Its paragraphs are paragraphs, so they keep their line breaks:
+            # run together, a two-line cover reads as one run-on line.
+            parts.append(cell_text(child))
         elif name == "t":
             parts.append(child.text or "")
         else:
