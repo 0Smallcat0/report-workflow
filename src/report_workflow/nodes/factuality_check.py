@@ -617,6 +617,27 @@ _QUESTION_SPEAKER_RE = re.compile(r"^\s*(問|answer|question|q|a)\s*[:：.]\s*",
 _ASSERTION_END_RE = re.compile(r"[。．.!！;；]")
 
 
+def _is_heading_only(evidence: dict) -> bool:
+    """True when the evidence is a heading, which asserts nothing.
+
+    A heading names a section; it does not say anything that could be true or
+    false. Term overlap let one ground the claim that restated it — and in
+    Chinese, where a heading has no spaces, "板式熱交換器有效度量測" contains
+    every key term of "本實驗量測板式熱交換器的有效度。", so coverage reached
+    100% and a label certified the claim. The English heading beside it was
+    refused, but only by the accident of its terms not matching.
+
+    Same shape as a question standing alone, and refused for the same reason.
+
+    Decided on the parser's own block type rather than on how the text looks.
+    A marker test was written first and refused "3. 79.3% 為第三次試驗的有效度"
+    — a numbered line that states a measurement, which is how notes are kept.
+    Refusing a sound claim is worse than the gap this closes, and the parser
+    already knows the answer without guessing.
+    """
+    return str(evidence.get("block_type", "")) == "heading"
+
+
 def _is_question_only(text: str) -> bool:
     """True when the text asks something and asserts nothing.
 
@@ -705,6 +726,15 @@ def _content_overlap_findings(
 
     if not evidence_content:
         return [(("content",), "Evidence content is empty — cannot verify claim grounding")]
+
+    if _is_heading_only(evidence):
+        return [((
+            "heading",
+        ), (
+            "Evidence is a section heading and states nothing, so it cannot "
+            "ground this claim — cite the text under the heading instead: "
+            f"{evidence_content[:60]}"
+        ))]
 
     if _is_question_only(evidence_content):
         return [((

@@ -1046,6 +1046,9 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
                 "evidence_grade": grade,
                 "allowed_claim_types": allowed_claim_types.get(evidence_type, ["factual"]),
                 "block_id": block.get("block_id", ""),
+                # The parser knew this was a heading and the ledger did not, so
+                # a section label could ground a claim that only restated it.
+                "block_type": block.get("block_type", ""),
                 "page_number": block.get("page_number"),
                 "requires_hedged_wording": provenance_score < 0.7,
                 "first_hand_account": entry.get("file_type", "") in FIRST_HAND_TYPES,

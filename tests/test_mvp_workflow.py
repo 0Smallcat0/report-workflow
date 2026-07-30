@@ -2225,6 +2225,42 @@ class CrossScriptClaimTests(unittest.TestCase):
                                                chinese_evidence))
 
 
+class HeadingEvidenceTests(unittest.TestCase):
+    """A heading is a label, not an assertion.
+
+    Attaching last year's report and a course note put four headings in a
+    twelve-entry ledger. In Chinese a heading has no spaces, so
+    "板式熱交換器有效度量測" contains every key term of
+    "本實驗量測板式熱交換器的有效度。" — coverage reached 100% and a section
+    label certified the claim that restated it. The English heading beside it
+    was refused, but only by the accident of its terms not matching.
+    """
+
+    def _reasons(self, claim_text, content, block_type):
+        from report_workflow.nodes.factuality_check import _check_content_overlap
+
+        return _check_content_overlap(
+            {"claim_text": claim_text},
+            {"content": content, "block_type": block_type},
+        )
+
+    def test_a_chinese_heading_cannot_ground_the_claim_it_names(self):
+        reasons = self._reasons(
+            "本實驗量測板式熱交換器的有效度。", "板式熱交換器有效度量測", "heading")
+        self.assertTrue(reasons)
+        self.assertIn("section heading", str(reasons[0]))
+
+    def test_a_numbered_line_stating_a_measurement_still_grounds(self):
+        # The first version of this rule read the text and refused anything
+        # that opened with an ordinal, which is how measurement notes are kept.
+        self.assertFalse(self._reasons(
+            "第三次試驗的有效度為 79.3%。", "3. 79.3% 為第三次試驗的有效度", "list_item"))
+
+    def test_prose_under_the_heading_is_unaffected(self):
+        self.assertFalse(self._reasons(
+            "有效度隨流量上升。", "量測顯示有效度隨流量上升，斜率為 2.12。", "paragraph"))
+
+
 class QuestionEvidenceTests(unittest.TestCase):
     """A question is not an answer.
 
