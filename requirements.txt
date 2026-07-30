@@ -1,11 +1,18 @@
-# Core dependencies (required)
+# Core dependencies (required).
+#
+# A copy of [project].dependencies in pyproject.toml, and the copy the README
+# tells people to install. When openpyxl was added to the real list it was not
+# added here, so anyone following the documented setup got an environment that
+# accepts a .xlsx source and then cannot open it. A test now compares the two in
+# full; it used to name one package, and every other package drifted freely.
 pydantic>=2.0
 python-docx>=1.0.0
 filetype>=1.2.0
 pdfplumber>=0.10.0
 pandas>=2.0
+openpyxl>=3.1
 pyyaml>=6.0
-matplotlib>=3.7.0
+matplotlib>=3.7
 Pillow>=10.0.0
 
 # Optional: NotebookLM integration (enable_notebook_sync feature)

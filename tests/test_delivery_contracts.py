@@ -783,13 +783,13 @@ class QualityGateContractTests(unittest.TestCase):
         path = tmpdir / "實驗數據.xlsx"
         book.save(str(path))
 
-        contents = [
-            json.loads(block["content"])
-            for block in parse_structured(str(path), "xlsx")["blocks"]
-        ]
+        blocks = parse_structured(str(path), "xlsx")["blocks"]
+        contents = [json.loads(block["content"]) for block in blocks]
         self.assertEqual([row["組別"] for row in contents], list("AAABBB"))
-        # 3.0 measured alongside 2.5 must not come back as 3.
-        self.assertEqual(contents[2]["流量(L/min)"], 3.0)
+        # 3.0 measured alongside 2.5 must not come back as 3 — asserted on the
+        # text the ledger actually carries, because 3 == 3.0 in Python and the
+        # comparison this used to make could not tell them apart at all.
+        self.assertIn('"流量(L/min)": 3.0', blocks[2]["content"])
         # The last run was never taken. null, because NaN is not JSON and the
         # ledger is read by whoever checks the report.
         self.assertIsNone(contents[5]["效率(%)"])
