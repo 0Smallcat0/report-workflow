@@ -517,6 +517,30 @@ class FigureShortfallHintTest(unittest.TestCase):
             self.assertIn("no section references them", hint)
             self.assertIn("Built figure ids: 1", hint)
 
+    def test_what_pandoc_could_not_render_reaches_the_issue_list(self):
+        # pandoc names what it dropped: a figure replaced by its alt text, a
+        # formula printed as raw TeX in a submitted report. That went to
+        # logger.info truncated at 300 characters — shorter than the TeX
+        # warning itself, so even the log was cut mid-sentence.
+        from report_workflow.nodes.docx_render import _pandoc_warnings
+
+        stderr = (
+            "[WARNING] Could not fetch resource chart.png: replacing image with description\n"
+            "[WARNING] Could not convert TeX math C_D = \\frac{2F}{\\rho U^2 A, rendering as TeX:\n"
+            "  frac{2F}{\\rho U^2 A\n"
+            "                     ^\n"
+            "  unexpected eof\n"
+            "  expecting \"\\\\bangle\", \"{\", letter, digit\n"
+            "[WARNING] Could not fetch resource chart.png: replacing image with description\n"
+        )
+        found = _pandoc_warnings(stderr)
+        self.assertEqual(len(found), 2)
+        self.assertIn("replacing image with description", found[0])
+        self.assertIn("rendering as TeX", found[1])
+        # The parser's expectation dump is for whoever fixes the markup.
+        self.assertFalse([item for item in found if "unexpected eof" in item])
+        self.assertEqual(_pandoc_warnings(""), [])
+
     def test_a_chart_that_cannot_draw_its_own_labels_says_so(self):
         # The font list falls back to DejaVu Sans, which has no CJK glyphs, so
         # on a machine with no Chinese font — an ordinary Linux runner, or the

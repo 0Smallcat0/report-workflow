@@ -535,10 +535,32 @@ def _resolve_reference_doc(spec: dict) -> Path:
     return path
 
 
+def _pandoc_warnings(stderr: str) -> list[str]:
+    """The first line of each pandoc warning, which is the actionable one.
+
+    pandoc names what it could not do — "Could not fetch resource chart.png:
+    replacing image with description", "Could not convert TeX math …, rendering
+    as TeX" — and those are statements about the deliverable: a figure replaced
+    by its alt text, a formula printed as raw TeX in a submitted report. They
+    went to logger.info truncated at 300 characters, which is shorter than the
+    TeX warning itself, so even the log was cut mid-sentence.
+
+    Continuation lines are the parser's list of what it expected instead; that
+    is for whoever fixes the markup, not for the report's QA.
+    """
+    warnings_found: list[str] = []
+    for line in (stderr or "").splitlines():
+        stripped = line.strip()
+        if stripped.startswith("[WARNING]") and stripped not in warnings_found:
+            warnings_found.append(stripped)
+    return warnings_found
+
+
 def _render_via_pandoc(
     md_path: str,
     output_path: str,
     reference_doc: Path | None = None,
+    warnings_out: list[str] | None = None,
 ) -> bool:
     """Convert markdown to DOCX using pandoc.
 
@@ -582,8 +604,11 @@ def _render_via_pandoc(
                 f"[DOCX_RENDER] pandoc failed (exit {result.returncode}): {result.stderr[:500]}"
             )
             return False
-        if result.stderr:
-            logger.info(f"[DOCX_RENDER] pandoc warnings: {result.stderr[:300]}")
+        found = _pandoc_warnings(result.stderr)
+        if found:
+            logger.warning("[DOCX_RENDER] pandoc: " + " | ".join(found))
+            if warnings_out is not None:
+                warnings_out.extend(found)
         return True
     except FileNotFoundError:
         logger.warning("[DOCX_RENDER] pandoc executable not found")
@@ -1464,11 +1489,13 @@ def run_docx_render(state: ReportState) -> ReportState:
     reference_doc = _resolve_reference_doc(state.spec)
     custom_template_requested = bool(str(state.spec.get("reference_docx_path") or "").strip())
     used_pandoc = False
+    pandoc_warnings: list[str] = []
     try:
         used_pandoc = _render_via_pandoc(
             str(pandoc_input_md),
             str(final_docx_path),
             reference_doc=reference_doc,
+            warnings_out=pandoc_warnings,
         )
     except Exception as exc:
         logger.warning(f"[DOCX_RENDER] pandoc path failed, falling back: {exc}")
@@ -1514,6 +1541,9 @@ def run_docx_render(state: ReportState) -> ReportState:
 
     # --- Post-render validation ---
     validation_issues = _validate_docx(str(final_docx_path), md_content)
+    # The renderer's own account of what it could not do belongs with the
+    # checks that read the file afterwards, not in a log line nobody keeps.
+    validation_issues.extend(f"pandoc: {item}" for item in pandoc_warnings)
     if validation_issues:
         logger.warning(
             f"[DOCX_RENDER] Post-render validation issues: {'; '.join(validation_issues)}"
