@@ -77,6 +77,20 @@ def make_artifact_contract(state: ReportState) -> dict:
 
 
 def write_base_document_integrity(state: ReportState, sections: dict[str, str], source_entry: dict) -> str:
+    """Record what the base document was, so a later change can be noticed.
+
+    Size and modification time were recorded here and compared by nobody, under
+    a name that promised otherwise. They also cannot do the job: fixing what
+    looks like a typo — 79.3 to 89.3 — changes neither, and making that edit
+    between prepare and the revision being applied is an ordinary thing to do.
+    The revision was then applied against a snapshot of a file that no longer
+    said what the snapshot said.
+
+    So the content is hashed, and that is what gets compared. Modification time
+    stays recorded and stays uncompared on purpose: opening a file and saving it
+    changes the time without changing a character, and refusing a sound run for
+    that would be worse than the gap being closed here.
+    """
     run_dir = WORKFLOW_RUNS_DIR / state.job_id
     source_path = Path(source_entry.get("file_path", ""))
     stat = source_path.stat() if source_path.exists() else None
@@ -86,10 +100,13 @@ def write_base_document_integrity(state: ReportState, sections: dict[str, str], 
         "source_file_name": source_entry.get("file_name", ""),
         "source_file_size": stat.st_size if stat else None,
         "source_mtime_ns": stat.st_mtime_ns if stat else None,
+        "source_content_hash": _hash_bytes(source_path.read_bytes()) if stat else "",
         "sections_hash": compute_sections_hash(sections),
     }
     path = run_dir / BASE_INTEGRITY_FILENAME
-    path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, indent=2, ensure_ascii=False, default=str), encoding="utf-8"
+    )
     state.sources["base_document_integrity_path"] = str(path)
     state.sources["base_document_sections_hash"] = payload["sections_hash"]
     return str(path)
@@ -110,6 +127,25 @@ def validate_base_document_integrity(state: ReportState, sections: dict[str, str
             f"(expected sections_hash={expected_hash}, actual={actual_hash}). "
             "Do not edit base_document_sections.json or checkpoint state directly; "
             "use revision_plan.json and rerun prepare if the base document changed."
+        )
+
+    # The message above tells the author what to do when the base document
+    # changed. Until now nothing could tell that it had.
+    expected_source = integrity.get("source_content_hash", "")
+    if not expected_source:
+        return
+    source_path = Path(integrity.get("source_file_path", ""))
+    if not source_path.exists():
+        raise QAHardBlockError(
+            f"the base document is no longer at {source_path}. The revision would be "
+            "applied to a parse of a file that is not there to check it against; "
+            "restore the file or rerun prepare against its new location."
+        )
+    if _hash_bytes(source_path.read_bytes()) != expected_source:
+        raise QAHardBlockError(
+            f"the base document {integrity.get('source_file_name') or source_path.name} "
+            "changed on disk after it was parsed, so this revision would be applied to "
+            "text the file no longer contains. Rerun prepare to parse it as it is now."
         )
 
 
