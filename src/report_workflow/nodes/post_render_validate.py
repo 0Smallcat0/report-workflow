@@ -86,8 +86,21 @@ _FIGURE_CAPTION_RE = re.compile(
 #: references to figures the outline never declared — had never run against a
 #: Chinese report. A word boundary does nothing next to CJK, hence the two
 #: alternatives rather than one pattern.
+#:
+#: Guarding only against a following digit let the label swallow the first
+#: letter of the next word: "kept in figure metadata rather than recomputed in
+#: prose" declared a reference to figure "m", and a finished report was
+#: hard-blocked for citing a figure whose caption nobody had written. "the
+#: figure shows" would have named figure "s".
+#:
+#: A trailing \b is the wrong guard here for the same reason a leading one is:
+#: CJK counts as word characters, so 圖3可見 has no boundary after the 3 and the
+#: Chinese reference this pattern exists to catch would stop matching. What must
+#: not follow the id is a Latin letter or another digit. A sub-figure written
+#: "Figure 2a" stops being a mention, which is already true of the caption
+#: pattern above.
 _FIGURE_MENTION_RE = re.compile(
-    r"(?:\b(?:Figure|Fig\.?)\s+|(?:圖|图)\s*)(\d+|[a-z])(?![0-9])",
+    r"(?:\b(?:Figure|Fig\.?)\s+|(?:圖|图)\s*)(\d+|[a-z])(?![0-9a-z])",
     re.IGNORECASE,
 )
 
