@@ -758,6 +758,63 @@ class QualityGateContractTests(unittest.TestCase):
             ],
         )
 
+    def test_a_merged_group_column_keeps_every_row_its_group(self):
+        # A course data sheet merges 組別 down the runs it covers. pandas sees
+        # the top-left value and blanks beside it, so four of six readings
+        # reached the ledger with no way to say whose they were — while the run
+        # nobody measured must stay unmeasured, which is why the merged ranges
+        # are read out of the file instead of gaps being carried down.
+        import tempfile
+        from openpyxl import Workbook
+        from report_workflow.parsers.structured_parser import parse_structured
+
+        tmpdir = Path(tempfile.mkdtemp())
+        book = Workbook()
+        sheet = book.active
+        sheet.append(["組別", "試次", "流量(L/min)", "效率(%)"])
+        for row in [
+            ("A", 1, 2.0, 58.1), (None, 2, 2.5, 60.3), (None, 3, 3.0, 62.0),
+            ("B", 1, 2.0, 57.4), (None, 2, 2.5, 59.8), (None, 3, 3.0, None),
+        ]:
+            sheet.append(row)
+        sheet.merge_cells("A2:A4")
+        sheet.merge_cells("A5:A7")
+        path = tmpdir / "實驗數據.xlsx"
+        book.save(str(path))
+
+        contents = [
+            json.loads(block["content"])
+            for block in parse_structured(str(path), "xlsx")["blocks"]
+        ]
+        self.assertEqual([row["組別"] for row in contents], list("AAABBB"))
+        # 3.0 measured alongside 2.5 must not come back as 3.
+        self.assertEqual(contents[2]["流量(L/min)"], 3.0)
+        # The last run was never taken. null, because NaN is not JSON and the
+        # ledger is read by whoever checks the report.
+        self.assertIsNone(contents[5]["效率(%)"])
+        self.assertNotIn("NaN", json.dumps(contents))
+
+    def test_a_merged_xlsx_header_keeps_both_readings(self):
+        # The same defect the DOCX reader had: one label merged across two
+        # columns left the second keyed on "Unnamed: 2", text nobody wrote.
+        import tempfile
+        from openpyxl import Workbook
+        from report_workflow.parsers.structured_parser import parse_xlsx
+
+        tmpdir = Path(tempfile.mkdtemp())
+        book = Workbook()
+        sheet = book.active
+        sheet.append(["機台", "解析度(μm)", None])
+        sheet.append(["A1", 5, 7])
+        sheet.merge_cells("B1:C1")
+        path = tmpdir / "規格.xlsx"
+        book.save(str(path))
+
+        self.assertEqual(
+            parse_xlsx(str(path)),
+            [{"機台": "A1", "解析度(μm)": 5, "解析度(μm) [2]": 7}],
+        )
+
     def test_a_single_sheet_workbook_gains_no_extra_column(self):
         import tempfile
         from openpyxl import Workbook
