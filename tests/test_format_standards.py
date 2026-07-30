@@ -517,6 +517,25 @@ class FigureShortfallHintTest(unittest.TestCase):
             self.assertIn("no section references them", hint)
             self.assertIn("Built figure ids: 1", hint)
 
+    def test_the_word_after_figure_is_not_a_figure_number(self):
+        # "kept in figure metadata rather than recomputed in prose" hard-blocked
+        # a rendered report for citing figure "m" — the first letter of the next
+        # word. "the figure shows" would have named figure "s".
+        from report_workflow.nodes.post_render_validate import _FIGURE_MENTION_RE
+
+        def mentions(text):
+            return sorted(m.group(1).lower() for m in _FIGURE_MENTION_RE.finditer(text))
+
+        self.assertEqual(mentions("kept in figure metadata rather than prose"), [])
+        self.assertEqual(mentions("the figure shows a rising trend"), [])
+        self.assertEqual(mentions("as Figure 3 shows"), ["3"])
+        self.assertEqual(mentions("see Fig. 12 below"), ["12"])
+        self.assertEqual(mentions("Figure A: apparatus"), ["a"])
+        self.assertEqual(mentions("由圖 2 可見"), ["2"])
+        # A trailing \b would have been the obvious guard and would have broken
+        # this: CJK are word characters, so there is no boundary after the 3.
+        self.assertEqual(mentions("由圖3可見有效度上升"), ["3"])
+
     def test_no_figures_at_all_stays_silent(self):
         from report_workflow.nodes.post_render_validate import _figure_shortfall_hint
 
