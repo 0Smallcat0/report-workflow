@@ -226,7 +226,9 @@ def run_section_draft(state: ReportState) -> ReportState:
         missing.append(str(sentence_map_path))
     if missing:
         write_agent_task_briefs(state)
-        state.runtime["required_agent_artifacts"] = missing
+        # required_agent_artifacts stays the run's full list; what is missing
+        # right now travels on the exception, so status keeps saying what the
+        # run needs rather than only what stopped it this time.
         state.update_status("awaiting_agent_artifacts")
         raise AgentWorkRequired("Agent section draft artifacts are required", missing)
 
@@ -271,7 +273,6 @@ def run_section_draft(state: ReportState) -> ReportState:
 
     if missing:
         write_agent_task_briefs(state)
-        state.runtime["required_agent_artifacts"] = missing
         state.update_status("awaiting_agent_artifacts")
         raise AgentWorkRequired("Agent section draft artifacts are incomplete", missing)
 

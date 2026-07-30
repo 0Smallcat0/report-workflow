@@ -2247,6 +2247,44 @@ class CrossScriptClaimTests(unittest.TestCase):
                                                chinese_evidence))
 
 
+class MissingArtifactReportingTests(unittest.TestCase):
+    """Report everything outstanding, not only what tripped first.
+
+    Four artifacts missing produced one name, so the author supplied it, ran
+    again, and was told about the next — four round trips to learn four things
+    all known at the first. The blocking node computed the full list one line
+    above and then overwrote it with its own single path.
+    """
+
+    def test_all_outstanding_artifacts_are_named(self):
+        from report_workflow.nodes.agent_tasks import missing_agent_artifacts
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            present = Path(tmpdir) / "outline.json"
+            present.write_text("{}", encoding="utf-8")
+            absent_a = Path(tmpdir) / "claim_matrix.json"
+            absent_b = Path(tmpdir) / "sentence_map.jsonl"
+
+            state = ReportState.new("write a report", [], str(Path(tmpdir) / "out"))
+            state.runtime["required_agent_artifacts"] = [
+                str(absent_a), str(present), str(absent_b),
+            ]
+            self.assertEqual(
+                missing_agent_artifacts(state, str(absent_a)),
+                [str(absent_a), str(absent_b)],
+            )
+
+    def test_the_tripping_path_is_the_fallback_when_nothing_is_recorded(self):
+        from report_workflow.nodes.agent_tasks import missing_agent_artifacts
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("write a report", [], str(Path(tmpdir) / "out"))
+            state.runtime["required_agent_artifacts"] = []
+            self.assertEqual(missing_agent_artifacts(state, "claim_matrix.json"),
+                             ["claim_matrix.json"])
+            self.assertEqual(missing_agent_artifacts(state), [])
+
+
 class HeadingEvidenceTests(unittest.TestCase):
     """A heading is a label, not an assertion.
 
