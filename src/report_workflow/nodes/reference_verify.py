@@ -303,8 +303,11 @@ def _write_curated_reference_list(state: ReportState, refs: list[dict]) -> None:
 
     if curated:
         if gb_t_numbered:
-            # Renumber from one: dropping an entry must not leave a gap in the
-            # sequence, and in-text markers are rebound to the curated list.
+            # Renumber from one so dropping an entry leaves no gap in the
+            # sequence. Nothing rebinds the in-text markers to this list — a
+            # claim this comment used to make and no code anywhere kept — so a
+            # dropped entry leaves its [n] pointing at nothing. POST_RENDER
+            # refuses the deliverable when that happens rather than let it ship.
             body = "\n\n".join(
                 f"[{number}] {re.sub(r'^\[\d+\]\s*', '', item)}"
                 for number, item in enumerate(curated, start=1)
