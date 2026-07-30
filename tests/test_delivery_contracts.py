@@ -759,6 +759,42 @@ class QualityGateContractTests(unittest.TestCase):
             ],
         )
 
+    def test_a_vaults_bookkeeping_is_not_evidence(self):
+        # A note exported from Obsidian opens with front matter. Read as
+        # content it became one citable block, so a claim could trace to
+        # "created: 2026-07-12" or to the note's own summary and clear the
+        # gate with nothing measured behind it — and the entry count that asks
+        # whether there is enough material got a free one. Revising such a note
+        # printed the same block into the report as its preamble.
+        import tempfile
+        from report_workflow.parsers.semi_structured_parser import (
+            _front_matter_end,
+            parse_semi_structured,
+        )
+        from report_workflow.nodes.base_document_parse import _parse_markdown_sections
+
+        tmpdir = Path(tempfile.mkdtemp())
+        path = tmpdir / "筆記.md"
+        path.write_text(
+            "---\ntype: lab-note\ntags:\n  - 熱傳\nstatus: active\n"
+            "created: 2026-07-12\nsummary: 四個流量點的有效度量測。\n---\n\n"
+            "# 有效度量測\n\n每點取三次平均。\n",
+            encoding="utf-8",
+        )
+
+        blocks = parse_semi_structured(str(path), "md")["blocks"]
+        joined = "\n".join(block["content"] for block in blocks)
+        self.assertNotIn("created:", joined)
+        self.assertNotIn("lab-note", joined)
+        self.assertIn("每點取三次平均。", joined)
+
+        sections = _parse_markdown_sections(str(path))
+        self.assertNotIn("preamble", sections)
+
+        # A document that opens with a horizontal rule is left exactly as it is.
+        self.assertEqual(_front_matter_end(["---\n", "\n", "# Title\n"]), 0)
+        self.assertEqual(_front_matter_end(["---\n", "A sentence.\n"]), 0)
+
     def test_a_merged_group_column_keeps_every_row_its_group(self):
         # A course data sheet merges 組別 down the runs it covers. pandas sees
         # the top-left value and blanks beside it, so four of six readings

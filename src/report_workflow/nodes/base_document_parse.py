@@ -16,6 +16,7 @@ from ..errors import QAHardBlockError
 from ..artifact_contract import write_base_document_integrity
 from ..language import ZH_ORDINAL_PREFIX_RE
 from ..parsers.office_math import element_text
+from ..parsers.semi_structured_parser import _front_matter_end
 from ..parsers.source_text import read_source_text
 
 
@@ -344,6 +345,11 @@ def _parse_markdown_sections(path: str) -> dict[str, str]:
     figures, lists, and subsection headings remain part of the section body.
     """
     text = read_source_text(path)
+    # A note exported from a vault opens with the vault's own bookkeeping. Kept,
+    # it became the preamble of the revised report — type, tags, status,
+    # created — printed into the document the author hands in.
+    lines = text.splitlines(keepends=True)
+    text = "".join(lines[_front_matter_end(lines):])
     sections: dict[str, str] = {}
 
     heading_re = re.compile(r"^(#{1,6})\s+(.+?)\s*$", re.MULTILINE)
