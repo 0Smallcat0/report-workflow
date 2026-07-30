@@ -795,6 +795,36 @@ class QualityGateContractTests(unittest.TestCase):
         self.assertEqual(_front_matter_end(["---\n", "\n", "# Title\n"]), 0)
         self.assertEqual(_front_matter_end(["---\n", "A sentence.\n"]), 0)
 
+    def test_a_hidden_note_to_self_does_not_reach_the_report(self):
+        # %%...%% is Obsidian's comment: the author cannot see it in reading
+        # view, which is the point of it. "The 4.0 point is not calibrated, do
+        # not use the number" was citable evidence, and revising the note
+        # printed it into the document they hand in. The tag line above it was
+        # typed as a heading, which CommonMark does not call one either.
+        import tempfile
+        from report_workflow.parsers.semi_structured_parser import parse_semi_structured
+        from report_workflow.nodes.base_document_parse import _parse_markdown_sections
+
+        tmpdir = Path(tempfile.mkdtemp())
+        path = tmpdir / "筆記.md"
+        path.write_text(
+            "# 有效度量測\n\n#熱傳 #待複查\n\n每點取三次平均。\n\n"
+            "%%4.0 那點還沒校正，數字先不要用%%\n\n說明結束。\n",
+            encoding="utf-8",
+        )
+
+        blocks = parse_semi_structured(str(path), "md")["blocks"]
+        joined = "\n".join(block["content"] for block in blocks)
+        self.assertNotIn("還沒校正", joined)
+        self.assertIn("每點取三次平均。", joined)
+        tag_block = next(b for b in blocks if "#熱傳" in b["content"])
+        self.assertEqual(tag_block["block_type"], "paragraph")
+        # A real heading is still a heading.
+        self.assertEqual(blocks[0]["block_type"], "heading")
+
+        sections = _parse_markdown_sections(str(path))
+        self.assertNotIn("還沒校正", "\n".join(sections.values()))
+
     def test_a_merged_group_column_keeps_every_row_its_group(self):
         # A course data sheet merges 組別 down the runs it covers. pandas sees
         # the top-left value and blanks beside it, so four of six readings

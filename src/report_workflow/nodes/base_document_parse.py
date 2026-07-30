@@ -16,7 +16,7 @@ from ..errors import QAHardBlockError
 from ..artifact_contract import write_base_document_integrity
 from ..language import ZH_ORDINAL_PREFIX_RE
 from ..parsers.office_math import element_text
-from ..parsers.semi_structured_parser import _front_matter_end
+from ..parsers.semi_structured_parser import _front_matter_end, strip_obsidian_comments
 from ..parsers.source_text import read_source_text
 
 
@@ -348,6 +348,11 @@ def _parse_markdown_sections(path: str) -> dict[str, str]:
     # A note exported from a vault opens with the vault's own bookkeeping. Kept,
     # it became the preamble of the revised report — type, tags, status,
     # created — printed into the document the author hands in.
+    # An Obsidian comment is hidden from its own author in reading view, so a
+    # note reading "the 4.0 point is not calibrated, do not use the number"
+    # would have been carried into the revised report where nobody was looking
+    # for it.
+    text = strip_obsidian_comments(text)
     lines = text.splitlines(keepends=True)
     text = "".join(lines[_front_matter_end(lines):])
     sections: dict[str, str] = {}
