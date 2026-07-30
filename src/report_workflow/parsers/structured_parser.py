@@ -93,6 +93,46 @@ def parse_csv(file_path: str) -> list[dict]:
     ]
 
 
+def _merged_cell_values(file_path: str) -> dict[str, dict[tuple[int, int], object]]:
+    """What each merged range shows, per sheet, keyed by zero-based cell.
+
+    A merge reaches pandas as the top-left value and blanks beside it, so the
+    group column of a course data sheet — 組別 A spanning its three runs, B
+    spanning its three — arrived as two readings with a group and four with
+    NaN. What the sheet plainly shows to anyone looking at it was destroyed at
+    ingestion, and the rows that survived carried no way to say whose they were.
+
+    Carrying values down into every gap would be a different and worse answer:
+    a run nobody measured would inherit the reading before it. Only the cells a
+    merge actually covers are filled, which is why the ranges are read out of
+    the file rather than guessed from where the blanks fall.
+    """
+    from openpyxl import load_workbook
+
+    filled: dict[str, dict[tuple[int, int], object]] = {}
+    try:
+        book = load_workbook(file_path, data_only=True)
+    except Exception:
+        # A workbook openpyxl declines may still be readable by pandas, and a
+        # sheet with no merges loses nothing by this coming back empty.
+        return filled
+    try:
+        for sheet in book.worksheets:
+            cells: dict[tuple[int, int], object] = {}
+            for merged in sheet.merged_cells.ranges:
+                value = sheet.cell(merged.min_row, merged.min_col).value
+                if value is None:
+                    continue
+                for row in range(merged.min_row, merged.max_row + 1):
+                    for col in range(merged.min_col, merged.max_col + 1):
+                        cells[(row - 1, col - 1)] = value
+            if cells:
+                filled[str(sheet.title)] = cells
+    finally:
+        book.close()
+    return filled
+
+
 def parse_xlsx(file_path: str) -> list[dict]:
     """Parse XLSX file using pandas — every sheet, not only the first.
 
@@ -102,9 +142,20 @@ def parse_xlsx(file_path: str) -> list[dict]:
     came from, because rows reading 1.8 and 4.2 with no way to tell which year
     is the confusion that gets the wrong one cited. A single-sheet workbook —
     the ordinary case — is parsed exactly as before, with no added key.
+
+    Merged cells are filled in after the header row has been located, not
+    before: a report's title merged across the width of its table shows one
+    value, and filling it first would make that row as wide as the table and so
+    indistinguishable from the header sitting under it.
+
+    The fill is applied to the frame pandas has already typed rather than to the
+    raw cell grid. Reading the grid untyped loses the column's own dtype, and
+    3.0 measured alongside 2.5 came back as 3 — the same reading, reported to
+    one fewer significant figure.
     """
     import pandas as pd
 
+    merged = _merged_cell_values(file_path)
     book = pd.read_excel(file_path, sheet_name=None, header=None)
     sheets: list[tuple[str, list[dict]]] = []
     for name, raw in book.items():
@@ -112,6 +163,20 @@ def parse_xlsx(file_path: str) -> list[dict]:
             continue
         skip = _leading_noise_rows(raw.values.tolist())
         frame = pd.read_excel(file_path, sheet_name=name, header=skip)
+        cells = merged.get(str(name), {})
+        if cells:
+            # A merge over the header row names the columns it covers; the same
+            # label then appears twice, which is what the CSV and DOCX readers
+            # already number rather than let one column overwrite the other.
+            columns = [str(column) for column in frame.columns]
+            for (row, col), value in cells.items():
+                if row == skip and 0 <= col < len(columns):
+                    columns[col] = str(value)
+            frame.columns = _disambiguate_headers(columns)
+            for (row, col), value in cells.items():
+                data_row = row - skip - 1
+                if 0 <= data_row < len(frame) and 0 <= col < len(frame.columns):
+                    frame.iloc[data_row, col] = value
         records = frame.to_dict(orient="records")
         if records:
             sheets.append((str(name), records))
@@ -152,6 +217,22 @@ def parse_toml(file_path: str) -> list[dict]:
     return []
 
 
+def _json_safe(record: dict) -> dict:
+    """A cell nobody filled in, written as null rather than as NaN.
+
+    ``json.dumps`` emits a bare ``NaN`` by default, which is not JSON: no
+    strict parser accepts it. The evidence ledger is a delivered artifact meant
+    to be read by whoever checks the report, so a run that was never measured
+    put a line in it that a reader in any other language would refuse outright.
+    ``null`` says the same thing and says it legally — and it renders as an
+    empty cell instead of the word "nan".
+    """
+    return {
+        key: None if isinstance(value, float) and value != value else value
+        for key, value in record.items()
+    }
+
+
 def parse_structured(file_path: str, file_type: str) -> dict:
     """Parse structured file and return content blocks."""
     try:
@@ -169,9 +250,10 @@ def parse_structured(file_path: str, file_type: str) -> dict:
         blocks = []
         content_lines = []
         for i, record in enumerate(records):
+            record = _json_safe(record)
             line = json.dumps(record, ensure_ascii=False)
             headers = [str(key) for key in record.keys()]
-            values = [str(value) for value in record.values()]
+            values = ["" if value is None else str(value) for value in record.values()]
             # A row exported before anyone filled it in carries column names and
             # nothing else. It used to become an evidence entry all the same, so
             # an untouched export could clear the "at least 5 evidence entries"
