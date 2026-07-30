@@ -1905,7 +1905,15 @@ class CitationSurvivesRerunTests(unittest.TestCase):
             preflight_confirmed=True,
             preflight_decisions={
                 "confirmed_by_user": True,
-                "install_decisions": {"notebook_sync": "skip"},
+                # A decision for every tool the preflight can ask about, not
+                # only the ones missing on the machine that wrote this test.
+                # With pandoc installed locally it was never asked, so the
+                # fixture passed here and the run refused to start on CI.
+                "install_decisions": {
+                    "pandoc": "accept_degraded",
+                    "mmdc": "skip",
+                    "notebook_sync": "skip",
+                },
                 "feature_decisions": {"web_research": "disable",
                                       "notebook_sync": "skip"},
             },
@@ -2487,7 +2495,15 @@ class PdfTableParityTests(unittest.TestCase):
             preflight_confirmed=True,
             preflight_decisions={
                 "confirmed_by_user": True,
-                "install_decisions": {"notebook_sync": "skip"},
+                # A decision for every tool the preflight can ask about, not
+                # only the ones missing on the machine that wrote this test.
+                # With pandoc installed locally it was never asked, so the
+                # fixture passed here and the run refused to start on CI.
+                "install_decisions": {
+                    "pandoc": "accept_degraded",
+                    "mmdc": "skip",
+                    "notebook_sync": "skip",
+                },
                 "feature_decisions": {"web_research": "disable",
                                       "notebook_sync": "skip"}},
         )
