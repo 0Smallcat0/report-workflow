@@ -322,12 +322,38 @@ def _legend_outside(ax: Any) -> None:
 
 
 def _save_figure(fig: Any, ax: Any, figure_id: str, figure_type: str, data: dict, output_path: Path, dpi: int) -> list[dict]:
+    import warnings
+
     try:
         fig.tight_layout()
     except Exception:
         pass
     issues = _figure_visual_quality_issues(fig, ax, figure_id, figure_type, data)
-    fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
+
+    # matplotlib says which characters it could not draw, and nobody was
+    # listening. The font list above prefers CJK faces and falls back to
+    # DejaVu Sans, which has no CJK glyphs at all — so on a machine with none
+    # of them installed, which is the ordinary state of a Linux runner and of
+    # the Colab notebook this project advertises, every Chinese axis label and
+    # title became a row of tofu boxes and the report went out carrying them.
+    with warnings.catch_warnings(record=True) as caught:
+        warnings.simplefilter("always")
+        fig.savefig(output_path, dpi=dpi, bbox_inches="tight")
+        unrenderable = sorted({
+            str(item.message).split("missing from font")[0].strip()
+            for item in caught
+            if "missing from font" in str(item.message)
+        })
+    if unrenderable:
+        issues.append(_visual_issue(
+            "characters_missing_from_font",
+            figure_id,
+            f"{len(unrenderable)} character(s) in this chart's text have no glyph "
+            f"in any installed font and were drawn as empty boxes: "
+            f"{', '.join(unrenderable[:3])}",
+            "Install a CJK-capable font (Noto Sans CJK, Microsoft JhengHei or "
+            "SimHei) and rebuild the figures; the chart itself is correct.",
+        ))
     return issues
 
 
