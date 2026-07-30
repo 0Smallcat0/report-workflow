@@ -1610,6 +1610,28 @@ class SourceParseNewTypesTests(unittest.TestCase):
         self.assertEqual(determine_evidence_type(rows, "table"), "quantitative")
         self.assertEqual(determine_evidence_type(rows, "csv_row"), "quantitative")
 
+    def test_one_reading_beside_its_label_is_a_measurement(self):
+        """The commonest shape a lab sheet has: a condition and a reading.
+
+        Two numeric tokens were required, so a two-column table produced
+        qualitative evidence and — the same threshold guards the provenance
+        bonus — never reached high grade, which is what FD reads before it
+        allows "measured" wording on the author's own numbers.
+        """
+        from report_workflow.nodes.evidence_normalize import determine_evidence_type
+
+        def typed(record):
+            return determine_evidence_type(json.dumps(record, ensure_ascii=False), "table_row")
+
+        self.assertEqual(
+            typed({"condition": "baseline_manual", "median_processing_minutes": "28"}),
+            "quantitative")
+        self.assertEqual(typed({"試次": "1", "有效度(%)": "72.4"}), "quantitative")
+        # Both columns are counters, so there is no reading here — and this row
+        # used to qualify on the strength of having two numbers in it.
+        self.assertEqual(typed({"試次": "1", "編號": "7"}), "qualitative")
+        self.assertEqual(typed({"姓名": "陳", "備註": "無"}), "qualitative")
+
     def test_parse_markdown_splits_blocks(self):
         """parse_markdown splits .md files into blocks with line_start/line_end."""
         from report_workflow.parsers.semi_structured_parser import parse_markdown
