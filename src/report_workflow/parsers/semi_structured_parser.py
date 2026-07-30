@@ -423,6 +423,45 @@ def _delimited_table_rows(lines: list[str], start: int) -> tuple[list[list[str]]
     return rows, index
 
 
+_FRONT_MATTER_FENCE_RE = re.compile(r"^\s*(?:---|\.\.\.)\s*$")
+_FRONT_MATTER_KEY_RE = re.compile(r"^[A-Za-z_][\w .-]*:(?:\s|$)")
+_FRONT_MATTER_ITEM_RE = re.compile(r"^\s*-\s+\S")
+_FRONT_MATTER_MAX_LINES = 60
+
+
+def _front_matter_end(lines: list[str]) -> int:
+    """Index of the first line after YAML front matter, or 0 when there is none.
+
+    A note exported from a vault opens with the vault's own bookkeeping — type,
+    tags, status, created, summary — and that whole block arrived as one
+    paragraph of citable evidence. A claim could then trace to
+    ``created: 2026-07-12``, or to the note's one-line summary, and clear the
+    gate with nothing measured behind it; meanwhile the entry count that asks
+    "is there enough material here" was handed a free one.
+
+    It is not content, so it is not read as content. The check is strict on
+    purpose: an opening rule followed by anything that is not a YAML key, a list
+    item or a continuation leaves the document exactly as it was, because a
+    horizontal rule at the top of a document is a real thing to write.
+    """
+    if not lines or not _FRONT_MATTER_FENCE_RE.match(lines[0].rstrip("\n")):
+        return 0
+    for index in range(1, min(len(lines), _FRONT_MATTER_MAX_LINES)):
+        text = lines[index].rstrip("\n")
+        if _FRONT_MATTER_FENCE_RE.match(text):
+            return index + 1
+        if not text.strip():
+            continue
+        if (
+            _FRONT_MATTER_KEY_RE.match(text)
+            or _FRONT_MATTER_ITEM_RE.match(text)
+            or text[:1] in (" ", "\t")
+        ):
+            continue
+        return 0
+    return 0
+
+
 def parse_markdown(file_path: str) -> dict:
     """Parse Markdown file by splitting into heading/paragraph/list/code blocks.
 
@@ -440,7 +479,10 @@ def parse_markdown(file_path: str) -> dict:
         blocks = []
         all_text_parts = []
         block_counter = 0
-        i = 0
+        # Start past the vault's own bookkeeping. The list keeps its full length
+        # so every line number reported below still points at the real line of
+        # the real file.
+        i = _front_matter_end(lines)
 
         while i < len(lines):
             raw_line = lines[i]
