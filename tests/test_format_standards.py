@@ -663,6 +663,37 @@ class LocalArtifactCitationTest(unittest.TestCase):
                     "",
                 )
 
+    def test_the_numeric_notation_suppresses_them_too(self):
+        # The rule above was enforced only where the author-year formatter runs.
+        # The GB/T numeric branch never called it, so a lab report citing its
+        # own .csv put [1] in the prose, curation removed the entry it pointed
+        # at, and the document went out with thirteen markers over an empty
+        # bibliography.
+        from report_workflow.nodes.citation_bind import _is_local_artifact
+
+        for file_type in ("csv", "json", "docx", "md", "txt"):
+            with self.subTest(file_type=file_type):
+                self.assertTrue(_is_local_artifact({"file_type": file_type}))
+        self.assertFalse(_is_local_artifact({"file_type": "pdf"}))
+
+    def test_a_marker_with_no_entry_is_refused_after_render(self):
+        # The safety net for the same invariant, asked of the deliverable
+        # itself: whatever binding and curation did between them, a number in
+        # the prose must be findable in the list.
+        from report_workflow.nodes.post_render_validate import (
+            _NUMERIC_REFERENCE_ENTRY_RE,
+            _cited_numbers,
+        )
+
+        self.assertEqual(_cited_numbers("see [2,3] and [4-6] and [1]"), {1, 2, 3, 4, 5, 6})
+        # A bracketed date is not a citation.
+        self.assertEqual(_cited_numbers("dated [2026-05-13]"), set())
+
+        listed = {int(m.group(1)) for m in _NUMERIC_REFERENCE_ENTRY_RE.finditer(
+            "9. Conclusion\n\n[1] 王小明. 熱傳[J]. 2024.\n"
+        )}
+        self.assertEqual(listed, {1})
+
     def test_pdf_source_still_cites(self):
         from report_workflow.nodes.citation_bind import _format_in_text_citation
 

@@ -222,6 +222,23 @@ LOCAL_ARTIFACT_FILE_TYPES = frozenset(
     file_type for file_type, (_, is_local) in _REFERENCE_LABELS.items() if is_local
 )
 
+def _is_local_artifact(evidence: dict) -> bool:
+    """True when this source's reference entry will be curated away.
+
+    The rule above — a citation must point at something the reference list
+    actually carries — was enforced only where the author-year formatter runs.
+    The GB/T numeric branch never called it, so a Chinese-language lab report
+    citing its own .csv put [1] into the prose thirteen times, curation then
+    removed the entry it pointed at, and the deliverable went out with a
+    bibliography that had nothing in it. Same rule, both notations.
+    """
+    metadata = evidence.get("metadata") or {}
+    file_type = str(
+        evidence.get("file_type") or metadata.get("file_type") or ""
+    ).lower().lstrip(".")
+    return file_type in LOCAL_ARTIFACT_FILE_TYPES
+
+
 #: The bracketed labels those entries carry. reference_verify curates on these.
 LOCAL_ARTIFACT_LABELS = tuple(
     sorted({label for label, is_local in _REFERENCE_LABELS.values() if is_local})
@@ -637,7 +654,11 @@ def resolve_citations_publication(
                 source_role = evidence.get("source_role", "primary_source")
                 citation_type = SOURCE_ROLE_CITATION_TYPE.get(source_role, "reference_entry")
 
-                if citation_style == "gb_t_7714_2015" and citation_type == "reference_entry":
+                if (
+                    citation_style == "gb_t_7714_2015"
+                    and citation_type == "reference_entry"
+                    and not _is_local_artifact(evidence)
+                ):
                     source_key = _source_reference_key(evidence)
                     if source_key not in numeric_ref_numbers:
                         numeric_ref_numbers[source_key] = len(numeric_ref_numbers) + 1
@@ -652,10 +673,17 @@ def resolve_citations_publication(
                 # Collect reference entries for literature sources
                 if citation_type == "reference_entry":
                     if citation_style == "gb_t_7714_2015":
-                        ref_entry = _format_gbt7714_reference_entry(
-                            evidence,
-                            numeric_ref_numbers[_source_reference_key(evidence)],
-                            default_gbt7714_standard(gbt7714_as_of),
+                        # No marker was allocated for a local artifact, and an
+                        # entry curation is about to delete would only number
+                        # the list past the markers that survive.
+                        ref_entry = (
+                            ""
+                            if _is_local_artifact(evidence)
+                            else _format_gbt7714_reference_entry(
+                                evidence,
+                                numeric_ref_numbers[_source_reference_key(evidence)],
+                                default_gbt7714_standard(gbt7714_as_of),
+                            )
                         )
                     else:
                         ref_entry = _format_reference_entry(evidence)
@@ -673,7 +701,11 @@ def resolve_citations_publication(
                 source_role = evidence.get("source_role", "primary_source")
                 citation_type = SOURCE_ROLE_CITATION_TYPE.get(source_role, "reference_entry")
 
-                if citation_style == "gb_t_7714_2015" and citation_type == "reference_entry":
+                if (
+                    citation_style == "gb_t_7714_2015"
+                    and citation_type == "reference_entry"
+                    and not _is_local_artifact(evidence)
+                ):
                     source_key = _source_reference_key(evidence)
                     if source_key not in numeric_ref_numbers:
                         numeric_ref_numbers[source_key] = len(numeric_ref_numbers) + 1
@@ -686,10 +718,17 @@ def resolve_citations_publication(
 
                 if citation_type == "reference_entry":
                     if citation_style == "gb_t_7714_2015":
-                        ref_entry = _format_gbt7714_reference_entry(
-                            evidence,
-                            numeric_ref_numbers[_source_reference_key(evidence)],
-                            default_gbt7714_standard(gbt7714_as_of),
+                        # No marker was allocated for a local artifact, and an
+                        # entry curation is about to delete would only number
+                        # the list past the markers that survive.
+                        ref_entry = (
+                            ""
+                            if _is_local_artifact(evidence)
+                            else _format_gbt7714_reference_entry(
+                                evidence,
+                                numeric_ref_numbers[_source_reference_key(evidence)],
+                                default_gbt7714_standard(gbt7714_as_of),
+                            )
                         )
                     else:
                         ref_entry = _format_reference_entry(evidence)

@@ -74,6 +74,30 @@ def _expected_figure_count(state: ReportState) -> int:
     return max(image_count, _outline_figure_count(state) - native_tables)
 
 
+#: A numeric citation in the prose — "[1]", "[2,3]", "[4-6]" — and the entry
+#: that answers it, which opens its own line as "[1] ...".
+#:
+#: Both errors this check can make are not equal, so it is built to make the
+#: safe one. A line that merely starts with a marker counts as an entry, which
+#: can hide a dangling citation; nothing counts a citation that is not there,
+#: which would block a sound report. It under-reports rather than over-blocks.
+_NUMERIC_CITATION_RE = re.compile(r"\[(\d{1,3}(?:\s*[,\-–—]\s*\d{1,3})*)\]")
+_NUMERIC_REFERENCE_ENTRY_RE = re.compile(r"(?m)^\s*\[(\d{1,3})\]\s+\S")
+_CITATION_RANGE_RE = re.compile(r"(\d{1,3})\s*[\-–—]\s*(\d{1,3})")
+
+
+def _cited_numbers(text: str) -> set[int]:
+    """Every reference number the prose points at, ranges expanded."""
+    numbers: set[int] = set()
+    for match in _NUMERIC_CITATION_RE.finditer(text):
+        inner = match.group(1)
+        for start, end in _CITATION_RANGE_RE.findall(inner):
+            first, last = int(start), int(end)
+            if first <= last:
+                numbers.update(range(first, last + 1))
+        numbers.update(int(part) for part in re.findall(r"\d{1,3}", inner))
+    return numbers
+
 #: "Figure 3." opening a paragraph, or "圖 3." — the caption itself.
 _FIGURE_CAPTION_RE = re.compile(
     r"^(?:(?:Figure|Fig\.?)\s+|(?:圖|图)\s*)(\d+|[a-z])[:.、．：]\s*",
@@ -382,6 +406,24 @@ def run_post_render_validate(state: ReportState) -> ReportState:
         issues.append("front matter contains leftover Markdown bold marker")
     if re.search(r"\[(?:Author Name|University|email@domain\.com|Your Name|INSERT .+?)\]", front_text, re.IGNORECASE):
         issues.append("front matter contains placeholder metadata")
+
+    # The same question the figure checks below ask, asked of citations: a
+    # marker in the prose must point at an entry the reader can find. Reference
+    # curation drops entries after the markers are bound and nothing rebinds
+    # them, so a lab report shipped thirteen [1] markers over a bibliography
+    # that had been emptied — qa_decision: pass, in a tool whose whole promise
+    # is that a claim traces to its source.
+    cited_numbers = _cited_numbers(text)
+    if cited_numbers:
+        listed_numbers = {
+            int(m.group(1)) for m in _NUMERIC_REFERENCE_ENTRY_RE.finditer(text)
+        }
+        dangling = sorted(cited_numbers - listed_numbers)
+        if dangling:
+            issues.append(
+                "citation markers with no reference entry: "
+                + ", ".join(f"[{number}]" for number in dangling)
+            )
 
     caption_ids: set[str] = set()
     mention_ids: set[str] = set()
