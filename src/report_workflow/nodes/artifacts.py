@@ -96,6 +96,18 @@ def _unique_source_names(paths: list[str]) -> dict[str, str]:
     return names
 
 
+def _preview(content: str, limit: int = 240) -> str:
+    """Quote source content, saying so when the quote is cut short.
+
+    These previews are what a reader checks a claim against. A silent cut
+    reads as the whole of what the source said.
+    """
+    text = str(content or "")
+    if len(text) <= limit:
+        return text
+    return text[:limit].rstrip() + " [...]"
+
+
 def _collect_paths(subdir: Path, glob_pat: str) -> list[str]:
     try:
         return [str(p) for p in subdir.glob(glob_pat)]
@@ -144,7 +156,7 @@ def _build_edit_manifest(state: ReportState, run_dir: Path) -> dict | None:
                     "evidence_id": evidence_id,
                     "evidence_grade": evidence_by_id.get(evidence_id, {}).get("evidence_grade", ""),
                     "evidence_type": evidence_by_id.get(evidence_id, {}).get("evidence_type", ""),
-                    "content_preview": evidence_by_id.get(evidence_id, {}).get("content", "")[:240],
+                    "content_preview": _preview(evidence_by_id.get(evidence_id, {}).get("content", "")),
                 }
                 for evidence_id in evidence_ids if evidence_id in evidence_by_id
             ],
@@ -192,7 +204,7 @@ def _build_traceability_artifacts(state: ReportState, run_dir: Path) -> dict[str
                     "source_file_name": evidence_by_id.get(evidence_id, {}).get("source_file_name", ""),
                     "evidence_grade": evidence_by_id.get(evidence_id, {}).get("evidence_grade", ""),
                     "evidence_type": evidence_by_id.get(evidence_id, {}).get("evidence_type", ""),
-                    "content_preview": evidence_by_id.get(evidence_id, {}).get("content", "")[:240],
+                    "content_preview": _preview(evidence_by_id.get(evidence_id, {}).get("content", "")),
                 }
                 for evidence_id in evidence_ids
             ],
@@ -236,17 +248,46 @@ def _build_traceability_artifacts(state: ReportState, run_dir: Path) -> dict[str
         "",
     ])))
 
-    qa_note_path = Path(write_text(trace_dir / "client_readable_qa_note.md", "\n".join([
+    # The one question a reader opens this package to answer is "what backs
+    # this?". The answer was assembled above and written only as JSON, while
+    # the file named client-readable said counts and recommended that JSON.
+    note_lines = [
         "# Client-Readable QA Note",
         "",
         f"- QA decision: {state.qa.get('qa_decision', '')}",
         f"- Artifact completeness: {state.qa.get('artifact_completeness_status', '')}",
         "",
-        "## Notes",
+        "## What Backs Each Claim",
         "",
-        "This package includes the report, source materials, evidence ledger, claim audit, and QA summaries produced by the workflow.",
+        "Every claim below had to link to material from the supplied sources "
+        "before it could appear in the report. What each one rests on is quoted "
+        "beneath it.",
         "",
-    ])))
+    ]
+    for position, item in enumerate(audit_items, start=1):
+        headline = item["claim_text"] or item["claim_id"] or f"Claim {position}"
+        note_lines.extend([
+            f"### {position}. {headline}",
+            "",
+            f"- Status: {item['status'] or 'unknown'} ({item['claim_id']})",
+        ])
+        if not item["evidence"]:
+            note_lines.extend(["- No supporting evidence is recorded for this claim.", ""])
+            continue
+        for source in item["evidence"]:
+            origin = source["source_file_name"] or source["source_id"] or source["evidence_id"]
+            grade = source["evidence_grade"] or "ungraded"
+            preview = " ".join(str(source["content_preview"]).split())
+            note_lines.append(f"- From `{origin}` ({grade}): {preview}")
+        note_lines.append("")
+    note_lines.extend([
+        "## Package Contents",
+        "",
+        "The report, the source materials it was built from, the evidence ledger, "
+        "the machine-readable claim audit, and the QA summaries.",
+        "",
+    ])
+    qa_note_path = Path(write_text(trace_dir / "client_readable_qa_note.md", "\n".join(note_lines)))
 
     return {
         "claim_to_source_audit": str(claim_audit_path),
