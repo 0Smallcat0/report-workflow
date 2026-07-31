@@ -1324,6 +1324,24 @@ class QualityGateContractTests(unittest.TestCase):
         )
         self.assertEqual(profile, "admissions_project_report")
 
+    def test_admissions_profiles_are_reachable_in_chinese(self):
+        """備審資料 is the name of the document, not a translation exercise.
+
+        Every other profile carried its Chinese vocabulary; this branch carried
+        only 申請, a generic verb. So the two admissions profiles and the gates
+        written for them could not be selected by the words their users type,
+        and 備審資料 fell through to academic_paper.
+        """
+        self.assertEqual(infer_report_profile("備審資料 自傳與讀書計畫"), "admissions_report")
+        self.assertEqual(infer_report_profile("學習歷程檔案"), "admissions_report")
+        self.assertEqual(
+            infer_report_profile("研究所推甄備審 專題成果"), "admissions_project_report")
+        # 專題 on its own is a course project, not an application.
+        self.assertEqual(infer_report_profile("機械設計專題報告"), "academic_paper")
+        # The profiles that already worked keep working.
+        self.assertEqual(infer_report_profile("幫我寫熱傳學實驗報告"), "engineering_lab_report")
+        self.assertEqual(infer_report_profile("企劃書"), "proposal")
+
     def test_report_profile_alias_normalizes_to_admissions_project(self):
         profile = normalize_profile_id("admissions project report")
         self.assertEqual(profile, "admissions_project_report")
