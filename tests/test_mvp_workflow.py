@@ -198,6 +198,31 @@ class SourcePipelineTests(unittest.TestCase):
             with self.assertRaises(QAHardBlockError):
                 run_corpus_build(state)
 
+    def test_directory_source_is_named_as_a_directory(self):
+        """The error has to name what the caller did, not what the OS felt.
+
+        A directory passes the existence check and fails later on the read,
+        where Windows reports "Permission denied" and POSIX reports "Is a
+        directory". The first sends someone to check permissions that were
+        never wrong, and neither mentions that --source takes a file. Pointing
+        at a folder is the obvious first guess when the example ships its three
+        sources inside one.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            folder = Path(tmpdir) / "data"
+            folder.mkdir()
+            (folder / "results.csv").write_text("a,b\n1,2\n", encoding="utf-8")
+
+            state = _state_with_output(tmpdir, [str(folder)])
+            with self.assertRaises(QAHardBlockError) as caught:
+                run_corpus_build(state)
+
+            message = str(caught.exception)
+            self.assertIn("is a directory, not a file", message)
+            self.assertIn("--source", message)
+            self.assertIn("results.csv", message)
+            self.assertNotIn("Permission denied", message)
+
     def test_table_only_csv_produces_evidence(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             src = Path(tmpdir) / "data.csv"
