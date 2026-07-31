@@ -517,6 +517,29 @@ class FigureShortfallHintTest(unittest.TestCase):
             self.assertIn("no section references them", hint)
             self.assertIn("Built figure ids: 1", hint)
 
+    def test_a_templates_own_cover_page_is_reported_as_not_carried_over(self):
+        # A course hands out a .docx with the cover it grades. --reference-doc
+        # takes styles only, so the fonts came through, the cover did not, and
+        # the template was accepted without a word about it.
+        from docx import Document as _Document
+        from report_workflow.nodes.docx_render import _reference_doc_body_carryover
+
+        with tempfile.TemporaryDirectory() as td:
+            template = Path(td) / "course_template.docx"
+            doc = _Document()
+            doc.add_paragraph("國立成功大學 機械工程學系")
+            doc.add_paragraph("姓名：____________  學號：____________")
+            doc.save(str(template))
+
+            carried = _reference_doc_body_carryover(template)
+            self.assertIn("國立成功大學", carried)
+            self.assertIn("姓名：", carried)
+
+            empty = Path(td) / "styles_only.docx"
+            _Document().save(str(empty))
+            self.assertEqual(_reference_doc_body_carryover(empty), "")
+            self.assertEqual(_reference_doc_body_carryover(Path(td) / "nope.docx"), "")
+
     def test_what_pandoc_could_not_render_reaches_the_issue_list(self):
         # pandoc names what it dropped: a figure replaced by its alt text, a
         # formula printed as raw TeX in a submitted report. That went to
