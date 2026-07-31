@@ -989,6 +989,39 @@ class QualityGateContractTests(unittest.TestCase):
         published = Path(state.output["published_dir"]) / "sources"
         self.assertEqual(sorted(p.name for p in published.iterdir()), ["a.csv", "b.csv"])
 
+    def test_a_source_edited_after_prepare_is_caught_before_publishing(self):
+        # The bundle is copied from the original path at publish time, so a
+        # source fixed in between ships beside evidence quoting text it no
+        # longer contains — and 72.4 to 82.4 is the same number of bytes, which
+        # is why file_size, recorded since the start, could never see it.
+        import tempfile
+        from report_workflow.artifact_contract import _hash_bytes
+        from report_workflow.nodes.artifacts import _drifted_sources
+
+        tmpdir = Path(tempfile.mkdtemp())
+        source = tmpdir / "量測數據.csv"
+        source.write_text("流量,有效度\n2.0,72.4\n", encoding="utf-8")
+        entry = {
+            "file_name": source.name,
+            "file_path": str(source),
+            "file_size": source.stat().st_size,
+            "content_hash": _hash_bytes(source.read_bytes()),
+        }
+
+        self.assertEqual(_drifted_sources([entry]), [])
+
+        source.write_text("流量,有效度\n2.0,82.4\n", encoding="utf-8")
+        self.assertEqual(source.stat().st_size, entry["file_size"])
+        drifted = _drifted_sources([entry])
+        self.assertTrue(drifted)
+        self.assertIn("量測數據.csv", drifted[0])
+
+        # A run recorded before the hash was kept must not start failing, and a
+        # file that is gone is left to the check that already names it.
+        self.assertEqual(_drifted_sources([{k: v for k, v in entry.items()
+                                            if k != "content_hash"}]), [])
+        self.assertEqual(_drifted_sources([{**entry, "file_path": str(tmpdir / "gone.csv")}]), [])
+
     def test_same_named_sources_both_reach_the_published_bundle(self):
         # Both files landed on published/sources/月報.csv, so the bundle kept
         # whichever was copied last. A reader checking the report's 2024 claim
