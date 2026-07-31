@@ -276,6 +276,16 @@ def run_artifacts(state: ReportState) -> ReportState:
     traceability_dir = published_dir / "traceability"
     run_dir = run_dir_for(state)
 
+    # The deliverable is copied before the summaries are written, so everything
+    # downstream can name the file the reader is meant to send.
+    # published_report_path used to hold the run directory's working copy --
+    # the same value as final_docx_path -- so the delivery summary, the
+    # packaged metadata, and the payload returned to the agent all pointed
+    # past the package at an intermediate.
+    docx_copied = _copy_file(state.output.get("final_docx_path"), published_dir, "report.docx")
+    if docx_copied:
+        state.output["published_report_path"] = docx_copied
+
     traceability_paths = _build_traceability_artifacts(state, run_dir)
     template_style_paths = build_template_style_map(state, run_dir)
     template_field_paths = build_template_field_fill_report(state, run_dir)
@@ -289,7 +299,6 @@ def run_artifacts(state: ReportState) -> ReportState:
         "files": [],
     }
 
-    docx_copied = _copy_file(state.output.get("final_docx_path"), published_dir, "report.docx")
     if docx_copied:
         artifacts_meta["files"].append({"role": "report_docx", "path": docx_copied})
 
