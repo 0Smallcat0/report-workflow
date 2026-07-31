@@ -2125,6 +2125,38 @@ class StableSourceIdTests(unittest.TestCase):
             self.assertEqual(forward, backward)
             self.assertNotEqual(forward[first], forward[second])
 
+    def test_identical_parent_folders_walk_further_up(self):
+        """One folder per experiment, each with its own data/ inside.
+
+        The walk that finds the shortest distinguishing tail was written to
+        keep going past the first parent, and the fixture that came with it
+        only ever needed one step. This is the shape that needs two.
+        """
+        from report_workflow.nodes.corpus_build import _source_id_for
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            paths = []
+            for name in ("實驗一", "實驗二", "實驗三"):
+                folder = Path(tmpdir) / name / "data"
+                folder.mkdir(parents=True)
+                path = folder / "量測.csv"
+                path.write_text("a,b\n1,2\n", encoding="utf-8")
+                paths.append(path)
+
+            def ids(order):
+                taken: set[str] = set()
+                out = {}
+                for path in order:
+                    identifier = _source_id_for(path, taken, order)
+                    taken.add(identifier)
+                    out[path] = identifier
+                return out
+
+            forward = ids(paths)
+            self.assertEqual(len(set(forward.values())), 3)
+            self.assertEqual(forward, ids(list(reversed(paths))))
+            self.assertEqual(forward, ids([paths[1], paths[2], paths[0]]))
+
     def test_a_lone_source_still_seeds_on_its_name_alone(self):
         # Nobody shares its name, so moving the folder it lives in changes
         # nothing — which is what lets an author reorganise their files and
