@@ -1251,6 +1251,80 @@ class DocumentationContractTests(unittest.TestCase):
                 else:
                     self.assertIn("optional", rule)
 
+    def test_results_mode_guidance_points_where_the_gate_reads(self):
+        """The brief sent authors to a key nothing reads.
+
+        It said "include it in outline.json at the top level" and showed it
+        there in the JSON shape, while QA_GATE reads
+        outline["sections"]["results"]["results_mode"]. Measured: an outline
+        with a top-level architectural_characterization produces the same
+        verdict as one that sets nothing at all, so the choice was dropped in
+        silence and the blueprint default stood in for it.
+        """
+        from report_workflow.nodes.agent_tasks import _results_mode_rule, _results_mode_section
+        from report_workflow.policies import get_policy
+        from report_workflow.profiles import PROFILE_IDS
+
+        for profile in PROFILE_IDS:
+            section = _results_mode_section(profile)
+            rule = _results_mode_rule(profile)
+            with self.subTest(profile=profile):
+                self.assertNotIn("at the top level of outline.json:", section)
+                if get_policy(profile).results.empirical_strict:
+                    self.assertIn("sections.results.results_mode", section)
+                    self.assertIn("sections.results.results_mode", rule)
+                    self.assertIn("empirical", section)
+                else:
+                    self.assertIn("not used by", section.lower())
+                    self.assertIn("not read", rule)
+
+    def test_top_level_results_mode_is_refused_instead_of_ignored(self):
+        from report_workflow.errors import QAHardBlockError
+        from report_workflow.nodes.qa_gate import _results_section_reasons
+
+        # The measurement this guard exists for: top level behaves as unset.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("x", [], tmpdir)
+            state.spec["report_profile"] = "academic_paper"
+            merged = Path(tmpdir) / "merged.md"
+            merged.write_text(
+                "# Results\n\nThe structured workflow is faster and reduces effort.\n",
+                encoding="utf-8",
+            )
+            state.drafts["merged_draft_md"] = str(merged)
+            state.plan["blueprint"] = {"sections": {"results": {}}}
+
+            state.plan["outline"] = {
+                "results_mode": "architectural_characterization",
+                "sections": {"results": {"section_id": "results"}},
+            }
+            self.assertTrue(_results_section_reasons(state))
+
+            state.plan["outline"] = {
+                "sections": {
+                    "results": {
+                        "section_id": "results",
+                        "results_mode": "architectural_characterization",
+                    }
+                }
+            }
+            self.assertFalse(_results_section_reasons(state))
+
+        # So OUTLINE_PLAN refuses the stranded key rather than dropping it.
+        from report_workflow.nodes.outline_plan import run_outline_plan
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("x", [], tmpdir)
+            state.spec["report_profile"] = "academic_paper"
+            run_dir = WORKFLOW_RUNS_DIR / state.job_id
+            (run_dir / "outline.json").write_text(json.dumps({
+                "results_mode": "empirical",
+                "sections": {"results": {"section_id": "results", "claim_ids": []}},
+            }), encoding="utf-8")
+            with self.assertRaises(QAHardBlockError) as caught:
+                run_outline_plan(state)
+            self.assertIn("sections.results.results_mode", str(caught.exception))
+
     def test_claim_role_block_names_the_profile_that_blocked(self):
         from report_workflow.errors import QAHardBlockError
         from report_workflow.nodes.claim_plan import _validate_claim_matrix
