@@ -42,12 +42,17 @@ def run_visual_render_check(state: ReportState) -> ReportState:
         "job_id": state.job_id,
         "status": "skipped",
         "issues": [],
+        "skipped_reason": "",
         "pdf_path": "",
         "png_paths": [],
     }
 
     if not soffice or not pdftoppm:
-        report["issues"].append("LibreOffice soffice or Poppler pdftoppm not found")
+        # Why the optional check did not run is not a finding about the
+        # document. Filed under "issues" it reaches the delivery summary's
+        # render-issue list and downgrades the verdict on a clean report,
+        # over tools the project never asks anyone to install.
+        report["skipped_reason"] = "LibreOffice soffice or Poppler pdftoppm not found"
         state.runtime["visual_render_check_report_path"] = write_json_artifact(
             state, "visual_render_check_report.json", report
         )

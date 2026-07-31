@@ -3,6 +3,7 @@ import importlib.util
 import re
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 import yaml
@@ -26,6 +27,7 @@ from report_workflow.nodes.evidence_normalize import _determine_source_role
 from report_workflow.nodes.post_render_validate import run_post_render_validate
 from report_workflow.nodes.section_draft import run_section_draft
 from report_workflow.artifact_contract import load_jsonl_without_contract
+from report_workflow.nodes.visual_render_check import run_visual_render_check
 from report_workflow.state import ReportState, WORKFLOW_RUNS_DIR
 
 
@@ -477,6 +479,111 @@ class FinalQASummaryContractTests(unittest.TestCase):
             self.assertIn("qa_figure_visual_quality_report", roles)
             self.assertTrue((Path(packaged.output["published_dir"]) / "qa" / "final_qa_summary.json").exists())
             self.assertTrue((Path(packaged.output["published_dir"]) / "qa" / "figure_visual_quality_report.json").exists())
+
+    def test_skipped_visual_render_check_does_not_downgrade_a_clean_delivery(self):
+        """An optional check that did not run is not a finding about the document.
+
+        LibreOffice and Poppler are asked for nowhere in the install
+        instructions, so almost every first run skips the visual render check.
+        The note explaining why was appended to that report's `issues`, and the
+        delivery summary concatenates those into its render-issue list -- so a
+        report that passed every gate came back marked "review", citing two
+        tools its reader had never been told to install.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("publish report", [], str(Path(tmpdir) / "out"))
+            state.status = "completed"
+            state.spec["report_profile"] = "business_report"
+            state.qa["qa_decision"] = "pass"
+            state.qa["artifact_completeness_status"] = "pass"
+            state.output["workflow_success"] = True
+            state.output["renderer_used"] = "pandoc"
+
+            run_dir = WORKFLOW_RUNS_DIR / state.job_id
+            docx_path = run_dir / "final.docx"
+            docx_path.write_bytes(b"docx placeholder")
+            state.output["final_docx_path"] = str(docx_path)
+            state.output["published_report_path"] = str(docx_path)
+
+            qa_summary_path = run_dir / "qa_summary.json"
+            qa_summary_path.write_text(json.dumps({
+                "qa_decision": "pass",
+                "artifact_completeness_status": "pass",
+            }), encoding="utf-8")
+            state.qa["qa_summary_path"] = str(qa_summary_path)
+
+            factuality_path = run_dir / "factuality_report.json"
+            factuality_path.write_text(json.dumps({
+                "verified_count": 5,
+                "blocked_count": 0,
+                "claims": [],
+            }), encoding="utf-8")
+            state.qa["factuality_report_path"] = str(factuality_path)
+
+            post_render_path = run_dir / "post_render_validate_report.json"
+            post_render_path.write_text(json.dumps({
+                "status": "passed",
+                "paragraph_count": 14,
+                "table_count": 1,
+                "inline_shape_count": 1,
+                "issues": [],
+            }), encoding="utf-8")
+            state.runtime["post_render_validate_report_path"] = str(post_render_path)
+
+            layout_path = run_dir / "post_render_layout_manifest.json"
+            layout_path.write_text(json.dumps({
+                "status": "passed",
+                "counts": {"paragraphs": 14, "tables": 1, "inline_shapes": 1},
+                "issues": [],
+            }), encoding="utf-8")
+            state.runtime["post_render_layout_manifest_path"] = str(layout_path)
+
+            visual_path = run_dir / "visual_render_check_report.json"
+            visual_path.write_text(json.dumps({
+                "status": "skipped",
+                "issues": [],
+                "skipped_reason": "LibreOffice soffice or Poppler pdftoppm not found",
+                "pdf_path": "",
+                "png_paths": [],
+            }), encoding="utf-8")
+            state.runtime["visual_render_check_report_path"] = str(visual_path)
+
+            packaged = run_artifacts(state)
+            summary = json.loads(
+                Path(packaged.qa["final_qa_summary_path"]).read_text(encoding="utf-8")
+            )
+            markdown = Path(packaged.qa["final_qa_summary_md_path"]).read_text(encoding="utf-8")
+
+            # render_status is what carried the skip into the verdict: any
+            # render issue makes it "review", and "review" makes the delivery
+            # need review. With nothing wrong with the render, it passes.
+            self.assertEqual(summary["render"]["issues"], [])
+            self.assertEqual(summary["render"]["status"], "pass")
+            self.assertNotIn("## Render Issues", markdown)
+            # Still said once, plainly, where it cannot be read as a defect.
+            self.assertEqual(summary["render"]["visual_render_status"], "skipped")
+            self.assertIn("Visual render check: skipped (LibreOffice", markdown)
+
+    def test_visual_render_check_reports_absent_tools_as_a_skip_not_an_issue(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("publish report", [], str(Path(tmpdir) / "out"))
+            run_dir = WORKFLOW_RUNS_DIR / state.job_id
+            docx_path = run_dir / "final.docx"
+            docx_path.write_bytes(b"docx placeholder")
+            state.output["final_docx_path"] = str(docx_path)
+
+            with patch(
+                "report_workflow.nodes.visual_render_check._find_executable",
+                return_value=None,
+            ):
+                checked = run_visual_render_check(state)
+
+            report = json.loads(
+                Path(checked.runtime["visual_render_check_report_path"]).read_text(encoding="utf-8")
+            )
+            self.assertEqual(report["status"], "skipped")
+            self.assertEqual(report["issues"], [])
+            self.assertIn("LibreOffice", report["skipped_reason"])
 
 
 class TemplateStyleMapContractTests(unittest.TestCase):

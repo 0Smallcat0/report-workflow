@@ -92,6 +92,13 @@ def _build_final_qa_summary_md(summary: dict) -> str:
             f"({render['paragraph_count']} paragraphs, {render['table_count']} tables, "
             f"{render['inline_shape_count']} inline shapes)"
         ),
+        # An optional check that did not run is worth saying once, plainly. It
+        # is not a render issue, and it does not move the verdict.
+        (
+            f"- Visual render check: {render['visual_render_status']}"
+            + (f" ({render['visual_render_skipped_reason']})"
+               if render.get("visual_render_skipped_reason") else "")
+        ),
         "",
         "## Packaged Evidence",
         "",
@@ -272,6 +279,7 @@ def build_final_qa_summary(state: ReportState, run_dir: Path) -> dict[str, str]:
             "post_render_validate_status": post_render_validate.get("status", "missing") if post_render_validate else "missing",
             "layout_manifest_status": layout.get("status", "missing") if layout else "missing",
             "visual_render_status": visual.get("status", "missing") if visual else "missing",
+            "visual_render_skipped_reason": str(visual.get("skipped_reason", "")) if visual else "",
             "paragraph_count": int(render_counts.get("paragraphs", post_render_validate.get("paragraph_count", 0)) or 0),
             "table_count": int(render_counts.get("tables", post_render_validate.get("table_count", 0)) or 0),
             "inline_shape_count": int(render_counts.get("inline_shapes", post_render_validate.get("inline_shape_count", 0)) or 0),
