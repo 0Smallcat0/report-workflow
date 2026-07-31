@@ -608,6 +608,84 @@ class FinalQASummaryContractTests(unittest.TestCase):
             self.assertEqual(Path(metadata["published_report_path"]), delivered)
             self.assertIn(f"- Report to send: {delivered}", markdown)
 
+    def test_client_readable_note_shows_what_backs_each_claim(self):
+        """The file named client-readable has to answer the client's question.
+
+        The claim-to-source mapping was assembled and written only as JSON,
+        while the note a person opens carried a QA verdict, two counts, and a
+        sentence recommending that JSON. So the pack shipped the answer to
+        "what backs this?" in the one format the reader it was written for
+        cannot read.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("publish report", [], str(Path(tmpdir) / "out"))
+            state.status = "completed"
+            state.spec["report_profile"] = "business_report"
+            state.qa["qa_decision"] = "pass"
+            state.output["workflow_success"] = True
+
+            run_dir = WORKFLOW_RUNS_DIR / state.job_id
+            docx_path = run_dir / "final.docx"
+            docx_path.write_bytes(b"docx placeholder")
+            state.output["final_docx_path"] = str(docx_path)
+
+            ledger_path = run_dir / "evidence_ledger.jsonl"
+            ledger_path.write_text(json.dumps({
+                "evidence_id": "ev_median",
+                "source_id": "3f7754bd",
+                "source_file_name": "pilot_results.csv",
+                "evidence_grade": "high",
+                "evidence_type": "quantitative",
+                "content": "Structured workflow, 42 notes,\n20.0 median minutes per note",
+            }) + "\n", encoding="utf-8")
+            state.sources["evidence_ledger_path"] = str(ledger_path)
+
+            state.plan["claim_matrix"] = {"claims": [
+                {
+                    "claim_id": "c_median",
+                    "claim_text": "The structured workflow cut the median to 20.0 minutes per note.",
+                    "claim_type": "statistical",
+                    "evidence_ids": ["ev_median"],
+                },
+                {
+                    "claim_id": "c_orphan",
+                    "claim_text": "A claim nothing was registered for.",
+                    "claim_type": "factual",
+                    "evidence_ids": [],
+                },
+            ]}
+
+            factuality_path = run_dir / "factuality_report.json"
+            factuality_path.write_text(json.dumps({
+                "verified_count": 1,
+                "blocked_count": 0,
+                "claims": [{"claim_id": "c_median", "status": "verified", "checker": "FA"}],
+            }), encoding="utf-8")
+            state.qa["factuality_report_path"] = str(factuality_path)
+
+            packaged = run_artifacts(state)
+            note = (
+                Path(packaged.output["published_dir"]) / "traceability"
+                / "client_readable_qa_note.md"
+            ).read_text(encoding="utf-8")
+
+            self.assertIn("The structured workflow cut the median to 20.0 minutes per note.", note)
+            self.assertIn("pilot_results.csv", note)
+            # The quoted source text, on one line -- a newline mid-preview used
+            # to break out of the bullet it belongs to.
+            self.assertIn("Structured workflow, 42 notes, 20.0 median minutes per note", note)
+            self.assertIn("Status: verified", note)
+            self.assertIn("No supporting evidence is recorded", note)
+
+    def test_truncated_source_quote_says_it_was_truncated(self):
+        """A cut quote must not read as the whole of what the source said."""
+        from report_workflow.nodes.artifacts import _preview
+
+        self.assertEqual(_preview("short enough"), "short enough")
+        cut = _preview("word " * 200)
+        self.assertTrue(cut.endswith(" [...]"))
+        self.assertLess(len(cut), 260)
+
     def test_visual_render_check_reports_absent_tools_as_a_skip_not_an_issue(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("publish report", [], str(Path(tmpdir) / "out"))

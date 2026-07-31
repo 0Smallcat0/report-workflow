@@ -331,9 +331,9 @@ def main() -> int:
     print(f"report      : {docx}")
     print(f"QA pack     : {published / 'qa'}")
     print(f"{'=' * 74}")
-    print("Every sentence in that document is linked to an entry in the evidence")
-    print("ledger the pipeline built from your source files. Open")
-    print("qa/final_qa_summary.md to see which entry backs which sentence.")
+    print("Every claim in that document is linked to material from your own")
+    print("source files. Open traceability/client_readable_qa_note.md to read")
+    print("what backs each one.")
     return 0 if docx.exists() else 1
 
 
