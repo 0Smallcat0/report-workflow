@@ -677,6 +677,93 @@ class FinalQASummaryContractTests(unittest.TestCase):
             self.assertIn("Status: verified", note)
             self.assertIn("No supporting evidence is recorded", note)
 
+    def test_traceability_notes_follow_the_document_language(self):
+        """The pack's own prose must not be in a language its reader did not ask for.
+
+        A Chinese deliverable renders 目錄, 執行摘要, 表 1., 圖 1. -- every
+        heading and caption localized. The three notes under traceability/ are
+        read by the same person and were English scaffolding wrapped around
+        Chinese quotes, so the only part the reader could follow was the part
+        quoted out of their own files.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("publish report", [], str(Path(tmpdir) / "out"))
+            state.status = "completed"
+            state.spec["report_profile"] = "business_report"
+            state.qa["qa_decision"] = "pass"
+
+            run_dir = WORKFLOW_RUNS_DIR / state.job_id
+            (run_dir / "final.docx").write_bytes(b"docx placeholder")
+            state.output["final_docx_path"] = str(run_dir / "final.docx")
+
+            ledger_path = run_dir / "evidence_ledger.jsonl"
+            ledger_path.write_text(json.dumps({
+                "evidence_id": "ev_median",
+                "source_file_name": "試辦結果.csv",
+                "evidence_grade": "high",
+                "content": "結構化流程，42 份，每份中位數 20.0 分鐘",
+            }, ensure_ascii=False) + "\n", encoding="utf-8")
+            state.sources["evidence_ledger_path"] = str(ledger_path)
+
+            state.plan["claim_matrix"] = {"claims": [{
+                "claim_id": "c_median",
+                "claim_text": "結構化流程把每份作業的批改中位數從 28.0 分鐘降到 20.0 分鐘，退件率也同步下降。",
+                "claim_type": "statistical",
+                "evidence_ids": ["ev_median"],
+            }]}
+
+            packaged = run_artifacts(state)
+            trace = Path(packaged.output["published_dir"]) / "traceability"
+            note = (trace / "client_readable_qa_note.md").read_text(encoding="utf-8")
+            coverage = (trace / "evidence_coverage_summary.md").read_text(encoding="utf-8")
+            factuality = (trace / "factuality_summary.md").read_text(encoding="utf-8")
+
+            self.assertIn("每一項主張的依據", note)
+            self.assertIn("出自 `試辦結果.csv`", note)
+            self.assertNotIn("What Backs Each Claim", note)
+            # The neighbours in the same folder, read by the same person.
+            self.assertIn("證據涵蓋摘要", coverage)
+            self.assertIn("事實查核摘要", factuality)
+            # The pipeline's own vocabulary stays put, so these files still line
+            # up with the JSON sitting next to them.
+            self.assertIn("high", coverage)
+
+    def test_english_delivery_keeps_english_traceability_notes(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("publish report", [], str(Path(tmpdir) / "out"))
+            state.status = "completed"
+            state.spec["report_profile"] = "business_report"
+            state.qa["qa_decision"] = "pass"
+
+            run_dir = WORKFLOW_RUNS_DIR / state.job_id
+            (run_dir / "final.docx").write_bytes(b"docx placeholder")
+            state.output["final_docx_path"] = str(run_dir / "final.docx")
+
+            ledger_path = run_dir / "evidence_ledger.jsonl"
+            ledger_path.write_text(json.dumps({
+                "evidence_id": "ev_median",
+                "source_file_name": "pilot_results.csv",
+                "evidence_grade": "high",
+                "content": "Structured workflow, 42 notes, 20.0 median minutes per note",
+            }) + "\n", encoding="utf-8")
+            state.sources["evidence_ledger_path"] = str(ledger_path)
+
+            state.plan["claim_matrix"] = {"claims": [{
+                "claim_id": "c_median",
+                "claim_text": "The structured workflow cut the median to 20.0 minutes per note.",
+                "claim_type": "statistical",
+                "evidence_ids": ["ev_median"],
+            }]}
+
+            packaged = run_artifacts(state)
+            note = (
+                Path(packaged.output["published_dir"]) / "traceability"
+                / "client_readable_qa_note.md"
+            ).read_text(encoding="utf-8")
+
+            self.assertIn("What Backs Each Claim", note)
+            self.assertIn("From `pilot_results.csv`", note)
+
     def test_truncated_source_quote_says_it_was_truncated(self):
         """A cut quote must not read as the whole of what the source said."""
         from report_workflow.nodes.artifacts import _preview
