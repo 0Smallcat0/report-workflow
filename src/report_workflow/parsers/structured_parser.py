@@ -123,9 +123,10 @@ def _merged_cell_values(file_path: str) -> dict[str, dict[tuple[int, int], objec
                 value = sheet.cell(merged.min_row, merged.min_col).value
                 if value is None:
                     continue
+                top = merged.min_row - 1
                 for row in range(merged.min_row, merged.max_row + 1):
                     for col in range(merged.min_col, merged.max_col + 1):
-                        cells[(row - 1, col - 1)] = value
+                        cells[(row - 1, col - 1)] = (value, top)
             if cells:
                 filled[str(sheet.title)] = cells
     finally:
@@ -169,11 +170,20 @@ def parse_xlsx(file_path: str) -> list[dict]:
             # label then appears twice, which is what the CSV and DOCX readers
             # already number rather than let one column overwrite the other.
             columns = [str(column) for column in frame.columns]
-            for (row, col), value in cells.items():
+            for (row, col), (value, _top) in cells.items():
                 if row == skip and 0 <= col < len(columns):
                     columns[col] = str(value)
             frame.columns = _disambiguate_headers(columns)
-            for (row, col), value in cells.items():
+            for (row, col), (value, top) in cells.items():
+                # A merge that reaches up into the header row is the header —
+                # a two-row header writes 有效度(%) down over the row beneath it.
+                # Filling that as data put the column's own name into the first
+                # reading, and pandas refused a string in a float column, so the
+                # whole sheet came back unreadable: a lab sheet with a stacked
+                # header produced no evidence at all. Only merges that lie
+                # entirely below the header describe readings.
+                if top <= skip:
+                    continue
                 data_row = row - skip - 1
                 if 0 <= data_row < len(frame) and 0 <= col < len(frame.columns):
                     frame.iloc[data_row, col] = value
