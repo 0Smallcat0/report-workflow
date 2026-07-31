@@ -1251,6 +1251,54 @@ class DocumentationContractTests(unittest.TestCase):
                 else:
                     self.assertIn("optional", rule)
 
+    def test_abstract_guidance_states_this_profile_s_contract(self):
+        """The abstract block was a lecture with carve-outs, not a contract.
+
+        It named academic_paper as needing structured headings and "admissions
+        and project profiles" as allowed a paragraph, then gave everybody
+        "150-250 words". business_report and proposal have no abstract section
+        at all and were still told how to write one and which gate would block
+        it; of the five that do have one, the range was wrong for three, and
+        engineering_lab_report and custom were never told which shape they may
+        use even though both accept a plain paragraph.
+        """
+        from report_workflow.nodes.agent_tasks import _abstract_section
+        from report_workflow.policies import get_policy
+        from report_workflow.profiles import PROFILE_IDS
+
+        for profile in PROFILE_IDS:
+            blueprint = yaml.safe_load(
+                Path(f"src/report_workflow/blueprints/{profile}.yaml").read_text(encoding="utf-8")
+            )
+            section = _abstract_section(profile, blueprint, "en")
+            policy = get_policy(profile).abstract
+            with self.subTest(profile=profile):
+                self.assertNotIn("150-250 words total unless", section)
+                if "abstract" not in blueprint.get("sections", {}):
+                    self.assertIn("has no abstract section", section)
+                    continue
+                self.assertIn(str(policy.word_count_max), section)
+                if policy.word_count_min:
+                    self.assertIn(str(policy.word_count_min), section)
+                if policy.structure_required:
+                    self.assertIn("**Background:**", section)
+                    self.assertIn("hard-blocks at METADATA_GATE", section)
+                elif policy.allow_plain_paragraph:
+                    self.assertIn("accepts either shape", section)
+
+    def test_abstract_budget_follows_the_cjk_scale(self):
+        from report_workflow.nodes.abstract_check import CJK_ABSTRACT_SCALE
+        from report_workflow.nodes.agent_tasks import _abstract_section
+        from report_workflow.policies import get_policy
+
+        blueprint = yaml.safe_load(
+            Path("src/report_workflow/blueprints/engineering_lab_report.yaml").read_text(encoding="utf-8")
+        )
+        cap = get_policy("engineering_lab_report").abstract.word_count_max
+        zh = _abstract_section("engineering_lab_report", blueprint, "zh")
+        self.assertIn(f"at most {cap * CJK_ABSTRACT_SCALE} characters", zh)
+        self.assertIn(f"at most {cap} words", _abstract_section("engineering_lab_report", blueprint, "en"))
+
     def test_results_mode_guidance_points_where_the_gate_reads(self):
         """The brief sent authors to a key nothing reads.
 
