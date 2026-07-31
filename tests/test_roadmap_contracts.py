@@ -773,6 +773,79 @@ class FinalQASummaryContractTests(unittest.TestCase):
         self.assertTrue(cut.endswith(" [...]"))
         self.assertLess(len(cut), 260)
 
+    def test_packaged_markdown_is_the_document_not_the_scaffold(self):
+        """report.md ships beside report.docx and has to be the same document.
+
+        Packaging copied merged_draft.md, the pre-citation merge, so the
+        markdown in published/ carried a raw [CITE:<evidence_id>] after every
+        paragraph and an unresolved [FIGURE:n] where the DOCX has the table --
+        workflow markers in a delivered file, which is the one thing the
+        publication-text gates exist to prevent.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("publish report", [], str(Path(tmpdir) / "out"))
+            state.status = "completed"
+            state.spec["report_profile"] = "business_report"
+            state.qa["qa_decision"] = "pass"
+
+            run_dir = WORKFLOW_RUNS_DIR / state.job_id
+            (run_dir / "final.docx").write_bytes(b"docx placeholder")
+            state.output["final_docx_path"] = str(run_dir / "final.docx")
+
+            scaffold = run_dir / "merged_draft.md"
+            scaffold.write_text(
+                "# Key Findings\n\nThe median fell to 20.0 [CITE:ev_median].\n\n[FIGURE:1]\n",
+                encoding="utf-8",
+            )
+            polished = run_dir / "merged_draft_cited.md"
+            polished.write_text(
+                "# 1. Key Findings\n\nThe median fell to 20.0.\n\n[FIGURE:1]\n",
+                encoding="utf-8",
+            )
+            state.drafts["merged_draft_md"] = str(scaffold)
+            state.drafts["merged_draft_cited_md"] = str(polished)
+
+            drafts_dir = run_dir / "section_drafts"
+            drafts_dir.mkdir(parents=True, exist_ok=True)
+            (drafts_dir / "figure_plan.json").write_text(json.dumps({"figures": [{
+                "figure_id": "1",
+                "figure_type": "table",
+                "title": "Intake desk pilot, manual baseline versus structured workflow",
+            }]}), encoding="utf-8")
+
+            packaged = run_artifacts(state)
+            report_md = (Path(packaged.output["published_dir"]) / "report.md").read_text(encoding="utf-8")
+
+            self.assertNotIn("[CITE:", report_md)
+            self.assertNotIn("[FIGURE:", report_md)
+            self.assertIn("# 1. Key Findings", report_md)
+            self.assertIn("*Table 1. Intake desk pilot", report_md)
+
+    def test_packaged_markdown_captions_follow_the_document_language(self):
+        from report_workflow.nodes.artifacts import _resolve_figure_placeholders
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            run_dir = Path(tmpdir)
+            drafts_dir = run_dir / "section_drafts"
+            drafts_dir.mkdir(parents=True, exist_ok=True)
+            (drafts_dir / "figure_plan.json").write_text(json.dumps({"figures": [{
+                "figure_id": "1",
+                "figure_type": "table",
+                "title": "助教批改試辦：現行人工與結構化流程對照",
+            }]}, ensure_ascii=False), encoding="utf-8")
+
+            md = run_dir / "report.md"
+            md.write_text(
+                "# 2. 主要發現\n\n同樣 42 份作業下，中位數從 28.0 分鐘降到 20.0 分鐘，"
+                "退件率從 7.5% 降到 4.1%。\n\n[FIGURE:1]\n",
+                encoding="utf-8",
+            )
+            _resolve_figure_placeholders(md, run_dir)
+            text = md.read_text(encoding="utf-8")
+
+            self.assertIn("*表 1. 助教批改試辦", text)
+            self.assertNotIn("Table 1", text)
+
     def test_visual_render_check_reports_absent_tools_as_a_skip_not_an_issue(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("publish report", [], str(Path(tmpdir) / "out"))
