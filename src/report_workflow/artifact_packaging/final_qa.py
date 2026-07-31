@@ -54,7 +54,9 @@ def _build_final_qa_summary_md(summary: dict) -> str:
         f"- QA decision: {gate['qa_decision'] or 'unknown'}",
         f"- Report profile: {summary['report_profile'] or 'unknown'}",
         f"- Renderer: {report['renderer_used'] or 'unknown'}",
-        f"- Final DOCX: {report['final_docx_path'] or 'missing'}",
+        # The reader of this summary wants the file to send, not the working
+        # copy it was made from.
+        f"- Report to send: {report['published_report_path'] or report['final_docx_path'] or 'missing'}",
         "",
         "## Key Checks",
         "",

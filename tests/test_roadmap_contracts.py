@@ -564,6 +564,50 @@ class FinalQASummaryContractTests(unittest.TestCase):
             self.assertEqual(summary["render"]["visual_render_status"], "skipped")
             self.assertIn("Visual render check: skipped (LibreOffice", markdown)
 
+    def test_delivery_summary_names_the_packaged_report_not_the_working_copy(self):
+        """"Which file do I send?" must not be answered with an intermediate.
+
+        FINAL_PUBLISH set published_report_path to the run directory's
+        final.docx -- the very same value as final_docx_path -- and packaging
+        never corrected it once report.docx existed inside published/. So the
+        delivery summary, the packaged metadata, and the payload handed back to
+        the agent all pointed outside the delivery package at a working copy.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("publish report", [], str(Path(tmpdir) / "out"))
+            state.status = "completed"
+            state.spec["report_profile"] = "business_report"
+            state.qa["qa_decision"] = "pass"
+            state.output["workflow_success"] = True
+            state.output["renderer_used"] = "pandoc"
+
+            run_dir = WORKFLOW_RUNS_DIR / state.job_id
+            working_copy = run_dir / "final.docx"
+            working_copy.write_bytes(b"docx placeholder")
+            state.output["final_docx_path"] = str(working_copy)
+            # What FINAL_PUBLISH leaves behind: the working copy, under a name
+            # that promises the published one.
+            state.output["published_report_path"] = str(working_copy)
+
+            packaged = run_artifacts(state)
+
+            delivered = Path(packaged.output["published_dir"]) / "report.docx"
+            self.assertTrue(delivered.exists())
+            self.assertEqual(Path(packaged.output["published_report_path"]), delivered)
+            self.assertEqual(Path(packaged.output["final_docx_path"]), working_copy)
+
+            summary = json.loads(
+                Path(packaged.qa["final_qa_summary_path"]).read_text(encoding="utf-8")
+            )
+            metadata = json.loads(
+                (Path(packaged.output["published_dir"]) / "metadata.json").read_text(encoding="utf-8")
+            )
+            markdown = Path(packaged.qa["final_qa_summary_md_path"]).read_text(encoding="utf-8")
+
+            self.assertEqual(Path(summary["report"]["published_report_path"]), delivered)
+            self.assertEqual(Path(metadata["published_report_path"]), delivered)
+            self.assertIn(f"- Report to send: {delivered}", markdown)
+
     def test_visual_render_check_reports_absent_tools_as_a_skip_not_an_issue(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("publish report", [], str(Path(tmpdir) / "out"))
