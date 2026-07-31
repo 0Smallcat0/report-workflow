@@ -6,6 +6,7 @@ from pathlib import Path
 
 from ..state import ReportState
 from ..language import detect_document_language, localized_section_title
+from ..policies import get_policy
 from ..runtime_support import run_dir_for
 from ..artifact_contract import make_artifact_contract
 from .corpus_build import _distinguishing_seed
@@ -426,6 +427,32 @@ _STRUCTURE_RECIPES: dict[str, str] = {
 }
 
 
+def _claim_role_rule(report_profile: str) -> str:
+    """State the claim_role requirement for this run, not for a profile family.
+
+    The brief said "**Academic reports**: every claim MUST have claim_role",
+    but the gate fires on the run's own policy, and four profiles enforce it --
+    engineering_lab_report, academic_paper, admissions_report, custom -- only
+    one of which is an academic paper. An agent writing a lab report reads a
+    rule addressed to somebody else, leaves the field out, and is hard-blocked
+    at CLAIM_PLAN. The three profiles that do not enforce it were being told to
+    obey a rule that never fires.
+    """
+    if get_policy(report_profile).claim.role_validation_required:
+        return (
+            f"- `claim_role` is required for `{report_profile}`: every claim must carry "
+            "`primary`, `supporting`, or `background`.\n"
+            "  - `primary`: core contribution claims, each directly supporting the thesis. "
+            "At least 1, at most 3.\n"
+            "  - `supporting`: evidence that backs a primary claim.\n"
+            "  - `background`: context or prior work not central to the contribution."
+        )
+    return (
+        f"- `claim_role` is optional for `{report_profile}`. Set it if it helps you keep "
+        "the argument straight; nothing validates it for this profile."
+    )
+
+
 def _structure_guidance(report_profile: str) -> str:
     """Writing-structure discipline distilled from published standards."""
     paragraph_rule = (
@@ -485,6 +512,7 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
     auto_figure_plan_guidance = _auto_figure_plan_guidance(auto_figure_plan)
     reader_rubric = _reader_rubric_section(state.spec.get("report_profile", ""))
     structure_guidance = _structure_guidance(state.spec.get("report_profile", ""))
+    claim_role_rule = _claim_role_rule(state.spec.get("report_profile", ""))
     derived_stats_guidance = _derived_stats_guidance(evidence_path)
     task_intent = state.spec.get("task_intent", "new_draft")
     contract = make_artifact_contract(state)
@@ -584,11 +612,7 @@ For `new_draft`, the editable artifacts are `claim_matrix.json`, `outline.json`,
 - Mark medium-grade or qualitative source wording as hedged in `sentence_map.jsonl`;
   reserve `measured` wording for high-grade evidence (FD blocks it on
   medium-grade evidence even when that evidence is quantitative).
-- **Academic reports**: Every claim MUST have a `claim_role` field with value `primary`, `supporting`, or `background`.
-  - `primary`: Core contribution claims (max 3). Must directly support the thesis/contribution.
-  - `supporting`: Evidence that backs a primary claim.
-  - `background`: Context, definitions, or prior work not central to contribution.
-  - At least 1 primary claim required. No more than 3 primary claims.
+{claim_role_rule}
 
 ## Evidence Summary
 (Full ledger at `{evidence_path}`; read individual entries as needed)
