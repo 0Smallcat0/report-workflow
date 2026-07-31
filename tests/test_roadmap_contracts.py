@@ -1225,6 +1225,45 @@ class DocumentationContractTests(unittest.TestCase):
         ]
         self.assertEqual(sorted(listed), sorted(declared))
 
+    def test_claim_role_rule_in_the_brief_matches_the_gate(self):
+        """The brief has to state this run's rule, not a profile family's.
+
+        It read "**Academic reports**: every claim MUST have a claim_role
+        field", while the gate fires on the run's own policy. Four profiles
+        enforce it -- engineering_lab_report, academic_paper, admissions_report,
+        custom -- and only one of them is an academic paper. So the agent
+        writing a lab report, the profile the README leads with, read a rule
+        addressed to somebody else, left the field out, and was hard-blocked at
+        CLAIM_PLAN by a message that repeated the same mislabel.
+        """
+        from report_workflow.nodes.agent_tasks import _claim_role_rule
+        from report_workflow.policies import get_policy
+        from report_workflow.profiles import PROFILE_IDS
+
+        for profile in PROFILE_IDS:
+            rule = _claim_role_rule(profile)
+            with self.subTest(profile=profile):
+                self.assertIn(profile, rule)
+                self.assertNotIn("Academic reports", rule)
+                if get_policy(profile).claim.role_validation_required:
+                    self.assertIn("required", rule)
+                    self.assertIn("at most 3", rule)
+                else:
+                    self.assertIn("optional", rule)
+
+    def test_claim_role_block_names_the_profile_that_blocked(self):
+        from report_workflow.errors import QAHardBlockError
+        from report_workflow.nodes.claim_plan import _validate_claim_matrix
+
+        with self.assertRaises(QAHardBlockError) as caught:
+            _validate_claim_matrix(
+                {"claims": [{"claim_id": "c1", "claim_text": "x", "evidence_ids": ["e1"]}]},
+                "engineering_lab_report",
+            )
+        message = str(caught.exception)
+        self.assertIn("engineering_lab_report requires claim_role", message)
+        self.assertNotIn("Academic reports", message)
+
     def test_readme_test_count_badge_matches_the_suite(self):
         """A number on the landing page that nothing checks will rot.
 

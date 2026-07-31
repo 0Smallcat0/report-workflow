@@ -71,7 +71,7 @@ def _validate_claim_matrix(payload: dict, report_profile: str = "") -> list[dict
             if not role:
                 raise QAHardBlockError(
                     f"Claim {claim.get('claim_id')} is missing 'claim_role' field. "
-                    f"Academic reports require claim_role: {' | '.join(VALID_ROLES)}."
+                    f"{report_profile} requires claim_role: {' | '.join(sorted(VALID_ROLES))}."
                 )
             if role not in VALID_ROLES:
                 raise QAHardBlockError(
