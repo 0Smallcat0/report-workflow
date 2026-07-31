@@ -74,6 +74,37 @@ def _read_jsonl_compact_summary(path: str | None, limit: int = 20) -> str:
     return header + "\n".join(rows)
 
 
+def _evidence_text_for_language(path: str | None) -> str:
+    """What the sources say, for deciding the document's language.
+
+    This decision used to read the summary table above instead — and that table
+    is mostly this pipeline's own English: evidence ids, the words quantitative
+    and qualitative, "allowed:[factual, statistical]", the column rules. On a
+    Chinese lab report whose evidence is measurements, the scaffolding
+    contributed 953 Latin characters against the content's 120, so the ratio
+    came out 0.14 and the brief told the agent to write an English document.
+    Measured on the content alone the same ledger is 0.56, which is Chinese.
+
+    Every entry is read, not the first twenty the table shows, because which
+    source happens to be attached first is not a fact about the document.
+    """
+    if not path or not Path(path).exists():
+        return ""
+    parts: list[str] = []
+    with open(path, encoding="utf-8") as handle:
+        for line in handle:
+            if not line.strip():
+                continue
+            try:
+                entry = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(entry, dict) or "_contract" in entry:
+                continue
+            parts.append(str(entry.get("content") or entry.get("quote") or ""))
+    return "\n".join(parts)
+
+
 def _read_figure_recommendation_summary(path: str | None, limit: int = 8) -> str:
     if not path or not Path(path).exists():
         return "(no figure recommendations generated)"
@@ -453,7 +484,7 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
     # Chinese-dominant evidence means a Chinese deliverable: tell the agent up
     # front, and show the canonical Chinese headings the pipeline will render
     # so the draft and the final document agree on language.
-    document_language = detect_document_language(evidence_summary)
+    document_language = detect_document_language(_evidence_text_for_language(evidence_path))
     language_guidance = ""
     if document_language == "zh":
         blueprint_sections = (state.plan.get("blueprint") or {}).get("sections", {}) or {}

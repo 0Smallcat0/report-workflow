@@ -63,6 +63,71 @@ class DetectDocumentLanguageTest(unittest.TestCase):
         self.assertEqual(detect_document_language(""), "en")
 
 
+class EvidenceLanguageSampleTest(unittest.TestCase):
+    """The document's language is decided from the sources, not from our table.
+
+    The brief's evidence summary is mostly this pipeline's own English —
+    evidence ids, "quantitative", "allowed:[factual, statistical]", the column
+    rules. Reading the language off that table, a Chinese lab report whose
+    evidence is measurements came out English: the scaffolding contributed 953
+    Latin characters against the content's 120. On the content alone the same
+    ledger is Chinese.
+    """
+
+    def _ledger(self, tmpdir, rows):
+        import json
+        from pathlib import Path
+
+        path = Path(tmpdir) / "evidence_ledger.jsonl"
+        path.write_text(
+            "\n".join(json.dumps(row, ensure_ascii=False) for row in rows) + "\n",
+            encoding="utf-8",
+        )
+        return path
+
+    def test_a_chinese_measurement_ledger_is_a_chinese_document(self):
+        import tempfile
+
+        from report_workflow.nodes.agent_tasks import _evidence_text_for_language
+
+        rows = [
+            {
+                "evidence_id": f"E_data_{index:02d}",
+                "content": f'{{"流量(L/min)": "{2 + index * 0.1:.1f}", "有效度(%)": "{70 + index:.1f}"}}',
+            }
+            for index in range(30)
+        ]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = self._ledger(tmpdir, rows)
+            self.assertEqual(
+                detect_document_language(_evidence_text_for_language(str(path))), "zh"
+            )
+
+    def test_every_entry_is_read_not_the_first_twenty(self):
+        # Which source is attached first is not a fact about the document.
+        import tempfile
+
+        from report_workflow.nodes.agent_tasks import _evidence_text_for_language
+
+        rows = [{"evidence_id": f"E_{i}", "content": "Page text in English."} for i in range(5)]
+        rows += [
+            {"evidence_id": f"E_zh_{i}",
+             "content": "量測在四個流量點進行，每點取三次平均，並以最小平方法擬合。"}
+            for i in range(40)
+        ]
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = self._ledger(tmpdir, rows)
+            text = _evidence_text_for_language(str(path))
+            self.assertIn("最小平方法", text)
+            self.assertEqual(detect_document_language(text), "zh")
+
+    def test_a_missing_ledger_does_not_raise(self):
+        from report_workflow.nodes.agent_tasks import _evidence_text_for_language
+
+        self.assertEqual(_evidence_text_for_language("nope.jsonl"), "")
+        self.assertEqual(_evidence_text_for_language(""), "")
+
+
 class LocalizedSectionTitleTest(unittest.TestCase):
     def test_zh_prefers_title_zh(self):
         section = BLUEPRINT["sections"]["executive_summary"]
