@@ -65,6 +65,20 @@ hidden — with catch rates, baselines, and the comparison to LLM-as-judge tools
 
 ## See it run
 
+Three files and one sentence in, a finished DOCX out — table of contents, page
+numbers, a real Word table, a chart drawn from your numbers, and a QA pack
+saying why each sentence was allowed to ship:
+
+```bash
+python examples/source_to_report.py
+```
+
+Swap the three paths at the top of that script for your own material. Details
+and the honest note about what the script does on your agent's behalf:
+[examples/README.md](examples/README.md).
+
+And the gate on its own:
+
 ```bash
 python examples/anti_hallucination_gate.py
 ```
