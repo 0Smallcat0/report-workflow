@@ -40,6 +40,15 @@ def run_outline_plan(state: ReportState) -> ReportState:
     if not isinstance(sections, dict) or not sections:
         raise QAHardBlockError("outline.json must contain a non-empty sections object")
 
+    if "results_mode" in result:
+        # QA_GATE reads sections.results.results_mode. A top-level one is read
+        # by nothing, so the run falls back to the blueprint default and the
+        # author is never told their choice was dropped.
+        raise QAHardBlockError(
+            "outline.json sets 'results_mode' at the top level, where nothing reads it. "
+            "Move it to sections.results.results_mode."
+        )
+
     blueprint_sections = set((state.plan.get("blueprint") or {}).get("sections", {}).keys())
     allowed_sections = set(blueprint_sections)
     revise_mode = state.spec.get("task_intent") == "revise_existing"

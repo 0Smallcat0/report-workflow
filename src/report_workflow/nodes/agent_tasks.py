@@ -453,6 +453,51 @@ def _claim_role_rule(report_profile: str) -> str:
     )
 
 
+_RESULTS_MODE_PATH = "`outline.json` -> `sections.results.results_mode`"
+
+
+def _results_mode_section(report_profile: str) -> str:
+    """Describe results_mode where the workflow actually reads it.
+
+    The brief said "include it in outline.json at the top level" and showed it
+    there in the JSON shape. QA_GATE reads
+    outline["sections"]["results"]["results_mode"], falling back to the
+    blueprint. Measured: an outline carrying a top-level
+    architectural_characterization behaves exactly like one that sets nothing,
+    so an agent following the brief lost the setting without being told.
+    """
+    if not get_policy(report_profile).results.empirical_strict:
+        return (
+            "## results_mode\n\n"
+            f"Not used by `{report_profile}`. If you set it anyway, it belongs in "
+            f"{_RESULTS_MODE_PATH}."
+        )
+    return (
+        f"## results_mode Selection (required for `{report_profile}`)\n\n"
+        f"**Choose ONE and set it at {_RESULTS_MODE_PATH}.** That is where the "
+        "workflow reads it; a `results_mode` at the top level of outline.json is "
+        "read by nothing and the run falls back to the blueprint default.\n\n"
+        "- `empirical`: Select when your evidence contains measured/quantitative data "
+        "(numbers, percentages, performance metrics). Results section presents actual "
+        "findings with statistical support.\n\n"
+        "- `architectural_characterization`: Select when your evidence is "
+        "structural/code analysis (graphs, dependency trees, module relationships, "
+        "system descriptions). Results section characterizes architecture without "
+        "claiming empirical performance superiority.\n\n"
+        "**Do NOT mix modes**: If your evidence has both quantitative data AND "
+        "architectural descriptions, pick the dominant mode based on what your claims "
+        "actually argue."
+    )
+
+
+def _results_mode_rule(report_profile: str) -> str:
+    if not get_policy(report_profile).results.empirical_strict:
+        return f"- `results_mode` is not read for `{report_profile}`; leave it out."
+    return (
+        f"- Set `results_mode` at {_RESULTS_MODE_PATH}, not at the top level of the file."
+    )
+
+
 def _structure_guidance(report_profile: str) -> str:
     """Writing-structure discipline distilled from published standards."""
     paragraph_rule = (
@@ -513,6 +558,8 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
     reader_rubric = _reader_rubric_section(state.spec.get("report_profile", ""))
     structure_guidance = _structure_guidance(state.spec.get("report_profile", ""))
     claim_role_rule = _claim_role_rule(state.spec.get("report_profile", ""))
+    results_mode_section = _results_mode_section(state.spec.get("report_profile", ""))
+    results_mode_rule = _results_mode_rule(state.spec.get("report_profile", ""))
     derived_stats_guidance = _derived_stats_guidance(evidence_path)
     task_intent = state.spec.get("task_intent", "new_draft")
     contract = make_artifact_contract(state)
@@ -634,7 +681,6 @@ Write `{run_dir / "outline.json"}` with this shape:
 ```json
 {{
   "_contract": {contract_json},
-  "results_mode": "empirical" | "architectural_characterization",
   "paper_spine": {{
     "problem": "For academic_paper: the concrete problem or phenomenon.",
     "gap": "What prior work, current practice, or the source material leaves unresolved.",
@@ -653,6 +699,7 @@ Write `{run_dir / "outline.json"}` with this shape:
   "sections": {{
     "results": {{
       "section_id": "results",
+      "results_mode": "empirical" | "architectural_characterization",
       "goals": "What this section should accomplish.",
       "claim_ids": ["claim id from claim_matrix.json"],
       "paragraph_order": ["paragraph intent"],
@@ -668,15 +715,7 @@ artifacts before QA_GATE.
 
 Do not edit `merged_draft.md` directly. It is generated and will be overwritten.
 
-## results_mode Selection (required for academic reports)
-
-**Choose ONE and include it in outline.json at the top level:**
-
-- `empirical`: Select when your evidence contains measured/quantitative data (numbers, percentages, performance metrics). Results section presents actual findings with statistical support.
-
-- `architectural_characterization`: Select when your evidence is structural/code analysis (graphs, dependency trees, module relationships, system descriptions). Results section characterizes architecture without claiming empirical performance superiority.
-
-**Do NOT mix modes**: If your evidence has both quantitative data AND architectural descriptions, pick the dominant mode based on what your claims actually argue.
+{results_mode_section}
 
 ## Figure Recommendation Summary
 Use this deterministic chart-selection guidance when deciding `figure_ids` and figure plans:
@@ -695,7 +734,7 @@ Use this deterministic chart-selection guidance when deciding `figure_ids` and f
 - Assign every claim to at least one non-reference/non-appendix section.
 - Use only section IDs defined by the blueprint.
 - Use only claim IDs from `claim_matrix.json`.
-- `results_mode` must be set; choose empirical or architectural_characterization.
+{results_mode_rule}
 - If `report_profile=academic_paper`, fill `paper_spine`; do not leave it as template text.
 - If `report_profile=engineering_lab_report`, fill `lab_spine`; do not leave it as template text.
 - The outline should create a real argument path: problem/gap/objective before methods, results before interpretation, and limitations before conclusion.
