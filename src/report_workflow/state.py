@@ -70,6 +70,26 @@ def build_run_dir_name(user_prompt: str, job_id: str, front_matter: dict[str, An
     return f"{slug}--{job_id}"
 
 
+def _cwd_run_search_roots() -> list[Path]:
+    """Return the working directory and its immediate subdirectories.
+
+    A run lives wherever `--output` pointed, and the later commands are only
+    given a job id -- they are never told what `--output` was. Looking where the
+    user is standing, and one level below it, finds the ordinary case (`prepare
+    --output out` then `validate --job-id`) without a shared index on disk.
+    """
+    try:
+        cwd = Path.cwd().resolve()
+    except OSError:
+        return []
+    roots = [cwd]
+    try:
+        roots.extend(sorted(child for child in cwd.iterdir() if child.is_dir()))
+    except OSError:
+        pass
+    return roots
+
+
 def locate_run_dir(job_id: str, workspace_root: str | Path | None = None) -> Path:
     """Resolve the on-disk run directory for a job_id."""
     hinted_path = _JOB_RUN_HINTS.get(str(job_id))
@@ -82,6 +102,10 @@ def locate_run_dir(job_id: str, workspace_root: str | Path | None = None) -> Pat
     default_root = default_workspace_root()
     if default_root not in roots:
         roots.append(default_root)
+    named_roots = list(roots)
+    for candidate in _cwd_run_search_roots():
+        if candidate not in roots:
+            roots.append(candidate)
 
     for root in roots:
         if (root / "checkpoint_latest.json").exists() and job_id in root.name:
@@ -96,9 +120,15 @@ def locate_run_dir(job_id: str, workspace_root: str | Path | None = None) -> Pat
             register_job_run(job_id, matches[0])
             return matches[0].resolve()
 
+    searched = [str(root) for root in named_roots]
+    cwd_roots = _cwd_run_search_roots()
+    if cwd_roots:
+        searched.append(f"{cwd_roots[0]} and its subdirectories")
     raise FileNotFoundError(
         f"No local workflow run found for job {job_id}. "
-        f"Expected under {', '.join(str(root) for root in roots)}."
+        f"Looked under {', '.join(searched)}. "
+        f"If prepare wrote this run somewhere else, re-run with "
+        f"--workspace-root <the directory --output pointed at>."
     )
 
 

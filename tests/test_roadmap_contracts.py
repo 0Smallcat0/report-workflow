@@ -1,5 +1,6 @@
 import json
 import importlib.util
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -907,6 +908,25 @@ class DocumentationContractTests(unittest.TestCase):
             if line.strip() and not line.strip().startswith("#")
         ]
         self.assertEqual(sorted(listed), sorted(declared))
+
+    def test_readme_test_count_badge_matches_the_suite(self):
+        """A number on the landing page that nothing checks will rot.
+
+        The badge said 496 while the suite had grown past 750 -- a claim about
+        the product, made to every visitor, that no gate applied to. This
+        repository exists so that unverifiable claims do not reach a reader;
+        the one on its own front page gets the same treatment.
+        """
+        badge = re.search(
+            r"badge/tests-(\d+)%20passing",
+            Path("README.md").read_text(encoding="utf-8"),
+        )
+        self.assertIsNotNone(badge, "README no longer carries a test-count badge")
+        counted = sum(
+            len(re.findall(r"^\s+def test_\w+", path.read_text(encoding="utf-8"), re.M))
+            for path in sorted(Path("tests").glob("test_*.py"))
+        )
+        self.assertEqual(counted, int(badge.group(1)))
 
     def test_short_skill_documents_yaml_tool_surface(self):
         skill_text = Path("agent_skill/SKILL.md").read_text(encoding="utf-8")
