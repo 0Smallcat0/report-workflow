@@ -2090,6 +2090,61 @@ class StableSourceIdTests(unittest.TestCase):
             second = _source_id_for(first, taken)
             self.assertNotIn(second, taken)
 
+    def test_same_named_sources_keep_their_ids_when_listed_the_other_way(self):
+        """Attachment order is not a property of the files.
+
+        Two exports both called 月報.csv were separated by a counter in the
+        order they were attached, on the stated assumption that the order is
+        stable across reruns. Re-typing the command with them the other way
+        round swapped their ids, so the prefix that meant one file's evidence
+        in the morning meant the other file's in the afternoon.
+        """
+        from report_workflow.nodes.corpus_build import _source_id_for
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            first_dir = Path(tmpdir) / "2024"
+            second_dir = Path(tmpdir) / "2025"
+            first_dir.mkdir()
+            second_dir.mkdir()
+            first = first_dir / "月報.csv"
+            second = second_dir / "月報.csv"
+            first.write_text("a,b\n1,2\n", encoding="utf-8")
+            second.write_text("a,b\n3,4\n", encoding="utf-8")
+
+            def ids(order):
+                taken: set[str] = set()
+                out = {}
+                for path in order:
+                    identifier = _source_id_for(path, taken, order)
+                    taken.add(identifier)
+                    out[path] = identifier
+                return out
+
+            forward = ids([first, second])
+            backward = ids([second, first])
+            self.assertEqual(forward, backward)
+            self.assertNotEqual(forward[first], forward[second])
+
+    def test_a_lone_source_still_seeds_on_its_name_alone(self):
+        # Nobody shares its name, so moving the folder it lives in changes
+        # nothing — which is what lets an author reorganise their files and
+        # keep the citations they have already made.
+        from report_workflow.nodes.corpus_build import _source_id_for
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            here = Path(tmpdir) / "before"
+            there = Path(tmpdir) / "after"
+            here.mkdir()
+            there.mkdir()
+            one = here / "perf.csv"
+            two = there / "perf.csv"
+            one.write_text("a,b\n1,2\n", encoding="utf-8")
+            two.write_text("a,b\n1,2\n", encoding="utf-8")
+            self.assertEqual(
+                _source_id_for(one, set(), [one]),
+                _source_id_for(two, set(), [two]),
+            )
+
     def test_different_names_get_different_ids(self):
         from report_workflow.nodes.corpus_build import _source_id_for
 
