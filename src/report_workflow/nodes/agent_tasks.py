@@ -456,6 +456,83 @@ def _claim_role_rule(report_profile: str) -> str:
 _RESULTS_MODE_PATH = "`outline.json` -> `sections.results.results_mode`"
 
 
+_ABSTRACT_STRUCTURED = """```markdown
+# Abstract
+
+**Background:** [2-3 sentences on the problem context]
+
+**Objective:** [1-2 sentences on the specific aim]
+
+**Methods:** [3-5 sentences on what was done, past tense]
+
+**Principal Findings:** [3-5 sentences on key results, including numbers when supported]
+
+**Significance:** [1-2 sentences on why this matters]
+```"""
+
+_ABSTRACT_PLAIN = """```markdown
+# Abstract
+
+[Single continuous paragraph. No sub-headings. Covers background, objective,
+methods, key findings, and significance in a flowing narrative.]
+```"""
+
+
+def _abstract_section(report_profile: str, blueprint: dict, document_language: str) -> str:
+    """Give this run's abstract contract, not a lecture with carve-outs.
+
+    The block named one profile that must use structured headings and one
+    family that may use a paragraph, then stated "150-250 words" for everyone.
+    Two profiles have no abstract section at all and were still told how to
+    write one, including which gate would block it. Of the five that do, the
+    word range was wrong for three, and two of them were never told which
+    format they may use.
+    """
+    from .abstract_check import CJK_ABSTRACT_SCALE
+
+    if "abstract" not in (blueprint.get("sections") or {}):
+        return (
+            "## Abstract\n\n"
+            f"`{report_profile}` has no abstract section. Do not write one; "
+            "the blueprint's section list is the whole document."
+        )
+
+    policy = get_policy(report_profile).abstract
+    scale = CJK_ABSTRACT_SCALE if document_language == "zh" else 1
+    unit = "characters" if document_language == "zh" else "words"
+    low, high = policy.word_count_min * scale, policy.word_count_max * scale
+    budget = f"at most {high} {unit}" if not low else f"{low}-{high} {unit}"
+
+    if policy.structure_required:
+        shape = (
+            f"`{report_profile}` requires the structured headings below, exactly. "
+            "A plain-paragraph abstract hard-blocks at METADATA_GATE.\n\n"
+            f"{_ABSTRACT_STRUCTURED}"
+        )
+    elif policy.allow_plain_paragraph:
+        shape = (
+            f"`{report_profile}` accepts either shape. A plain paragraph is the "
+            f"usual choice:\n\n{_ABSTRACT_PLAIN}\n\n"
+            f"Structured headings are also accepted:\n\n{_ABSTRACT_STRUCTURED}"
+        )
+    else:
+        shape = (
+            f"`{report_profile}` expects the structured headings below.\n\n"
+            f"{_ABSTRACT_STRUCTURED}"
+        )
+
+    return (
+        f"## Abstract ({budget})\n\n"
+        f"{shape}\n\n"
+        f"**Length: {budget}**, counted after removing `[CITE:]` markers.\n"
+        "**No trailing ellipses (`.....`), no incomplete sentences.**\n"
+        "**No `[CITE:]`, `[Source:]`, or `[graphify:]` markers in the abstract.**\n"
+        "The abstract still needs `claim_ids` in `outline.json`: it declares which "
+        "claims it summarizes, and PLAN_LOCK hard-blocks an abstract whose "
+        "`claim_ids` list is empty."
+    )
+
+
 def _results_mode_section(report_profile: str) -> str:
     """Describe results_mode where the workflow actually reads it.
 
@@ -569,6 +646,11 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
     # front, and show the canonical Chinese headings the pipeline will render
     # so the draft and the final document agree on language.
     document_language = detect_document_language(_evidence_text_for_language(evidence_path))
+    abstract_section = _abstract_section(
+        state.spec.get("report_profile", ""),
+        state.plan.get("blueprint") or {},
+        document_language,
+    )
     language_guidance = ""
     if document_language == "zh":
         blueprint_sections = (state.plan.get("blueprint") or {}).get("sections", {}) or {}
@@ -787,51 +869,12 @@ Do not edit `merged_draft.md` directly. For `new_draft`, fix section files under
   - Any table containing "audit", "evidence", or "claim" in the header; these are internal artifacts.
   - **Write real content; do not use placeholder names** like `[Author Name]`, `[University]`, `[email@domain.com]`.
 
-## Profile-Specific Abstract Template
+{abstract_section}
 
-**Two accepted formats** — but the choice is profile-bound, not free:
-`academic_paper` REQUIRES Option A (the structured headings below, exactly)
-and a 180-220 word abstract; admissions and project profiles use Option B.
-The gate enforces this — a plain-paragraph abstract on `academic_paper`
-hard-blocks at METADATA_GATE.
-
-### Option A: Structured Abstract (for journal submissions)
-
-```markdown
-# Abstract
-
-**Background:** [2-3 sentences on the problem context]
-
-**Objective:** [1-2 sentences on the specific aim]
-
-**Methods:** [3-5 sentences on what was done, past tense]
-
-**Principal Findings:** [3-5 sentences on key results, including numbers when supported]
-
-**Significance:** [1-2 sentences on why this matters]
-
-```
-
-### Option B: Plain Paragraph (for admissions reports, project reports)
-
-```markdown
-# Abstract
-
-[Single continuous paragraph, 150-250 words. No sub-headings needed.
-Covers background, objective, methods, key findings, and significance
-in a flowing narrative.]
-```
-
-**Word count: 150-250 words total unless the profile contract says otherwise.**
-Count words after removing `[CITE:]` markers.
-**No trailing ellipses (`.....`), no incomplete sentences.**
-**No `[CITE:]`, `[Source:]`, or `[graphify:]` markers in the abstract.**
-The abstract still needs `claim_ids` in `outline.json` — it declares which
-claims the abstract summarizes, and PLAN_LOCK hard-blocks an abstract with an
-empty `claim_ids` list. Only `cover`, `references`, and `appendix` may carry
-none — they hold front matter, sources, and raw material, not assertions.
-A required `cover` section is still required in `outline.json`; it just carries
-an empty `claim_ids` list.
+Only `cover`, `references`, and `appendix` may carry an empty `claim_ids` list
+in `outline.json` — they hold front matter, sources, and raw material, not
+assertions. A required `cover` section is still required in `outline.json`; it
+just carries an empty `claim_ids` list.
 
 ## Admissions-facing academic reports
 
