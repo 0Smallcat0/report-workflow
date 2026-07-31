@@ -168,6 +168,11 @@ def run_corpus_build(state: ReportState) -> ReportState:
                 "file_path": str(path.resolve()),
                 "file_type": file_type,
                 "file_size": file_size,
+                # What this file was when it was read. The bundle is copied
+                # from the original path at publish time, so a source edited in
+                # between ships alongside evidence quoting text it no longer
+                # contains — and size alone cannot see an edit of equal length.
+                "content_hash": _hash_bytes(path.read_bytes()),
                 "uploaded_at": datetime.now().isoformat(),
                 "artifact_role": artifact_role,
                 "parsed_content": [],

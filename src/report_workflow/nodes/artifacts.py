@@ -20,6 +20,7 @@ from ..artifact_packaging.template_reports import (
     build_template_field_fill_report,
     build_template_style_map,
 )
+from ..artifact_contract import _hash_bytes
 from ..errors import QAHardBlockError
 from ..runtime_support import write_artifact_lineage
 from ..state import ReportState, published_dir_for, run_dir_for
@@ -36,6 +37,35 @@ def _copy_file(src: str | None, dest_dir: Path, dest_name: str | None = None) ->
     dest = dest_dir / (dest_name or p.name)
     shutil.copy2(p, dest)
     return str(dest)
+
+
+def _drifted_sources(registry: list[dict]) -> list[str]:
+    """Registered inputs whose bytes are no longer the bytes that were read.
+
+    A file that is present but changed is worse than one that is missing: the
+    missing one is visibly missing, this one looks right. The bundle is copied
+    from the original path at publish time, so an edited source ships beside
+    evidence quoting text it no longer contains, and a reader opening it to
+    check a citation finds the package contradicting the report.
+
+    Entries recorded before the hash was kept are skipped rather than guessed
+    at, and a missing file is left to the check that already names it.
+    """
+    drifted: list[str] = []
+    for entry in registry:
+        recorded = str(entry.get("content_hash") or "")
+        if not recorded:
+            continue
+        source_path = Path(str(entry.get("file_path", "")))
+        if not source_path.exists():
+            continue
+        try:
+            current = _hash_bytes(source_path.read_bytes())
+        except OSError:
+            continue
+        if current != recorded:
+            drifted.append(f"{entry.get('file_name') or source_path.name}: {source_path}")
+    return drifted
 
 
 def _unique_source_names(paths: list[str]) -> dict[str, str]:
@@ -364,6 +394,23 @@ def run_artifacts(state: ReportState) -> ReportState:
             "was built from, and it would go out without these. Restore the "
             "file(s) at those paths, or re-run prepare with the inputs at "
             "their current locations."
+        )
+
+    # A file that is present but no longer the file that was read is worse than
+    # one that is missing: the missing one is visibly missing, this one looks
+    # right. The bundle would ship a source that does not contain the text the
+    # report quotes from it, and a reader opening it to check would find the
+    # package contradicting the report it exists to substantiate.
+    drifted = _drifted_sources(state.sources.get("source_registry", []))
+    if drifted:
+        raise QAHardBlockError(
+            "Input file(s) changed after they were read: "
+            + ", ".join(drifted)
+            + ". The report quotes what these files said at prepare time, and "
+            "the bundle would ship what they say now, so a reader checking a "
+            "citation would find the source and the report disagreeing. Re-run "
+            "prepare to read them as they are, or restore the versions the "
+            "report was written from."
         )
 
     for role, path in traceability_paths.items():
