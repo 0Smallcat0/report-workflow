@@ -126,6 +126,36 @@ def normalize_profile_id(value: str | None) -> str | None:
     return raw
 
 
+#: What someone applying to a Taiwanese university actually calls the document.
+#: Every other profile below carries its Chinese vocabulary — 工程報告, 實驗報告,
+#: 企劃書, 提案, 工作報告, 商業報告, 自訂 — and this one carried only 申請, a
+#: generic verb rather than a name for the thing. So the two admissions profiles,
+#: and the gates written for them, could not be reached by the words their users
+#: type: 備審資料 fell through to academic_paper, a different document with
+#: different sections and a bibliography requirement it cannot meet.
+_ADMISSIONS_TOKENS = (
+    "admissions",
+    "graduate school",
+    "application",
+    "申請",
+    "備審",
+    "推甄",
+    "自傳",
+    "讀書計畫",
+    "學習歷程",
+)
+
+#: The project variant. 專案 is the business sense; a student's is a 專題.
+_ADMISSIONS_PROJECT_TOKENS = (
+    "project report",
+    "academic project",
+    "project introduction",
+    "internal architecture",
+    "專案",
+    "專題",
+)
+
+
 def infer_report_profile(user_prompt: str) -> str:
     text = (user_prompt or "").lower()
     if any(
@@ -136,21 +166,12 @@ def infer_report_profile(user_prompt: str) -> str:
     if (
         any(token in text for token in ("admissions project", "application project", "申請專案"))
         or (
-            any(token in text for token in ("admissions", "graduate school", "application", "申請"))
-            and any(
-                token in text
-                for token in (
-                    "project report",
-                    "academic project",
-                    "project introduction",
-                    "internal architecture",
-                    "專案",
-                )
-            )
+            any(token in text for token in _ADMISSIONS_TOKENS)
+            and any(token in text for token in _ADMISSIONS_PROJECT_TOKENS)
         )
     ):
         return "admissions_project_report"
-    if any(token in text for token in ("admissions", "graduate school", "application", "申請")):
+    if any(token in text for token in _ADMISSIONS_TOKENS):
         return "admissions_report"
     if any(token in text for token in ("proposal", "企劃書", "提案")):
         return "proposal"
