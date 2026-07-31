@@ -22,6 +22,7 @@ from ..artifact_packaging.template_reports import (
 )
 from ..artifact_contract import _hash_bytes
 from ..errors import QAHardBlockError
+from ..language import detect_document_language
 from ..runtime_support import write_artifact_lineage
 from ..state import ReportState, published_dir_for, run_dir_for
 
@@ -94,6 +95,72 @@ def _unique_source_names(paths: list[str]) -> dict[str, str]:
                 stem, suffix = Path(path).stem, Path(path).suffix
                 names[path] = f"{stem}_{index}{suffix}"
     return names
+
+
+# The delivery package is localized everywhere a reader looks -- headings,
+# captions, the table of contents note. These three notes are read by the same
+# person, so they follow the document's language too. Status words and evidence
+# grades stay as they are: they are the pipeline's vocabulary and they have to
+# match the machine-readable artifacts sitting beside these files.
+_TRACE_TEXT: dict[str, dict[str, str]] = {
+    "en": {
+        "coverage_title": "Evidence Coverage Summary",
+        "claims_total": "Claims total",
+        "claims_with": "Claims with evidence",
+        "claims_without": "Claims without evidence",
+        "evidence_total": "Evidence units total",
+        "by_grade": "Evidence By Grade",
+        "factuality_title": "Factuality Summary",
+        "verified": "Verified claims",
+        "blocked": "Blocked claims",
+        "claim_results": "Claim Results",
+        "note_title": "Client-Readable QA Note",
+        "qa_decision": "QA decision",
+        "completeness": "Artifact completeness",
+        "backs_heading": "What Backs Each Claim",
+        "backs_intro": (
+            "Every claim below had to link to material from the supplied sources "
+            "before it could appear in the report. What each one rests on is "
+            "quoted beneath it."
+        ),
+        "status": "Status",
+        "from": "From",
+        "no_evidence": "No supporting evidence is recorded for this claim.",
+        "contents_heading": "Package Contents",
+        "contents_body": (
+            "The report, the source materials it was built from, the evidence "
+            "ledger, the machine-readable claim audit, and the QA summaries."
+        ),
+    },
+    "zh": {
+        "coverage_title": "證據涵蓋摘要",
+        "claims_total": "主張總數",
+        "claims_with": "有證據的主張",
+        "claims_without": "沒有證據的主張",
+        "evidence_total": "證據單元總數",
+        "by_grade": "依證據等級",
+        "factuality_title": "事實查核摘要",
+        "verified": "通過查核的主張",
+        "blocked": "被擋下的主張",
+        "claim_results": "各主張結果",
+        "note_title": "品質查核說明（給閱讀者）",
+        "qa_decision": "品管判定",
+        "completeness": "產出完整性",
+        "backs_heading": "每一項主張的依據",
+        "backs_intro": (
+            "以下每一項主張，都必須連結到所提供來源中的材料，才會出現在報告裡。"
+            "各項所依據的內容引在其下。"
+        ),
+        "status": "狀態",
+        "from": "出自",
+        "no_evidence": "這一項沒有登記任何支撐證據。",
+        "contents_heading": "本包內容",
+        "contents_body": (
+            "報告本身、建立報告所用的來源材料、證據帳本、機器可讀的主張稽核檔，"
+            "以及品管摘要。"
+        ),
+    },
+}
 
 
 def _preview(content: str, limit: int = 240) -> str:
@@ -214,32 +281,39 @@ def _build_traceability_artifacts(state: ReportState, run_dir: Path) -> dict[str
     with open(claim_audit_path, "w", encoding="utf-8") as f:
         json.dump({"claims": audit_items}, f, indent=2, default=str)
 
+    # Detected from the report's own claims, the same way every other stage
+    # decides what language it is writing in.
+    language = detect_document_language("\n".join(
+        str(item.get("claim_text") or "") for item in audit_items
+    ))
+    words = _TRACE_TEXT.get(language, _TRACE_TEXT["en"])
+
     grade_counts: dict[str, int] = {}
     for item in evidence:
         grade = item.get("evidence_grade", "unknown")
         grade_counts[grade] = grade_counts.get(grade, 0) + 1
 
     coverage_path = Path(write_text(trace_dir / "evidence_coverage_summary.md", "\n".join([
-        "# Evidence Coverage Summary",
+        f"# {words['coverage_title']}",
         "",
-        f"- Claims total: {len(claims)}",
-        f"- Claims with evidence: {claims_with_evidence}",
-        f"- Claims without evidence: {len(claims) - claims_with_evidence}",
-        f"- Evidence units total: {len(evidence)}",
+        f"- {words['claims_total']}: {len(claims)}",
+        f"- {words['claims_with']}: {claims_with_evidence}",
+        f"- {words['claims_without']}: {len(claims) - claims_with_evidence}",
+        f"- {words['evidence_total']}: {len(evidence)}",
         "",
-        "## Evidence By Grade",
+        f"## {words['by_grade']}",
         "",
         *[f"- {grade}: {count}" for grade, count in sorted(grade_counts.items())],
         "",
     ])))
 
     factuality_path = Path(write_text(trace_dir / "factuality_summary.md", "\n".join([
-        "# Factuality Summary",
+        f"# {words['factuality_title']}",
         "",
-        f"- Verified claims: {factuality.get('verified_count', 0)}",
-        f"- Blocked claims: {factuality.get('blocked_count', 0)}",
+        f"- {words['verified']}: {factuality.get('verified_count', 0)}",
+        f"- {words['blocked']}: {factuality.get('blocked_count', 0)}",
         "",
-        "## Claim Results",
+        f"## {words['claim_results']}",
         "",
         *[
             f"- {item.get('claim_id', '')}: {item.get('status', '')} ({item.get('checker', '')})"
@@ -252,16 +326,14 @@ def _build_traceability_artifacts(state: ReportState, run_dir: Path) -> dict[str
     # this?". The answer was assembled above and written only as JSON, while
     # the file named client-readable said counts and recommended that JSON.
     note_lines = [
-        "# Client-Readable QA Note",
+        f"# {words['note_title']}",
         "",
-        f"- QA decision: {state.qa.get('qa_decision', '')}",
-        f"- Artifact completeness: {state.qa.get('artifact_completeness_status', '')}",
+        f"- {words['qa_decision']}: {state.qa.get('qa_decision', '')}",
+        f"- {words['completeness']}: {state.qa.get('artifact_completeness_status', '')}",
         "",
-        "## What Backs Each Claim",
+        f"## {words['backs_heading']}",
         "",
-        "Every claim below had to link to material from the supplied sources "
-        "before it could appear in the report. What each one rests on is quoted "
-        "beneath it.",
+        words["backs_intro"],
         "",
     ]
     for position, item in enumerate(audit_items, start=1):
@@ -269,22 +341,21 @@ def _build_traceability_artifacts(state: ReportState, run_dir: Path) -> dict[str
         note_lines.extend([
             f"### {position}. {headline}",
             "",
-            f"- Status: {item['status'] or 'unknown'} ({item['claim_id']})",
+            f"- {words['status']}: {item['status'] or 'unknown'} ({item['claim_id']})",
         ])
         if not item["evidence"]:
-            note_lines.extend(["- No supporting evidence is recorded for this claim.", ""])
+            note_lines.extend([f"- {words['no_evidence']}", ""])
             continue
         for source in item["evidence"]:
             origin = source["source_file_name"] or source["source_id"] or source["evidence_id"]
             grade = source["evidence_grade"] or "ungraded"
             preview = " ".join(str(source["content_preview"]).split())
-            note_lines.append(f"- From `{origin}` ({grade}): {preview}")
+            note_lines.append(f"- {words['from']} `{origin}` ({grade}): {preview}")
         note_lines.append("")
     note_lines.extend([
-        "## Package Contents",
+        f"## {words['contents_heading']}",
         "",
-        "The report, the source materials it was built from, the evidence ledger, "
-        "the machine-readable claim audit, and the QA summaries.",
+        words["contents_body"],
         "",
     ])
     qa_note_path = Path(write_text(trace_dir / "client_readable_qa_note.md", "\n".join(note_lines)))
