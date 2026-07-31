@@ -861,6 +861,37 @@ class QualityGateContractTests(unittest.TestCase):
         self.assertIsNone(contents[5]["效率(%)"])
         self.assertNotIn("NaN", json.dumps(contents))
 
+    def test_a_stacked_header_does_not_make_the_sheet_unreadable(self):
+        # 溫度(°C) spans two sub-columns while 機台 and 有效度(%) are merged down
+        # across both header rows — the ordinary shape of a course data sheet.
+        # Filling those downward merges as data wrote a column's own name into
+        # the first reading; pandas refused a string in a float column and the
+        # whole sheet came back with success: False and no evidence at all.
+        import tempfile
+        from openpyxl import Workbook
+        from report_workflow.parsers.structured_parser import parse_structured
+
+        tmpdir = Path(tempfile.mkdtemp())
+        book = Workbook()
+        sheet = book.active
+        sheet.append(["機台", "溫度(°C)", None, "有效度(%)"])
+        sheet.append([None, "入口", "出口", None])
+        sheet.append(["A1", 60.0, 45.2, 72.4])
+        sheet.append(["A2", 60.0, 43.1, 76.1])
+        sheet.merge_cells("B1:C1")
+        sheet.merge_cells("A1:A2")
+        sheet.merge_cells("D1:D2")
+        path = tmpdir / "量測.xlsx"
+        book.save(str(path))
+
+        result = parse_structured(str(path), "xlsx")
+        self.assertTrue(result["success"], result.get("error"))
+        rows = [json.loads(block["content"]) for block in result["blocks"]]
+        readings = [row for row in rows if row.get("機台") in ("A1", "A2")]
+        self.assertEqual(len(readings), 2)
+        self.assertEqual(readings[0]["有效度(%)"], 72.4)
+        self.assertEqual(readings[1]["溫度(°C) [2]"], 43.1)
+
     def test_a_merged_xlsx_header_keeps_both_readings(self):
         # The same defect the DOCX reader had: one label merged across two
         # columns left the second keyed on "Unnamed: 2", text nobody wrote.
