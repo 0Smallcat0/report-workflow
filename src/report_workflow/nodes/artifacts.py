@@ -376,6 +376,66 @@ def _copy_named_files(files: dict[str, str | None], dest_dir: Path, role_prefix:
             artifacts_meta["files"].append({"role": f"{role_prefix}_{stem}", "path": copied})
 
 
+def _publication_markdown_source(state: ReportState) -> str | None:
+    """Pick the draft the renderer actually turned into the DOCX.
+
+    Packaging copied merged_draft.md, the pre-citation merge, so report.md
+    shipped beside report.docx with a raw [CITE:<evidence_id>] trailing every
+    paragraph. DOCX_RENDER reads publication_style_draft, then
+    merged_draft_cited_md, then publication_draft_md -- follow the same order
+    so the two files in published/ are the same document.
+    """
+    for key in (
+        "publication_style_draft",
+        "merged_draft_cited_md",
+        "publication_draft_md",
+        "merged_draft_md",
+        "merged_draft_path",
+    ):
+        candidate = state.drafts.get(key)
+        if candidate and Path(candidate).exists():
+            return str(candidate)
+    return None
+
+
+def _resolve_figure_placeholders(markdown_path: Path, run_dir: Path) -> None:
+    """Turn [FIGURE:<id>] into the caption a reader can act on.
+
+    The DOCX replaces each placeholder with the table or chart itself. Markdown
+    carries no exhibit, so an unresolved placeholder is a workflow marker in a
+    delivered document -- the exact thing the publication-text gates exist to
+    keep out.
+    """
+    plan_path = run_dir / "section_drafts" / "figure_plan.json"
+    if not markdown_path.exists() or not plan_path.exists():
+        return
+    try:
+        figures = json.loads(plan_path.read_text(encoding="utf-8")).get("figures", [])
+    except (OSError, json.JSONDecodeError):
+        return
+
+    text = markdown_path.read_text(encoding="utf-8")
+    # The DOCX captions a Chinese document with 表 1. and 圖 1.; the markdown
+    # beside it has to say the same thing.
+    zh = detect_document_language(text) == "zh"
+    words = {"table": "表" if zh else "Table", "figure": "圖" if zh else "Figure"}
+
+    labels: dict[str, str] = {}
+    counters = {"table": 0, "figure": 0}
+    for figure in figures:
+        if not isinstance(figure, dict) or not figure.get("figure_id"):
+            continue
+        kind = "table" if str(figure.get("figure_type")) == "table" else "figure"
+        counters[kind] += 1
+        title = str(figure.get("title") or "").strip()
+        caption = f"{words[kind]} {counters[kind]}"
+        labels[str(figure["figure_id"])] = f"*{caption}. {title}*" if title else f"*{caption}*"
+
+    for figure_id, caption in labels.items():
+        text = text.replace(f"[FIGURE:{figure_id}]", caption)
+    markdown_path.write_text(text, encoding="utf-8")
+
+
 def run_artifacts(state: ReportState) -> ReportState:
     """T25: ARTIFACTS - package all outputs into published directory."""
     run_id = state.job_id
@@ -414,8 +474,10 @@ def run_artifacts(state: ReportState) -> ReportState:
     if docx_copied:
         artifacts_meta["files"].append({"role": "report_docx", "path": docx_copied})
 
-    merged_md = state.drafts.get("merged_draft_md") or state.drafts.get("merged_draft_path")
+    merged_md = _publication_markdown_source(state)
     md_copied = _copy_file(merged_md, published_dir, "report.md")
+    if md_copied:
+        _resolve_figure_placeholders(Path(md_copied), run_dir)
     if md_copied:
         artifacts_meta["files"].append({"role": "report_markdown", "path": md_copied})
 
