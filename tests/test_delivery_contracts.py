@@ -1115,15 +1115,28 @@ class QualityGateContractTests(unittest.TestCase):
         )
         self.assertEqual(labels[r"C:\a\2024\月報.csv"], "月報.csv")
 
-    def test_identical_parent_names_fall_back_to_the_full_path(self):
+    def test_identical_parent_names_still_tell_the_sources_apart(self):
+        """One folder per experiment, each with its own data/ inside.
+
+        This used to try one parent and then print the whole absolute path —
+        136 characters per row in a table whose job is to keep the agent's
+        context small. What it has to be is distinct; being long was never the
+        requirement, and the full path remains where the walk ends.
+        """
         from report_workflow.nodes.agent_tasks import _source_labels
 
+        first = os.path.join("實驗一", "data", "量測.csv")
+        second = os.path.join("實驗二", "data", "量測.csv")
+        third = os.path.join("實驗三", "data", "量測.csv")
         labels = _source_labels([
-            {"source_file_name": "月報.csv", "source_file_path": r"C:\a\data\月報.csv"},
-            {"source_file_name": "月報.csv", "source_file_path": r"C:\b\data\月報.csv"},
+            {"source_file_name": "量測.csv", "source_file_path": first},
+            {"source_file_name": "量測.csv", "source_file_path": second},
+            {"source_file_name": "量測.csv", "source_file_path": third},
         ])
-        self.assertEqual(len(set(labels.values())), 2)
-        self.assertIn(r"C:\a\data\月報.csv", labels.values())
+        self.assertEqual(len(set(labels.values())), 3)
+        self.assertEqual(labels[first], "實驗一/data/量測.csv")
+        for label in labels.values():
+            self.assertLess(len(label), 30)
 
     def test_removing_a_whole_section_does_not_demand_a_figure_decision(self):
         # remove_section is already a declared structural change, recorded in

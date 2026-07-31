@@ -8,6 +8,7 @@ from ..state import ReportState
 from ..language import detect_document_language, localized_section_title
 from ..runtime_support import run_dir_for
 from ..artifact_contract import make_artifact_contract
+from .corpus_build import _distinguishing_seed
 from .figure_types import SUPPORTED_FIGURE_TYPES_TEXT
 
 
@@ -38,10 +39,18 @@ def _source_labels(entries: list[dict]) -> dict[str, str]:
             for path in paths:
                 labels[path] = name
             continue
-        by_parent = {path: f"{Path(path).parent.name}/{name}" for path in paths}
-        distinct = len(set(by_parent.values())) == len(paths)
+        # One parent folder was tried and, if that did not separate them, the
+        # whole absolute path was printed. A student who keeps one folder per
+        # experiment has 實驗一/data/量測.csv and 實驗二/data/量測.csv: the
+        # parents are both "data", so every row of the evidence table carried a
+        # 136-character path — in a table whose stated job is to keep the
+        # agent's context small, and with the author's directory tree in it.
+        #
+        # The shortest tail that tells them apart is the same question source
+        # ids answer, so it is answered in the same place rather than twice.
+        siblings = [Path(path) for path in paths]
         for path in paths:
-            labels[path] = by_parent[path] if distinct else path
+            labels[path] = _distinguishing_seed(Path(path), siblings)
     return labels
 
 
