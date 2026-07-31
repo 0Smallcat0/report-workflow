@@ -518,6 +518,29 @@ def reference_docx_error(path: Path) -> str | None:
     return None
 
 
+def _reference_doc_body_carryover(path: Path) -> str:
+    """What a supplied template contains that the render will not carry over.
+
+    A course hands out a .docx with the cover page it wants — the department,
+    the name and student-number blanks, the supervisor line — and pandoc's
+    --reference-doc takes styles only. The template was accepted without a
+    word, the fonts came through, and the cover the course actually grades was
+    gone, replaced by this pipeline's own.
+
+    Losing it may be the right trade: the styles are the part a template can
+    give. Saying nothing about it is not.
+    """
+    try:
+        lines = [
+            " ".join(paragraph.text.split())
+            for paragraph in Document(str(path)).paragraphs
+            if paragraph.text.strip()
+        ]
+    except Exception:
+        return ""
+    return "; ".join(lines[:3])
+
+
 def _resolve_reference_doc(spec: dict) -> Path:
     """Pick the styling template: user-supplied reference docx or the built-in.
 
@@ -1544,6 +1567,13 @@ def run_docx_render(state: ReportState) -> ReportState:
     # The renderer's own account of what it could not do belongs with the
     # checks that read the file afterwards, not in a log line nobody keeps.
     validation_issues.extend(f"pandoc: {item}" for item in pandoc_warnings)
+    if custom_template_requested:
+        carried = _reference_doc_body_carryover(reference_doc)
+        if carried:
+            validation_issues.append(
+                "the reference .docx supplied its styles but not its own content; "
+                f"this text is in the template and not in the report: {carried}"
+            )
     if validation_issues:
         logger.warning(
             f"[DOCX_RENDER] Post-render validation issues: {'; '.join(validation_issues)}"
