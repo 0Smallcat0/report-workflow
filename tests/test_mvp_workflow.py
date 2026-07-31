@@ -42,6 +42,7 @@ from report_workflow.state import (
     WORKFLOW_RUNS_DIR,
     clear_job_run_hints,
     default_workspace_root,
+    locate_run_dir,
     register_job_run,
 )
 
@@ -688,6 +689,48 @@ class CLITests(unittest.TestCase):
                 self.assertTrue(Path(state.output["run_dir"]).is_relative_to(PROJECT_ROOT / "custom-out"))
             finally:
                 os.chdir(original_cwd)
+
+    def test_run_written_outside_the_default_workspace_is_found_from_that_directory(self):
+        """`--output somewhere` then `--job-id` must not need the path repeated.
+
+        prepare accepted the --output and reported an absolute run_dir; the very
+        next command searched only the repo-local output/ and crashed, naming a
+        directory the user had never mentioned. A job id is all the later
+        commands are handed, so they also look where the user is standing.
+        """
+        import os
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "source.txt"
+            src.write_text("The data show 42 participants and a 20 percent reduction.", encoding="utf-8")
+            with patch("report_workflow.preflight.importlib.util.find_spec", side_effect=_all_packages_present):
+                state = prepare_workflow(
+                    "write a work report",
+                    [str(src)],
+                    str(Path(tmpdir) / "myout"),
+                    report_profile="business_report",
+                )
+            clear_job_run_hints()
+            original_cwd = Path.cwd()
+            try:
+                os.chdir(tmpdir)
+                found = locate_run_dir(state.job_id)
+            finally:
+                os.chdir(original_cwd)
+            self.assertEqual(found, Path(state.output["run_dir"]).resolve())
+
+    def test_missing_run_error_says_how_to_point_at_the_right_workspace(self):
+        import os
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            original_cwd = Path.cwd()
+            try:
+                os.chdir(tmpdir)
+                with self.assertRaises(FileNotFoundError) as caught:
+                    locate_run_dir("run_notarealjob")
+            finally:
+                os.chdir(original_cwd)
+            self.assertIn("--workspace-root", str(caught.exception))
 
     def test_custom_workspace_run_can_resume_without_shared_index_when_root_is_provided(self):
         with tempfile.TemporaryDirectory() as tmpdir:
