@@ -135,7 +135,26 @@ def run_corpus_build(state: ReportState) -> ReportState:
             
             if not path.exists():
                 raise QAHardBlockError(f"Uploaded source not found: {file_path}")
-            
+
+            if path.is_dir():
+                # A directory passes the existence check and then fails much
+                # later, when the bytes are read, with the operating system's
+                # word for it: "Permission denied" on Windows, "Is a directory"
+                # on POSIX. Neither names what the caller did, and the first
+                # sends them to check file permissions that were never wrong.
+                try:
+                    listed = sorted(child.name for child in path.iterdir() if child.is_file())
+                except OSError:
+                    listed = []
+                hint = (
+                    f" It holds: {', '.join(listed[:5])}."
+                    if listed else " It holds no files."
+                )
+                raise QAHardBlockError(
+                    f"Source is a directory, not a file: {file_path}. "
+                    f"Pass each file as its own --source.{hint}"
+                )
+
             file_size = path.stat().st_size
             file_type = detect_file_type(str(path))
             source_id = _source_id_for(path, taken_source_ids, all_sources)
