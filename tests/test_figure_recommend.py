@@ -11,7 +11,11 @@ from report_workflow.nodes.figure_recommend import (
     recommend_figures_from_evidence,
     run_figure_recommend,
 )
-from report_workflow.nodes.figure_plan_audit import audit_figure_plan, run_figure_plan_audit
+from report_workflow.nodes.figure_plan_audit import (
+    _publication_text_issues,
+    audit_figure_plan,
+    run_figure_plan_audit,
+)
 from report_workflow.state import ReportState, run_dir_for
 
 
@@ -1619,6 +1623,57 @@ class FigurePlanShapeMessageTests(unittest.TestCase):
             self.skipTest(f"matplotlib is not available: {exc}")
         self.assertEqual(
             self._errors("scatter", {"x": [2.0, 3.0], "y": [72.4, 76.1]}), [])
+
+
+class FigureTextIdentifierTests(unittest.TestCase):
+    """A table is a figure whose whole content is words, and nothing read them.
+
+    A finished report went out with a column headed median_processing_minutes
+    and a row labelled baseline_manual, under a caption reading "Median
+    processing time per note, manual baseline versus structured workflow
+    (minutes)". The brief tells the author to keep internal identifiers out of
+    publication text; every readability rule beside this one is about charts.
+    """
+
+    def test_a_table_of_raw_column_names_is_reported(self):
+        figure = {
+            "figure_id": "1",
+            "figure_type": "table",
+            "title": "median_processing_minutes by condition",
+            "data": {
+                "columns": ["condition", "median_processing_minutes"],
+                "rows": [["baseline_manual", "28"], ["structured_workflow", "20"]],
+            },
+        }
+        issues = _publication_text_issues(figure, 0)
+        self.assertTrue(issues)
+        found = issues[0]["identifiers"]
+        self.assertIn("median_processing_minutes", found)
+        self.assertIn("baseline_manual", found)
+
+    def test_engineering_symbols_are_not_identifiers(self):
+        # C_D, T_in and Re_D are how engineering writes its own symbols;
+        # refusing those would be worse than the leak this catches.
+        figure = {
+            "figure_id": "2",
+            "figure_type": "line",
+            "title": "阻力係數 C_D 隨雷諾數變化",
+            "xlabel": "Re_D",
+            "ylabel": "C_D",
+            "data": {"labels": ["T_in"], "series": [{"name": "有效度 (%)"}]},
+        }
+        self.assertEqual(_publication_text_issues(figure, 0), [])
+
+    def test_prose_labels_pass(self):
+        figure = {
+            "figure_id": "3",
+            "figure_type": "bar",
+            "title": "Median processing time per note",
+            "xlabel": "Condition",
+            "ylabel": "Processing time (minutes)",
+            "data": {"labels": ["Manual baseline", "Structured workflow"]},
+        }
+        self.assertEqual(_publication_text_issues(figure, 0), [])
 
 
 class ExpandedFigureBuildTests(unittest.TestCase):

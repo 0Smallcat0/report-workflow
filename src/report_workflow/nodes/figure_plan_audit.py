@@ -7,6 +7,7 @@ data-shape inference with downstream contract enforcement.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -211,6 +212,64 @@ def _readability_issue(issue_type: str, figure: dict, index: int, detail: str, r
     }
     issue.update(extra)
     return issue
+
+
+#: Two or more multi-character words joined by underscores — median_processing_
+#: minutes, baseline_manual, setup_cost. Deliberately not one-character parts,
+#: because C_D, T_in and Re_D are how engineering writes its own symbols and
+#: flagging those would be worse than the leak this catches.
+_IDENTIFIER_RE = re.compile(r"\b[A-Za-z0-9]{2,}_[A-Za-z0-9]{2,}(?:_[A-Za-z0-9]+)*\b")
+
+
+def _identifier_like(text: str) -> list[str]:
+    """Raw column names sitting where a reader expects prose."""
+    return _IDENTIFIER_RE.findall(_clean_text(text or ""))
+
+
+def _publication_text_issues(figure: dict, index: int) -> list[dict]:
+    """Identifiers reaching the page through a figure's own text.
+
+    The brief tells the author to translate data identifiers into plain
+    language and to keep internal identifiers out of publication text, and the
+    captions and prose obey it. The tables did not: a finished report went out
+    with a column headed median_processing_minutes and a row labelled
+    baseline_manual, sitting under a caption reading "Median processing time per
+    note, manual baseline versus structured workflow (minutes)".
+
+    Every readability rule beside this one is about charts, and a table is not a
+    chart, so nothing looked at the part of a figure that is only words.
+    """
+    data = figure.get("data", {}) if isinstance(figure.get("data", {}), dict) else {}
+    candidates: list[str] = [
+        str(figure.get("title") or ""),
+        str(figure.get("xlabel") or ""),
+        str(figure.get("ylabel") or ""),
+    ]
+    candidates.extend(str(column) for column in (data.get("columns") or []))
+    for row in (data.get("rows") or [])[:50]:
+        if isinstance(row, (list, tuple)) and row:
+            candidates.append(str(row[0]))
+    candidates.extend(str(label) for label in _label_values(data))
+    for item in _series_values(data):
+        candidates.append(str(item.get("name", "")))
+
+    found: list[str] = []
+    for text in candidates:
+        for token in _identifier_like(text):
+            if token not in found:
+                found.append(token)
+    if not found:
+        return []
+    return [_readability_issue(
+        "raw_identifier_in_figure_text",
+        figure,
+        index,
+        "Figure text carries raw data identifiers where the reader expects "
+        f"words: {', '.join(found[:5])}",
+        "Rename these in the figure plan the way the caption already names "
+        "them; the column name in the source stays as it is.",
+        identifiers=found[:10],
+    )]
 
 
 def _chart_semantic_issues(figure: dict, index: int) -> list[dict]:
@@ -534,6 +593,7 @@ def audit_figure_plan(state: ReportState, recommendations: list[dict], figure_pl
             issues.append(issue)
             hard_issues.append(issue)
             continue
+        issues.extend(_publication_text_issues(figure, index))
         semantic_issues = _chart_semantic_issues(figure, index)
         if semantic_issues:
             issues.extend(semantic_issues)
