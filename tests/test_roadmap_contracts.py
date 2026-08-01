@@ -1459,6 +1459,25 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("engineering_lab_report requires claim_role", message)
         self.assertNotIn("Academic reports", message)
 
+    def test_readme_install_claim_matches_the_packaging(self):
+        """The README now tells a pip-only reader the CLI is theirs.
+
+        It used to say the full source-to-DOCX pipeline needed a clone. Run
+        from a clean venv holding only the wheel, `report-workflow prepare`
+        works; what the wheel does not carry is examples/, which is what the
+        "See it run" commands need. Both claims rest on the packaging, so pin
+        the half that lives in this repository.
+        """
+        import tomllib
+
+        with open("pyproject.toml", "rb") as handle:
+            scripts = tomllib.load(handle)["project"]["scripts"]
+        self.assertIn("report-workflow", scripts)
+
+        readme = Path("README.md").read_text(encoding="utf-8")
+        self.assertIn("ships the package, not the examples", readme)
+        self.assertNotIn("For the full source-to-DOCX pipeline, clone", readme)
+
     def test_readme_test_count_badge_matches_the_suite(self):
         """A number on the landing page that nothing checks will rot.
 

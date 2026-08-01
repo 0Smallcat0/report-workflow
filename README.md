@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-777%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-778%20passing-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **Turn your sources into a report you can hand in — and refuse to ship a single
@@ -65,6 +65,9 @@ hidden — with catch rates, baselines, and the comparison to LLM-as-judge tools
 
 ## See it run
 
+Both scripts below live in this repository, so clone it first — `pip install`
+ships the package, not the examples.
+
 Three files and one sentence in, a finished DOCX out — table of contents, page
 numbers, a real Word table, a chart drawn from your numbers, and a QA pack
 saying why each sentence was allowed to ship:
@@ -92,10 +95,11 @@ passes untouched. No local install needed:
 
 ## Install
 
-`pip install report-workflow` covers the gates and `verify()` — no external
-tools. For the full source-to-DOCX pipeline, clone and add pandoc 3.x; without
-it the renderer falls back to `python-docx` with degraded table and layout
-fidelity.
+`pip install report-workflow` covers the gates, `verify()`, and the
+`report-workflow` CLI — the whole source-to-DOCX pipeline. Add pandoc 3.x for
+full rendering; without it the renderer falls back to `python-docx` with
+degraded table and layout fidelity. Clone the repository if you want the
+example scripts, the benchmarks, or to develop against it.
 
 ```powershell
 pip install -r requirements.txt
