@@ -121,17 +121,17 @@ every built-in profile from one controlled source, 42 claims verified, QA
 Adversarial evidence
 ([`benchmarks/evidence/adversarial_2026-07-14/summary.md`](../benchmarks/evidence/adversarial_2026-07-14/summary.md),
 reproducible via `python scripts/run_adversarial_benchmark.py --check`):
-58 hand-audited cases — 20 honest controls, 38 hallucinated claims across the
-13 attack families above plus 4 documented evasion variants.
+69 hand-audited cases — 25 honest controls, 44 hallucinated claims across the
+14 attack families above plus 6 documented evasion variants.
 
 | Checker | Recall | False-positive rate | Precision |
 | --- | --- | --- | --- |
 | `no_gate` (publish everything) | 0.0% | 0.0% | — |
-| `citation_presence` (shallow RAG-style check) | 10.5% | 0.0% | 100% |
-| **full gate stack (FA/FB/FE/FD)** | **89.5%** (34/38) | **0.0%** (0/20) | **100%** |
+| `citation_presence` (shallow RAG-style check) | 9.1% (4/44) | 0.0% | 100% |
+| **full gate stack (FA/FB/FE/FD)** | **86.4%** (38/44) | **0.0%** (0/25) | **100%** |
 
-Every one of the 13 targeted attack families is caught at 100%. The missing
-10.5% is not noise — it is four *documented evasions*, each kept in the corpus
+Every one of the 14 targeted attack families is caught at 100%. The missing
+13.6% is not noise — it is six *documented evasions*, each kept in the corpus
 deliberately (§6). The 2026-07-14 hardening closed three former evasions
 (precision fudging, short fabricated quotes, cross-language laundering) and
 promoted them to attack families; the corpus records which rule closed each.

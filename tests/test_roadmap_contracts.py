@@ -1459,6 +1459,34 @@ class DocumentationContractTests(unittest.TestCase):
         self.assertIn("engineering_lab_report requires claim_role", message)
         self.assertNotIn("Academic reports", message)
 
+    def test_docs_quote_the_archived_adversarial_numbers(self):
+        """The credibility page has to quote the run, not a run.
+
+        EVIDENCE.md and DESIGN.md advertised 89.5% recall on 58 hand-audited
+        cases across 13 attack families. The archived benchmark those pages
+        link to -- the one --check re-runs from source and CI verifies -- says
+        86.4% on 69 cases across 14 families. The corpus had grown with harder
+        cases and the honest number moved down; both pages kept the old one.
+        These are the numbers a stranger uses to decide whether to trust any of
+        it, so they get the same treatment as the test-count badge.
+        """
+        archives = sorted(Path("benchmarks/evidence").glob("adversarial_*/summary.md"))
+        self.assertTrue(archives, "no archived adversarial benchmark summary")
+        summary = archives[-1].read_text(encoding="utf-8")
+        row = re.search(
+            r"`full_gate_stack`\s*\|\s*([\d.]+)%\s*\((\d+)/(\d+)\)\s*\|\s*[\d.]+%\s*\((\d+)/(\d+)\)",
+            summary,
+        )
+        self.assertIsNotNone(row, "headline row missing from the archived summary")
+        recall, caught, hallucinated, false_positives, honest = row.groups()
+
+        for doc in ("docs/EVIDENCE.md", "docs/DESIGN.md"):
+            text = Path(doc).read_text(encoding="utf-8")
+            with self.subTest(doc=doc):
+                self.assertIn(f"{recall}%", text)
+                self.assertIn(f"({caught}/{hallucinated})", text)
+                self.assertIn(f"({false_positives}/{honest})", text)
+
     def test_readme_install_claim_matches_the_packaging(self):
         """The README now tells a pip-only reader the CLI is theirs.
 
