@@ -1487,6 +1487,39 @@ class DocumentationContractTests(unittest.TestCase):
                 self.assertIn(f"({caught}/{hallucinated})", text)
                 self.assertIn(f"({false_positives}/{honest})", text)
 
+    def test_evidence_page_quotes_the_archived_external_benchmark(self):
+        """The neighbour of the round that pinned the adversarial numbers.
+
+        That guard reads the adversarial archive only, and EVIDENCE.md carries
+        a second measured table beside it -- the 10,000-pair HaluEval run,
+        which is the answer to "those are your own cases, what about data you
+        did not write". Checked before pinning: the page and the archive agree
+        today. Pinned so they keep agreeing.
+
+        The fractions are pinned, not the percentages: the archive rounds
+        6/10,000 to 0.1% and the page renders it as 0.06%, and both are honest
+        readings of the same six answers.
+        """
+        archives = sorted(Path("benchmarks/evidence").glob("halueval_*/summary.md"))
+        self.assertTrue(archives, "no archived external benchmark summary")
+        summary = archives[-1].read_text(encoding="utf-8")
+        evidence = Path("docs/EVIDENCE.md").read_text(encoding="utf-8")
+
+        fractions = set(re.findall(r"\((\d[\d,]*/[\d,]+)\)", summary))
+        for name, pattern in (
+            ("false positives", r"\((6/10,000)\)"),
+            ("recall", r"\((2,320/10,000)\)"),
+        ):
+            match = re.search(pattern, summary)
+            with self.subTest(metric=name):
+                self.assertIsNotNone(match, f"{name} fraction missing from the archive")
+                self.assertIn(match.group(1), evidence)
+        self.assertTrue(fractions, "archive reports no counted fractions at all")
+
+        precision = re.search(r"Precision of a block verdict \| ([\d.]+)%", summary)
+        self.assertIsNotNone(precision)
+        self.assertIn(f"{precision.group(1)}%", evidence)
+
     def test_readme_install_claim_matches_the_packaging(self):
         """The README now tells a pip-only reader the CLI is theirs.
 
