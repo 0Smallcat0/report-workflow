@@ -412,7 +412,12 @@ def _assert_render_ready(state: ReportState) -> None:
     """Require evidence that the normal QA gate actually passed before render."""
     if state.flags.get("bypass_qa_gate"):
         raise QAHardBlockError("Cannot render with bypass_qa_gate enabled")
-    if state.status != "validated":
+    # "completed" is set once, by FINAL_PUBLISH, after this very check passed
+    # and a DOCX was produced -- it is validate plus a successful render, not
+    # less. Refusing it turned "render this again with my own template", which
+    # the README advertises on this command, into a hard block whose message
+    # said validate had not completed while printing status 'completed'.
+    if state.status not in ("validated", "completed"):
         raise QAHardBlockError(
             f"Cannot render before validate completes; current status is {state.status!r}"
         )
