@@ -525,6 +525,57 @@ class StageWorkflowTests(unittest.TestCase):
             self.assertNotIn("appendix", validated.drafts["section_drafts"])
 
 
+class RenderReadinessTests(unittest.TestCase):
+    def _state(self, status: str, decision: str = "pass") -> ReportState:
+        state = ReportState.new("render again", [], None)
+        state.status = status
+        state.qa["qa_decision"] = decision
+        return state
+
+    def _render_refusal(self, status: str) -> str:
+        from report_workflow.run_workflow import _assert_render_ready
+
+        try:
+            _assert_render_ready(self._state(status))
+        except QAHardBlockError as exc:
+            return str(exc)
+        return ""
+
+    def test_a_finished_run_can_be_rendered_again(self):
+        """`render --reference-docx` on a finished report must not be refused.
+
+        The guard required status == "validated" exactly. FINAL_PUBLISH moves a
+        successful render to "completed", which is validate plus a rendered
+        DOCX -- strictly more, not less. So applying your own Word template to
+        a report you already produced, which the README advertises on this very
+        command, hard-blocked with a message that said validate had not
+        completed while printing status 'completed'.
+        """
+        # The later checks in this guard read QA artifacts off disk, which a
+        # bare state has none of. What matters here is which statuses reach
+        # them at all, so assert on the status gate itself.
+        for status in ("validated", "completed"):
+            with self.subTest(status=status):
+                self.assertNotIn("current status is", self._render_refusal(status))
+
+    def test_render_still_refuses_everything_it_refused_before(self):
+        from report_workflow.run_workflow import _assert_render_ready
+
+        for status in ("awaiting_agent_artifacts", "running", "failed"):
+            with self.subTest(status=status):
+                self.assertIn(f"current status is {status!r}", self._render_refusal(status))
+
+        with self.assertRaises(QAHardBlockError) as caught:
+            _assert_render_ready(self._state("completed", decision="fail"))
+        self.assertIn("qa_decision=pass", str(caught.exception))
+
+        bypassed = self._state("validated")
+        bypassed.flags["bypass_qa_gate"] = True
+        with self.assertRaises(QAHardBlockError) as caught:
+            _assert_render_ready(bypassed)
+        self.assertIn("bypass_qa_gate", str(caught.exception))
+
+
 class CLITests(unittest.TestCase):
     def test_cli_prepare_validate_render_status(self):
         with tempfile.TemporaryDirectory() as tmpdir:
