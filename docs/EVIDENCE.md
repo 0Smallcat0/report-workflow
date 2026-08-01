@@ -6,8 +6,8 @@ measurement from source and diff against the archived result.
 ## Red-team: the catch rate is measured, not asserted
 
 A gate that only sees honest drafts proves nothing. The adversarial benchmark
-runs **58 hand-audited cases** — 20 honest controls and 38 hallucinated claims
-across 13 attack families (fabricated citations, invented statistics, unit
+runs **69 hand-audited cases** — 25 honest controls and 44 hallucinated claims
+across 14 attack families (fabricated citations, invented statistics, unit
 swaps, fabricated quotes, precision inflation, cross-language laundering,
 off-topic citations, status laundering, Chinese-text fabrication,
 overclaiming, …) — through the exact gate stack, and compares two baselines on
@@ -16,14 +16,14 @@ the same corpus:
 | Checker | Recall (hallucinations blocked) | False positives (honest blocked) | Precision |
 | --- | --- | --- | --- |
 | No gate (publish everything) | 0.0% | 0.0% | — |
-| Citation-presence check (shallow RAG-style) | 10.5% | 0.0% | 100% |
-| **Full deterministic gate stack** | **89.5%** (34/38) | **0.0%** (0/20) | **100%** |
+| Citation-presence check (shallow RAG-style) | 9.1% (4/44) | 0.0% | 100% |
+| **Full deterministic gate stack** | **86.4%** (38/44) | **0.0%** (0/25) | **100%** |
 
-All 13 targeted attack families are caught at 100%, with zero honest claims
+All 14 targeted attack families are caught at 100%, with zero honest claims
 wrongly blocked. The 2026-07-14 gate hardening closed three formerly documented
 evasions (within-tolerance precision fudging, sub-10-character fabricated
 quotes, cross-language citation laundering) and promoted them to regular attack
-families. The remaining 4 misses are **documented evasions** (negation flips,
+families. The remaining 6 misses are **documented evasions** (negation flips,
 bare numbers without units, hedged reinterpretation, value misattribution) kept
 in the corpus deliberately as the measured residual-risk boundary — see the
 limitations section of [`DESIGN.md`](DESIGN.md). The corpus doubles as a
