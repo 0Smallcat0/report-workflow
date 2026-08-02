@@ -1,5 +1,162 @@
 # Changelog
 
+## 4.27.0 - 2026-08-03
+
+### Fixed — 118 rounds of using the product instead of reading it
+
+The published version throughout this work was 4.23.1. Anyone who installed
+from PyPI in that window got a build predating 4.24.0, where **a run carrying a
+`.csv`, `.json` or `.docx` source could not be published at all**: reference
+curation stripped the local-artifact label and the reference gate then
+hard-blocked on a citation it no longer recognised. That fix, and the three
+releases of work since, reach an installing reader only now. Cutting this
+release is the point of it.
+
+The 118 commits below were all found the same way — by running the product on a
+real document until it stopped, then fixing what stopped it. Halfway through,
+the framing changed from "I am already inside this workflow, where does it
+leak" to "I have just found this repository, where does it stop me", and the
+last two dozen entries come from that second question.
+
+### Fixed — the files people actually have
+
+- **Big5/cp950 sources open now.** Every source ever tested was UTF-8 because
+  the tester wrote them; Excel on a Traditional Chinese Windows saves CSV as
+  Big5 by default. Three separate reading paths were hard-coded to UTF-8 and
+  now share one decoder (`utf-8-sig` → `utf-8` → `cp950` → `gb18030`). The
+  worst of the three never failed: `parse_code` read with `errors="replace"`,
+  so a Big5 file returned `success: True` with a body of U+FFFD, and the
+  mojibake was admissible evidence. No `latin-1` catch-all was added — it
+  decodes anything, which turns a broken file into silent nonsense.
+- **A workbook is more than its first sheet**, and its title cell is not a
+  column name. `openpyxl` is also a declared dependency now; it never was, and
+  a clean install accepted `.xlsx` as supported and then could not open it.
+- **Word and PDF tables survive the trip.** Merged header cells dropped one of
+  the two readings beneath them, cells past the last column vanished without a
+  word, a table continued onto page two named its columns after a reading, and
+  an equation was dropped on the way in and rewritten on the way back. Table
+  rows extracted from `.docx`/`.pdf` are citable one row at a time, as CSV rows
+  always were.
+- **A table pasted out of a spreadsheet is a table.** Tab-separated text glued
+  into a note was swallowed by the paragraph above it and registered as one
+  qualitative block — six readings, no chart, no statistical claim.
+- **Broken attachments are described in your vocabulary, not this build's.** An
+  empty `.md` was reported as "agent fallback parser is not implemented in the
+  local MVP", a scanned handout was refused as if the file were corrupt, and
+  three unreadable attachments were reported one run at a time — three
+  round-trips for information the first parse already had.
+
+### Fixed — Chinese was being checked in English
+
+Thirteen rounds of Chinese documents ran through checks whose vocabulary was
+Latin-only, so they passed by not applying.
+
+- A number spelled in Chinese escaped the numeric check; a fabricated
+  quotation was only scanned in English; the banned-phrase list had no Chinese
+  entries; three figure checks and the duplicate-caption check never fired on a
+  Chinese report; a Chinese claim citing English evidence got no vocabulary
+  check at all.
+- **Reference curation skipped Chinese reports entirely** — GB/T style returned
+  before the filter ran, so every Chinese bibliography shipped uncurated,
+  including the report's own `data.csv`.
+- Revising a Chinese report renamed 摘要 to Abstract, and a Chinese heading was
+  short enough to be discarded as noise; 備審資料 could not select the profile
+  built for 備審資料; a Chinese header matched no term at all, so a trial
+  counter was chosen as a chart axis; a Chinese paper could never be classified
+  as literature, while the warning kept asking the author to attach the
+  literature they had attached.
+- CJK typography normalization was rewriting figure file paths — correct for
+  prose, destructive for the one thing in the document that is not prose.
+
+### Fixed — statistics with no referent
+
+The derived-statistics layer computes what a grader looks for; each new
+inference had to be asked what it would conclude on a different shape of data.
+
+- A column held constant is a controlled variable, not an axis; three steady
+  columns were multiplied into a statistic by accident; a curve was fitted
+  against a column that never changed, and a measurement was regressed on its
+  own row number. A rated/nominal column is now recognised as the reference
+  curve it is, in both languages.
+- **Evidence that certifies itself is no longer accepted**: a section heading
+  could ground the claim that restated it, and a transcript question could
+  ground the claim it was asking about. The same file attached twice became
+  evidence twice, and padding a thin source set with duplicates cleared the
+  source-base bar.
+- A table nobody filled in was read as measurements; two of three thermocouples
+  were destroyed at ingestion; a file name was cited as if it named the authors;
+  a vault's bookkeeping and a note the author had hidden from themselves were
+  both printed into the report.
+
+### Fixed — revising your own report
+
+- Revising deleted the figures and left their captions; took the author's name
+  off the cover; and put an underscore through every numbered heading.
+- A report being revised could not cite the measurements printed in it, and
+  revising it destroyed its tables.
+- Removing a section that held a figure could only pass by lying about it; a
+  revision aimed at the wrong section id lost the sentence in silence;
+  renumbering a heading changed which section it was; and adding a missed trial
+  discarded every citation below it.
+
+### Fixed — the package you actually send
+
+- The delivery bundle shipped the scaffold beside the document, and the
+  delivery summary answered "which file do I send" with a working copy. The
+  client-readable note was neither readable nor the answer, and was written in
+  the wrong language.
+- A clean report came back marked "review" over two optional tools nobody had
+  asked for.
+- A source that moved before publish was dropped from the bundle in silence, a
+  bundle could ship a source that no longer says what the report quotes, and of
+  two same-named sources only one was packaged.
+- Thirteen `[1]` markers shipped over an empty bibliography; a raw `[FIGURE:]`
+  placeholder reached the final document; a figure could disappear from it
+  without a word.
+- **Your own template works on a finished report.** `--reference-docx` was
+  refused on any report that had already rendered, because the guard demanded
+  status `validated` and a delivered report is `completed` — strictly more.
+  A course template's cover page also vanished without a word, and the
+  template-fidelity report was checking the built-in template rather than the
+  author's.
+
+### Fixed — the first hour with the tool
+
+- `prepare --output <dir>` put the run where it was asked and then `status`
+  could not find it; `status` itself reported one of the four things the run
+  needed; `diff` could not compare two checkpoints, which is what it is for;
+  `remap-evidence` rewrote three artifacts and reported touching none;
+  `invalidate-cache` told the author to pass the flag they had just passed;
+  `diagnose` told a brand-new job its revision had succeeded; and pointing at a
+  folder was reported as a permissions problem.
+- Task briefs contradicted the gates they describe: an abstract contract that
+  was not this run's, a key nothing reads, and a hard rule labelled for a
+  profile the run is not.
+- An outline with seven empty sections cost seven publish attempts, one per
+  round-trip; a blocked stage now says how to get unblocked; pandoc's list of
+  dropped elements went to a truncated log line; and two of three
+  evidence-policy checks only ever reached stderr, so a run that raised three
+  warnings recorded one.
+- Tables went out headed by raw column names, a stacked header made a sheet
+  unreadable, and a chart that could not draw its own labels said nothing.
+
+### Fixed — claims this repository made about itself
+
+- **CI had been red for eighty-one commits while every round reported green.**
+  Python 3.11 could not byte-compile `reference_verify` (a backslash inside an
+  f-string expression), `openpyxl` was undeclared, and the `mcp` guard probed a
+  module the server does not import. Reporting green from one interpreter on one
+  operating system is not reporting green.
+- The dependency list the README installs had drifted from the real one; the
+  first command a stranger runs after installing did not exist; and the
+  credibility page quoted an adversarial run that is not the archived one. The
+  archived numbers are now pinned by contract tests, as the test-count badge
+  already was — including the count on `docs/EVIDENCE.md`, which had rotted to
+  496 against a suite of 783.
+- `examples/source_to_report.py` was added: three files and one sentence in, a
+  finished DOCX out — the thing the tool is for, which the examples directory
+  did not previously demonstrate. The README was cut from 534 lines to 134.
+
 ## 4.26.0 - 2026-07-26
 
 ### Fixed — the last two untouched profiles, and a total that meant nothing
