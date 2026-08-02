@@ -31,6 +31,14 @@ from report_workflow.nodes.visual_render_check import run_visual_render_check
 from report_workflow.state import ReportState, WORKFLOW_RUNS_DIR
 
 
+def _counted_tests() -> int:
+    """How many tests this suite declares, counted once for every page that says so."""
+    return sum(
+        len(re.findall(r"^\s+def test_\w+", path.read_text(encoding="utf-8"), re.M))
+        for path in sorted(Path("tests").glob("test_*.py"))
+    )
+
+
 class SourceRoleContractTests(unittest.TestCase):
     def test_agent_wrapper_accepts_structured_source_roles(self):
         files, role_map = _normalize_source_files([
@@ -1552,11 +1560,23 @@ class DocumentationContractTests(unittest.TestCase):
             Path("README.md").read_text(encoding="utf-8"),
         )
         self.assertIsNotNone(badge, "README no longer carries a test-count badge")
-        counted = sum(
-            len(re.findall(r"^\s+def test_\w+", path.read_text(encoding="utf-8"), re.M))
-            for path in sorted(Path("tests").glob("test_*.py"))
+        self.assertEqual(_counted_tests(), int(badge.group(1)))
+
+    def test_evidence_page_test_count_matches_the_suite(self):
+        """The badge's neighbour, rotting the same way.
+
+        The front-page badge is pinned; the same claim on the credibility page
+        -- "351 passing (496 today)", beside the archived end-to-end benchmark
+        -- was not, and had drifted by 287 tests. Both are the same claim made
+        to the same stranger, so they get the same guard, counted by the same
+        rule rather than a second copy of it.
+        """
+        stated = re.search(
+            r"\((\d+) today\)",
+            Path("docs/EVIDENCE.md").read_text(encoding="utf-8"),
         )
-        self.assertEqual(counted, int(badge.group(1)))
+        self.assertIsNotNone(stated, "EVIDENCE.md no longer states today's test count")
+        self.assertEqual(_counted_tests(), int(stated.group(1)))
 
     def test_short_skill_documents_yaml_tool_surface(self):
         skill_text = Path("agent_skill/SKILL.md").read_text(encoding="utf-8")
