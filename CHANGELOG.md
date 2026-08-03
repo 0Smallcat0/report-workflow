@@ -113,6 +113,14 @@ inference had to be asked what it would conclude on a different shape of data.
 - Thirteen `[1]` markers shipped over an empty bibliography; a raw `[FIGURE:]`
   placeholder reached the final document; a figure could disappear from it
   without a word.
+- **A delivered report no longer carries the machine that made it.** pandoc
+  writes the image's source path into the picture's description, and a run
+  directory is named after the prompt, so every report with a chart shipped an
+  absolute local path *and* the author's prompt inside the `.docx`, where Word
+  shows them in the picture's alt-text pane. The caption was already computed
+  and already correct on the neighbouring element; `POST_RENDER_REPAIR` now
+  hands it to the one that was holding the path. Found by scanning the sample
+  document below before committing it, not by reading the code.
 - **Your own template works on a finished report.** `--reference-docx` was
   refused on any report that had already rendered, because the guard demanded
   status `validated` and a delivered report is `completed` — strictly more.
@@ -156,6 +164,22 @@ inference had to be asked what it would conclude on a different shape of data.
 - `examples/source_to_report.py` was added: three files and one sentence in, a
   finished DOCX out — the thing the tool is for, which the examples directory
   did not previously demonstrate. The README was cut from 534 lines to 134.
+
+### Added — what a stranger sees before running anything
+
+- **`examples/output/`** holds the document `examples/source_to_report.py`
+  produces, committed: the `.docx` itself plus the client-readable QA note that
+  says, claim by claim, which source row each sentence rests on. A contract test
+  keeps it a real deliverable — headings, a Word table, a chart, no local path —
+  so the thing most readers judge the tool by cannot quietly rot.
+- **The README leads with the agent path.** Installing the skill and asking for
+  the report in your own words comes first; the CLI follows as the scripted
+  route. The MCP section now says plainly that it exposes the gates, not the
+  whole pipeline, which is what a reader discovers three commands later anyway.
+- **The Colab notebook runs the whole path**, not just `verify()`: install,
+  three source files, a rendered `.docx` you can download, then the gate on its
+  own. It installs from the cloned repository rather than PyPI so the notebook
+  always matches the code beside it.
 
 ## 4.26.0 - 2026-07-26
 

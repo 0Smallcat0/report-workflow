@@ -1,10 +1,14 @@
 """Format-standards regressions: page numbers, TOC placement/language, math, CJK front matter."""
+import base64
 import re
 import shutil
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+
+from docx import Document
+from docx.oxml.ns import qn
 
 from report_workflow.errors import QAHardBlockError
 from report_workflow.nodes.docx_render import (
@@ -21,6 +25,7 @@ from report_workflow.nodes.front_matter_build import (
     _parse_author_from_user_prompt,
     _parse_title_from_user_prompt,
 )
+from report_workflow.nodes.post_render_repair import _align_picture_descriptions
 
 
 class TocInjectionTest(unittest.TestCase):
@@ -1568,6 +1573,59 @@ class PandocFormatIntegrationTest(unittest.TestCase):
                     [n for n in z.namelist() if n.startswith("word/footer")],
                     "page-number footer must survive into rendered output",
                 )
+
+
+class PictureDescriptionTest(unittest.TestCase):
+    """The delivered file should not describe the author's filesystem.
+
+    pandoc puts the image's source path in `pic:cNvPr/@descr`. Run directories
+    are named after the prompt, so a report with one chart shipped both the
+    absolute path and the prompt inside the .docx, where Word will show them in
+    the picture's description.
+    """
+
+    _PNG = base64.b64decode(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=="
+    )
+
+    def _document_with_picture(self, alt_text: str, picture_descr: str) -> Document:
+        doc = Document()
+        with tempfile.TemporaryDirectory() as td:
+            image = Path(td) / "figure.png"
+            image.write_bytes(self._PNG)
+            doc.add_picture(str(image))
+        anchor = next(doc.element.body.iter(qn("wp:docPr")))
+        if alt_text:
+            anchor.set("descr", alt_text)
+        elif anchor.get("descr") is not None:
+            del anchor.attrib["descr"]
+        next(doc.element.body.iter(qn("pic:cNvPr"))).set("descr", picture_descr)
+        return doc
+
+    def _picture_descr(self, doc: Document) -> str:
+        return next(doc.element.body.iter(qn("pic:cNvPr"))).get("descr") or ""
+
+    def test_source_path_is_replaced_by_the_caption(self):
+        leaked = (
+            "C:/Users/someone/AppData/Local/Temp/"
+            "write%20a%20business%20report%20for%20the%20operations%20manager--run_1/figures/2.png"
+        )
+        doc = self._document_with_picture("Figure 1. Median minutes per note by month", leaked)
+
+        self.assertEqual(1, _align_picture_descriptions(doc))
+        self.assertEqual("Figure 1. Median minutes per note by month", self._picture_descr(doc))
+
+    def test_a_picture_without_alt_text_is_cleared_rather_than_left_leaking(self):
+        doc = self._document_with_picture("", "/home/someone/runs/my prompt--run_1/figures/1.png")
+
+        self.assertEqual(1, _align_picture_descriptions(doc))
+        self.assertEqual("", self._picture_descr(doc))
+
+    def test_an_already_correct_description_is_left_alone(self):
+        doc = self._document_with_picture("圖 1. 月別中位處理時間", "圖 1. 月別中位處理時間")
+
+        self.assertEqual(0, _align_picture_descriptions(doc))
+        self.assertEqual("圖 1. 月別中位處理時間", self._picture_descr(doc))
 
 
 if __name__ == "__main__":

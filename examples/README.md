@@ -23,6 +23,23 @@ Full fidelity needs pandoc 3.x; without it the renderer falls back to
 `python-docx` with degraded tables and layout. Unlike the gate demo below, this
 one is not run in CI — it renders a real document, which CI has no renderer for.
 
+## `output/` — what that script produced
+
+Committed so you can see the result without running anything:
+
+- [`output/report.docx`](output/report.docx) — the deliverable
+- [`output/client_readable_qa_note.md`](output/client_readable_qa_note.md) —
+  every claim, its verdict, and the source row it rests on
+- [`output/factuality_summary.md`](output/factuality_summary.md) and
+  [`output/evidence_coverage_summary.md`](output/evidence_coverage_summary.md) —
+  the machine-checked totals behind that note
+
+A real run writes a larger `published/` package beside the document — the
+evidence ledger, the claim-to-source audit, and around twenty QA reports. Only
+the reader-facing part is committed here; the rest records absolute paths from
+the machine that produced it, which is fine in your own run directory and noise
+in a repository.
+
 ## `anti_hallucination_gate.py`
 
 Runs the pipeline's real factuality checkers
