@@ -155,12 +155,20 @@ def build_final_qa_summary(state: ReportState, run_dir: Path) -> dict[str, str]:
         if isinstance(item, dict) and item.get("resolved") is False
     ]
 
-    render_issues = _render_issue_list(post_render_validate, layout, visual)
+    # The visual check is optional: it shells out to LibreOffice and Poppler,
+    # which this project never asks anyone to install. Its *absence* was already
+    # excluded from the verdict; a broken installation was not, so a stale
+    # soffice shim on PATH turned a clean report into "Overall status: failed"
+    # on the page AGENTS.md sends you to first -- with the failure quoted from a
+    # console in another encoding, so the reason was unreadable too. Whether
+    # that toolchain ran says nothing about the document, so it is reported and
+    # not aggregated; `strict_visual_render_check` still hard-blocks inside the
+    # check itself for anyone who does want it enforced.
+    render_issues = _render_issue_list(post_render_validate, layout)
     render_counts = layout.get("counts", {}) if isinstance(layout.get("counts"), dict) else {}
     render_status = "failed" if (
         _check_status(post_render_validate) == "failed"
         or _check_status(layout) == "failed"
-        or _check_status(visual) == "failed"
     ) else ("review" if render_issues else "pass")
 
     factuality_blocked = int(factuality.get("blocked_count", 0) or 0)

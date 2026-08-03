@@ -1,5 +1,29 @@
 # Changelog
 
+## 4.27.1 - 2026-08-03
+
+### Fixed — a clean report was marked failed over a tool nobody asks you to install
+
+Found by installing 4.27.0 from PyPI into an empty environment and running the
+example, which is the first thing anyone reading the README will do.
+
+- **An optional toolchain's failure is no longer the document's verdict.**
+  `VISUAL_RENDER_CHECK` shells out to LibreOffice and Poppler. 4.26.0 already
+  excluded their *absence* from the delivery verdict; a **broken** installation
+  was not excluded, so a stale `soffice` shim on PATH made the check run, fail,
+  and drag a report that passed every gate to `Overall status: failed` —
+  in `published/qa/final_qa_summary.md`, the page AGENTS.md tells a reader to
+  open first. The same failure text also reached the render-issue list quoted
+  from a console in another encoding, so the stated reason was a row of
+  replacement characters. The check is still run and still reported verbatim as
+  `visual_render_status`; it no longer feeds `render_status`. Anyone who does
+  want it enforced still has `strict_visual_render_check`, which hard-blocks
+  inside the check itself.
+
+The branch that was fixed and the branch beside it were written at the same
+time; only the reported one was changed. That is the third time in this
+repository that a defect's neighbour survived its fix.
+
 ## 4.27.0 - 2026-08-03
 
 ### Fixed — 118 rounds of using the product instead of reading it
