@@ -3,6 +3,7 @@ import importlib.util
 import re
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import patch
 from pathlib import Path
 
@@ -1577,6 +1578,43 @@ class DocumentationContractTests(unittest.TestCase):
         )
         self.assertIsNotNone(stated, "EVIDENCE.md no longer states today's test count")
         self.assertEqual(_counted_tests(), int(stated.group(1)))
+
+    def test_the_shipped_sample_is_a_real_clean_deliverable(self):
+        """The one artifact a stranger judges the tool by without running it.
+
+        `examples/output/` holds the document `examples/source_to_report.py`
+        produces, so it is read far more often than it is regenerated. Two ways
+        it can quietly stop being worth showing: it rots into something that is
+        not a finished report, or it carries the machine it was built on --
+        pandoc wrote the image's source path into the picture description, and
+        run directories are named after the prompt, so the first copy of this
+        sample shipped both.
+        """
+        docx = Path("examples/output/report.docx")
+        self.assertTrue(docx.exists(), "the sample deliverable is missing")
+
+        document = Document(str(docx))
+        headings = [p.text for p in document.paragraphs if p.style.name.startswith("Heading")]
+        self.assertTrue(headings, "the sample has no headings, so it is not a report")
+        self.assertTrue(document.tables, "the sample lost its Word table")
+        self.assertTrue(document.inline_shapes, "the sample lost its chart")
+
+        local_path = re.compile(rb"[A-Za-z]:[\\/]Users[\\/]|/home/|/Users/")
+        with zipfile.ZipFile(docx) as bundle:
+            leaking = [name for name in bundle.namelist() if local_path.search(bundle.read(name))]
+        self.assertEqual([], leaking, "the sample carries a local filesystem path")
+
+        note = Path("examples/output/client_readable_qa_note.md").read_text(encoding="utf-8")
+        factuality = Path("examples/output/factuality_summary.md").read_text(encoding="utf-8")
+        self.assertIn("QA decision: pass", note)
+        self.assertIn("Blocked claims: 0", factuality)
+        verified = re.search(r"Verified claims: (\d+)", factuality)
+        self.assertIsNotNone(verified)
+        self.assertEqual(
+            int(verified.group(1)),
+            len(re.findall(r"^### \d+\. ", note, re.M)),
+            "the QA note and the factuality summary describe different runs",
+        )
 
     def test_short_skill_documents_yaml_tool_surface(self):
         skill_text = Path("agent_skill/SKILL.md").read_text(encoding="utf-8")
