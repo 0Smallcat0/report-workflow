@@ -22,6 +22,10 @@ venv/
 output/
 out/
 custom-out/
+# ...except the sample deliverable, which is committed on purpose: `output/`
+# matches at any depth, so examples/output/ was silently dropped from its own
+# commit while the contract test still passed against the working copy.
+!examples/output/
 benchmarks/evidence/*/partial/
 # External datasets fetched on demand (see scripts/run_external_benchmark.py)
 benchmarks/external_data/
