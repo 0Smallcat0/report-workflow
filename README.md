@@ -1,8 +1,17 @@
 # Report Workflow
 
+<!--
+MCP Registry ownership marker. The registry verifies a PyPI package by looking
+for this line in the published README, so it has to ship in the release, not
+just sit in the repository. Both casings are present because the namespace is
+derived from a GitHub login and only one of them will match.
+mcp-name: io.github.0smallcat0/report-workflow
+mcp-name: io.github.0Smallcat0/report-workflow
+-->
+
 [![CI](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-787%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-788%20passing-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **Give your coding agent a folder of sources and one sentence. Get back a DOCX

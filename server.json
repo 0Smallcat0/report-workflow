@@ -1,0 +1,31 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.0smallcat0/report-workflow",
+  "description": "Checks a draft's numbers, quotes and citations against its sources. No model call.",
+  "version": "4.27.0",
+  "repository": {
+    "url": "https://github.com/0Smallcat0/report-workflow",
+    "source": "github"
+  },
+  "websiteUrl": "https://github.com/0Smallcat0/report-workflow",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "report-workflow",
+      "version": "4.27.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "runtimeHint": "uvx",
+      "runtimeArguments": [
+        {
+          "type": "named",
+          "name": "--from",
+          "value": "report-workflow[mcp]",
+          "isRequired": true,
+          "description": "The MCP server lives behind the [mcp] extra; the bare package does not pull in the mcp SDK."
+        }
+      ]
+    }
+  ]
+}
