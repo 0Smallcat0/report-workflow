@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "report-workflow"
-version = "4.27.0"
+version = "4.27.1"
 description = "Turn sources into a submission-ready report, with deterministic gates that block any claim not traceable to the evidence."
 readme = "README.md"
 requires-python = ">=3.11"

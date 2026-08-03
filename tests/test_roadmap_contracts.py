@@ -573,6 +573,93 @@ class FinalQASummaryContractTests(unittest.TestCase):
             self.assertEqual(summary["render"]["visual_render_status"], "skipped")
             self.assertIn("Visual render check: skipped (LibreOffice", markdown)
 
+    def test_broken_visual_render_toolchain_does_not_downgrade_a_clean_delivery(self):
+        """The branch beside the one already fixed.
+
+        A *missing* LibreOffice was excluded from the verdict; a broken one was
+        not. Found by installing 4.27.0 from PyPI and running the example: a
+        stale soffice shim on PATH means the check runs, fails, and drags a
+        report that passed every gate to "Overall status: failed" -- on the page
+        AGENTS.md tells the reader to open first. The failure text was quoted
+        from a console in another encoding, so the stated reason was replacement
+        characters. Whether an optional toolchain works says nothing about the
+        document.
+        """
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("publish report", [], str(Path(tmpdir) / "out"))
+            state.status = "completed"
+            state.spec["report_profile"] = "business_report"
+            state.qa["qa_decision"] = "pass"
+            state.qa["artifact_completeness_status"] = "pass"
+            state.output["workflow_success"] = True
+            state.output["renderer_used"] = "pandoc"
+
+            run_dir = WORKFLOW_RUNS_DIR / state.job_id
+            docx_path = run_dir / "final.docx"
+            docx_path.write_bytes(b"docx placeholder")
+            state.output["final_docx_path"] = str(docx_path)
+            state.output["published_report_path"] = str(docx_path)
+
+            qa_summary_path = run_dir / "qa_summary.json"
+            qa_summary_path.write_text(json.dumps({
+                "qa_decision": "pass",
+                "artifact_completeness_status": "pass",
+            }), encoding="utf-8")
+            state.qa["qa_summary_path"] = str(qa_summary_path)
+
+            factuality_path = run_dir / "factuality_report.json"
+            factuality_path.write_text(json.dumps({
+                "verified_count": 5,
+                "blocked_count": 0,
+                "claims": [],
+            }), encoding="utf-8")
+            state.qa["factuality_report_path"] = str(factuality_path)
+
+            post_render_path = run_dir / "post_render_validate_report.json"
+            post_render_path.write_text(json.dumps({
+                "status": "passed",
+                "paragraph_count": 14,
+                "table_count": 1,
+                "inline_shape_count": 1,
+                "issues": [],
+            }), encoding="utf-8")
+            state.runtime["post_render_validate_report_path"] = str(post_render_path)
+
+            layout_path = run_dir / "post_render_layout_manifest.json"
+            layout_path.write_text(json.dumps({
+                "status": "passed",
+                "counts": {"paragraphs": 14, "tables": 1, "inline_shapes": 1},
+                "issues": [],
+            }), encoding="utf-8")
+            state.runtime["post_render_layout_manifest_path"] = str(layout_path)
+
+            visual_path = run_dir / "visual_render_check_report.json"
+            visual_path.write_text(json.dumps({
+                "status": "failed",
+                "issues": ["'\"C:\\Program Files\\LibreOffice\\program\\soffice.exe\"' \ufffd\ufffd\ufffdO"],
+                "skipped_reason": "",
+                "pdf_path": "",
+                "png_paths": [],
+            }), encoding="utf-8")
+            state.runtime["visual_render_check_report_path"] = str(visual_path)
+
+            packaged = run_artifacts(state)
+            summary = json.loads(
+                Path(packaged.qa["final_qa_summary_path"]).read_text(encoding="utf-8")
+            )
+            markdown = Path(packaged.qa["final_qa_summary_md_path"]).read_text(encoding="utf-8")
+
+            # `failed` is the verdict this branch used to force. The fixture's
+            # placeholder .docx raises unrelated template warnings, so `review`
+            # is honest here and asserting `pass` would pin the wrong thing.
+            self.assertNotEqual(summary["overall_status"], "failed")
+            self.assertEqual(summary["render"]["status"], "pass")
+            self.assertEqual(summary["render"]["issues"], [])
+            self.assertNotIn("\ufffd", markdown)
+            # Reported, not aggregated: the reader can still see it ran and failed.
+            self.assertEqual(summary["render"]["visual_render_status"], "failed")
+            self.assertIn("Visual render check: failed", markdown)
+
     def test_delivery_summary_names_the_packaged_report_not_the_working_copy(self):
         """"Which file do I send?" must not be answered with an intermediate.
 
