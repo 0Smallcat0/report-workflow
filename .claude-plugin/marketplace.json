@@ -1,0 +1,22 @@
+{
+  "name": "report-workflow",
+  "owner": {
+    "name": "0Smallcat0",
+    "url": "https://github.com/0Smallcat0"
+  },
+  "plugins": [
+    {
+      "name": "report-workflow",
+      "source": "./",
+      "description": "Turn your sources and one sentence into a DOCX you can hand in, where every claim must trace to those sources.",
+      "category": "documentation",
+      "tags": [
+        "docx",
+        "report-generation",
+        "evidence",
+        "anti-hallucination",
+        "mcp"
+      ]
+    }
+  ]
+}

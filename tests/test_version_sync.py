@@ -33,6 +33,36 @@ class VersionSyncTest(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn(f"mcp-name: {spec['name']}", readme)
 
+    def test_claude_plugin_manifest_describes_this_release(self):
+        """The fourth place the version lives, and the second nobody runs.
+
+        `.claude-plugin/plugin.json` is read by Claude Code at install time, not
+        by this package, so a stale version there ships a plugin claiming to be
+        something it is not. It also names the skill directory and the command
+        that starts the MCP server; both are checked here because a rename
+        elsewhere in the repository would otherwise break installation silently.
+        """
+        manifest = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
+        self.assertEqual(report_workflow.__version__, manifest["version"])
+
+        skill_roots = sorted(p.parent.name for p in ROOT.glob("*/SKILL.md"))
+        self.assertEqual(
+            ["agent_skill"],
+            skill_roots,
+            "plugin.json scans the repository root for <name>/SKILL.md; that set changed",
+        )
+
+        server = manifest["mcpServers"]["report-workflow"]
+        self.assertEqual("uvx", server["command"])
+        self.assertIn("report-workflow[mcp]", server["args"])
+        self.assertIn("report-workflow-mcp", server["args"])
+
+        marketplace = json.loads(
+            (ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8")
+        )
+        listed = {entry["name"] for entry in marketplace["plugins"]}
+        self.assertIn(manifest["name"], listed)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "report-workflow",
+  "displayName": "Report Workflow",
+  "version": "4.28.0",
+  "description": "Turn your sources and one sentence into a DOCX you can hand in, where every claim must trace to those sources.",
+  "author": {
+    "name": "0Smallcat0",
+    "url": "https://github.com/0Smallcat0"
+  },
+  "homepage": "https://github.com/0Smallcat0/report-workflow",
+  "repository": "https://github.com/0Smallcat0/report-workflow",
+  "license": "MIT",
+  "keywords": [
+    "docx",
+    "report-generation",
+    "evidence",
+    "anti-hallucination",
+    "mcp"
+  ],
+  "skills": "./",
+  "mcpServers": {
+    "report-workflow": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "report-workflow[mcp]",
+        "report-workflow-mcp"
+      ]
+    }
+  }
+}

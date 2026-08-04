@@ -11,7 +11,7 @@ mcp-name: io.github.0Smallcat0/report-workflow
 
 [![CI](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-789%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-790%20passing-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **Give your coding agent a folder of sources and one sentence. Get back a DOCX
@@ -48,15 +48,21 @@ Profiles, Chinese-document handling, templates, and the gate list:
 
 ## Drive it from your agent
 
-```bash
-pip install report-workflow
-git clone https://github.com/0Smallcat0/report-workflow
-cp -r report-workflow/agent_skill ~/.claude/skills/report-workflow
+In Claude Code, install the plugin — it brings the skill and the tool server
+together, and nothing needs cloning:
+
+```text
+/plugin marketplace add 0Smallcat0/report-workflow
 ```
 
-That last line installs the skill for Claude Code (on Windows, copy the same
-folder to `%USERPROFILE%\.claude\skills\report-workflow`). Then ask in your own
-words:
+Then `/plugin install report-workflow@report-workflow`. Any other MCP-capable
+agent (Codex, Cursor, your own harness) gets the same tools with one command:
+
+```bash
+claude mcp add report-workflow -- uvx --from "report-workflow[mcp]" report-workflow-mcp
+```
+
+Then ask in your own words:
 
 > Use report-workflow to turn the files in ./data into a business report for
 > the operations manager: what changed, what it costs, whether to adopt it.
@@ -96,13 +102,14 @@ write the claims, outline, and drafts — that is the agent's half.
 
 ## MCP server
 
-Any MCP-capable agent can call the gates as tools — draft with its own
-judgment, then ask `verify_claims` whether each claim may ship. This is the
-gate surface, not the whole pipeline: rendering a DOCX still goes through the
-skill or the CLI. Payloads: [docs/mcp.md](docs/mcp.md).
+The whole pipeline is exposed as tools, not just the gate: `start_report` →
+`get_next_action` / `submit_action` → `publish_report`, with `verify_claims`,
+`query_evidence`, and `lint_artifacts` alongside. An agent with the server
+installed can take a folder of sources to a finished DOCX without a copy of
+this repository. Payloads: [docs/mcp.md](docs/mcp.md).
 
 ```bash
-claude mcp add report-workflow -- report-workflow-mcp
+claude mcp add report-workflow -- uvx --from "report-workflow[mcp]" report-workflow-mcp
 ```
 
 ## The gate on its own

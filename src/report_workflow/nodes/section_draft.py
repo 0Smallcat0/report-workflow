@@ -11,6 +11,30 @@ from .agent_tasks import write_agent_task_briefs
 from .section_contract import planned_section_ids, section_requires_claims
 
 
+def _ledger_evidence_ids(state: ReportState) -> set[str]:
+    """Evidence IDs this run actually registered, for telling stale from misfiled.
+
+    Empty when the ledger cannot be read, which makes the caller fall back to
+    the stale-artifact wording -- the safer of the two, since it does not tell
+    an author their claim matrix is fine when we could not check.
+    """
+    path = state.sources.get("evidence_ledger_path")
+    if not path or not Path(path).exists():
+        return set()
+    ids: set[str] = set()
+    try:
+        for line in Path(path).read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            row = json.loads(line)
+            if isinstance(row, dict) and row.get("evidence_id"):
+                ids.add(str(row["evidence_id"]))
+    except (OSError, json.JSONDecodeError):
+        return set()
+    return ids
+
+
 STRUCTURED_DRAFTS_FILENAME = "structured_drafts.json"
 
 
@@ -307,11 +331,37 @@ def run_section_draft(state: ReportState) -> ReportState:
             raise QAHardBlockError(f"sentence_map entry {index} references unknown claims: {', '.join(unknown_claims)}")
         unknown_evidence = sorted(eid for eid in entry.get("evidence_ids", []) if known_evidence and eid not in known_evidence)
         if unknown_evidence:
+            # Two different mistakes used to share one message, and it described
+            # only the rarer one. An ID that is in this run's ledger is not
+            # stale, so remapping is the wrong remedy and following it wastes a
+            # round trip; the sentence simply cited evidence its own claims do
+            # not carry.
+            ledger_ids = _ledger_evidence_ids(state)
+            stale = [eid for eid in unknown_evidence if eid not in ledger_ids]
+            if stale:
+                raise QAHardBlockError(
+                    f"sentence_map entry {index} references evidence IDs that are not in this run's "
+                    "ledger: " + ", ".join(stale)
+                    + f". Run `report-workflow remap-evidence --from-job <old> --to-job {state.job_id} --write` "
+                    "or rebuild sentence_map.jsonl from this run."
+                )
+            cited_claims = [cid for cid in entry.get("claim_ids", []) if cid]
+            allowed = sorted(
+                eid
+                for claim in state.plan.get("claim_matrix", {}).get("claims", [])
+                if claim.get("claim_id") in cited_claims
+                for eid in claim.get("evidence_ids", [])
+            )
             raise QAHardBlockError(
-                f"sentence_map entry {index} references evidence IDs outside claim_matrix/current run: "
+                f"sentence_map entry {index} cites evidence its own claims do not list: "
                 + ", ".join(unknown_evidence)
-                + f". Run `report-workflow remap-evidence --from-job <old> --to-job {state.job_id} --write` "
-                "or rebuild sentence_map.jsonl from this run."
+                + ". Those IDs are in this run's ledger, so nothing is stale. The sentence cites "
+                + (", ".join(cited_claims) if cited_claims else "no claim")
+                + ", which between them allow "
+                + (", ".join(allowed) if allowed else "no evidence")
+                + ". Either add the evidence to one of those claims in claim_matrix.json, or cite "
+                "only what they already list -- past the claim stage, the write scope permits the "
+                "second."
             )
 
     state.drafts["section_drafts"] = section_paths
