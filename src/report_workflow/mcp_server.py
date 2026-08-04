@@ -7,7 +7,11 @@ agent — Claude Code, Codex, Cursor, a custom harness — call the same
 factuality gate stack the report pipeline enforces, without shelling out to
 the CLI.
 
-Tools:
+The gate answers that question on its own, and the rest of the pipeline is
+here too, so an MCP client with no copy of this repository can take a folder
+of sources to a finished DOCX. Installing the server is the whole install.
+
+Gate tools:
   * ``verify_claims`` — run FA (linkage), FB (statistical backing),
     FE (deep-audit content overlap), and FD (wording vs evidence grade) over
     a claim matrix, sentence map, and evidence ledger. Pure function of its
@@ -15,6 +19,20 @@ Tools:
   * ``list_report_profiles`` — enumerate the built-in ``report_profile``
     selectors and their strictness.
   * ``get_workflow_status`` — read the persisted state of a prepared job.
+
+Pipeline tools (delegating to ``agent_wrapper``, the same entry points the CLI
+and the agent skill use):
+  * ``check_environment`` → ``start_report`` → ``get_next_action`` /
+    ``submit_action`` (repeat) → ``publish_report``.
+  * ``query_evidence``, ``lint_artifacts``, ``audit_engineering_report`` for
+    looking things up and catching artifact errors early.
+  * ``submit_revision_plan`` / ``preview_revision_diff`` for editing an
+    existing document rather than drafting one.
+
+Authoring stays with the caller: the agent writes ``claim_matrix.json``,
+``outline.json``, ``section_drafts/*.md`` and ``sentence_map.jsonl`` into the
+run directory, and ``get_next_action`` says which of those is due and where
+writing is permitted.
 
 The ``mcp`` dependency is optional (``pip install report-workflow[mcp]``);
 everything except ``main``/``build_server`` works without it, which keeps the
@@ -27,6 +45,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from . import agent_wrapper
 from .nodes.factuality_check import (
     run_factuality_check_fa,
     run_factuality_check_fb,
@@ -170,6 +189,134 @@ def build_server():
     def get_workflow_status(job_id: str, workspace_root: str | None = None) -> dict:
         """Get the persisted status and QA decision of a report workflow job."""
         return workflow_status_payload(job_id, workspace_root)
+
+    # The whole pipeline, not just the gate. These delegate to the same
+    # functions the CLI and the agent skill call, so an MCP client alone can
+    # take a folder of sources to a finished DOCX without cloning anything.
+    # Authoring stays the caller's job: the agent writes claim_matrix.json,
+    # outline.json, section_drafts/*.md and sentence_map.jsonl into the run
+    # directory, and get_next_action says which one is due.
+
+    @server.tool()
+    def check_environment() -> dict:
+        """Check renderer and optional-tool availability. Call before start_report.
+
+        Reports what is installed (pandoc, mermaid, research keys), what each
+        missing item costs, and which decisions start_report needs recorded in
+        `preflight_decisions` before it will run.
+        """
+        return agent_wrapper.check_setup()
+
+    @server.tool()
+    def start_report(
+        prompt: str,
+        source_files: list[str | dict],
+        output_dir: str | None = None,
+        report_profile: str | None = None,
+        task_intent: str = "new_draft",
+        title: str | None = None,
+        reference_docx: str | None = None,
+        preflight_confirmed: bool = False,
+        preflight_decisions: dict | None = None,
+        allow_degraded_render: bool = False,
+    ) -> dict:
+        """Step 1. Parse sources into an evidence ledger and write the task briefs.
+
+        `source_files` takes paths, or `{"path": ..., "role": "source_data"}` /
+        `{"path": ..., "role": "base_document"}`. `report_profile` is the only
+        report-shape selector; omit it to infer one. Set `task_intent` to
+        "revise_existing" to edit a base document instead of drafting.
+        `reference_docx` follows your own Word template's styles. Returns the
+        job_id, the run directory, and the briefs to read next.
+        """
+        return agent_wrapper.start_report_task(
+            prompt=prompt,
+            source_files=source_files,
+            output_dir=output_dir,
+            report_profile=report_profile,
+            task_intent=task_intent,
+            title=title,
+            reference_docx=reference_docx,
+            preflight_confirmed=preflight_confirmed,
+            preflight_decisions=preflight_decisions,
+            allow_degraded_render=allow_degraded_render,
+        )
+
+    @server.tool()
+    def get_next_action(job_id: str, workspace_root: str | None = None) -> dict:
+        """Step 2. Ask what to author next, what to read first, and where you may write.
+
+        The authoritative answer to "what now" for a run. Returns the current
+        stage, the files to read before writing, and the paths this stage is
+        allowed to write; writing outside that scope is refused.
+        """
+        return agent_wrapper.get_controlled_next_action(job_id, workspace_root)
+
+    @server.tool()
+    def submit_action(job_id: str, workspace_root: str | None = None) -> dict:
+        """Step 3. Validate what you just wrote for the current stage and advance.
+
+        Call after writing the files get_next_action asked for. A rejection
+        names the artifact, the JSON path, and how to repair it.
+        """
+        return agent_wrapper.submit_controlled_action(job_id, workspace_root)
+
+    @server.tool()
+    def query_evidence(
+        job_id: str,
+        evidence_ids: list[str] | None = None,
+        query: str | None = None,
+        offset: int = 0,
+        limit: int = 20,
+        workspace_root: str | None = None,
+    ) -> dict:
+        """Look up evidence rows without loading the whole ledger into context.
+
+        Filter by `evidence_ids`, or search `query` across content. Use this to
+        find the row that supports a claim rather than reading the ledger file.
+        """
+        return agent_wrapper.query_evidence(
+            job_id, evidence_ids, query, offset, limit, workspace_root
+        )
+
+    @server.tool()
+    def lint_artifacts(job_id: str, workspace_root: str | None = None) -> dict:
+        """Check the artifacts you authored for shape errors before publishing.
+
+        Cheaper than a full validate: returns artifact names, JSON paths,
+        severity, and repair hints.
+        """
+        return agent_wrapper.lint_agent_artifacts(job_id, workspace_root)
+
+    @server.tool()
+    def audit_engineering_report(job_id: str, workspace_root: str | None = None) -> dict:
+        """Measurement, unit, and calculation audit for engineering_lab_report runs."""
+        return agent_wrapper.run_engineering_audit(job_id, workspace_root)
+
+    @server.tool()
+    def publish_report(
+        job_id: str,
+        workspace_root: str | None = None,
+        reference_docx: str | None = None,
+    ) -> dict:
+        """Final step. Validate everything, render the DOCX, and package the QA pack.
+
+        Runs the gates: every publishable claim must cite evidence that
+        supports it, citations must resolve, and rendering is refused unless
+        the QA decision passes. Returns the delivered document path and the QA
+        artifacts recording why each sentence was allowed to ship.
+        """
+        return agent_wrapper.submit_and_publish_report(job_id, workspace_root, reference_docx)
+
+    @server.tool()
+    def submit_revision_plan(job_id: str, workspace_root: str | None = None) -> dict:
+        """Validate revision_plan.json for a revise_existing run."""
+        return agent_wrapper.submit_revision_plan(job_id, workspace_root)
+
+    @server.tool()
+    def preview_revision_diff(job_id: str, workspace_root: str | None = None) -> dict:
+        """Show what revision_plan.json would change, without applying it."""
+        return agent_wrapper.preview_revision_diff(job_id, workspace_root)
 
     return server
 

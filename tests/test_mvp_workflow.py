@@ -747,7 +747,20 @@ class CLITests(unittest.TestCase):
             finally:
                 os.chdir(original_cwd)
 
-    def test_relative_workspace_override_is_resolved_from_project_root(self):
+    def test_relative_workspace_override_is_resolved_from_the_callers_directory(self):
+        """A relative --output means "relative to where I am".
+
+        This used to anchor to PROJECT_ROOT, and the old test pinned that by
+        name. Driving the pipeline over MCP showed what it costs: the server's
+        working directory is never the user's, so `output_dir="run"` wrote the
+        run inside the installed package while relative source paths still
+        resolved against the caller. PUBLISH then hard-blocked on sources it
+        could not find, and the job could not be published from any directory
+        at all -- the run was findable from one, the sources from another.
+
+        Sources are resolved at registration for the same reason, so an
+        absolute record survives whatever directory a later step runs in.
+        """
         with tempfile.TemporaryDirectory() as tmpdir:
             src = Path(tmpdir) / "source.txt"
             src.write_text("The data show 42 participants and a 20 percent reduction.", encoding="utf-8")
@@ -758,11 +771,16 @@ class CLITests(unittest.TestCase):
                 with patch("report_workflow.preflight.importlib.util.find_spec", side_effect=_all_packages_present):
                     state = prepare_workflow(
                         "write a work report",
-                        [str(src)],
+                        ["source.txt"],
                         "custom-out",
                         report_profile="business_report",
                     )
-                self.assertTrue(Path(state.output["run_dir"]).is_relative_to(PROJECT_ROOT / "custom-out"))
+                here = Path(tmpdir).resolve()
+                self.assertTrue(Path(state.output["run_dir"]).is_relative_to(here / "custom-out"))
+                self.assertFalse(Path(state.output["run_dir"]).is_relative_to(PROJECT_ROOT))
+                recorded = [Path(p) for p in state.spec["uploaded_files"]]
+                self.assertTrue(all(p.is_absolute() for p in recorded))
+                self.assertTrue(all(p.exists() for p in recorded))
             finally:
                 os.chdir(original_cwd)
 

@@ -29,7 +29,13 @@ def resolve_workspace_root(workspace_root: str | Path | None = None) -> Path:
     if workspace_root:
         path = Path(workspace_root).expanduser()
         if not path.is_absolute():
-            path = PROJECT_ROOT / path
+            # Anchored to the caller's working directory, not PROJECT_ROOT.
+            # Anchoring to the package's own root put `--output run` inside the
+            # installation and, for a pip-installed user, somewhere they never
+            # chose; combined with source paths resolved elsewhere it produced a
+            # run that could not be published from any directory. A relative
+            # path means "relative to where I am".
+            path = Path.cwd() / path
         return path.resolve()
     return default_workspace_root()
 
@@ -231,6 +237,17 @@ class ReportState(BaseModel):
     ) -> "ReportState":
         job_id = f"run_{uuid.uuid4().hex[:8]}"
         workspace_root = resolve_workspace_root(output_dir)
+        # Resolve inputs now, against the caller's working directory, because
+        # this is the only moment we are certain what a relative path meant.
+        # PUBLISH re-reads these to package the sources beside the document, and
+        # a path stored as given resolves against whatever directory happens to
+        # be current then -- for an MCP server, never the user's. That produced
+        # a job publishable from nowhere: the run was found from one directory
+        # and the sources from another.
+        uploaded_files = [
+            str(Path(path).expanduser().resolve()) if path else path
+            for path in uploaded_files
+        ]
         run_dir = workspace_root / build_run_dir_name(user_prompt, job_id, front_matter)
         run_dir.mkdir(parents=True, exist_ok=True)
         published_dir = run_dir / "published"
