@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "report-workflow"
-version = "4.28.2"
+version = "4.29.0"
 description = "Turn sources into a submission-ready report, with deterministic gates that block any claim not traceable to the evidence."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -57,6 +57,11 @@ dependencies = [
 [project.optional-dependencies]
 notebook = ["notebooklm-py>=0.1.0"]
 mcp = ["mcp>=1.2,<2"]
+# Ships a pandoc binary in the wheel, so full-fidelity rendering needs no
+# system install. Kept an extra rather than a dependency: wheels exist for
+# win_amd64, macOS x86_64/arm64 and manylinux/musllinux only, and a core
+# dependency would make `pip install report-workflow` fail everywhere else.
+render = ["pypandoc-binary>=1.13"]
 
 [project.urls]
 Homepage = "https://github.com/0Smallcat0/report-workflow"

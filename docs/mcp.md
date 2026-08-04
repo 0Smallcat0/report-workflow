@@ -11,14 +11,14 @@ agent drafts; the server verifies.
 ## Install
 
 ```bash
-pip install "report-workflow[mcp]"
+pip install "report-workflow[mcp,render]"
 ```
 
 The server lives behind the `[mcp]` extra: the bare package does not pull in the
 MCP SDK. To run it without installing anything:
 
 ```bash
-uvx --from "report-workflow[mcp]" report-workflow-mcp
+uvx --from "report-workflow[mcp,render]" report-workflow-mcp
 ```
 
 That is the invocation `server.json` declares to the MCP Registry, so a client

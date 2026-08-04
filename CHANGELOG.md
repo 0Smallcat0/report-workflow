@@ -1,5 +1,32 @@
 # Changelog
 
+## 4.29.0 - 2026-08-04
+
+### Added — the last manual install step is gone
+
+Installing pandoc was the one thing left that a user had to do by hand, and
+skipping it does not fail loudly: the renderer falls back to `python-docx` and
+delivers a document with no real Word tables and none of the template's layout.
+A first-time reader does not experience that as a missing dependency. They
+experience it as a tool that produces mediocre documents.
+
+- **`pip install "report-workflow[render]"` carries pandoc in the wheel.**
+  `pypandoc-binary` ships the binary per platform, and `_find_pandoc` now looks
+  there after the PATH and the known Windows install locations. A system pandoc
+  still wins — it is the one the user chose, and it is usually newer. Kept an
+  extra rather than a dependency: those wheels cover win_amd64, macOS
+  x86_64/arm64 and manylinux/musllinux, so a core dependency would make
+  `pip install report-workflow` fail everywhere else.
+- **The plugin asks for both extras.** Its server command is now
+  `uvx --from "report-workflow[mcp,render]" report-workflow-mcp`, so installing
+  the plugin gets full-fidelity rendering with nothing installed by hand. The
+  cost is a larger first run while uvx fetches the binary; it is cached after
+  that.
+
+Verified in a clean uv environment built from this commit: with only the
+`render` extra, `_bundled_pandoc()` resolves to the binary inside the installed
+`pypandoc` package.
+
 ## 4.28.2 - 2026-08-03
 
 ### Fixed — the MCP server could not start anywhere except this machine
