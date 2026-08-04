@@ -1,5 +1,34 @@
 # Changelog
 
+## 4.28.2 - 2026-08-03
+
+### Fixed — the MCP server could not start anywhere except this machine
+
+The plugin installed and enabled in 4.28.1. Its server then said:
+
+```text
+plugin:report-workflow:report-workflow: uvx --from report-workflow[mcp]
+report-workflow-mcp - ✗ Failed to connect
+```
+
+`mcp>=1.2` had no upper bound, and **mcp 2.0 removed `mcp.server.fastmcp`** —
+the module `build_server` imports. Any clean environment resolved 2.0.0 and the
+server exited before serving a single tool. The development machine had 1.28.1
+from an older install, so every local check passed; CI passed too, because the
+server tests skip themselves when that import fails. Green everywhere, unusable
+everywhere else. The extra is now `mcp>=1.2,<2`, and a test that runs whether or
+not the extra is present asserts the upper bound — the one check that would have
+caught this.
+
+- **The failure said the wrong thing.** `build_server` caught the ImportError
+  and reported only "install the optional dependency", which is what someone
+  reads immediately after installing it. It now quotes the actual error, so the
+  next person sees `No module named 'mcp.server.fastmcp'` rather than being sent
+  back to a step they already completed.
+
+Verified in a clean uv environment built from this commit: mcp 1.29.0,
+`mcp.server.fastmcp` imports, `build_server()` returns 13 tools.
+
 ## 4.28.1 - 2026-08-03
 
 ### Fixed — the plugin 4.28.0 shipped did not load

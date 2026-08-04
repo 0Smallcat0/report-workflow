@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "report-workflow"
-version = "4.28.1"
+version = "4.28.2"
 description = "Turn sources into a submission-ready report, with deterministic gates that block any claim not traceable to the evidence."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -56,7 +56,7 @@ dependencies = [
 
 [project.optional-dependencies]
 notebook = ["notebooklm-py>=0.1.0"]
-mcp = ["mcp>=1.2"]
+mcp = ["mcp>=1.2,<2"]
 
 [project.urls]
 Homepage = "https://github.com/0Smallcat0/report-workflow"

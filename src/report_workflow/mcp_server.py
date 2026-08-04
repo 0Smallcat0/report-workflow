@@ -146,8 +146,16 @@ def build_server():
     try:
         from mcp.server.fastmcp import FastMCP
     except ImportError as exc:  # pragma: no cover - exercised only without extra
+        # Quote the real failure. This used to say only "install the extra",
+        # which is what someone reads after installing the extra: mcp 2.0
+        # removed mcp.server.fastmcp, `mcp>=1.2` resolved to it in any clean
+        # environment, and the advice sent them back to the step they had just
+        # completed. The version bound now excludes 2.x; if this fires anyway,
+        # the reason is in the message rather than in a traceback nobody sees.
         raise SystemExit(
-            "The MCP server needs the optional dependency: pip install report-workflow[mcp]"
+            "The MCP server could not start: " + str(exc)
+            + ". It needs the optional dependency at a supported version: "
+            'pip install "report-workflow[mcp]" (mcp>=1.2,<2).'
         ) from exc
 
     server = FastMCP(

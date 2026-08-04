@@ -124,6 +124,33 @@ class ProfileAndStatusPayloadTests(unittest.TestCase):
             workflow_status_payload("job_that_does_not_exist_anywhere")
 
 
+class McpDependencyBoundTest(unittest.TestCase):
+    """Runs even where the extra is absent, because that is the failing case.
+
+    `mcp>=1.2` resolved to 2.0.0 in any clean environment, and 2.0 removed
+    `mcp.server.fastmcp`, so `uvx --from "report-workflow[mcp]"
+    report-workflow-mcp` -- the command the plugin and the README both give --
+    exited before serving a single tool. Nothing here noticed: the development
+    machine had 1.28.1 from an older install, and the tests below skip
+    themselves when the import fails, so CI was green while the server was
+    unusable. An upper bound is the fix; this test is what would have caught it.
+    """
+
+    def test_declared_extra_excludes_versions_without_fastmcp(self):
+        import tomllib
+        from pathlib import Path
+
+        root = Path(__file__).resolve().parent.parent
+        with open(root / "pyproject.toml", "rb") as handle:
+            extras = tomllib.load(handle)["project"]["optional-dependencies"]
+        spec = next(dep for dep in extras["mcp"] if dep.startswith("mcp"))
+        self.assertIn(
+            "<2",
+            spec,
+            "mcp 2.x removed mcp.server.fastmcp, which build_server imports",
+        )
+
+
 @unittest.skipUnless(MCP_AVAILABLE, "optional mcp extra not installed")
 class ServerConstructionTests(unittest.TestCase):
     def test_build_server_exposes_the_whole_pipeline_not_just_the_gate(self):
