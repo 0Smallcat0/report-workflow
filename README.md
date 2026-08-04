@@ -163,6 +163,7 @@ always runs against the interpreter you invoke.
 - **Why it is built this way, threat model** → [docs/DESIGN.md](docs/DESIGN.md)
 - **Driving it from an agent** → [agent_skill/SKILL.md](agent_skill/SKILL.md)
 - **Developing this repository** → [AGENTS.md](AGENTS.md) (authoritative contract)
+- **Reporting a bug, and what is in scope** → [CONTRIBUTING.md](CONTRIBUTING.md)
 
 Specified, integrated, and verified by its author, with coding agents doing much
 of the implementation — the deterministic gates and the benchmark harness exist

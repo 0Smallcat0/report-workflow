@@ -101,6 +101,37 @@ reference-template behavior. The workflow DAG should remain stable; nodes read
 profile policy through `get_policy(...)`. Profile descriptions for operators live
 in `agent_skill/reference/profiles.md`.
 
+## Scope
+
+The pipeline is feature-complete for what it set out to do. Seven profiles, two
+languages, a user-supplied `.docx` template, revision of an existing document,
+the CLI, the agent skill, and the MCP gate surface are the whole product. Work
+from here is defect repair, not expansion.
+
+Settled, and not to be reopened without the owner saying so in the current
+session:
+
+- No eighth profile, and no second public selector for report shape. See
+  "Public Contract" above: `report_family`, family flags, detail levels,
+  subtypes, and variants are all gone and stay gone.
+- No semantic layer in the checker. The gates are lexical so the verdict is
+  reproducible; entailment is what an NLI model or an LLM judge is for, and this
+  project is the deterministic pass in front of one.
+- No second rendering backend. pandoc, with `python-docx` as the degraded
+  fallback.
+- No venue or journal formatting. `--reference-docx` delegates layout to the
+  user's own template.
+- No web UI, hosted service, or anything requiring an account.
+- No inflating a benchmark by deleting cases. The documented misses in the
+  adversarial corpus mark the measured edge of lexical checking; they are the
+  credibility, not a backlog.
+
+A misleading message is a defect, not a cosmetic issue. Several releases exist
+because the tool reported the wrong reason for stopping, and the wrong reason
+costs a reader more than the stop does.
+
+`CONTRIBUTING.md` states the same boundary for people arriving from outside.
+
 ## Stage Lists
 
 `src/report_workflow/run_workflow.py` owns the canonical stage sequence. Each
