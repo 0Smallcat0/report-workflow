@@ -1,6 +1,6 @@
 # Tool Reference
 
-Generated from `agent_skill/skill.yaml` by `scripts/render_skill_docs.py`.
+Generated from `skills/report-workflow/skill.yaml` by `scripts/render_skill_docs.py`.
 Do not edit by hand; run `python scripts/render_skill_docs.py --write`.
 
 The tools are Python functions in `report_workflow.agent_wrapper` that return

@@ -116,7 +116,7 @@ job (`job_id`, optional `workspace_root`).
 
 The MCP surface is the verification gate, not the full authoring pipeline.
 Preparing sources, authoring artifacts, and rendering DOCX stay with the CLI
-and the agent skill (see [`agent_skill/SKILL.md`](../agent_skill/SKILL.md)) —
+and the agent skill (see [`skills/report-workflow/SKILL.md`](../skills/report-workflow/SKILL.md)) —
 those steps need files on disk and explicit preflight decisions, which are
 better handled by the harness's own tools. The measured behavior of the gates
 this server exposes is documented in

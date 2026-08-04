@@ -168,7 +168,7 @@ always runs against the interpreter you invoke.
 - **What the output looks like, profiles, templates, gates** → [docs/OUTPUT.md](docs/OUTPUT.md)
 - **Measured catch rates and honest limits** → [docs/EVIDENCE.md](docs/EVIDENCE.md)
 - **Why it is built this way, threat model** → [docs/DESIGN.md](docs/DESIGN.md)
-- **Driving it from an agent** → [agent_skill/SKILL.md](agent_skill/SKILL.md)
+- **Driving it from an agent** → [skills/report-workflow/SKILL.md](skills/report-workflow/SKILL.md)
 - **Developing this repository** → [AGENTS.md](AGENTS.md) (authoritative contract)
 - **Reporting a bug, and what is in scope** → [CONTRIBUTING.md](CONTRIBUTING.md)
 

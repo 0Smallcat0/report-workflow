@@ -45,12 +45,13 @@ class VersionSyncTest(unittest.TestCase):
         manifest = json.loads((ROOT / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8"))
         self.assertEqual(report_workflow.__version__, manifest["version"])
 
-        skill_roots = sorted(p.parent.name for p in ROOT.glob("*/SKILL.md"))
-        self.assertEqual(
-            ["agent_skill"],
-            skill_roots,
-            "plugin.json scans the repository root for <name>/SKILL.md; that set changed",
-        )
+        # Claude Code refuses `"skills": "./"` with "Path escapes plugin
+        # directory", so the skill lives where the default layout expects it:
+        # <plugin root>/skills/<name>/SKILL.md. Renaming that directory breaks
+        # installation without breaking anything else, which is why it is pinned.
+        skill_dirs = sorted(p.parent.name for p in ROOT.glob("skills/*/SKILL.md"))
+        self.assertEqual(["report-workflow"], skill_dirs)
+        self.assertEqual("./skills", manifest["skills"])
 
         server = manifest["mcpServers"]["report-workflow"]
         self.assertEqual("uvx", server["command"])

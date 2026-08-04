@@ -1,10 +1,10 @@
-"""Render generated skill documentation from agent_skill/skill.yaml.
+"""Render generated skill documentation from skills/report-workflow/skill.yaml.
 
 Generates two things from the single source of truth (skill.yaml):
 
 1. The `report-workflow:tool-surface` marker block (a flat tool-name list) in
-   agent_skill/SKILL.md.
-2. The full harness-neutral tool catalog at agent_skill/reference/tools.md.
+   skills/report-workflow/SKILL.md.
+2. The full harness-neutral tool catalog at skills/report-workflow/reference/tools.md.
 
 Run `python scripts/render_skill_docs.py --check` to fail on drift, or
 `--write` to regenerate in place.
@@ -22,7 +22,7 @@ import yaml
 START_MARKER = "<!-- report-workflow:tool-surface:start -->"
 END_MARKER = "<!-- report-workflow:tool-surface:end -->"
 
-TOOLS_DOC_RELATIVE = Path("agent_skill") / "reference" / "tools.md"
+TOOLS_DOC_RELATIVE = Path("skills/report-workflow") / "reference" / "tools.md"
 
 
 def repo_root_from_script() -> Path:
@@ -53,7 +53,7 @@ def render_tools_doc(tools: list[dict]) -> str:
     lines = [
         "# Tool Reference",
         "",
-        "Generated from `agent_skill/skill.yaml` by `scripts/render_skill_docs.py`.",
+        "Generated from `skills/report-workflow/skill.yaml` by `scripts/render_skill_docs.py`.",
         "Do not edit by hand; run `python scripts/render_skill_docs.py --write`.",
         "",
         "The tools are Python functions in `report_workflow.agent_wrapper` that return",
@@ -98,12 +98,12 @@ def replace_generated_block(text: str, rendered_block: str) -> str:
 
 def render_docs(repo_root: Path, *, write: bool = False) -> list[dict[str, object]]:
     repo_root = repo_root.resolve()
-    tools = load_tools(repo_root / "agent_skill" / "skill.yaml")
+    tools = load_tools(repo_root / "skills/report-workflow" / "skill.yaml")
     rendered_block = render_tool_surface([str(tool["name"]) for tool in tools])
     results: list[dict[str, object]] = []
 
     # 1. Marker block in SKILL.md.
-    for target in (repo_root / "agent_skill" / "SKILL.md",):
+    for target in (repo_root / "skills/report-workflow" / "SKILL.md",):
         original = target.read_text(encoding="utf-8")
         updated = replace_generated_block(original, rendered_block)
         changed = updated != original

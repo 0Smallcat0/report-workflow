@@ -52,7 +52,7 @@ def sync_skill(source_dir: Path, dest_dir: Path, write: bool) -> list[tuple[Path
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Install or update the report-workflow Codex skill from agent_skill/."
+        description="Install or update the report-workflow Codex skill from skills/report-workflow/."
     )
     parser.add_argument(
         "--dest",
@@ -67,7 +67,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    source_dir = repo_root_from_script() / "agent_skill"
+    source_dir = repo_root_from_script() / "skills/report-workflow"
     operations = sync_skill(source_dir, args.dest.expanduser(), args.write)
 
     mode = "copied" if args.write else "would copy"

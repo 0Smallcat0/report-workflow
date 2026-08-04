@@ -59,7 +59,7 @@ infers a profile from the prompt unless `--profile` or `report_profile` is
 given.
 
 Profile purposes and strictness are documented in
-`agent_skill/reference/profiles.md`; the registry lives in
+`skills/report-workflow/reference/profiles.md`; the registry lives in
 `src/report_workflow/profiles.py`.
 
 ## Chinese documents
@@ -90,7 +90,7 @@ Profiles control reference-template behavior. The default mode is
 `style_reference` (use a DOCX as a style/layout reference); if the user asks to
 exactly preserve the cover or format, the workflow upgrades to `fixed_template`.
 A profile contract has priority over prompt and template hints. Engineering
-exact-cover handling is detailed in `agent_skill/reference/engineering-lab.md`.
+exact-cover handling is detailed in `skills/report-workflow/reference/engineering-lab.md`.
 
 ## Quality gates
 

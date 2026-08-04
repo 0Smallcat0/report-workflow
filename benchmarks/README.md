@@ -66,7 +66,7 @@ Use only these categories when recording benchmark findings:
    `figure_visual_quality_report`, `template_style_map`, and the final DOCX
    against the packet rubric.
 5. Classify every gap using the fixed categories above.
-6. Implement only high-confidence changes. Prefer `agent_skill` guidance and
+6. Implement only high-confidence changes. Prefer `skills/report-workflow` guidance and
    benchmark tests before changing core Python nodes.
 7. Update `findings.json` and the profile packet with what changed, what stayed
    backlog, and what should not be changed.

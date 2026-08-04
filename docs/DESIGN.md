@@ -7,7 +7,7 @@ This document explains **why** the system is built the way it is and **what its
 verification layer measurably does and does not catch**. The development-facing
 contract (stage lists, artifact schema, full gate list) lives in
 [AGENTS.md](../AGENTS.md); operating instructions live in
-[`agent_skill/SKILL.md`](../agent_skill/SKILL.md).
+[`skills/report-workflow/SKILL.md`](../skills/report-workflow/SKILL.md).
 
 ## 1. Problem
 

@@ -1704,8 +1704,8 @@ class DocumentationContractTests(unittest.TestCase):
         )
 
     def test_short_skill_documents_yaml_tool_surface(self):
-        skill_text = Path("agent_skill/SKILL.md").read_text(encoding="utf-8")
-        skill_yaml = yaml.safe_load(Path("agent_skill/skill.yaml").read_text(encoding="utf-8"))
+        skill_text = Path("skills/report-workflow/SKILL.md").read_text(encoding="utf-8")
+        skill_yaml = yaml.safe_load(Path("skills/report-workflow/skill.yaml").read_text(encoding="utf-8"))
 
         tool_names = [tool["name"] for tool in skill_yaml["tools"]]
         for tool_name in tool_names:
@@ -1713,7 +1713,7 @@ class DocumentationContractTests(unittest.TestCase):
                 self.assertIn(f"`{tool_name}`", skill_text)
 
     def test_short_skill_points_to_reference_library(self):
-        skill_text = Path("agent_skill/SKILL.md").read_text(encoding="utf-8")
+        skill_text = Path("skills/report-workflow/SKILL.md").read_text(encoding="utf-8")
 
         # SKILL.md stays a lean hub that links every reference file one level deep.
         skill_pointers = [
@@ -1734,7 +1734,7 @@ class DocumentationContractTests(unittest.TestCase):
                 self.assertIn(pointer, skill_text)
 
     def test_reference_files_document_operational_guardrails(self):
-        reference = Path("agent_skill/reference")
+        reference = Path("skills/report-workflow/reference")
 
         # Detailed guardrails live in one-level-deep reference files, not SKILL.md.
         expected = {
@@ -1789,12 +1789,12 @@ class DocumentationContractTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             dest_dir = Path(tmpdir) / "report-workflow"
 
-            dry_run_ops = module.sync_skill(Path("agent_skill"), dest_dir, write=False)
+            dry_run_ops = module.sync_skill(Path("skills/report-workflow"), dest_dir, write=False)
             # SKILL.md + skill.yaml + every reference/ file.
             self.assertGreaterEqual(len(dry_run_ops), 3)
             self.assertFalse(dest_dir.exists())
 
-            write_ops = module.sync_skill(Path("agent_skill"), dest_dir, write=True)
+            write_ops = module.sync_skill(Path("skills/report-workflow"), dest_dir, write=True)
             self.assertEqual(len(write_ops), len(dry_run_ops))
             for source, dest in write_ops:
                 self.assertTrue(dest.exists())
