@@ -167,4 +167,4 @@ python scripts/run_adversarial_benchmark.py --check
 ```
 
 The benchmark-first optimization method and gap taxonomy are documented in
-`agent_skill/reference/benchmarking.md`.
+`skills/report-workflow/reference/benchmarking.md`.

@@ -16,6 +16,6 @@ Where to go next:
 
 - Full development contract (layout, commands, stage lists, artifact contract,
   hard gates, extension points) → **[AGENTS.md](AGENTS.md)** (authoritative).
-- Operating the skill to generate a report → `agent_skill/SKILL.md` and its
+- Operating the skill to generate a report → `skills/report-workflow/SKILL.md` and its
   `reference/` files (profiles, authoring, figures, engineering-lab, revision).
 - Human-facing overview and install → `README.md`.

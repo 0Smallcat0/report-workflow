@@ -82,9 +82,9 @@ class BenchmarkContractTests(unittest.TestCase):
         for category in GAP_CATEGORIES:
             self.assertIn(category, self.matrix)
 
-        skill = (ROOT / "agent_skill" / "SKILL.md").read_text(encoding="utf-8")
+        skill = (ROOT / "skills/report-workflow" / "SKILL.md").read_text(encoding="utf-8")
         benchmarking = (
-            ROOT / "agent_skill" / "reference" / "benchmarking.md"
+            ROOT / "skills/report-workflow" / "reference" / "benchmarking.md"
         ).read_text(encoding="utf-8")
         self.assertIn("Benchmark-First Optimization", skill)
         self.assertIn("Benchmark-First Optimization", benchmarking)

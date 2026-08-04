@@ -4,7 +4,7 @@ Authoritative repository guide for agents developing `report-workflow`. This is
 the single source of truth for the repo's development contract: concepts, layout,
 commands, stage lists, artifact contract, hard gates, and extension points.
 
-- Operating the skill to generate a report → `agent_skill/SKILL.md` and its
+- Operating the skill to generate a report → `skills/report-workflow/SKILL.md` and its
   `reference/` files.
 - Human-facing overview and install → `README.md`.
 - `CLAUDE.md` and `AGENT_ONBOARDING.md` are thin entry points that defer here.
@@ -99,7 +99,7 @@ Profiles control blueprint selection, policy strictness, aliases, front matter,
 abstract rules, citation behavior, figure/table contracts, tone rules, and
 reference-template behavior. The workflow DAG should remain stable; nodes read
 profile policy through `get_policy(...)`. Profile descriptions for operators live
-in `agent_skill/reference/profiles.md`.
+in `skills/report-workflow/reference/profiles.md`.
 
 ## Scope
 
@@ -222,7 +222,7 @@ readiness, inspect `published/qa/final_qa_summary.json` first, then the
 scholarly-quality, figure-visual-quality, template-style-map, and
 template-field-fill reports as the user's question requires. Operator-facing
 inspection order and the engineering publish checklist live in
-`agent_skill/reference/engineering-lab.md`.
+`skills/report-workflow/reference/engineering-lab.md`.
 
 ## Revision Mode
 

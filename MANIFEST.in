@@ -3,4 +3,4 @@ include LICENSE
 include requirements.txt
 include workflow_config.yaml
 include .env.example
-recursive-include agent_skill *.md *.yaml
+recursive-include skills/report-workflow *.md *.yaml

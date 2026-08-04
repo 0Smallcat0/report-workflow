@@ -32,7 +32,7 @@ repo-local benchmark contract before changing the skill or Python pipeline:
    `deterministic_pipeline_gap`, `render_template_gap`, `agent_authoring_gap`, or
    `external_reference_gap`.
 7. Implement only high-confidence changes after the benchmark evidence is written.
-   Prefer `agent_skill` guidance, benchmark artifacts, and regression tests before
+   Prefer `skills/report-workflow` guidance, benchmark artifacts, and regression tests before
    Python pipeline changes. Add or tighten deterministic hard gates only when
    repeated benchmark evidence shows the current QA artifacts cannot express the
    quality failure.

@@ -1,5 +1,35 @@
 # Changelog
 
+## 4.28.1 - 2026-08-03
+
+### Fixed — the plugin 4.28.0 shipped did not load
+
+4.28.0 added the Claude Code plugin manifest written against the published
+schema. Installing it said otherwise:
+
+```text
+Status: × failed to load
+Error: Path escapes plugin directory: ./ (skills)
+```
+
+`"skills": "./"` was a reading of the documentation, not a tested value, and
+Claude Code refuses it. The fix is the layout the default discovery already
+expects rather than another guess at the field: the skill moved from
+`agent_skill/` to `skills/report-workflow/`, and the manifest points at
+`./skills`. Every reference in the repository moved with it — README, AGENTS.md,
+the docs, the skill's own reference files, `scripts/render_skill_docs.py`, and
+the tests.
+
+`test_version_sync` now pins the skill directory name and the manifest's
+`skills` value, because renaming that directory breaks installation and nothing
+else, so no other check would notice. The marketplace entry also carries the
+description `claude plugin validate` asks for.
+
+Verified by installing it: `claude plugin marketplace add`, `plugin install`,
+then `plugin list` reporting `Status: √ enabled`, with the plugin and
+marketplace recorded in `~/.claude/settings.json`. The failure above is what the
+first attempt actually printed.
+
 ## 4.28.0 - 2026-08-03
 
 ### Fixed — a job could be published from no directory at all
@@ -1123,7 +1153,7 @@ reports.
 - Audited real rendered benchmark reports and removed every machine-writing
   tell found, across all seven profiles:
   - **Prose Quality contract** added to the generated agent task briefs and
-    `agent_skill/reference/authoring.md`: translate data identifiers into
+    `skills/report-workflow/reference/authoring.md`: translate data identifiers into
     plain language with units, state grounded numbers instead of writing
     around them, keep internal ids out of body text and captions, write
     captions that describe the finding (not the chart mechanics), and vary
@@ -1270,12 +1300,12 @@ reports.
 ### Changed
 
 - Restructured the agent skill for progressive disclosure and multi-harness use.
-  `agent_skill/SKILL.md` is now a ~220-line navigation hub (down from ~628) that
-  links one-level-deep `agent_skill/reference/` files
+  `skills/report-workflow/SKILL.md` is now a ~220-line navigation hub (down from ~628) that
+  links one-level-deep `skills/report-workflow/reference/` files
   (`setup-and-preflight`, `profiles`, `tools`, `authoring`, `figures`,
   `engineering-lab`, `revision`, `benchmarking`), matching Anthropic's Agent
   Skills 500-line and single-source-of-truth guidance. Removed the duplicated
-  `agent_skill/agent_instructions.md`; its content now lives once in the
+  `skills/report-workflow/agent_instructions.md`; its content now lives once in the
   reference files. Made the skill harness-neutral (Codex, Claude Code, or any
   shell agent) with an explicit "Invoking the Tools" section and a
   harness-neutral `description`, and generate `reference/tools.md` from

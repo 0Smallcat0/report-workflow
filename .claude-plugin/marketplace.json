@@ -1,5 +1,6 @@
 {
   "name": "report-workflow",
+  "description": "The report-workflow plugin: sources and one sentence in, a DOCX you can hand in out, with every claim traced to those sources.",
   "owner": {
     "name": "0Smallcat0",
     "url": "https://github.com/0Smallcat0"

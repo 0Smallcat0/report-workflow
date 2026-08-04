@@ -6,9 +6,9 @@ The authoritative repository guide is **[AGENTS.md](AGENTS.md)** — concepts,
 project layout, commands, stage lists, artifact contract, hard gates, and
 extension points all live there as the single source of truth. Read it first.
 
-- Operating the skill to generate a report → `agent_skill/SKILL.md` and its
+- Operating the skill to generate a report → `skills/report-workflow/SKILL.md` and its
   `reference/` files (the tool surface is documented there and in
-  `agent_skill/reference/tools.md`).
+  `skills/report-workflow/reference/tools.md`).
 - Human-facing overview and install → `README.md`.
 
 Quick start:
