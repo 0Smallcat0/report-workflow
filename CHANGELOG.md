@@ -1,5 +1,51 @@
 # Changelog
 
+## 4.28.0 - 2026-08-03
+
+### Fixed — a job could be published from no directory at all
+
+Found by driving the pipeline the way an installed plugin has to work: an agent
+holding only the MCP tools, fresh sources, no checkout of this repository.
+
+- **Relative paths are resolved where their meaning is unambiguous.**
+  `output_dir` anchored to the package's own root, so a relative `--output`
+  wrote the run inside the installation rather than where the caller stood,
+  while source paths were stored exactly as given and re-resolved at PUBLISH
+  against whatever directory happened to be current. Run from one place and the
+  run is found but not its sources; run from the other and the sources are found
+  but not the run. **The job could not be published from anywhere**, and nothing
+  warned at prepare: the sources parsed, the ledger was built, and the block
+  came after all the authoring was done. For an MCP server this is the default
+  case, since the server's working directory is never the user's — for a
+  pip-installed user, "relative" meant somewhere inside site-packages. A
+  relative `--output` now anchors to the caller's directory, and sources are
+  resolved to absolute paths at registration.
+- **A rejection describes the mistake you actually made.** One message covered
+  two different problems and named only the rarer one: a sentence citing
+  evidence its own claims do not list was told its artifacts were stale from an
+  older job, and pointed at `remap-evidence`, which cannot help. The two cases
+  are now separated, and the misfiled one names the claims the sentence cites,
+  the evidence those claims allow, and the fix that fits the current write scope.
+
+### Added — install it the way an agent installs anything
+
+- **The MCP server exposes the pipeline, not just the gate.** Thirteen tools
+  instead of three: `check_environment`, `start_report`, `get_next_action`,
+  `submit_action`, `query_evidence`, `lint_artifacts`,
+  `audit_engineering_report`, `publish_report`, `submit_revision_plan`, and
+  `preview_revision_diff`, beside the existing `verify_claims`,
+  `list_report_profiles`, and `get_workflow_status`. No new capability — these
+  delegate to the same `agent_wrapper` functions the CLI and the skill already
+  call. They were simply never registered, so an agent that installed the
+  server still had to clone this repository to produce anything.
+- **A Claude Code plugin manifest and marketplace entry.**
+  `/plugin marketplace add 0Smallcat0/report-workflow` then
+  `/plugin install report-workflow@report-workflow` brings the skill and the
+  tool server together. The version, the skill directory, and the server command
+  are pinned by `test_version_sync`, because a plugin manifest is read at
+  install time by something that is not this package and would otherwise rot
+  unnoticed.
+
 ## 4.27.1 - 2026-08-03
 
 ### Fixed — a clean report was marked failed over a tool nobody asks you to install
