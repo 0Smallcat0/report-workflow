@@ -126,19 +126,47 @@ class ProfileAndStatusPayloadTests(unittest.TestCase):
 
 @unittest.skipUnless(MCP_AVAILABLE, "optional mcp extra not installed")
 class ServerConstructionTests(unittest.TestCase):
-    def test_build_server_registers_all_tools(self):
+    def test_build_server_exposes_the_whole_pipeline_not_just_the_gate(self):
+        """MCP is the only surface every target agent speaks.
+
+        The server used to expose three tools, none of which can produce a
+        report, so an agent that installed it still had to clone this
+        repository and copy the skill to get anywhere. The pipeline functions
+        already existed in agent_wrapper; they were simply never registered.
+
+        Each pipeline tool is checked against the function it delegates to, so
+        renaming one in agent_wrapper fails here rather than at a caller's
+        first invocation.
+        """
         import asyncio
 
+        from report_workflow import agent_wrapper
         from report_workflow.mcp_server import build_server
 
         server = build_server()
-        tools = asyncio.run(server.list_tools())
-        tool_names = {tool.name for tool in tools}
+        tool_names = {tool.name for tool in asyncio.run(server.list_tools())}
 
-        self.assertEqual(
-            tool_names,
-            {"verify_claims", "list_report_profiles", "get_workflow_status"},
-        )
+        gate_tools = {"verify_claims", "list_report_profiles", "get_workflow_status"}
+        pipeline_tools = {
+            "check_environment": "check_setup",
+            "start_report": "start_report_task",
+            "get_next_action": "get_controlled_next_action",
+            "submit_action": "submit_controlled_action",
+            "query_evidence": "query_evidence",
+            "lint_artifacts": "lint_agent_artifacts",
+            "audit_engineering_report": "run_engineering_audit",
+            "publish_report": "submit_and_publish_report",
+            "submit_revision_plan": "submit_revision_plan",
+            "preview_revision_diff": "preview_revision_diff",
+        }
+
+        self.assertEqual(tool_names, gate_tools | set(pipeline_tools))
+        for tool_name, wrapper_name in pipeline_tools.items():
+            with self.subTest(tool=tool_name):
+                self.assertTrue(
+                    callable(getattr(agent_wrapper, wrapper_name, None)),
+                    f"{tool_name} delegates to agent_wrapper.{wrapper_name}, which is gone",
+                )
 
 
 if __name__ == "__main__":
