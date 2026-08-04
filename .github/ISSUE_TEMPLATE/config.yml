@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: What this project will and will not take on
+    url: https://github.com/0Smallcat0/report-workflow/blob/master/CONTRIBUTING.md
+    about: The scope is settled. Read this before proposing a feature, so neither of us spends an afternoon on something that will be declined.
+  - name: How the pipeline is put together
+    url: https://github.com/0Smallcat0/report-workflow/blob/master/AGENTS.md
+    about: Stages, artifact contract, hard gates, and how to add a substep.
+  - name: What the gates catch, and what they do not
+    url: https://github.com/0Smallcat0/report-workflow/blob/master/docs/EVIDENCE.md
+    about: Measured catch rates, the documented misses, and how to reproduce both.

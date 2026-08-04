@@ -1,0 +1,79 @@
+name: Bug report
+description: A run stopped, or the document it produced is wrong
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Nearly every defect in this project was found by running it on a real
+        document until it stopped. What you gave it and where it stopped is the
+        useful part — a stack trace alone rarely is.
+
+        Please do not paste confidential sources. The QA pack and the message
+        are usually enough; if they are not, a two-line synthetic file that
+        reproduces the same stop beats a redacted real one.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: The error, or the sentence in the document that is wrong.
+      placeholder: |
+        Example: validate hard-blocked with "Claim c_measure cites evidence that
+        does not support a measured claim", but ev_003 is a row of my CSV.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected instead
+    validations:
+      required: true
+
+  - type: textarea
+    id: how-to-reproduce
+    attributes:
+      label: The command or tool call you ran
+      description: Include the profile, and the kind of sources you attached (.csv, .docx, .md, how many).
+      render: shell
+    validations:
+      required: true
+
+  - type: textarea
+    id: qa-summary
+    attributes:
+      label: published/qa/final_qa_summary.md
+      description: If the run got as far as publishing, paste it. Skip this if it stopped earlier.
+      render: markdown
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: Output of `report-workflow --version` (or `python -m report_workflow --version`).
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: OS, Python, and pandoc
+      description: e.g. "Windows 11, Python 3.12, pandoc 3.10" — say so if pandoc is not installed.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: language
+    attributes:
+      label: Document language
+      options:
+        - English
+        - Chinese
+        - Mixed
+        - Not applicable
+    validations:
+      required: false
