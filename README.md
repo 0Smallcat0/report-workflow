@@ -145,8 +145,8 @@ Runnable, no local install:
 `pip install report-workflow` covers the gates, `verify()`, and the
 `report-workflow` CLI — the whole source-to-DOCX pipeline. Add pandoc 3.x for
 full rendering; without it the renderer falls back to `python-docx` with
-degraded table and layout fidelity. Clone the repository for the agent skill,
-the example scripts, and the benchmarks:
+degraded table and layout fidelity. The skill and the tool server arrive with
+the plugin, so cloning is only for the example scripts and the benchmarks:
 `pip install` ships the package, not the examples.
 
 ```powershell
