@@ -11,7 +11,7 @@ mcp-name: io.github.0Smallcat0/report-workflow
 
 [![CI](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-791%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-794%20passing-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **Give your coding agent a folder of sources and one sentence. Get back a DOCX
@@ -59,7 +59,7 @@ Then `/plugin install report-workflow@report-workflow`. Any other MCP-capable
 agent (Codex, Cursor, your own harness) gets the same tools with one command:
 
 ```bash
-claude mcp add report-workflow -- uvx --from "report-workflow[mcp]" report-workflow-mcp
+claude mcp add report-workflow -- uvx --from "report-workflow[mcp,render]" report-workflow-mcp
 ```
 
 Then ask in your own words:
@@ -109,7 +109,7 @@ installed can take a folder of sources to a finished DOCX without a copy of
 this repository. Payloads: [docs/mcp.md](docs/mcp.md).
 
 ```bash
-claude mcp add report-workflow -- uvx --from "report-workflow[mcp]" report-workflow-mcp
+claude mcp add report-workflow -- uvx --from "report-workflow[mcp,render]" report-workflow-mcp
 ```
 
 ## The gate on its own
@@ -143,10 +143,12 @@ Runnable, no local install:
 ## Install
 
 `pip install report-workflow` covers the gates, `verify()`, and the
-`report-workflow` CLI — the whole source-to-DOCX pipeline. Add pandoc 3.x for
-full rendering; without it the renderer falls back to `python-docx` with
-degraded table and layout fidelity. The skill and the tool server arrive with
-the plugin, so cloning is only for the example scripts and the benchmarks:
+`report-workflow` CLI — the whole source-to-DOCX pipeline. Rendering wants
+pandoc; `pip install "report-workflow[render]"` carries it in the wheel, so
+there is nothing to install by hand. Without pandoc the renderer falls back to
+`python-docx`, with no real Word tables and none of the template's layout. The
+skill and the tool server arrive with the plugin, so cloning is only for the
+example scripts and the benchmarks:
 `pip install` ships the package, not the examples.
 
 ```powershell

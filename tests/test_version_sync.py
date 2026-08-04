@@ -55,8 +55,11 @@ class VersionSyncTest(unittest.TestCase):
 
         server = manifest["mcpServers"]["report-workflow"]
         self.assertEqual("uvx", server["command"])
-        self.assertIn("report-workflow[mcp]", server["args"])
         self.assertIn("report-workflow-mcp", server["args"])
+        # Both extras: [mcp] is the server itself, [render] carries pandoc, so a
+        # plugin user gets real Word tables rather than the degraded fallback
+        # without being asked to install anything by hand.
+        self.assertIn("report-workflow[mcp,render]", server["args"])
 
         marketplace = json.loads(
             (ROOT / ".claude-plugin" / "marketplace.json").read_text(encoding="utf-8")

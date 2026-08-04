@@ -1,11 +1,13 @@
 """Format-standards regressions: page numbers, TOC placement/language, math, CJK front matter."""
 import base64
+import os
 import re
 import shutil
 import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 from docx import Document
 from docx.oxml.ns import qn
@@ -1573,6 +1575,62 @@ class PandocFormatIntegrationTest(unittest.TestCase):
                     [n for n in z.namelist() if n.startswith("word/footer")],
                     "page-number footer must survive into rendered output",
                 )
+
+
+class BundledPandocTest(unittest.TestCase):
+    """Installing pandoc was the last manual step in a one-command setup.
+
+    Without it the renderer falls back to python-docx and quietly delivers a
+    document with no real Word tables and none of the template's layout -- the
+    kind of degradation a first-time user reads as "this tool is not very
+    good". `pip install "report-workflow[render]"` carries the binary in the
+    wheel; this checks the renderer actually looks there, and that the extra
+    stays declared.
+    """
+
+    def _fake_pypandoc(self, tmpdir: str, binary: str) -> None:
+        package = Path(tmpdir) / "pypandoc"
+        (package / "files").mkdir(parents=True)
+        (package / "__init__.py").write_text("", encoding="utf-8")
+        (package / "files" / binary).write_bytes(b"#!/bin/sh\n")
+
+    def test_bundled_binary_is_used_when_nothing_is_on_path(self):
+        import os
+        import sys
+
+        from report_workflow.nodes import docx_render
+
+        binary = "pandoc.exe" if os.name == "nt" else "pandoc"
+        with tempfile.TemporaryDirectory() as tmpdir:
+            self._fake_pypandoc(tmpdir, binary)
+            sys.path.insert(0, tmpdir)
+            sys.modules.pop("pypandoc", None)
+            try:
+                with patch.object(docx_render.shutil, "which", return_value=None):
+                    found = docx_render._find_pandoc()
+            finally:
+                sys.path.remove(tmpdir)
+                sys.modules.pop("pypandoc", None)
+
+        self.assertIsNotNone(found)
+        self.assertTrue(found.endswith(binary))
+
+    def test_a_system_pandoc_still_wins(self):
+        from report_workflow.nodes import docx_render
+
+        with patch.object(docx_render.shutil, "which", return_value="/usr/bin/pandoc"):
+            self.assertEqual("/usr/bin/pandoc", docx_render._find_pandoc())
+
+    def test_render_extra_is_declared(self):
+        import tomllib
+
+        root = Path(__file__).resolve().parent.parent
+        with open(root / "pyproject.toml", "rb") as handle:
+            extras = tomllib.load(handle)["project"]["optional-dependencies"]
+        self.assertTrue(
+            any(dep.startswith("pypandoc-binary") for dep in extras["render"]),
+            "the render extra is what removes the manual pandoc install",
+        )
 
 
 class PictureDescriptionTest(unittest.TestCase):

@@ -9,6 +9,7 @@ The pandoc path uses a reference.docx template for consistent academic styling
 import json
 import logging
 import re
+import os
 import shutil
 import subprocess
 import zipfile
@@ -46,7 +47,7 @@ _REFERENCE_DOC = _TEMPLATE_DIR / "reference.docx"
 # ------------------------------------------------------------------
 
 def _find_pandoc() -> str | None:
-    """Find the pandoc executable on the system PATH."""
+    """Find pandoc: on PATH, in a known install location, or bundled in a wheel."""
     pandoc_path = shutil.which("pandoc")
     if pandoc_path:
         return pandoc_path
@@ -57,7 +58,26 @@ def _find_pandoc() -> str | None:
     ]:
         if candidate.exists():
             return str(candidate)
-    return None
+    return _bundled_pandoc()
+
+
+def _bundled_pandoc() -> str | None:
+    """The pandoc shipped inside `pypandoc-binary`, if the render extra is installed.
+
+    Installing pandoc was the one manual step left in an otherwise one-command
+    setup, and skipping it silently downgrades the document: the python-docx
+    fallback renders without real Word tables or the template's layout. The
+    wheel carries the binary, so `pip install "report-workflow[render]"`
+    removes the step. A system pandoc still wins -- it is the one the user
+    chose, and it is usually newer.
+    """
+    try:
+        import pypandoc
+    except ImportError:
+        return None
+    binary = "pandoc.exe" if os.name == "nt" else "pandoc"
+    candidate = Path(pypandoc.__file__).resolve().parent / "files" / binary
+    return str(candidate) if candidate.exists() else None
 
 
 # ------------------------------------------------------------------
