@@ -330,3 +330,15 @@ prove each statement and refuse the ones it cannot. The pattern (deterministic
 evidence registry → model proposes typed claims → deterministic verifier holds
 the publish decision → auditable QA pack) transfers unchanged; only the source
 parsers and rendering targets are domain-specific.
+
+## 8. Who built it
+
+I wrote the spec, integrated the pieces, and verified the results; coding agents
+wrote most of the implementation. The deterministic checks and the benchmark
+harness exist so that a person, not a model, holds the final "is this correct?"
+decision — the same thing this tool does to the documents it produces.
+
+This used to close the README. It does not belong there: someone deciding
+whether to install a tool cares whether it works, not who typed it. It lives
+here for anyone who wants to know, which is a different and much smaller
+audience.
