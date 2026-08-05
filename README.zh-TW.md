@@ -62,5 +62,3 @@ claude mcp add report-workflow -- uvx --from "report-workflow[mcp,render]" repor
 - 為什麼這樣設計 → [docs/DESIGN.md](docs/DESIGN.md)
 - MCP 工具有哪些 → [docs/mcp.md](docs/mcp.md)
 - 回報問題 → [CONTRIBUTING.md](CONTRIBUTING.md)
-
-規格是我寫的、東西是我接起來的、結果是我驗的；程式大部分是 coding agent 寫的。這些檢查跟測試存在的理由，就是讓「這到底對不對」由人決定，不是由模型決定。

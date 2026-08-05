@@ -120,7 +120,3 @@ If the `report-workflow` command does nothing — usually an old
 - **Driving it from an agent** → [skills/report-workflow/SKILL.md](skills/report-workflow/SKILL.md)
 - **Working on this repository** → [AGENTS.md](AGENTS.md)
 - **Reporting a bug** → [CONTRIBUTING.md](CONTRIBUTING.md)
-
-I wrote the spec, put the pieces together, and checked the results; coding
-agents wrote most of the code. The checks and the test set exist so that a
-person, not a model, decides whether the answer is right.
