@@ -1,5 +1,31 @@
 # Changelog
 
+## 4.29.1 - 2026-08-04
+
+### Fixed — the stage that can fix it is the stage you are sent to
+
+Driving the pipeline over MCP, a sentence cited a ledger row its claim did not
+list. The sensible repair is to add the row to that claim — and
+`claim_matrix.json` sits outside the drafts stage's write scope, so the only
+move available was to weaken the sentence until it matched the contract. The
+document bent to suit the harness.
+
+Authoring failures routed back to themselves unconditionally. The harness
+already knows how to rewind: `_invalidate_from` reopens a stage and everything
+after it, and that is what a routed failure does everywhere else. This failure
+now routes to the stage that owns the file, so the claim stage reopens and its
+write scope comes with it.
+
+Deliberately narrow: the routing matches the one message that gate writes, not
+a general rule about stages. A broad match would rewind runs that stopped
+exactly where they belong, and the guarantee this harness sells — one stage
+writable at a time — is worth more than the convenience. No permission was
+widened; the author still writes only the stage they are in.
+
+The rejection text changed with it. It used to end by telling the author the
+claim stage was closed to them, which was true when it was written and is not
+now; it points at `get_controlled_next_action` instead of predicting the answer.
+
 ## 4.29.0 - 2026-08-04
 
 ### Added — the last manual install step is gone

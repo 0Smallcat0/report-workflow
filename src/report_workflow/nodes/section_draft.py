@@ -360,8 +360,9 @@ def run_section_draft(state: ReportState) -> ReportState:
                 + ", which between them allow "
                 + (", ".join(allowed) if allowed else "no evidence")
                 + ". Either add the evidence to one of those claims in claim_matrix.json, or cite "
-                "only what they already list -- past the claim stage, the write scope permits the "
-                "second."
+                "only what they already list. The controlled harness reopens the claim stage for "
+                "this failure, so ask get_controlled_next_action which file it wants before "
+                "editing."
             )
 
     state.drafts["section_drafts"] = section_paths
