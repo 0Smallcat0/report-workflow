@@ -16,29 +16,33 @@ mcp-name: io.github.0Smallcat0/report-workflow
 
 **繁體中文說明 → [README.zh-TW.md](README.zh-TW.md)**
 
-**Give your coding agent a folder of sources and one sentence. Get back a DOCX
-you can hand in — and a refusal for every claim that cannot be traced to those
-sources.**
+**Give your AI the files you already have and one sentence about what you need.
+Get back a Word document you can hand in.**
 
-**What you bring**: files you already have — a CSV of measurements, a Word
-handout, a page of notes — and one sentence saying what to write. **What you
-get**: a `.docx` with a table of contents, page numbers, real Word tables, and
-charts drawn from your own numbers, following your department's or your
-company's template if you point at one. English or Chinese.
+If the AI writes a number that is not in your files, that number does not reach
+the document. Same for a quote it reworded, or a paper it cited that does not
+exist. It gets stopped, and you are told which sentence and why.
 
-Two lines to install, nothing to configure, no API key. Your agent does the
-writing; this decides what may ship.
+**You bring**: a spreadsheet of measurements, a Word handout, a page of notes —
+whatever you already have. Plus one sentence, like "write a lab report on this".
+
+**You get**: a `.docx` with a table of contents, page numbers, real Word tables,
+and charts drawn from your own numbers. It can follow your department's or your
+company's template. Chinese or English.
+
+Two lines to install. No API key. Nothing to configure.
 
 ## Look before you install
 
-The document it produced, and the note that goes with it — both in this
-repository, so you can judge the output before running anything:
+Here is a document it made, and the note that comes with it. Both are in this
+repository, so you can see the output before you run anything:
 
-- **[`examples/output/report.docx`](examples/output/report.docx)** — the
-  deliverable: table of contents, page numbers, a real Word table, a chart drawn
-  from the source CSV
+- **[`examples/output/report.docx`](examples/output/report.docx)** — the file
+  you would hand in: contents page, page numbers, a real Word table, a chart
+  drawn from the source spreadsheet
 - **[`examples/output/client_readable_qa_note.md`](examples/output/client_readable_qa_note.md)**
-  — every claim in it, the verdict, and the source row it rests on
+  — every sentence that made a factual point, and the row of your data it came
+  from
 
 ![Three pages of a pipeline-rendered DOCX report: a title-and-abstract page, a table of contents, and a page with a line chart derived from the source data with a self-contained caption.](docs/sample_report.png)
 
@@ -50,66 +54,73 @@ In Claude Code:
 /plugin marketplace add 0Smallcat0/report-workflow
 ```
 
-Then `/plugin install report-workflow@report-workflow`. Any other MCP-capable
-agent (Codex, Cursor, your own harness) takes one command instead:
+Then `/plugin install report-workflow@report-workflow`. Using something else
+that speaks MCP (Codex, Cursor, your own setup)? One command instead:
 
 ```bash
 claude mcp add report-workflow -- uvx --from "report-workflow[mcp,render]" report-workflow-mcp
 ```
 
-Then ask, in your own words:
+Then just ask, in your own words:
 
 > Use report-workflow to turn the files in ./data into a business report for the
 > operations manager: what changed, what it costs, whether to adopt it.
 
-Seven document types — lab report, academic paper, business report, proposal,
-two admissions formats, and a general one. The analysis a grader looks for (a
-fitted slope against theory, R², a budget total) is computed from your data and
-registered as citable evidence, so your agent never has to invent it. Profiles,
-Chinese documents, and your own Word template: **[docs/OUTPUT.md](docs/OUTPUT.md)**.
+Seven kinds of document: lab report, academic paper, business report, proposal,
+two admissions formats, and a general one. **The maths a marker looks for — how
+close your measurements came to theory, an R², a budget total — is worked out by
+the tool from your own data**, so the AI never has to make a number up. Formats,
+Chinese documents, and using your own Word template:
+**[docs/OUTPUT.md](docs/OUTPUT.md)**.
 
-## What it will not do
+## What it cannot do
 
-It has no semantics. It catches invented numbers, fabricated citations,
-misquotes and unit swaps; a fluent paraphrase that reverses your source will get
-through. That boundary is measured, not asserted — 69 hand-audited adversarial
-cases and 10,000 external HaluEval pairs, with the misses kept in the corpus on
-purpose: **[docs/EVIDENCE.md](docs/EVIDENCE.md)**.
+**It cannot read meaning.** It checks whether the numbers, quotes and references
+in the text really appear in your files. It cannot tell whether the AI
+understood your data. If the AI writes a smooth sentence that gets your result
+backwards, that sentence goes through.
 
-It also does not write. Your agent does that; this decides what may ship.
+We measured that limit instead of talking around it: 69 hand-checked attempts to
+sneak something false past it, plus 10,000 test pairs from a public dataset
+nobody here wrote. **The cases it still misses are kept in the test set on
+purpose** — [docs/EVIDENCE.md](docs/EVIDENCE.md).
+
+**It does not write.** Your AI writes; this decides what stays. So you need an
+AI agent to use it.
 
 ## Other ways to run it
 
-The gate on its own, no pipeline and no schema — two plain arguments, the same
-verdict every run, usable in CI:
+Just the checker, on any two pieces of text — no setup, same answer every time,
+fine to put in a test suite:
 
 ```python
 from report_workflow import verify
 
 verify("The error rate fell to 0.2% [1].",
        {"1": "The error rate fell to 3.5% under the structured workflow."})
-# publishable: False — FE: claim number '0.2'% not found in evidence content
+# publishable: False — 0.2% is nowhere in the source; the source says 3.5%
 ```
 
-`pip install "report-workflow[render]"` gets the CLI and the renderer (pandoc
-ships in the wheel; without it the fallback loses real tables and your
-template). `pip install` ships the package, not the examples — clone for those
-and the benchmarks. Runnable with no local install:
+`pip install "report-workflow[render]"` gets you the command-line version and
+the Word renderer (it comes with the wheel; without it, tables and templates
+come out worse). `pip install` ships the package, not the examples — clone the
+repository for those and the test data. Or try it with nothing installed:
 [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/0Smallcat0/report-workflow/blob/master/docs/quickstart_demo.ipynb)
 
-If `report-workflow` fails silently — common on Windows when a stale
-`report-workflow.exe` sits on PATH — use `python -m report_workflow`.
+If the `report-workflow` command does nothing — usually an old
+`report-workflow.exe` left on your PATH on Windows — run
+`python -m report_workflow` instead.
 
 ## Where to go next
 
-- **Output, profiles, templates, gates** → [docs/OUTPUT.md](docs/OUTPUT.md)
-- **Measured catch rates and honest limits** → [docs/EVIDENCE.md](docs/EVIDENCE.md)
-- **Why it is built this way, threat model** → [docs/DESIGN.md](docs/DESIGN.md)
-- **The MCP tools and their payloads** → [docs/mcp.md](docs/mcp.md)
+- **What comes out, formats, templates, checks** → [docs/OUTPUT.md](docs/OUTPUT.md)
+- **What it catches, and what it misses** → [docs/EVIDENCE.md](docs/EVIDENCE.md)
+- **Why it is built this way** → [docs/DESIGN.md](docs/DESIGN.md)
+- **The MCP tools** → [docs/mcp.md](docs/mcp.md)
 - **Driving it from an agent** → [skills/report-workflow/SKILL.md](skills/report-workflow/SKILL.md)
-- **Developing this repository** → [AGENTS.md](AGENTS.md)
-- **Reporting a bug, and what is in scope** → [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Working on this repository** → [AGENTS.md](AGENTS.md)
+- **Reporting a bug** → [CONTRIBUTING.md](CONTRIBUTING.md)
 
-Specified, integrated, and verified by its author, with coding agents doing much
-of the implementation — the deterministic gates and the benchmark harness exist
-so a human, not a model, holds the final "is this correct?" decision.
+I wrote the spec, put the pieces together, and checked the results; coding
+agents wrote most of the code. The checks and the test set exist so that a
+person, not a model, decides whether the answer is right.
