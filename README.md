@@ -18,30 +18,35 @@ mcp-name: io.github.0Smallcat0/report-workflow
 you can hand in — and a refusal for every claim that cannot be traced to those
 sources.**
 
-The package **calls no LLM and needs no API key.** It owns source parsing, the
-evidence ledger, the gates, and rendering; your agent (Claude Code, Codex, …)
-owns the judgment and the writing. Nothing the agent drafts reaches the page
-unless the numbers, quotes, and citations in it appear in your material — so an
-invented statistic or a fabricated reference is blocked, with the gate and the
-reason that stopped it.
+**What you bring**: files you already have — a CSV of measurements, a Word
+handout, a page of notes — and one sentence saying what to write. **What you
+get**: a `.docx` with a table of contents, page numbers, real Word tables, and
+charts drawn from your own numbers, following your department's or your
+company's template if you point at one. English or Chinese.
 
-## What comes out
+Two lines to install, nothing to configure, no API key. Your agent does the
+writing; this decides what may ship.
+
+## Look before you install
+
+This is the document it produced, and the note that goes with it. Both are in
+this repository, so you can judge the output before running anything:
+
+- **[`examples/output/report.docx`](examples/output/report.docx)** — the
+  deliverable: table of contents, page numbers, a real Word table, a chart drawn
+  from the source CSV
+- **[`examples/output/client_readable_qa_note.md`](examples/output/client_readable_qa_note.md)**
+  — every claim in it, the verdict, and the source row it rests on
 
 ![Three pages of a pipeline-rendered DOCX report: a title-and-abstract page, a table of contents, and a page with a line chart derived from the source data with a self-contained caption.](docs/sample_report.png)
 
-A finished document, and the audit trail that says why each sentence was allowed
-to ship. Both are in this repository, produced by the example below:
-
-- [`examples/output/report.docx`](examples/output/report.docx) — table of
-  contents, page numbers, a real Word table, a chart drawn from the source CSV
-- [`examples/output/client_readable_qa_note.md`](examples/output/client_readable_qa_note.md)
-  — every claim, its verdict, and the source row it rests on
-
 Seven document types — lab report, academic paper, business report, proposal,
-two admissions formats, and a general one — in English or Chinese, optionally
-following your own Word template. The quantitative analysis a grader looks for
-(a fitted slope against theory, R², a budget total) is computed from your data
-and registered as citable evidence, so the agent never has to invent it.
+two admissions formats, and a general one. The quantitative analysis a grader
+looks for (a fitted slope against theory, R², a budget total) is computed from
+your data and registered as citable evidence, so the agent never has to invent
+it. Nothing it drafts reaches the page unless the numbers, quotes, and citations
+appear in your material — an invented statistic or a fabricated reference is
+blocked, with the gate and the reason that stopped it.
 
 Profiles, Chinese-document handling, templates, and the gate list:
 **[docs/OUTPUT.md](docs/OUTPUT.md)**.
