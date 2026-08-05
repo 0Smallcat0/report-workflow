@@ -497,8 +497,31 @@ def _stage_from_remediation(run_dir: Path, order: list[str]) -> str | None:
     return min(stages, key=order.index)
 
 
+#: Failures raised while authoring one stage whose only correct fix belongs to
+#: an earlier one. Without this the harness kept the author where the error was
+#: raised, and the write scope there excludes the file that has to change --
+#: putting the sensible fix out of reach and bending the prose to suit the
+#: contract instead. Matched on the message the raising gate writes, and
+#: deliberately narrow: a broad match would rewind runs that stopped exactly
+#: where they belong.
+_FAILURE_OWNED_EARLIER = (
+    ("cites evidence its own claims do not list", "claim_matrix"),
+)
+
+
+def _stage_owning_the_fix(result: dict[str, Any], order: list[str]) -> str | None:
+    text = json.dumps(_result_error(result), ensure_ascii=False, default=str)
+    for needle, owner in _FAILURE_OWNED_EARLIER:
+        if needle in text and owner in order:
+            return owner
+    return None
+
+
 def _route_failure_stage(stage: str, result: dict[str, Any], run_dir: Path, order: list[str]) -> str | None:
     if stage in {"claim_matrix", "outline", "drafts", "revision_plan"}:
+        owner = _stage_owning_the_fix(result, order)
+        if owner and order.index(owner) < order.index(stage):
+            return owner
         return stage
     if stage == "artifact_lint":
         routed = _stage_from_artifact_lint(result, order)

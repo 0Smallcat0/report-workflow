@@ -497,5 +497,49 @@ class AutomationHarnessTests(unittest.TestCase):
             self.assertEqual(result["next_stage"], "completed")
 
 
+class FailureRoutingTests(unittest.TestCase):
+    """A stage should not hold an author who cannot fix anything from there.
+
+    Driving the pipeline over MCP, a sentence cited a ledger row its claim did
+    not list. The fix that makes sense is to add the row to the claim -- and
+    claim_matrix.json is outside the drafts stage's write scope, so the only
+    move left was to weaken the sentence. Authoring failures used to route back
+    to themselves unconditionally; this one now reopens the stage that owns the
+    file, which is the harness's existing rewind, not a wider permission.
+    """
+
+    ORDER = ["claim_matrix", "outline", "drafts", "artifact_lint", "publish"]
+
+    def _failure(self, message: str) -> dict:
+        return {"status": "validation_failed", "error": message}
+
+    def test_evidence_missing_from_a_claim_reopens_the_claim_stage(self):
+        from report_workflow.automation_harness import _route_failure_stage
+
+        result = self._failure(
+            "sentence_map entry 3 cites evidence its own claims do not list: E_a1. "
+            "Those IDs are in this run's ledger, so nothing is stale."
+        )
+        with tempfile.TemporaryDirectory() as tmpdir:
+            routed = _route_failure_stage("drafts", result, Path(tmpdir), self.ORDER)
+        self.assertEqual("claim_matrix", routed)
+
+    def test_an_ordinary_drafts_failure_stays_in_drafts(self):
+        from report_workflow.automation_harness import _route_failure_stage
+
+        result = self._failure("section_drafts/findings.md is missing a [CITE:] marker")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            routed = _route_failure_stage("drafts", result, Path(tmpdir), self.ORDER)
+        self.assertEqual("drafts", routed)
+
+    def test_a_claim_stage_failure_does_not_rewind_to_itself_twice(self):
+        from report_workflow.automation_harness import _route_failure_stage
+
+        result = self._failure("sentence_map entry 1 cites evidence its own claims do not list: E_b2")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            routed = _route_failure_stage("claim_matrix", result, Path(tmpdir), self.ORDER)
+        self.assertEqual("claim_matrix", routed)
+
+
 if __name__ == "__main__":
     unittest.main()
