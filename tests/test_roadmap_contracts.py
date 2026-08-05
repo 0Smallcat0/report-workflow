@@ -1703,6 +1703,29 @@ class DocumentationContractTests(unittest.TestCase):
             "the QA note and the factuality summary describe different runs",
         )
 
+    def test_both_landing_pages_give_the_same_install_commands(self):
+        """A second language is a second place for the same fact to rot.
+
+        The people with the pain this tool addresses read Chinese; the landing
+        page was English only. Translations drift silently -- the commands are
+        the part where drift actually costs somebody an evening, so they are
+        pinned equal, and each page has to point at the other or a reader never
+        learns the other exists.
+        """
+        english = Path("README.md").read_text(encoding="utf-8")
+        chinese = Path("README.zh-TW.md").read_text(encoding="utf-8")
+
+        self.assertIn("README.zh-TW.md", english)
+        self.assertIn("README.md", chinese)
+
+        for command in (
+            "/plugin marketplace add 0Smallcat0/report-workflow",
+            'uvx --from "report-workflow[mcp,render]" report-workflow-mcp',
+        ):
+            with self.subTest(command=command):
+                self.assertIn(command, english)
+                self.assertIn(command, chinese)
+
     def test_short_skill_documents_yaml_tool_surface(self):
         skill_text = Path("skills/report-workflow/SKILL.md").read_text(encoding="utf-8")
         skill_yaml = yaml.safe_load(Path("skills/report-workflow/skill.yaml").read_text(encoding="utf-8"))
