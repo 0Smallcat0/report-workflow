@@ -38,7 +38,7 @@ jobs:
       - name: Install package
         run: |
           python -m pip install --upgrade pip
-          pip install -e .[mcp]
+          pip install -e .[mcp,render]
 
       - name: Tag must match the packaged version
         run: |

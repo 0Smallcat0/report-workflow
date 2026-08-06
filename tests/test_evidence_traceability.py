@@ -738,6 +738,31 @@ class DeliveredDocumentTests(unittest.TestCase):
             cited = [row for row in rows if row["evidence_id"] in text]
             self.assertTrue(cited, "no evidence id in the DOCX can be traced to the ledger")
 
+    def test_the_fallback_renderer_drops_the_sources_section(self):
+        """A measured defect, not a passing behaviour.
+
+        Without pandoc the python-docx fallback runs, and the generated
+        Sources list does not survive it — References does. So a reader who
+        installed the package without the render extra gets a document whose
+        figures trace to nothing, which is the exact guarantee this section
+        exists to provide.
+
+        Recorded as failing-as-asserted rather than repaired here: the fix is
+        in the fallback converter, and this round is a release. Delete this
+        test when it is fixed; do not loosen the assertion above to match it.
+        """
+        import report_workflow.nodes.docx_render as docx_render
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            with patch.object(docx_render, "_find_pandoc", return_value=None):
+                _rows, text, _tables = self._author_and_publish(tmpdir)
+            self.assertIn("參考文獻", text, "references are dropped too now")
+            self.assertNotIn(
+                "資料來源",
+                text,
+                "the fallback renderer now keeps the Sources section — delete this test",
+            )
+
     def test_no_workflow_marker_and_no_stranded_space_ship(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             _rows, text, _tables = self._author_and_publish(tmpdir)
