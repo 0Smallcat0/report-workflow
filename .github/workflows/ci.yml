@@ -47,3 +47,27 @@ jobs:
 
       - name: Unit tests
         run: python -m unittest discover -s tests -v
+
+  # The version lives in four files here and a fifth on PyPI, and they drift
+  # independently: eleven tags once shipped while the repository advertised a
+  # version from the month before, and a later release was tagged and never
+  # published — so `uvx`, which is how .claude-plugin/plugin.json starts the
+  # server, kept installing the previous version while testing through MCP
+  # reported the fixes as not working. Its own job because it needs the tags
+  # and the network, and neither belongs in the matrix above.
+  version-sync:
+    name: Version sync (repo, tags, PyPI)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Tags are the whole point: a shallow checkout has none, and the
+          # check would pass by seeing nothing.
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Repository, tags and PyPI must agree
+        run: python scripts/check_version_sync.py --pypi
