@@ -1,5 +1,31 @@
 # Changelog
 
+## 4.33.0 - 2026-08-07
+
+### Fixed — the timestamp moved, so the ledger hash moved, so nothing could publish
+
+`apply_derived_evidence` recomputes each derived unit from the source rows every
+run. That is deliberate: nothing on disk is trusted. But the run also minted a
+fresh `created_at` each time, so every derived line was rewritten with only the
+timestamp differing. The ledger hash moved with them, and each artifact stamped
+against the previous hash was hard-blocked. Publishing chased a hash that changed
+every time it was checked, so any run that called `register_derived_evidence`
+could not reach a published document.
+
+A timestamp is not a value. Regenerating it buys no safety and turns the hash
+into a moving target, so an `evidence_id` now keeps the `created_at` it was first
+registered with. The values are still recomputed from the rows on every run.
+
+Found by running the tool end to end over raw CSVs — the path where a report is
+written from data rather than from another report.
+
+### Note on 4.32.0
+
+4.32.0 was tagged with this defect and never reached PyPI: its release build
+failed during a GitHub outage. Nobody could install it. It carries the derived
+evidence, tabular-source citation exclusion and currency-prefix parsing added
+since 4.31.0, and this release supersedes it.
+
 ## 4.31.0 - 2026-08-06
 
 Ships everything in 4.30.0 below. That version was committed and tagged and
