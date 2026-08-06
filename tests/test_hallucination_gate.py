@@ -299,6 +299,119 @@ CHINESE_EVIDENCE = [
 ]
 
 
+#: The same log with the headers an export actually writes. "recovery_rate (%)"
+#: is what a person types; "recovery_rate_pct" is what a tool emits, and the
+#: gate used to read a unit only from a halfwidth bracket or a bare "%", so
+#: this file stated no units at all.
+SNAKE_CASE_CSV = """batch_id,feedstock,input_tonnes,recovered_tonnes,recovery_rate_pct,downtime_hours
+B-101,occ,120.0,81.6,68.0,2.5
+B-105,white,64.0,49.3,77.0,1.5
+B-106,white,66.0,50.4,76.4,1.0
+"""
+
+
+class HeaderUnitTests(unittest.TestCase):
+    """A column's unit is not always written in halfwidth brackets.
+
+    Read only from "(...)" or a bare "%", every other header came back
+    unitless — and an unstated unit is compared as unknown, so a claim in any
+    unit matched such a column. The two failures were opposite and both real:
+    an honest claim naming the right unit could not be matched to a column
+    that stated one differently, and a claim in the wrong unit sailed past a
+    column that had stated none.
+    """
+
+    def _units(self, header: str) -> str:
+        from report_workflow.nodes.factuality_check import _unit_from_header
+
+        return _unit_from_header(header)
+
+    def test_a_snake_case_suffix_states_a_unit(self):
+        self.assertEqual(self._units("recovery_rate_pct"), "pct")
+        self.assertEqual(self._units("input_tonnes"), "tonnes")
+        self.assertEqual(self._units("downtime_hours"), "hours")
+
+    def test_a_fullwidth_bracket_states_a_unit(self):
+        """The brackets a Chinese keyboard produces are not U+0028."""
+        self.assertEqual(self._units("價格（USD/噸）"), "USD/噸")
+        self.assertEqual(self._units("Voltage [V]"), "V")
+
+    def test_a_header_naming_no_unit_stays_unitless(self):
+        """Inventing one would let a claim in any unit match the column."""
+        self.assertEqual(self._units("recovery_rate"), "")
+        self.assertEqual(self._units("batch_id"), "")
+        self.assertEqual(self._units("notes"), "")
+
+    def test_the_same_unit_spelled_two_ways_agrees(self):
+        from report_workflow.nodes.factuality_check import _units_match
+
+        self.assertTrue(_units_match("USD/噸", "美元/噸"))
+        self.assertTrue(_units_match("pct", "%"))
+        self.assertTrue(_units_match("tonnes", "噸"))
+
+    def test_different_units_still_disagree(self):
+        from report_workflow.nodes.factuality_check import _units_match
+
+        self.assertFalse(_units_match("USD/t", "USD/kg"))
+        self.assertFalse(_units_match("kg", "噸"))
+
+
+class SnakeCaseHeaderClaimTests(unittest.TestCase):
+    """Every honest statistical claim about this CSV used to be blocked."""
+
+    def setUp(self):
+        self._tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self._tmp.cleanup)
+        csv_path = Path(self._tmp.name) / "throughput_log.csv"
+        csv_path.write_text(SNAKE_CASE_CSV, encoding="utf-8")
+        with patch(
+            "report_workflow.preflight.importlib.util.find_spec",
+            side_effect=_all_packages_present,
+        ):
+            state = prepare_workflow(
+                "report on recovery performance",
+                [str(csv_path)],
+                str(Path(self._tmp.name) / "out"),
+                report_profile="business_report",
+            )
+        self.rows = _ledger(state)
+
+    def test_a_true_reading_of_a_snake_case_column_is_publishable(self):
+        row = _find(self.rows, "B-105")
+        verdict = _verdict(self.rows, {
+            "claim_id": "c_true",
+            "claim_text": "The white feedstock batch recovered 49.3 tonnes at a 77.0 percent recovery rate.",
+            "claim_type": "statistical",
+            "status": "supported",
+            "evidence_ids": [row["evidence_id"]],
+        })
+        self.assertEqual(verdict["status"], "verified", verdict.get("reason"))
+
+    def test_a_fabricated_figure_is_still_blocked(self):
+        row = _find(self.rows, "B-105")
+        verdict = _verdict(self.rows, {
+            "claim_id": "c_false",
+            "claim_text": "The white feedstock batch reached a 94.8 percent recovery rate.",
+            "claim_type": "statistical",
+            "status": "supported",
+            "evidence_ids": [row["evidence_id"]],
+        })
+        self.assertEqual(verdict["status"], "blocked")
+
+    def test_the_right_number_in_the_wrong_unit_is_blocked(self):
+        """The column now states a unit, so this can finally be caught."""
+        row = _find(self.rows, "B-105")
+        verdict = _verdict(self.rows, {
+            "claim_id": "c_wrong_unit",
+            "claim_text": "The white feedstock batch recovered 49.3 kg of fibre.",
+            "claim_type": "statistical",
+            "status": "supported",
+            "evidence_ids": [row["evidence_id"]],
+        })
+        self.assertEqual(verdict["status"], "blocked")
+        self.assertIn("unit", verdict["reason"])
+
+
 class ChineseParaphraseTests(unittest.TestCase):
     """FE blocked every true Chinese claim that did not copy the source.
 

@@ -42,6 +42,28 @@ evidence does not state, or the right value under a different unit. Those had
 one message between them, and an author could not tell whether they had
 mis-written a figure or hit a gate that was too strict.
 
+### Fixed — a column's unit is not always written in brackets
+
+FE read a unit only from a halfwidth parenthetical or a bare `%`. Every other
+header came back unitless, and because an unstated unit is compared as unknown,
+the effect ran both ways: a CSV headed `recovery_rate_pct` blocked *every*
+honest statistical claim about it, and a column that stated no unit accepted a
+claim written in any unit at all.
+
+Neither shape is exotic. `recovery_rate (%)` is what a person types;
+`recovery_rate_pct` is what an export writes. `價格（USD/噸）` uses the brackets
+a Chinese keyboard produces — U+FF08, which the halfwidth pattern never saw, so
+a Chinese CSV stated no units anywhere in it.
+
+Headers are now read from brackets of either width, square brackets, a percent
+sign, or a trailing token that names a unit. Only tokens that *are* units are
+accepted: `recovery_rate` still states none, because inventing one for it would
+let a claim in any unit match the column.
+
+Compound units are normalised per component, so a column headed `USD/噸` and a
+claim written `美元/噸` agree — the same figure in the same unit, spelled by two
+people. `USD/t` and `USD/kg` still disagree.
+
 ### Added — the sources a source file cites
 
 One file counted as one source. A report citing thirty-nine houses arrived as a
