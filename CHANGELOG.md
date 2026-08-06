@@ -1,5 +1,77 @@
 # Changelog
 
+## 4.31.0 - 2026-08-06
+
+Ships everything in 4.30.0 below. That version was committed and tagged and
+never reached PyPI — its release build failed, the tag was retired rather than
+left pointing at a version nobody could install, and the work is released here
+instead. Read the 4.30.0 section as part of this release.
+
+### Fixed — a sentence that does not state what its claim asserts
+
+A claim asserting "需約 US$500/噸的產品售價才達 10% IRR，capex 約 US$1,000/噸年
+產能" was drafted as "需約 US/噸的產品售價 ... 資本支出約 US,000", the amounts
+eaten by a shell expanding `$500` and `$1` as variables. FA checks that claim,
+evidence and sentence are linked; FE checks the claim's numbers against its
+evidence; nothing checked the leg the reader actually reads. Every gate passed
+and it reached the delivered document.
+
+Worse than a wrong number, because the sentence stays fluent. "每噸年產能約
+US,000 的資本門檻" reads like finished prose and nobody stops on it; "US$9,999"
+would have been caught.
+
+FS compares per claim, not per sentence, against the union of the passages
+carrying that claim's citation plus any figure or table its sections carry. A
+claim is often written as two or three sentences and a sentence may set up
+rather than restate, so demanding that each repeat every figure would recreate
+the "copy the source or be blocked" failure FE was just repaired for.
+
+Beside it, a lint for the fingerprint a lost substitution leaves — a currency
+marker with no amount. It needs no claim binding, so it also guards prose that
+no claim covers. Only the symbol-prefix forms are flagged: `US$500/噸` mangles
+to `US/噸`, while `USD/噸` is how a column header legitimately names a unit.
+
+### Fixed — Chinese writes a rate with the denominator first
+
+`每噸 500 美元`. The unit reader looked only at what follows a number, which is
+where English puts it, so the numerator was found and the denominator dropped —
+and a claim stating `500 美元/噸` did not match a draft saying `成本為每噸五百
+美元`. Nothing about it was specific to Chinese numerals; the Arabic-digit form
+failed too.
+
+The third appearance of one failure: a Chinese way of writing a quantity goes
+unrecognised, a gate refuses a correct sentence, and the author learns to copy
+the source rather than write. So `tests/test_chinese_quantity_expressions.py`
+now holds one corpus run against both readers of these strings, and it earned
+its place immediately — the chart reader cannot read `每噸 500 美元` at all,
+recorded as a failing-as-asserted gap.
+
+Four shapes it must not join, each with a test: `每` followed by a number rather
+than a measure word, two calendar words (`每年 3 月` is a date), no number at
+all, and a clause boundary between the two.
+
+### Fixed — the release, and the checks around it
+
+`run_report_quality_benchmark.py --check` re-ran the pipeline, and the pipeline
+renders a DOCX, which depends on the machine. The check that existed to prove
+the result reproduces was the least reproducible thing in the repository. Both
+arms are recorded now and `--check` re-scores fixed documents.
+
+CI installed `.[mcp]` while every install instruction here says
+`report-workflow[mcp,render]`, so it measured a configuration nobody ships. It
+now installs what the plugin installs.
+
+`scripts/check_version_sync.py` compares the four version strings in the tree
+and, with `--pypi`, the tags and published releases. It caught the unpublished
+4.30.0 tag on its first real run.
+
+### Known — the fallback renderer drops the Sources section
+
+Without pandoc, the python-docx path keeps References and loses the generated
+evidence-trace list, so a reader who installed without the render extra gets a
+document whose figures trace to nothing. Asserted as a defect in
+`tests/test_evidence_traceability.py` rather than left to be rediscovered.
+
 ## 4.30.0 - 2026-08-06
 
 Someone ran a 53,000-character Chinese market report — 39 external sources,
