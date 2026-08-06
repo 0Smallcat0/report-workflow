@@ -22,6 +22,7 @@ from .config import load_config
 from .preflight import check_preflight, discover_features
 from .preflight_decisions import (
     evaluate_preflight_start,
+    feature_flags_from_decisions,
     pending_preflight_installs,
     required_preflight_decision_shape,
 )
@@ -651,20 +652,18 @@ def main(argv: list[str] | None = None) -> int:
                 with open(args.project_identity, encoding="utf-8") as f:
                     project_identity = json.load(f)
             template_fields = dict(args.template_field or [])
-            cfg = load_config(
-                enable_research=args.enable_research,
-                enable_notebook_sync=args.enable_notebook_sync,
-                notebooklm_notebook_id=args.notebooklm_notebook_id,
-                notebooklm_storage_path=args.notebooklm_storage_path,
-            )
+            # The decision record is read before the configuration it feeds:
+            # a recorded "enable" is the flag, so requiring --enable-research
+            # beside it is a second place to keep in sync and one more way to
+            # be refused for a choice the user already made.
             preflight = check_preflight()
-            discovery = discover_features(
-                enable_research=cfg.enable_research,
-                enable_notebook_sync=cfg.enable_notebook_sync,
-            )
             try:
                 preflight_decisions = _load_preflight_decisions(args.preflight_decisions)
             except (OSError, json.JSONDecodeError, argparse.ArgumentTypeError) as exc:
+                discovery = discover_features(
+                    enable_research=args.enable_research,
+                    enable_notebook_sync=args.enable_notebook_sync,
+                )
                 pending_installs = pending_preflight_installs(preflight, discovery)
                 ask_user = discovery.agent_should_ask_user
                 _print_preflight_decision_block(
@@ -674,6 +673,20 @@ def main(argv: list[str] | None = None) -> int:
                     [f"invalid preflight_decisions file: {exc}"],
                 )
                 return 3
+
+            enable_research, enable_notebook_sync = feature_flags_from_decisions(
+                preflight_decisions, args.enable_research, args.enable_notebook_sync
+            )
+            cfg = load_config(
+                enable_research=enable_research,
+                enable_notebook_sync=enable_notebook_sync,
+                notebooklm_notebook_id=args.notebooklm_notebook_id,
+                notebooklm_storage_path=args.notebooklm_storage_path,
+            )
+            discovery = discover_features(
+                enable_research=cfg.enable_research,
+                enable_notebook_sync=cfg.enable_notebook_sync,
+            )
 
             readiness = evaluate_preflight_start(
                 preflight=preflight,

@@ -30,7 +30,7 @@ The report should preserve:
 - Chinese report tone without agent/workflow jargon or mojibake.
 - Render QA for cover/template drift, table compression, and image placement.
 
-Call `run_engineering_audit` before publish when the report contains measured
+Call `audit_engineering_report` before publish when the report contains measured
 values, formulas, or calculations. It writes `engineering_audit_report.json` with
 recognized measurements, claim/evidence unit-support warnings, unit notation
 warnings, table-value support checks, mixed-dimension unit notes, missing-unit
@@ -144,8 +144,8 @@ Treat these as hard gates before delivery:
 
 ## Chinese Engineering Publish Checklist
 
-- `lint_agent_artifacts` has no errors and citation IDs match the current run.
-- `run_engineering_audit` has been reviewed for unit support, table-value support,
+- `lint_artifacts` has no errors and citation IDs match the current run.
+- `audit_engineering_report` has been reviewed for unit support, table-value support,
   measured values, and simple calculations. Page labels, adjacent engineering
   units, and rounded table values are tolerated; review remaining warnings before
   changing claim wording.

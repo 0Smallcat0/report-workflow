@@ -20,6 +20,7 @@ section_order:
   - risks
   - evaluation
   - appendix
+  - references
 
 sections:
   executive_summary:
@@ -92,3 +93,12 @@ sections:
     required: false
     section_type: appendix
     order: 10
+  # Generated from the evidence ledger by CITATION_BIND and appended at
+  # render; the author writes nothing here.
+  references:
+    section_id: references
+    title: References
+    title_zh: 參考文獻
+    required: false
+    section_type: references
+    order: 11

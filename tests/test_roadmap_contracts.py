@@ -328,7 +328,7 @@ class StructuredDraftContractTests(unittest.TestCase):
         }]
 
         audit = audit_sentence_citations("Result [CITE:E001,E002].", sentence_map, evidence)
-        resolved, resolved_audit, _, _ = resolve_citations_publication(
+        resolved, resolved_audit, _, _, _ = resolve_citations_publication(
             "Result [CITE:E001,E002].",
             evidence,
             [],

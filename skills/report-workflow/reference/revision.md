@@ -27,17 +27,17 @@ those claims must cite the new evidence, not the old text.
 
 ## Steps
 
-1. Call `get_controlled_next_action` until the harness returns the
+1. Call `get_next_action` until the harness returns the
    `revision_plan` stage.
 2. Read `agent_tasks/04_revision_plan.md` and `base_document_sections.json`.
 3. Write `revision_plan.json` with exact `original_text` spans and replacement
    text inside the returned `allowed_write_paths`.
 4. Optionally call `preview_revision_diff` for a read-only diff preview.
-5. Call `submit_controlled_action` to validate the revision plan and advance.
+5. Call `submit_action` to validate the revision plan and advance.
 
 `submit_revision_plan` remains available only as a legacy compatibility helper;
-the default public flow should use `get_controlled_next_action` and
-`submit_controlled_action` so `revision_plan.json` edits stay within the harness
+the default public flow should use `get_next_action` and
+`submit_action` so `revision_plan.json` edits stay within the harness
 write-scope contract.
 
 ## Stale Base-Document Content

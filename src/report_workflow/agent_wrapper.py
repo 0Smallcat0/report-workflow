@@ -1,13 +1,13 @@
 """Agent wrapper entry points for the controlled report workflow.
 
-Step 1: start_report_task        -> Prepare deterministic artifacts + task briefs
-Controlled: get_controlled_next_action / submit_controlled_action
+Step 1: start_report        -> Prepare deterministic artifacts + task briefs
+Controlled: get_next_action / submit_action
 Optional: lint_agent_artifacts   -> Read-only artifact shape and ID lint report
-Publish: submit_and_publish_report -> Full validate + render pipeline
+Publish: publish_report -> Full validate + render pipeline
 
 The controlled harness is the recommended public surface for staged authoring.
 Legacy direct submit helpers remain for compatibility, but skill docs should
-route agents through submit_controlled_action.
+route agents through submit_action.
 """
 
 from pathlib import Path
@@ -35,6 +35,7 @@ from report_workflow.config import load_config
 from report_workflow.preflight import discover_features, check_preflight
 from report_workflow.preflight_decisions import (
     evaluate_preflight_start,
+    feature_flags_from_decisions,
     pending_preflight_installs,
     required_preflight_decision_shape,
 )
@@ -119,22 +120,22 @@ def _normalize_source_files(source_files: list[str | dict]) -> tuple[list[str], 
 
 
 def check_setup() -> dict:
-    """Pre-flight environment check; call BEFORE start_report_task.
+    """Pre-flight environment check; call BEFORE start_report.
 
     Returns:
       - ``pending_installs``: dependencies the agent should install (with user consent).
         The agent MUST ask the user before running any install command.
-        After installing, re-run ``check_setup()`` to verify.
+        After installing, re-run ``check_environment()`` to verify.
       - ``agent_should_ask_user``: optional features to ask the user about.
         Some require additional user input (API keys, notebook URLs).
       - ``message``: human-readable summary of the entire setup state.
 
     Workflow:
-      1. Agent calls check_setup()
+      1. Agent calls check_environment()
       2. If pending_installs is non-empty, show user, ask to install, run commands
-      3. Re-run check_setup() to verify installs succeeded
+      3. Re-run check_environment() to verify installs succeeded
       4. Read agent_should_ask_user, ask user about features, collect inputs
-      5. Call start_report_task with the user's chosen flags
+      5. Call start_report with the user's chosen flags
     """
     try:
         cfg = load_config()
@@ -234,7 +235,7 @@ def start_report_task(
     Creates deterministic artifacts (evidence ledger, blueprint) and
     generates task briefs for the Agent to complete.
 
-    **Required**: Call ``check_setup()`` first to verify dependencies
+    **Required**: Call ``check_environment()`` first to verify dependencies
     and ask the user about optional features. ``preflight_confirmed=True``
     is not sufficient on its own; pass ``preflight_decisions`` with an
     explicit record of the user's install and feature choices.
@@ -247,6 +248,17 @@ def start_report_task(
     """
     try:
         normalized_source_files, artifact_role_map = _normalize_source_files(source_files)
+
+        # The user's recorded decision is the flag. Requiring a second,
+        # parallel enable_* argument meant an approval could be recorded and
+        # still refused — "feature 'web_research' was approved by the user,
+        # but the matching enable_* flag was not set" — and over MCP there was
+        # no argument to set, so an approved feature could not be turned on at
+        # all. An explicit enable_* passed by the caller still wins, for a
+        # caller that wants to override what was recorded.
+        enable_research, enable_notebook_sync = feature_flags_from_decisions(
+            preflight_decisions, enable_research, enable_notebook_sync
+        )
 
         # ---- Load merged configuration ----
         cfg = load_config(
@@ -327,8 +339,8 @@ def start_report_task(
                 + str(Path(state.runtime.get("agent_tasks_dir") or (run_dir_for(state) / "agent_tasks"))),
                 "",
                 "Recommended controlled workflow:",
-                "  1. Call get_controlled_next_action to get the current stage and allowed write paths",
-                "  2. Write only those allowed paths, then call submit_controlled_action",
+                "  1. Call get_next_action to get the current stage and allowed write paths",
+                "  2. Write only those allowed paths, then call submit_action",
                 "  3. Repeat until status is completed",
                 "",
             ]
@@ -390,7 +402,7 @@ def submit_claim_matrix(job_id: str, workspace_root: str | None = None) -> dict:
             "job_id": state.job_id,
             "message": (
                 "Step 1/3 complete: claim_matrix.json validated.\n"
-                "Next: Create outline.json and call submit_outline."
+                "Next: Create outline.json and call submit_action."
             ),
         }
     except AgentWorkRequired as e:
@@ -424,7 +436,7 @@ def submit_outline(job_id: str, workspace_root: str | None = None) -> dict:
             "message": (
                 "Step 2/3 complete: outline.json validated.\n"
                 "Next: Create structured_drafts.json or section_drafts/*.md + sentence_map.jsonl, "
-                "then call submit_drafts."
+                "then call submit_action."
             ),
         }
     except AgentWorkRequired as e:
@@ -459,7 +471,7 @@ def submit_drafts(job_id: str, workspace_root: str | None = None) -> dict:
             "job_id": state.job_id,
             "message": (
                 "Step 3/3 complete: section drafts validated.\n"
-                "All artifacts ready. Call submit_and_publish_report to render."
+                "All artifacts ready. Call publish_report to render."
             ),
         }
     except AgentWorkRequired as e:
@@ -526,7 +538,7 @@ def submit_and_publish_report(
 ) -> dict:
     """Step 5: Run full validation pipeline and render the final DOCX.
 
-    This can be called after all 3 steps, or directly after start_report_task
+    This can be called after all 3 steps, or directly after start_report
     if the Agent created all artifacts in one shot (legacy 2-step mode).
 
     Args:
@@ -567,8 +579,8 @@ def submit_and_publish_report(
             "job_id": job_id,
             "message": (
                 "Missing agent artifacts. You must create all required files before submitting.\n"
-                "Use get_controlled_next_action, write only the allowed paths, "
-                "then call submit_controlled_action."
+                "Use get_next_action, write only the allowed paths, "
+                "then call submit_action."
             ),
             "missing_artifacts": e.missing_artifacts,
         }
@@ -596,6 +608,21 @@ def submit_and_publish_report(
         }
 
 
+#: Ledger fields query_evidence does not return. ``cross_references`` is a list
+#: of sibling ids; a caller asking about one row got a wall of ids it did not
+#: ask for, which is the context cost this tool exists to avoid. The ledger
+#: file still carries the field for anything that wants it.
+_EVIDENCE_QUERY_OMITTED_FIELDS = ("cross_references",)
+
+
+def _projected_evidence(entry: dict) -> dict:
+    return {
+        key: value
+        for key, value in entry.items()
+        if key not in _EVIDENCE_QUERY_OMITTED_FIELDS
+    }
+
+
 def query_evidence(
     job_id: str,
     evidence_ids: list[str] | None = None,
@@ -610,7 +637,7 @@ def query_evidence(
     the ledger in pages, without loading the entire JSONL file.
 
     Args:
-        job_id: The job ID from start_report_task.
+        job_id: The job ID from start_report.
         evidence_ids: Optional list of specific evidence_id values to retrieve.
             If provided, offset/limit are ignored.
         offset: Starting index for paginated browsing (default 0).
@@ -626,7 +653,7 @@ def query_evidence(
                 "message": f"Evidence ledger not found at {ledger_path}",
             }
 
-        all_entries = load_jsonl(str(ledger_path))
+        all_entries = [_projected_evidence(row) for row in load_jsonl(str(ledger_path))]
         total = len(all_entries)
 
         if evidence_ids:
@@ -743,7 +770,7 @@ def submit_revision_plan(job_id: str, workspace_root: str | None = None) -> dict
 
     Pre-validates all changes against the base document, checks for
     conflicts and unresolvable changes, and returns a diff preview.
-    Call this before submit_and_publish_report for revision workflows.
+    Call this before publish_report for revision workflows.
     """
     import json
 
@@ -824,8 +851,8 @@ def submit_revision_plan(job_id: str, workspace_root: str | None = None) -> dict
             "message": (
                 f"Revision plan validated: {diff_result['valid_changes']}/"
                 f"{diff_result['total_changes']} changes are valid. "
-                f"Call get_controlled_next_action to see what this job still "
-                f"needs before submit_and_publish_report."
+                f"Call get_next_action to see what this job still "
+                f"needs before publish_report."
             ),
             "diff_report_path": report_path,
             "preview": diff_result["preview"],
@@ -877,10 +904,21 @@ def preview_revision_diff(job_id: str, workspace_root: str | None = None) -> dic
         return {"status": "failed", "error": str(e)}
 
 
+def _mcp_named_aliases() -> None:
+    """Documentation anchor for the aliases defined below.
+
+    The briefs, the skill docs and the MCP server all name the same seven
+    entry points, and for a while they named them three different ways: an
+    agent following a message to the letter called a tool that did not exist.
+    The MCP names are the published ones, so they are the names here too.
+    The older Python names stay because the CLI and existing callers use them.
+    """
+
+
 def get_controlled_next_action(job_id: str, workspace_root: str | None = None) -> dict:
     """Return the next controlled authoring stage and its write scope.
 
-    This is the preferred Skill-facing entry point after ``start_report_task``.
+    This is the preferred Skill-facing entry point after ``start_report``.
     It gives the agent a single current stage, task brief, read-first files,
     allowed write paths, and any repair context from the previous failed
     attempt.
@@ -905,3 +943,13 @@ def submit_controlled_action(job_id: str, workspace_root: str | None = None) -> 
         return run_controlled_stage(job_id, validators, workspace_root=workspace_root)
     except Exception as e:
         return {"status": "failed", "job_id": job_id, "error": str(e)}
+
+
+# The published names. See _mcp_named_aliases above.
+check_environment = check_setup
+start_report = start_report_task
+get_next_action = get_controlled_next_action
+submit_action = submit_controlled_action
+publish_report = submit_and_publish_report
+lint_artifacts = lint_agent_artifacts
+audit_engineering_report = run_engineering_audit

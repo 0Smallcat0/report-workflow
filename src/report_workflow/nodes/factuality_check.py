@@ -123,10 +123,19 @@ def run_factuality_check_fa(
             if not evidence:
                 continue
             if claim_type not in _allowed_claim_types(evidence):
-                unsupported.append(evidence_id)
+                # An id alone leaves the author nothing to act on when several
+                # rows of one table answer to it: the message names a row they
+                # cannot see and cannot choose between, so the only repair is
+                # deleting the citation. Naming the block and the types that
+                # row does allow says which row was consulted and what it
+                # would accept.
+                block_id = evidence.get("block_id") or ""
+                allowed = ", ".join(_allowed_claim_types(evidence)) or "none"
+                located = f"{evidence_id} ({block_id})" if block_id else evidence_id
+                unsupported.append(f"{located} allows: {allowed}")
         if unsupported:
             reasons.append(
-                f"Claim type {claim_type!r} is not allowed by evidence: {', '.join(unsupported)}"
+                f"Claim type {claim_type!r} is not allowed by evidence: {'; '.join(unsupported)}"
             )
 
         if reasons:
@@ -375,20 +384,92 @@ def _cjk_numeral_value(text: str) -> float | None:
     return float(f"{total}.{''.join(places)}")
 
 
+#: Chinese has no spaces, so "the characters after the number" is not a unit —
+#: it is the rest of the sentence. The old extractor bound them together and
+#: compared the whole token, which meant a claim passed only if it repeated the
+#: source's exact character sequence: "8,259美元/噸的低點" never matched the
+#: evidence's "8,259美元/噸", and one particle — 的 — was enough to block a
+#: true claim. That rewards transcription and punishes paraphrase, which is
+#: backwards for a tool whose purpose is helping someone write.
+#:
+#: A CJK unit is therefore taken from this vocabulary, longest match first, and
+#: nothing else after the number is read as a unit. ASCII units keep their word
+#: boundary, which never had this problem, so "226 edges" is unaffected.
+_CJK_UNIT_WORDS = (
+    # time
+    "個月", "月", "年", "日", "天", "週", "周", "小時", "小时", "分鐘", "分钟", "秒",
+    "季", "季度", "世紀", "世纪",
+    # counting / measure words
+    "座", "個", "个", "家", "間", "间", "名", "人", "次", "筆", "笔", "件", "台", "部",
+    "種", "种", "項", "项", "條", "条", "張", "张", "位", "頁", "页", "章", "節", "节",
+    "版", "廠", "厂", "站", "組", "组", "批", "層", "层", "倍", "成",
+    # mass / length / volume
+    "公噸", "噸", "吨", "公斤", "公克", "克", "毫克", "公里", "公尺", "公分", "毫米",
+    "英里", "英尺", "公升", "升", "毫升", "立方公尺", "平方公尺", "坪", "畝", "亩",
+    # money
+    "美元", "歐元", "欧元", "日圓", "日元", "人民幣", "人民币", "新臺幣", "新台幣",
+    "港幣", "港币", "億元", "亿元", "萬元", "万元", "元",
+    # physical / rate
+    "度電", "度电", "攝氏度", "摄氏度", "度", "百分點", "百分点", "百分比",
+    "千瓦", "兆瓦", "瓦", "伏特", "安培", "歐姆", "欧姆", "赫茲", "赫兹",
+)
+
+#: Longest first, so 個月 wins over 個 and 公噸 over 噸.
+_CJK_UNIT_RE = re.compile(
+    "(?:%s)" % "|".join(sorted(_CJK_UNIT_WORDS, key=len, reverse=True))
+)
+
+_ASCII_UNIT_RE = re.compile(r"[a-zA-Z%°]+")
+
+#: A number, unit optional. It has to be optional: a date written "2025-06"
+#: states two numbers and no unit, and a claim saying "2025 年 6 月" cites both
+#: of them. Requiring a unit meant the evidence's 2025 was never extracted at
+#: all, so a correct claim about that date could not be matched to it.
+_BARE_NUMBER_RE = re.compile(
+    r"(?<![A-Za-z0-9.,])(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)"
+)
+
+_APOSTROPHE_SUFFIX_RE = re.compile(r"'[strelmv]|'ll|'ve|'d\b")
+
+
+def _unit_after(text: str, position: int) -> str:
+    """The unit stated immediately after a number, or "" when none is.
+
+    A slash-compound is taken whole — 美元/噸 and MJ/kg are single units, and
+    reading only the numerator would let a price per tonne match a price per
+    kilogram.
+    """
+    rest = text[position:]
+    stripped = rest.lstrip(" \t　")
+    offset = len(rest) - len(stripped)
+
+    match = _CJK_UNIT_RE.match(stripped) or _ASCII_UNIT_RE.match(stripped)
+    if not match:
+        return ""
+    unit = _APOSTROPHE_SUFFIX_RE.sub("", match.group(0))
+    if not unit:
+        return ""
+
+    after = position + offset + match.end()
+    if text[after:after + 1] == "/":
+        tail = text[after + 1:]
+        tail_match = _CJK_UNIT_RE.match(tail) or _ASCII_UNIT_RE.match(tail)
+        if tail_match:
+            unit = f"{unit}/{tail_match.group(0)}"
+    return unit
+
+
 def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
     """Return list of (number_str, unit_str) from text."""
-    _APOSTROPHE_SUFFIX_RE = re.compile(r"'[strelmv]|'ll|'ve|'d\b")
     results = []
     normalized = unicodedata.normalize("NFKC", text or "")
-    for m in _NUMERIC_IN_CLAIM_RE.finditer(normalized):
-        unit = _APOSTROPHE_SUFFIX_RE.sub("", m.group(2).strip())
-        results.append((m.group(1).lstrip("~"), unit))
+    for m in _BARE_NUMBER_RE.finditer(normalized):
+        results.append((m.group(1).lstrip("~"), _unit_after(normalized, m.end())))
     for m in _CJK_NUMBER_RE.finditer(normalized):
         value = _cjk_numeral_value(m.group(1))
         if value is None:
             continue
-        rendered = f"{value:g}"
-        results.append((rendered, m.group(2).strip()))
+        results.append((f"{value:g}", _unit_after(normalized, m.end(1))))
     return results
 
 
@@ -462,6 +543,14 @@ def _normalize_number_str(s: str) -> float:
     return float(s)
 
 
+def _same_value(claim_val: float, evidence_num: str) -> bool:
+    """Is this evidence number the same quantity the claim states?"""
+    try:
+        return abs(claim_val - _normalize_number_str(evidence_num)) <= abs(claim_val * 0.01) + 1e-9
+    except ValueError:
+        return False
+
+
 def _decimal_places(num_str: str) -> int:
     """Count the decimal places a number string explicitly states."""
     s = num_str.lstrip("~").replace(",", "")
@@ -504,8 +593,19 @@ def _normalize_unit(unit: str) -> str:
 
 
 def _units_match(claim_unit: str, evidence_unit: str) -> bool:
+    """Do these two units agree, treating an unstated unit as unknown?
+
+    An unstated unit is not a unit named "" that differs from every other; it
+    is the absence of information. "2025-06" states no unit and a claim citing
+    it says "2025 年 6 月", and refusing that pairing blocked correct claims
+    about dates, versions, and anything else written without one. Where both
+    sides do state a unit, the comparison is as strict as it ever was — a
+    reading in 座 does not support a claim in 公噸.
+    """
     claim_norm = _normalize_unit(claim_unit)
     evidence_norm = _normalize_unit(evidence_unit)
+    if not claim_norm or not evidence_norm:
+        return True
     return claim_norm == evidence_norm or _singular_unit(claim_norm) == _singular_unit(evidence_norm)
 
 
@@ -771,8 +871,18 @@ def _content_overlap_findings(
         except ValueError:
             continue
 
-        # Search for same value in evidence (with same unit)
-        evidence_numbers = _extract_numbers_with_unit(evidence_content) + row_measured
+        # Search for same value in evidence (with same unit).
+        #
+        # A serialized row is read only through its cells. Scanning the raw
+        # JSON text as well now that a bare number needs no unit would pull
+        # "0.01" straight out of the string "<0.01" — the detection limit the
+        # row parser deliberately files as a bound and not as a reading — and
+        # a claim stating it as measured would pass.
+        evidence_numbers = (
+            list(row_measured)
+            if row_pairs is not None
+            else _extract_numbers_with_unit(evidence_content)
+        )
         found = False
         bounded_match: tuple[str, str] | None = None
         for ev_num, ev_unit, ev_text in row_bounded:
@@ -821,14 +931,29 @@ def _content_overlap_findings(
                     f"{inflated_match[0]!r}{inflated_match[1]} supports"
                 )))
             else:
-                # Show what was found in evidence to help debugging
+                # Two different failures used to be reported with one sentence,
+                # and an author could not tell which had happened: whether they
+                # had written a number the source does not contain, or written
+                # the right number against the wrong unit. The first is theirs
+                # to fix; the second is often the gate being too strict, and
+                # they could not distinguish them.
+                unit_conflicts = sorted({
+                    f"{ev_num}{ev_unit}"
+                    for ev_num, ev_unit in evidence_numbers
+                    if _same_value(claim_val, ev_num) and not _units_match(unit, ev_unit)
+                })
                 ev_nums_str = ", ".join(f"{n}{u}" for n, u in evidence_numbers) or "(none)"
-                reasons.append((number_key, (
-                    f"Claim number {num_str!r}{unit} not found in evidence content "
-                    f"(evidence has: {ev_nums_str}). "
-                    f"Note: numeric extractor supports both spaced and compact "
-                    f"unit forms, such as '226 edges' and '226edges'."
-                )))
+                if unit_conflicts:
+                    reasons.append((number_key, (
+                        f"Claim number {num_str!r}{unit} states a unit the evidence "
+                        f"does not: the evidence gives this value as "
+                        f"{', '.join(unit_conflicts)}"
+                    )))
+                else:
+                    reasons.append((number_key, (
+                        f"Claim number {num_str!r}{unit} is not stated in the evidence "
+                        f"(evidence states: {ev_nums_str})"
+                    )))
 
     # 3. Term overlap — key terms from claim should appear in evidence.
     #    CJK-heavy evidence takes the bigram path for CJK claims. A non-CJK

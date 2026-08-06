@@ -23,7 +23,7 @@ MANIFEST_VERSION = 1
 
 STAGE_DEFS: dict[str, dict[str, Any]] = {
     "claim_matrix": {
-        "validation_tool": "submit_controlled_action",
+        "validation_tool": "submit_action",
         "allowed_write_paths": ["claim_matrix.json"],
         "task_brief": "agent_tasks/01_claim_plan.md",
         "read_first_paths": [
@@ -34,7 +34,7 @@ STAGE_DEFS: dict[str, dict[str, Any]] = {
         ],
     },
     "outline": {
-        "validation_tool": "submit_controlled_action",
+        "validation_tool": "submit_action",
         "allowed_write_paths": ["outline.json"],
         "task_brief": "agent_tasks/02_outline_plan.md",
         "read_first_paths": [
@@ -45,7 +45,7 @@ STAGE_DEFS: dict[str, dict[str, Any]] = {
         ],
     },
     "drafts": {
-        "validation_tool": "submit_controlled_action",
+        "validation_tool": "submit_action",
         "allowed_write_paths": [
             "structured_drafts.json",
             "section_drafts/*.md",
@@ -63,7 +63,7 @@ STAGE_DEFS: dict[str, dict[str, Any]] = {
         ],
     },
     "revision_plan": {
-        "validation_tool": "submit_controlled_action",
+        "validation_tool": "submit_action",
         "allowed_write_paths": ["revision_plan.json"],
         "task_brief": "agent_tasks/04_revision_plan.md",
         "read_first_paths": [
@@ -87,7 +87,7 @@ STAGE_DEFS: dict[str, dict[str, Any]] = {
         ],
     },
     "publish": {
-        "validation_tool": "submit_and_publish_report",
+        "validation_tool": "publish_report",
         "allowed_write_paths": [],
         "task_brief": "",
         "read_first_paths": [

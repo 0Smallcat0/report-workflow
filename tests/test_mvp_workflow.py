@@ -894,7 +894,11 @@ class GateTests(unittest.TestCase):
         }]
         results = run_factuality_check_fe(checked, claim_matrix, evidence)
         self.assertEqual(results[0]["status"], "blocked")
-        self.assertIn("not found", results[0]["reason"])
+        # The two ways a number can fail now read differently. This one is a
+        # unit conflict — the value is in the evidence, under another unit —
+        # and saying so tells the author which of the two happened.
+        self.assertIn("states a unit the evidence does not", results[0]["reason"])
+        self.assertIn("5mm", results[0]["reason"])
 
     def test_qa_gate_blocks_missing_citation_placeholder(self):
         with tempfile.TemporaryDirectory() as tmpdir:

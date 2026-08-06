@@ -122,19 +122,21 @@ Adversarial evidence
 ([`benchmarks/evidence/adversarial_2026-07-14/summary.md`](../benchmarks/evidence/adversarial_2026-07-14/summary.md),
 reproducible via `python scripts/run_adversarial_benchmark.py --check`):
 69 hand-audited cases — 25 honest controls, 44 hallucinated claims across the
-14 attack families above plus 6 documented evasion variants.
+15 attack families above plus 5 documented evasion variants.
 
 | Checker | Recall | False-positive rate | Precision |
 | --- | --- | --- | --- |
 | `no_gate` (publish everything) | 0.0% | 0.0% | — |
 | `citation_presence` (shallow RAG-style check) | 9.1% (4/44) | 0.0% | 100% |
-| **full gate stack (FA/FB/FE/FD)** | **86.4%** (38/44) | **0.0%** (0/25) | **100%** |
+| **full gate stack (FA/FB/FE/FD)** | **88.6%** (39/44) | **0.0%** (0/25) | **100%** |
 
-Every one of the 14 targeted attack families is caught at 100%. The missing
-13.6% is not noise — it is six *documented evasions*, each kept in the corpus
+Every one of the 15 targeted attack families is caught at 100%. The missing
+11.4% is not noise — it is five *documented evasions*, each kept in the corpus
 deliberately (§6). The 2026-07-14 hardening closed three former evasions
-(precision fudging, short fabricated quotes, cross-language laundering) and
-promoted them to attack families; the corpus records which rule closed each.
+(precision fudging, short fabricated quotes, cross-language laundering) and the
+2026-08 CJK tokenisation fix closed a fourth (invented bare quantities); all
+were promoted to attack families, and the corpus records which rule closed
+each.
 The corpus doubles as a regression suite: every case's expected verdict is
 asserted in CI, so a gate regression fails the build.
 

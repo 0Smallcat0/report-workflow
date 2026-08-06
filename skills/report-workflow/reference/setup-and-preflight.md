@@ -7,7 +7,7 @@ Load this when preparing a run, resolving a missing dependency, or building the
 ## Contents
 
 - [Required Runtime](#required-runtime)
-- [Run `check_setup` First](#run-check_setup-first)
+- [Run `check_environment` First](#run-check_environment-first)
 - [Windows UTF-8 (Chinese text)](#windows-utf-8-chinese-text)
 - [Preflight Decision Examples](#preflight-decision-examples)
 
@@ -26,19 +26,19 @@ Optional integrations:
   research and claim verification.
 - `notebooklm-py` plus a notebook ID for optional NotebookLM knowledge sync.
 
-## Run `check_setup` First
+## Run `check_environment` First
 
-Call `check_setup` before every `start_report_task`. It returns the pending
+Call `check_environment` before every `start_report`. It returns the pending
 installs, the features to ask the user about, a human-readable `message`, and the
 `required_preflight_decisions` template you should fill in.
 
 Then ask the user about every pending install and optional integration. After
-installing a dependency, rerun `check_setup` to verify. Do not treat an
-`install` or `installed` decision as proof when `check_setup` still reports the
+installing a dependency, rerun `check_environment` to verify. Do not treat an
+`install` or `installed` decision as proof when `check_environment` still reports the
 dependency missing: required dependencies must actually pass preflight before
 start.
 
-`start_report_task` requires `preflight_confirmed=True` **and** a complete
+`start_report` requires `preflight_confirmed=True` **and** a complete
 `preflight_decisions` record. `preflight_confirmed=True` alone is rejected. The
 raw CLI `prepare` entry point requires the same record via
 `--preflight-decisions <file.json>`, so command-line runs cannot bypass this
@@ -62,7 +62,7 @@ Chinese source notes.
 ## Preflight Decision Examples
 
 Always start from the `required_preflight_decisions` object returned by
-`check_setup`. These are common completed shapes, not shortcuts.
+`check_environment`. These are common completed shapes, not shortcuts.
 
 All required setup ready, optional integrations skipped:
 
@@ -113,5 +113,5 @@ preflight_decisions={
 }
 ```
 
-If `check_setup` still reports a required dependency missing, install and rerun
+If `check_environment` still reports a required dependency missing, install and rerun
 setup. Do not force-start by changing the decision record.

@@ -9,6 +9,7 @@ from ..artifact_contract import stable_evidence_id
 from ..language import CJK_RE
 from ..parsers.structured_parser import _disambiguate_headers, is_placeholder_value
 from ..parsers.semi_structured_parser import _delimited_table_rows
+from .cited_sources import extract_cited_sources
 
 
 STRUCTURED_TYPES = {"csv", "xlsx", "json"}
@@ -208,6 +209,52 @@ def _is_markdown_table(content: str) -> bool:
     return bool(_MD_TABLE_SEPARATOR_RE.search(content))
 
 
+#: Markers that a block names where its figures came from. "et al." and the
+#: word "citation" were the whole test, which is English academic prose and
+#: nothing else: a market report attributing every number to a named house in
+#: Chinese ("(來源:Fastmarkets/SMM,2026)") carried no citation by that
+#: measure, and neither did a paragraph carrying the URL it was taken from.
+_EXTERNAL_CITATION_RE = re.compile(
+    r"et al\.|citation|https?://|doi:\s*10\.|\bibid\b"
+    r"|來源|来源|資料來源|资料来源|引自|參考文獻|参考文献|出處|出处"
+    r"|Source\s*[:：]|According to|\(\s*\d{4}\s*[a-z]?\s*\)|（\s*\d{4}\s*）",
+    re.IGNORECASE,
+)
+
+#: Markers that a block says how a number was arrived at, rather than only
+#: stating it. A worked estimate marked 【推算】 with the arithmetic beside it
+#: is methodology in exactly the sense the grade cares about, and the English
+#: keyword list could not see it.
+_METHODOLOGY_RE = re.compile(
+    r"methodolog|study design|participants?\b|sampling|protocol|procedure"
+    r"|calculated as|derived from|assumption|estimated using"
+    r"|方法|方法學|步驟|步骤|程序|樣本|样本|受試|受试|推算|估算|試算|试算"
+    r"|計算方式|计算方式|假設|假设|依據|依据",
+    re.IGNORECASE,
+)
+
+#: Markers that a block claims its result can be reproduced or re-derived.
+_REPRODUCIBILITY_RE = re.compile(
+    r"reproducib|replicat|open data|raw data|可重現|可重现|可複製|可复制|原始資料|原始数据",
+    re.IGNORECASE,
+)
+
+
+def contains_external_citation(content: str) -> bool:
+    """True when the block attributes its content to a named outside source."""
+    return bool(_EXTERNAL_CITATION_RE.search(content))
+
+
+def contains_methodology(content: str) -> bool:
+    """True when the block describes how its figures were obtained."""
+    return bool(_METHODOLOGY_RE.search(content))
+
+
+def claims_reproducibility(content: str) -> bool:
+    """True when the block claims its result can be re-derived."""
+    return bool(_REPRODUCIBILITY_RE.search(content))
+
+
 def compute_provenance_score(entry: dict, block: dict) -> float:
     """Compute provenance score deterministically.
     
@@ -272,19 +319,28 @@ def compute_provenance_score(entry: dict, block: dict) -> float:
     ) and len(_NUMERIC_TOKEN_RE.findall(content)) >= 2:
         score += 0.15
     
-    # Contains methodology keywords
+    # Attribution and method — properties of the evidence itself, which is
+    # what the grade is supposed to measure. Where a source came from decided
+    # nearly everything before this: a Markdown report is classified
+    # internal_project_source, nothing in that path clears 0.7, and every one
+    # of its rows graded medium — including rows carrying a named outside
+    # source and a stated derivation. FD then forbade "measured" wording on
+    # every sentence in the document, so a report that named a house beside
+    # every figure had to hedge all of them, which reads as less trustworthy
+    # than the unhedged prose it replaced.
     methodology_keywords = ["method", "methodology", "study design", "participants", "sample", "analysis"]
-    if any(kw in content.lower() for kw in methodology_keywords):
+    if contains_methodology(content) or any(kw in content.lower() for kw in methodology_keywords):
         score += 0.1
-    
-    # Contains citations
-    if "citation" in content.lower() or "et al." in content:
+
+    # A block that names the house its number came from is checkable; that is
+    # worth more than the token weight the English-only test used to give it.
+    if contains_external_citation(content):
+        score += 0.15
+
+    if claims_reproducibility(content):
         score += 0.05
-    
-    # Claimed reproducibility
-    if "reproducib" in content.lower() or "open data" in content.lower():
-        score += 0.05
-    
+
+
     # Clamp to [0.0, 1.0]
     return max(0.0, min(1.0, score))
 
@@ -587,6 +643,41 @@ def _derived_stats_units(source_registry: list, created_at: str) -> list[dict]:
 _ROW_BLOCK_TYPES = {"csv_row", "table_row", "data_row"}
 
 
+#: A table wider than this contributes no useful sibling list; the cap keeps a
+#: pathological source from reintroducing the quadratic ledger.
+MAX_CROSS_REFERENCES = 24
+
+_TABLE_ROW_SUFFIX_RE = re.compile(r"_r\d+(?:_\d+)?$")
+
+
+def _table_group_key(unit: dict) -> tuple[str, str] | None:
+    """Identify the table a row came from, or None when it is not a row.
+
+    Row block ids are the parent block's id with ``_r<n>`` (or ``_r<t>_<n>``
+    for a table found inside prose) appended, so stripping that suffix names
+    the grid the row belongs to.
+    """
+    if unit.get("block_type") not in _ROW_BLOCK_TYPES:
+        return None
+    block_id = str(unit.get("block_id") or "")
+    parent = _TABLE_ROW_SUFFIX_RE.sub("", block_id)
+    if not parent or parent == block_id:
+        return None
+    return (str(unit.get("source_id") or ""), parent)
+
+
+def _content_hash(content: str) -> str:
+    """Hash of exactly this block's text.
+
+    Splitting a block copies its fields, and ``content_hash`` was one of them,
+    so every row carved out of one table carried the hash of the whole grid.
+    Two rows stating different numbers hashed identically, which makes the
+    field useless for the row-level integrity check it exists for and — since
+    the evidence id is seeded from it — collapses a whole table onto one id.
+    """
+    return hashlib.sha256(content.encode("utf-8")).hexdigest()[:16]
+
+
 def _is_numeric_cell(value: str) -> bool:
     """True when a cell is a bare number — a reading, not a column name."""
     text = str(value).strip().replace(",", "").rstrip("%")
@@ -659,11 +750,13 @@ def _table_row_blocks(block: dict) -> list[dict] | None:
                 record[f"column {position + 1}"] = values[position]
         if not record:
             continue
+        row_content = json.dumps(record, ensure_ascii=False)
         rows.append({
             **block,
             "block_id": f"{block.get('block_id', 'table')}_r{offset}",
             "block_type": "table_row",
-            "content": json.dumps(record, ensure_ascii=False),
+            "content": row_content,
+            "content_hash": _content_hash(row_content),
             "table_data": [headers, values],
         })
     return rows or None
@@ -691,7 +784,12 @@ def _embedded_table_row_blocks(block: dict) -> list[dict] | None:
         text = "\n".join(prose).strip()
         prose.clear()
         if text:
-            out.append({**block, "block_id": f"{base_id}_p{len(out)}", "content": text})
+            out.append({
+                **block,
+                "block_id": f"{base_id}_p{len(out)}",
+                "content": text,
+                "content_hash": _content_hash(text),
+            })
 
     index = 0
     tables = 0
@@ -717,11 +815,13 @@ def _embedded_table_row_blocks(block: dict) -> list[dict] | None:
             record = {h: v for h, v in zip(headers, values) if h}
             if not record:
                 continue
+            row_content = json.dumps(record, ensure_ascii=False)
             out.append({
                 **block,
                 "block_id": f"{base_id}_r{tables}_{offset}",
                 "block_type": "table_row",
-                "content": json.dumps(record, ensure_ascii=False),
+                "content": row_content,
+                "content_hash": _content_hash(row_content),
                 "table_data": [headers, values],
             })
         tables += 1
@@ -1101,9 +1201,12 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
                 "page_number": block.get("page_number"),
                 "requires_hedged_wording": provenance_score < 0.7,
                 "first_hand_account": entry.get("file_type", "") in FIRST_HAND_TYPES,
-                "contains_methodology": "methodology" in content.lower(),
-                "contains_citations": "et al." in content or "citation" in content.lower(),
-                "claimed_reproducibility": "reproducib" in content.lower(),
+                # The same detectors the score uses, so a reader auditing why a
+                # row graded as it did sees the signals that decided it rather
+                # than a second, stricter set that disagrees with them.
+                "contains_methodology": contains_methodology(content),
+                "contains_citations": contains_external_citation(content),
+                "claimed_reproducibility": claims_reproducibility(content),
                 "topic_tags": topic_tags,
                 "cross_references": [],   # filled in second pass
                 "created_at": created_at,
@@ -1125,17 +1228,30 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
     if not evidence_units:
         raise QAHardBlockError("Evidence ledger is empty")
 
-    # Second pass: fill cross_references (link evidence from same source)
-    by_source: dict[str, list[str]] = {}
+    # Second pass: fill cross_references (rows of the same table)
+    #
+    # This used to list every other evidence id from the same source. With one
+    # source that is every id in the ledger, on every row: a 16 KB Markdown
+    # report produced a 409 KB ledger, and query_evidence — whose whole purpose
+    # is answering a lookup without loading the ledger into context — returned
+    # the entire id space for a single row. It also said nothing, because a
+    # reference every row holds distinguishes no row from any other.
+    #
+    # Rows carved out of one table are related to each other and to nothing
+    # else in particular, so that is the link kept.
+    by_table: dict[tuple[str, str], list[str]] = {}
     for unit in evidence_units:
-        sid = unit.get("source_id", "")
-        by_source.setdefault(sid, []).append(unit["evidence_id"])
+        table_key = _table_group_key(unit)
+        if table_key is None:
+            continue
+        by_table.setdefault(table_key, []).append(unit["evidence_id"])
 
     for unit in evidence_units:
-        sid = unit.get("source_id", "")
-        same_source_ids = by_source.get(sid, [])
-        # Reference all other evidence_ids from the same source (not including self)
-        unit["cross_references"] = [eid for eid in same_source_ids if eid != unit["evidence_id"]]
+        table_key = _table_group_key(unit)
+        siblings = by_table.get(table_key, []) if table_key is not None else []
+        unit["cross_references"] = [
+            eid for eid in siblings if eid != unit["evidence_id"]
+        ][:MAX_CROSS_REFERENCES]
 
     # Write to evidence_ledger.jsonl
     run_dir = WORKFLOW_RUNS_DIR / state.job_id
@@ -1147,4 +1263,19 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
             f.write(json.dumps(unit, default=str) + "\n")
 
     state.sources["evidence_ledger_path"] = str(evidence_ledger_path)
+
+    # A parallel registry of the sources the supplied files themselves cite.
+    # One file was treated as one source, so a report citing thirty-nine
+    # outside houses arrived as a single entry named after itself and the
+    # delivered document carried no bibliography at all. Kept beside the
+    # ledger rather than merged into it: these are sources this run has not
+    # read, and filing them as evidence would let a claim cite one.
+    cited = extract_cited_sources(source_registry)
+    cited_sources_path = run_dir / "cited_sources.json"
+    cited_sources_path.write_text(
+        json.dumps({"cited_sources": cited}, ensure_ascii=False, indent=2),
+        encoding="utf-8",
+    )
+    state.sources["cited_sources_path"] = str(cited_sources_path)
+    state.sources["cited_source_count"] = len(cited)
     return state

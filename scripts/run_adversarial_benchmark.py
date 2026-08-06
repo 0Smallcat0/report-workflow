@@ -513,9 +513,15 @@ CASES: list[dict[str, Any]] = [
     # Documented evasions: hallucinations that currently slip through.
     # These are kept on purpose — they are the measured residual-risk boundary
     # and the honest input to the limitations section of docs/DESIGN.md.
-    _case("x01", "evasion_bare_number", "Participant coverage across both conditions in the comparison increased to 99.",
-          ["ev_participants"], hallucination=True, expected="published",
-          note="invented count evades FE because a trailing number without a unit token is not extracted"),
+    # x01 was a documented evasion until the 2026-08 CJK tokenisation fix. FE
+    # required a unit token immediately after a number, which is why a bare
+    # count slipped through — and, in Chinese, why the characters of the next
+    # clause were read as the unit and blocked true claims. Making the unit
+    # optional closed both. Reclassified rather than deleted: the case is the
+    # record that this residual risk was measured and then removed.
+    _case("x01", "invented_quantity", "Participant coverage across both conditions in the comparison increased to 99.",
+          ["ev_participants"], hallucination=True, expected="blocked",
+          note="invented count with no unit; caught since FE stopped requiring a unit token"),
     _case("x02", "evasion_negation_flip", "The pilot workflow results generalized across intake workflows.",
           ["ev_scope"], hallucination=True, expected="published",
           note="drops the 'should not' from the evidence; lexical overlap cannot see negation"),

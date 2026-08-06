@@ -227,6 +227,8 @@ def build_server():
         preflight_confirmed: bool = False,
         preflight_decisions: dict | None = None,
         allow_degraded_render: bool = False,
+        enable_research: bool | None = None,
+        enable_notebook_sync: bool | None = None,
     ) -> dict:
         """Step 1. Parse sources into an evidence ledger and write the task briefs.
 
@@ -234,10 +236,17 @@ def build_server():
         `{"path": ..., "role": "base_document"}`. `report_profile` is the only
         report-shape selector; omit it to infer one. Set `task_intent` to
         "revise_existing" to edit a base document instead of drafting.
-        `reference_docx` follows your own Word template's styles. Returns the
-        job_id, the run directory, and the briefs to read next.
+        `reference_docx` follows your own Word template's styles.
+
+        Optional features follow `preflight_decisions.feature_decisions`:
+        recording `{"web_research": "enable"}` turns web research on. Pass
+        `enable_research` / `enable_notebook_sync` only to override what was
+        recorded. Returns the job_id, the run directory, and the briefs to
+        read next.
         """
         return agent_wrapper.start_report_task(
+            enable_research=enable_research,
+            enable_notebook_sync=enable_notebook_sync,
             prompt=prompt,
             source_files=source_files,
             output_dir=output_dir,
@@ -295,6 +304,24 @@ def build_server():
         severity, and repair hints.
         """
         return agent_wrapper.lint_agent_artifacts(job_id, workspace_root)
+
+    @server.tool()
+    def remap_agent_artifacts(
+        job_id: str,
+        previous_job_id: str,
+        write: bool = False,
+        workspace_root: str | None = None,
+    ) -> dict:
+        """Rewrite evidence ids in artifacts reused from an earlier run.
+
+        The task briefs and the artifact linter both tell an author to run
+        this when they carry a claim matrix or drafts over from a previous
+        job; it was not callable over MCP, so that instruction could not be
+        followed. Call with `write=false` first to see the mapping.
+        """
+        return agent_wrapper.remap_agent_artifacts(
+            job_id, previous_job_id, write, workspace_root
+        )
 
     @server.tool()
     def audit_engineering_report(job_id: str, workspace_root: str | None = None) -> dict:

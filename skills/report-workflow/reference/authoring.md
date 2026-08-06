@@ -60,7 +60,7 @@ Write these artifacts in the run directory:
 - `sentence_map.jsonl`
 
 Every authored artifact must include the `_contract` block from the brief.
-Optionally call `lint_agent_artifacts` after edits for fast read-only feedback; it
+Optionally call `lint_artifacts` after edits for fast read-only feedback; it
 writes `artifact_lint_report.json` with severity, artifact name, JSON path,
 message, and repair hint.
 
@@ -161,10 +161,10 @@ the problem or gap, objective, and contribution before moving to results.
 
 Preferred sequence:
 
-1. Call `get_controlled_next_action(job_id=...)`.
+1. Call `get_next_action(job_id=...)`.
 2. Read the returned `task_brief_path` and `read_first_paths`.
 3. Edit only files listed in `allowed_write_paths`.
-4. Call `submit_controlled_action(job_id=...)`.
+4. Call `submit_action(job_id=...)`.
 5. Repeat until the returned `status` is `completed`.
 
 Failure returns:
@@ -179,8 +179,8 @@ Failure returns:
   source, environment, or deterministic-code fix, not edits to read-only workflow
   artifacts or the harness manifest.
 
-For `engineering_lab_report`, call `run_engineering_audit` after drafts exist.
-Call `submit_and_publish_report` when the controlled harness reaches the publish
+For `engineering_lab_report`, call `audit_engineering_report` after drafts exist.
+Call `publish_report` when the controlled harness reaches the publish
 stage or all required artifacts are already present.
 
 ## Reusing a Previous Run
@@ -194,7 +194,7 @@ edit evidence IDs.
 
 Read the gate name and fix the canonical source artifact:
 
-- Artifact shape or ID drift: run `lint_agent_artifacts`, then edit the JSON path
+- Artifact shape or ID drift: run `lint_artifacts`, then edit the JSON path
   or file named in `artifact_lint_report.json`.
 - Claim or evidence-support failures: edit `claim_matrix.json` or improve
   `evidence_ledger.jsonl` content. Do not edit checkpoint JSON.

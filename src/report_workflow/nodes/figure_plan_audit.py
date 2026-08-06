@@ -51,6 +51,30 @@ def _load_recommendations(state: ReportState) -> list[dict]:
     return recommend_figures_from_evidence(state, evidence)
 
 
+def _describe_recommendation(rec: dict) -> str:
+    """What this recommendation held, so an author can judge dropping it.
+
+    A bare id is not enough to reconsider a decision with. The title says what
+    it was about and the shape says how much data goes with it — "3×4" is a
+    table worth keeping; a 1×2 probably is not.
+    """
+    rec_id = str(rec.get("recommendation_id") or "?")
+    title = _clean_text(
+        (rec.get("figure_plan") or {}).get("title") or rec.get("title") or ""
+    )
+    shape = rec.get("table_shape") or {}
+    rows, columns = shape.get("rows"), shape.get("columns")
+    parts = [rec_id]
+    if title:
+        parts.append(f"“{title}”")
+    if rows and columns:
+        parts.append(f"{rows}×{columns}")
+    figure_type = rec.get("recommended_figure_type")
+    if figure_type:
+        parts.append(str(figure_type))
+    return " ".join(parts)
+
+
 def _load_figure_plan(state: ReportState) -> tuple[dict | None, Path]:
     path = run_dir_for(state) / "section_drafts" / "figure_plan.json"
     if not path.exists():
@@ -652,20 +676,38 @@ def audit_figure_plan(state: ReportState, recommendations: list[dict], figure_pl
         issues.extend(_transform_provenance_issues(figure, rec, index))
         issues.extend(_chart_readability_issues(figure, index))
 
-    if recommendations and figures:
-        unused_high_confidence = [
-            rec.get("recommendation_id")
-            for rec in recommendations
-            if rec.get("confidence") == "high" and rec.get("recommendation_id") not in matched_recommendations
-        ]
-        if unused_high_confidence:
-            issues.append({
-                "severity": "warning",
-                "type": "high_confidence_recommendations_unused",
-                "recommendation_ids": unused_high_confidence,
-                "detail": "High-confidence chart recommendations were not linked from figure_plan.json.",
-                "repair_hint": "Use recommendation_id in figure_plan.json, or explain omission in the report workflow notes.",
-            })
+    # Every recommendation the plan did not take up, named.
+    #
+    # The count of recommendations and the count of figures were both already
+    # written into this report, two lines apart, and nothing compared them: a
+    # run with four recommendations and one figure reported `issues: []` and
+    # `status: passed`. Three tables whose data had already been extracted
+    # vanished without a word that they had ever existed.
+    #
+    # The older check fired only on `confidence == "high"`, and in that run
+    # every recommendation was medium — because the numeric parser had
+    # degraded them all to tables — so the one check that could have spoken
+    # was disqualified by a second defect.
+    unused = [
+        rec for rec in recommendations
+        if rec.get("recommendation_id") not in matched_recommendations
+    ]
+    if unused:
+        issues.append({
+            "severity": "warning",
+            "type": "recommendations_unused",
+            "recommendation_ids": [rec.get("recommendation_id") for rec in unused],
+            "detail": (
+                f"{len(unused)} of {len(recommendations)} chart recommendation(s) are not used "
+                f"by figure_plan.json: "
+                + "; ".join(_describe_recommendation(rec) for rec in unused)
+            ),
+            "repair_hint": (
+                "Dropping a recommendation is a legitimate editorial choice — this is a warning, "
+                "not a block. Reference each one you keep by recommendation_id in "
+                "figure_plan.json; delete the rest deliberately, having seen what they held."
+            ),
+        })
 
     return {
         "job_id": state.job_id,

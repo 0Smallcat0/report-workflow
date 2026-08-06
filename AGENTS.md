@@ -208,9 +208,9 @@ Every evidence-backed sentence in section drafts must include
 `SECTION_DRAFT` compiles it into Markdown section drafts and `sentence_map.jsonl`.
 
 Read-only helpers: `query_evidence` for ledger lookup instead of loading huge
-ledgers into context; `lint_agent_artifacts` to write `artifact_lint_report.json`
+ledgers into context; `lint_artifacts` to write `artifact_lint_report.json`
 (artifact names, JSON paths, severity, messages, repair hints) before the full
-validate/render path; `run_engineering_audit` (for `engineering_lab_report`) to
+validate/render path; `audit_engineering_report` (for `engineering_lab_report`) to
 write `engineering_audit_report.json` with measurement extraction, unit-support
 warnings, table-value support checks, and simple calculation checks.
 
@@ -259,7 +259,7 @@ For factuality failures, inspect the fresh `factuality_report.json` from the run
 directory. The factuality checker reads canonical disk artifacts (`claim_matrix.json`,
 `evidence_ledger.jsonl`, `sentence_map.jsonl`); editing checkpoint snapshots does
 not affect factuality checks. For artifact-shape failures, run
-`lint_agent_artifacts` first and inspect `artifact_lint_report.json`. For
+`lint_artifacts` first and inspect `artifact_lint_report.json`. For
 engineering unit or calculation questions, inspect
 `engineering_audit_report.json` before changing claim text or calculation prose.
 For abstract failures, fix the authored abstract draft; common blockers are
@@ -311,3 +311,19 @@ python scripts/run_adversarial_benchmark.py --check
 If gate behavior changed intentionally, regenerate the adversarial archive
 (`python scripts/run_adversarial_benchmark.py`) and review the diff — corpus
 expectations are assertions, so unexplained verdict drift is a regression.
+
+A change that touches what reaches the deliverable — citation binding, source
+tables, figure placement, the blueprints — also moves the report-quality
+benchmark, which compares a live pipeline run against a recorded unassisted
+write-up of the same source:
+
+```powershell
+python scripts/run_report_quality_benchmark.py --check
+```
+
+Two rules for that one. Do not edit
+`benchmarks/fixtures/unassisted_baseline.md` to widen a gap — it is a recorded
+artifact, and adjusting it is how a benchmark stops meaning anything. Do not
+delete a dimension the harness loses; the archive records two losses on
+purpose, and one of them is a fact about the metric rather than about the
+pipeline.

@@ -14,8 +14,10 @@ from ..runtime_support import load_jsonl, write_json_artifact
 from ..state import ReportState
 from .figure_utils import (
     clean_text as _clean_text,
+    parse_measure as _parse_measure,
     to_float as _to_float,
     unit_signature as _unit_signature,
+    unparsed_reason as _unparsed_reason,
 )
 from .table_transform import _time_sort_key, build_table_variants
 
@@ -357,7 +359,22 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
         non_empty = [_clean_text(value) for value in values if _clean_text(value)]
         missing = max(len(data_rows) - len(non_empty), 0)
         missing_cells += missing
-        numeric_values = _numeric_values(non_empty)
+        measures = [(value, _parse_measure(value)) for value in non_empty]
+        numeric_values = [m.value for _text, m in measures if m is not None]
+        # Which cells failed, and why. "No reliable numeric measure column was
+        # detected" was the whole report, and it is not actionable: it names
+        # neither the column nor the cell, so an author whose price column
+        # reads "~80,000–85,000" cannot tell whether the parser choked on the
+        # tilde, the dash, or the comma.
+        unparsed = [
+            {"value": text, "reason": _unparsed_reason(text)}
+            for text, m in measures if m is None
+        ]
+        range_count = len([m for _text, m in measures if m is not None and m.is_range])
+        approximate_count = len([m for _text, m in measures if m is not None and m.is_approximate])
+        tolerance_count = len(
+            [m for _text, m in measures if m is not None and m.tolerance is not None]
+        )
         numeric_ratio = len(numeric_values) / len(non_empty) if non_empty else 0.0
         negative_count = len([value for value in numeric_values if value < 0])
         unique_values = _unique_non_empty(values)
@@ -396,6 +413,11 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
             "ordered": ordered,
             "unit_signature": _unit_signature(header),
             "negative_value_count": negative_count,
+            "range_value_count": range_count,
+            "approximate_value_count": approximate_count,
+            "tolerance_value_count": tolerance_count,
+            "unparsed_cells": unparsed[:3],
+            "unparsed_cell_count": len(unparsed),
         })
 
     composition_total: float | None = None
@@ -439,6 +461,10 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
             "measure_unit_signatures": measure_units,
             "mixed_measure_units": mixed_measure_units,
             "negative_numeric_value_count": negative_numeric_value_count,
+            "range_value_count": sum(int(column.get("range_value_count", 0) or 0) for column in columns),
+            "approximate_value_count": sum(int(column.get("approximate_value_count", 0) or 0) for column in columns),
+            "tolerance_value_count": sum(int(column.get("tolerance_value_count", 0) or 0) for column in columns),
+            "unparsed_cell_count": sum(int(column.get("unparsed_cell_count", 0) or 0) for column in columns),
         },
         "columns": columns,
     }
@@ -457,6 +483,74 @@ def _chart_candidate(figure_type: str, score: float, confidence: str, reason: st
     }
 
 
+def _unparsed_cell_warnings(profile: dict) -> list[str]:
+    """Name the cells that defeated the parser, column by column.
+
+    Only for columns that held some digits — a column of prose was never a
+    measure column and saying so adds noise.
+    """
+    lines: list[str] = []
+    for column in profile.get("columns", []):
+        examples = column.get("unparsed_cells") or []
+        if not examples:
+            continue
+        if all(example.get("reason") == "no digits in cell" for example in examples):
+            continue
+        rendered = "; ".join(
+            f"{example['value']!r} ({example['reason']})" for example in examples
+        )
+        more = int(column.get("unparsed_cell_count", 0) or 0) - len(examples)
+        suffix = f" (+{more} more)" if more > 0 else ""
+        lines.append(f"Column {column.get('header')!r}: unreadable cells {rendered}{suffix}.")
+    return lines
+
+
+def _uncertainty_note(profile: dict | None, title: str) -> str:
+    """Say in the caption that the plotted values are not exact.
+
+    A range plotted at its midpoint, a figure the source hedged with "~", and
+    a reading carried with its tolerance are all points a reader would draw a
+    different conclusion from if they knew. Putting it in `selection_warnings`
+    tells the author; the caption is what tells the reader, and the reader is
+    the one holding the finished document.
+    """
+    if not profile:
+        return ""
+    summary = profile.get("summary", {})
+    zh = bool(CJK_RE.search(title))
+    notes: list[str] = []
+    if int(summary.get("range_value_count", 0) or 0):
+        notes.append("區間中點" if zh else "range midpoints")
+    if int(summary.get("approximate_value_count", 0) or 0):
+        notes.append("來源標示為近似值" if zh else "values the source marked approximate")
+    if int(summary.get("tolerance_value_count", 0) or 0):
+        notes.append("含標示誤差" if zh else "values carrying a stated tolerance")
+    if not notes:
+        return ""
+    joined = "、".join(notes) if zh else ", ".join(notes)
+    return f"（{joined}）" if zh else f" ({joined})"
+
+
+def _confidence_for_profile(confidence: str, profile: dict | None) -> str:
+    """Lower the stated confidence when the readings themselves are soft.
+
+    Every recommendation in a run reporting the same confidence is not a
+    judgement, it is a constant. A chart drawn from midpoints of ranges or
+    from figures the source itself hedged is a weaker recommendation than one
+    drawn from stated values, and the field should say so.
+    """
+    if confidence != "high" or not profile:
+        return confidence
+    summary = profile.get("summary", {})
+    softened = int(summary.get("range_value_count", 0) or 0) + int(
+        summary.get("approximate_value_count", 0) or 0
+    )
+    if not softened:
+        return confidence
+    total_cells = max(int(summary.get("rows", 0) or 0) * int(summary.get("columns", 0) or 0), 1)
+    return "medium" if softened / total_cells >= 0.25 else confidence
+
+
 def _selection_warnings(profile: dict) -> list[str]:
     summary = profile.get("summary", {})
     warnings: list[str] = []
@@ -466,6 +560,12 @@ def _selection_warnings(profile: dict) -> list[str]:
         warnings.append("ID-like numeric columns were excluded from trend and relationship chart selection.")
     if summary.get("numeric_column_count", 0) == 0 and summary.get("composition_value_column_count", 0) == 0:
         warnings.append("No reliable numeric measure column was detected.")
+        warnings.extend(_unparsed_cell_warnings(profile))
+    if summary.get("range_value_count", 0):
+        warnings.append(
+            f"{summary['range_value_count']} cell(s) state a range and are plotted at their "
+            "midpoint; the midpoint is a summary, not a stated value."
+        )
     if summary.get("mixed_measure_units"):
         warnings.append("Multiple numeric measure columns have mixed units; avoid plotting them on one shared y-axis.")
     if summary.get("negative_numeric_value_count", 0):
@@ -708,6 +808,7 @@ def _make_recommendation(
     selection_warnings: list[str] | None = None,
 ) -> dict:
     rec_id = f"figrec_{rec_index}"
+    confidence = _confidence_for_profile(confidence, data_profile)
     title_source = table.get("source_file_name") or table.get("source_id") or "source data"
     data_transform = table.get("data_transform") if isinstance(table.get("data_transform"), dict) else None
     transform_operations = data_transform.get("operations", []) if data_transform else []
@@ -726,6 +827,7 @@ def _make_recommendation(
             elif "%" not in ylabel and "percent" not in ylabel.casefold():
                 ylabel = f"{ylabel} (%)"
     title = _human_figure_title(figure_type, ylabel, xlabel, data, title_source, transform_label)
+    title += _uncertainty_note(data_profile, title)
     section_id = _section_for_recommendation(state)
     figure_plan = {
         "figure_id": rec_id,

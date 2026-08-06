@@ -295,6 +295,18 @@ def stable_evidence_id(entry: dict, block: dict) -> str:
     content_hash = str(block.get("content_hash") or "")
     if line_start is not None and line_end is not None and content_hash:
         seed = f"{source_id}:{line_start}:{line_end}:{content_hash}"
+        # Every row of one table shares that table's line span, so the span
+        # cannot tell the rows apart — the row's own hash does, and two
+        # byte-identical rows do not even have that. A table listing the same
+        # reading twice filed both under one id, and the gate that resolves a
+        # cited id took whichever row came first: the second row's
+        # allowed_claim_types were never consulted, so a legitimate claim was
+        # refused naming an id the author had no way to disambiguate.
+        # Appending the occurrence only past the first leaves existing ids
+        # unchanged.
+        occurrence = block.get("content_occurrence")
+        if occurrence is not None and occurrence > 1:
+            seed += f":n{occurrence}"
     else:
         # block_id is positional — block_0, block_1 — so inserting a missed
         # trial in the middle of a CSV renumbered every row below it and

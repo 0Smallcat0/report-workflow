@@ -11,7 +11,7 @@ mcp-name: io.github.0Smallcat0/report-workflow
 
 [![CI](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-798%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-885%20passing-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **繁體中文說明 → [README.zh-TW.md](README.zh-TW.md)**
@@ -87,6 +87,45 @@ purpose** — [docs/EVIDENCE.md](docs/EVIDENCE.md).
 
 **It does not write.** Your AI writes; this decides what stays. So you need an
 AI agent to use it.
+
+## Does it actually help?
+
+That is the question worth asking about a writing tool, and for a while the
+honest answer here was no. Someone ran a real 16 KB Chinese market report
+through the whole pipeline and compared the delivered document against the one
+they had written by hand: 37 source links became 0, 24 rows of tables became 0,
+and every citation marker was deleted at render. The gates worked. The document
+was worse.
+
+Worse still, the strictest gate had a **100% false-positive rate on Chinese**.
+It bound each number to the characters following it, and Chinese has no spaces,
+so a claim passed only if it repeated the source's exact character sequence —
+one particle (的) was enough to block a true statement. The gate was rewarding
+transcription and punishing the synthesis a report exists to do.
+
+Those findings are what the current version was built from. The fixes are in the
+history; the evidence they worked is checked in:
+
+| | Before | After |
+| --- | ---: | ---: |
+| Correct Chinese claims blocked by the FE gate | 3 of 3 | 0 of 3 |
+| Hallucination catch rate (69 adversarial cases) | 86.4% | **88.6%** |
+| Honest claims wrongly blocked | 0% | 0% |
+| Source tables reaching the delivered document | 0 of 4 | **4 of 4** |
+| Sources the document cites, reaching the bibliography | 0 of 6 | **6 of 6** |
+| Chart recommendations dropped without a word | 3 of 4 | **0** |
+
+The comparison against writing without the tool is a benchmark you can rerun:
+
+```bash
+python scripts/run_report_quality_benchmark.py --check
+```
+
+Same source, same prompt, two arms, one scorer, both arms in the repository.
+The harness wins 6 of 8 dimensions. **It loses 2, and those are reported rather
+than tuned away** — one of them because the metric itself rewards vagueness,
+which is worth knowing about the metric. See
+[the summary](benchmarks/evidence/report_quality_2026-08-06/summary.md).
 
 ## Other ways to run it
 

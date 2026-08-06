@@ -1,5 +1,122 @@
 # Changelog
 
+## 4.30.0 - 2026-08-06
+
+Someone ran a 53,000-character Chinese market report — 39 external sources,
+several data tables — through the whole pipeline and read what came out: 2,251
+words, one table, no figures, no sources. Every gate passed. The document was
+worse than the one they had written by hand.
+
+This release is what that run turned up. The gates were never the problem; the
+paths that carry a source's content into the deliverable were missing, and one
+gate was actively pushing in the wrong direction.
+
+### Fixed — a claim in Chinese had to copy the source word for word
+
+FE bound each number to the characters following it. Chinese has no spaces, so
+"the characters following it" is the rest of the sentence: the claim's
+`8,259美元/噸的低點` was compared against the evidence's `8,259美元/噸` and did
+not match. One particle was enough to block a true statement, and three correct
+claims out of three were refused in the reported run.
+
+The direction of that is the real defect. A gate that passes transcription and
+blocks paraphrase rewards copying and punishes the synthesis a report exists to
+do — it pointed away from the purpose of the tool it protects.
+
+CJK units now come from a vocabulary, longest match first; ASCII units keep
+their word boundary, so `226 edges` is untouched. The unit became optional,
+because `2025-06` states two numbers and no unit and a claim citing that date
+could never be matched while one was required. An unstated unit is treated as
+unknown rather than as a unit named `""`; where both sides state one, the
+comparison is exactly as strict as before.
+
+Measured on the adversarial corpus: recall 86.4% → **88.6%**, false positives
+still 0. One case moved — `x01`, a documented evasion recorded as *"invented
+count evades FE because a trailing number without a unit token is not
+extracted"*. Making the unit optional closed it. It is reclassified rather than
+deleted, because the corpus is the record that the risk was measured before it
+was removed.
+
+A blocked number now says which of the two things went wrong: a value the
+evidence does not state, or the right value under a different unit. Those had
+one message between them, and an author could not tell whether they had
+mis-written a figure or hit a gate that was too strict.
+
+### Added — the sources a source file cites
+
+One file counted as one source. A report citing thirty-nine houses arrived as a
+single registry entry named after itself, and nothing anywhere read what it
+cited: `publication_reference_list.md`, `publication_references.bib` and
+`internal_source_appendix.md` were all zero bytes.
+
+Nothing was broken — the path did not exist. It does now. Markdown links, bare
+URLs, and Chinese attributions with no URL at all (`（來源：Fastmarkets，2026）`)
+are read out of every parsed source into `cited_sources.json`, each carrying the
+file, block and line it came from, deduplicated so a source cited five times is
+listed once. They flow into the reference list and the BibTeX file.
+
+An attribution with no link is kept deliberately. It cannot be clicked, but a
+named house and a year is what a reader needs in order to go and check, and
+dropping it would lose most of what a Chinese business report says about its own
+provenance.
+
+A citation whose URL ended in `.pdf` was being deleted by the curation filter as
+"a local filename". Published reports are usually served as PDFs; the rule now
+ignores anything inside a URL.
+
+`SOURCE_APPENDIX_RENDER` used to return an empty string for two different
+situations — a run whose sources genuinely cite nobody, and a run that read
+thirty-nine citations and extracted none of them. The second is a defect and now
+says so.
+
+### Added — a source's own tables, and the numbers in them
+
+Table rows were split for citation and never put back, so four tables in, zero
+tables out. `[TABLE:<id>]` in a draft now rebuilds the grid from the ledger at
+render time and prints the file and line span underneath it. The task brief
+lists the available tables and says plainly not to retype one: a retyped number
+is backed by nothing.
+
+The chart recommender was refusing real data. `~80,000–85,000` and `~8,259` are
+how price tables are written, and a column of them was reported as having no
+reliable numeric measure — so an ordered time series came back as a table.
+Approximation marks, en-dash and hyphen ranges, thousands separators, currency
+prefixes, trailing units and `±` tolerances are all read now. A range is carried
+as an interval and plotted at its midpoint, and **the caption says so**, because
+a midpoint presented as a reading is a quiet fiction.
+
+Magnitude suffixes are refused rather than stripped. Reading `12.4bn` as 12.4 is
+not a tolerant parse, it is a wrong number stated with full confidence, and the
+cell is reported as unreadable with the reason instead.
+
+### Fixed — a figure that was planned and then dropped said nothing
+
+`figure_plan_audit_report.json` recorded `recommendation_count: 4` and
+`figure_count: 1` two lines apart, then `issues: []` and `status: passed`. Three
+tables of already-extracted data disappeared without a word.
+
+The check that could have caught it fired only when *every* figure was dropped,
+and it was additionally gated on high confidence — which nothing had, because
+the numeric parser above had degraded them all. Two defects covering for each
+other. Unused recommendations are now reported one by one, with their titles and
+their shapes, so the author can see what they are dropping. It stays a warning:
+deciding a table is not worth printing is the author's call to make. The brief
+now hands over the same titles and shapes up front, and says when the list it
+shows has been truncated.
+
+### Added — a benchmark for whether the report is any better
+
+`python scripts/run_report_quality_benchmark.py --check`. Same source, same
+prompt, two arms — a live pipeline run and a recorded write-up produced without
+the harness — scored by one implementation across eight dimensions. Both arms
+and the scorer are in the repository.
+
+The harness wins six. It loses two, and they are reported rather than tuned
+away: one of them, `verifiable_number_ratio`, rewards a document for stating
+nothing checkable, which is a fact about the metric worth knowing. A test
+asserts the losses stay recorded, so removing one requires saying whether it was
+fixed or hidden.
+
 ## 4.29.1 - 2026-08-04
 
 ### Fixed — the stage that can fix it is the stage you are sent to

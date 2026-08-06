@@ -94,6 +94,29 @@ def _structured_traceability_markdown(state: ReportState) -> str:
     return "\n".join(lines).strip() + "\n"
 
 
+def _record_absence(state: ReportState, detail: str) -> None:
+    """No appendix. Say whether that is expected or a defect.
+
+    These two cases used to return the same empty string. A run whose sources
+    genuinely cite nobody and a run that read thirty-nine citations and
+    extracted none of them both ended here silently, so the second one — a
+    real defect, and the one that emptied the deliverable's bibliography —
+    looked exactly like the first and nothing anywhere raised a word about it.
+    """
+    state.output["traceability_appendix_docx_path"] = ""
+    state.output["traceability_appendix_status"] = "absent"
+
+    cited_count = int(state.sources.get("cited_source_count", 0) or 0)
+    claim_count = len((state.plan.get("claim_matrix") or {}).get("claims", []) or [])
+    if cited_count or claim_count:
+        state.output["traceability_appendix_status"] = "missing"
+        state.runtime.setdefault("warnings", []).append(
+            f"SOURCE_APPENDIX_RENDER produced no appendix although this run has "
+            f"{cited_count} cited source(s) and {claim_count} claim(s): {detail}. "
+            "The delivered document will carry no traceability appendix."
+        )
+
+
 def run_source_appendix_render(state: ReportState) -> ReportState:
     """T_NEW: SOURCE_APPENDIX_RENDER - render source appendix as separate docx.
 
@@ -105,15 +128,14 @@ def run_source_appendix_render(state: ReportState) -> ReportState:
         (not source_appendix_path or not Path(source_appendix_path).exists())
         and (not trace_path or not Path(trace_path).exists())
     ):
-        # No appendix = nothing to do
-        state.output["traceability_appendix_docx_path"] = ""
+        _record_absence(state, "no traceability inputs were produced")
         return state
 
     appendix_md = _structured_traceability_markdown(state)
     if not appendix_md and source_appendix_path and Path(source_appendix_path).exists():
         appendix_md = Path(source_appendix_path).read_text(encoding="utf-8")
     if not appendix_md.strip():
-        state.output["traceability_appendix_docx_path"] = ""
+        _record_absence(state, "traceability inputs produced no appendix content")
         return state
 
     run_dir = WORKFLOW_RUNS_DIR / state.job_id

@@ -301,7 +301,7 @@ class ScholarlyCitationTests(unittest.TestCase):
             "year": "2026",
         }]
 
-        resolved, audit, refs, _ = resolve_citations_publication(
+        resolved, audit, refs, _, _ = resolve_citations_publication(
             "測試結果來自量測資料 [CITE:E001]。",
             evidence,
             [],
@@ -323,7 +323,7 @@ class ScholarlyCitationTests(unittest.TestCase):
             "file_type": "pdf",
         }]
 
-        resolved, _audit, refs, _ = resolve_citations_publication(
+        resolved, _audit, refs, _, _ = resolve_citations_publication(
             "The claim is supported [CITE:E001].",
             evidence,
             [],
