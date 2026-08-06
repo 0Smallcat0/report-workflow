@@ -189,6 +189,48 @@ def _canonical_section_title(section_id: str) -> str:
     return section_id.replace("_", " ").title()
 
 
+def _section_title_forms(
+    section_id: str,
+    blueprint_section: dict | None,
+    section_title: str,
+) -> set[str]:
+    """Every spelling of a section's own title that a draft may repeat."""
+    forms = {
+        _canonical_section_title(section_id),
+        section_id.replace("_", " "),
+        section_title,
+    }
+    section = blueprint_section or {}
+    for key in ("title", "title_zh", "short_title"):
+        forms.add(str(section.get(key) or ""))
+    forms |= _SECTION_HEADING_ALIASES.get(section_id, set())
+    return {form.strip().lower() for form in forms if form and form.strip()}
+
+
+def _strip_duplicate_title_heading(
+    content: str,
+    section_id: str,
+    blueprint_section: dict | None,
+    section_title: str,
+) -> str:
+    """Drop a leading heading only when it repeats the section's own title.
+
+    Section drafts compiled from ``structured_drafts.json`` open with their own
+    title heading, so emitting it under the canonical heading renders the title
+    twice ("# Cover" + "## 封面"). Stripping whatever heading happened to lead
+    the section instead deleted the author's first subsection heading: a
+    findings section opening with "## 一、電池" lost that heading, and every
+    later subsection was left one level deep with nothing above it.
+    """
+    match = re.match(r"^#{1,6}[^\S\n]+([^\n]{1,60})\n+", content)
+    if not match:
+        return content
+    heading = match.group(1).strip().lower()
+    if heading in _section_title_forms(section_id, blueprint_section, section_title):
+        return content[match.end():]
+    return content
+
+
 def _canonicalize_section_content(section_id: str, content: str) -> str:
     """Normalize section-local heading structure before global merge.
 
@@ -334,10 +376,14 @@ def run_merge_draft(state: ReportState) -> ReportState:
             # their own title heading; emitting it after the canonical
             # heading renders every section title twice in the final
             # document ("# Cover" + "## 封面"). Drop that inner heading
-            # so each section has exactly one.
-            inner_heading = re.match(r"^#{1,6}[^\S\n]+([^\n]{1,60})\n+", normalized)
-            if inner_heading:
-                normalized = normalized[inner_heading.end():]
+            # only when it really is the section title repeated — an
+            # author's own first subsection heading has to survive.
+            normalized = _strip_duplicate_title_heading(
+                normalized,
+                section_id,
+                blueprint_sections.get(section_id),
+                section_title,
+            )
             merged_sections.append(f"# {section_title}\n\n{normalized}".strip())
 
         merged_md = "\n\n".join(merged_sections)

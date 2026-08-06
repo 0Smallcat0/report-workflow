@@ -114,7 +114,10 @@ class TableFigureTitleTest(unittest.TestCase):
             "",
         )
         self.assertIn("實測撓度", title)
-        self.assertIn("依荷重", title)
+        self.assertIn("荷重", title)
+        # A table with several measures has no single subject, and naming two
+        # of its column headers reads as a column dump, not a caption.
+        self.assertNotIn("實測撓度(mm), 理論撓度(mm)", title)
         self.assertNotIn("view of", title)
 
 
@@ -1106,6 +1109,44 @@ class DuplicateCitationCollapseTest(unittest.TestCase):
     def test_a_chinese_caption_alone_is_not_a_dangling_reference(self):
         self.assertEqual(self._captions(["圖 1. 流量與有效度", "說明文字。"]), "")
 
+    def _outline_figure_check(self, declared_ids, built_ids):
+        from report_workflow.errors import QAHardBlockError
+        from report_workflow.nodes.post_render_validate import run_post_render_validate
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = self._state_with(
+                tmpdir,
+                ["圖 1. 電池級碳酸鋰價格", "見圖 1 與其後的說明。"],
+                manifest={"figures": [{"figure_id": fid} for fid in built_ids], "errors": []},
+            )
+            state.plan["outline"] = {
+                "sections": {"findings": {"figure_ids": list(declared_ids)}}
+            }
+            try:
+                run_post_render_validate(state)
+            except QAHardBlockError as exc:
+                return str(exc)
+        return ""
+
+    def test_a_mention_by_printed_number_is_not_an_undeclared_figure(self):
+        """The printed number and the plan id are different namespaces.
+
+        An author who keeps one figure out of a four-figure starter plan ships
+        plan id 2 printed as 圖 1, and the brief tells them to reference it by
+        number. Comparing the two rejected that correct document.
+        """
+        self.assertNotIn(
+            "outline figure_ids with no built figure",
+            self._outline_figure_check(["2"], ["2"]),
+        )
+
+    def test_a_declared_figure_that_was_never_built_is_still_caught(self):
+        self.assertIn(
+            "outline figure_ids with no built figure",
+            self._outline_figure_check(["7"], ["2"]),
+        )
+
+
     def test_a_repeated_chinese_caption_is_caught(self):
         """The duplicate check matched "Figure 1." only.
 
@@ -1688,3 +1729,29 @@ class PictureDescriptionTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CaptionLabelTests(unittest.TestCase):
+    """The renderer numbers figures and tables; the author often does too."""
+
+    def test_a_table_caption_does_not_carry_its_number_twice(self):
+        from report_workflow.nodes.source_tables import render_source_table
+
+        heading = render_source_table(
+            {"headers": ["路線", "鋰回收"], "rows": [["濕法", "95%+"]]},
+            number=1,
+            caption="表 1：三條電池回收技術路線",
+            language="zh",
+        ).splitlines()[0]
+        self.assertEqual(heading, "表 1. 三條電池回收技術路線")
+
+    def test_a_figure_caption_does_not_carry_its_number_twice(self):
+        from report_workflow.nodes.docx_render import _figure_alt_text
+
+        alt = _figure_alt_text(
+            {"title": "圖 1：電池級碳酸鋰價格"},
+            "2",
+            language="zh",
+            display_number="1",
+        )
+        self.assertEqual(alt, "圖 1. 電池級碳酸鋰價格")

@@ -280,7 +280,11 @@ class CitationRenderingTests(unittest.TestCase):
         self.assertEqual(len(source_refs), 1)
         self.assertIn("recycling.md", source_refs[0])
         self.assertIn("line 38-43", source_refs[0])
-        self.assertIn("E_recy_001", source_refs[0])
+        self.assertIn("濕法冶金製程的鋰鈷鎳回收率", source_refs[0])
+        # The file, the line span and the quote are what a reader can check.
+        # The ledger's own handle is internal: it belongs in the audit
+        # appendix, not in the delivered source list.
+        self.assertNotIn("E_recy_001", source_refs[0])
 
     def test_repeated_citations_of_one_row_share_a_number(self):
         _resolved, _audit, _refs, _internal, source_refs = resolve_citations_publication(
@@ -735,8 +739,17 @@ class DeliveredDocumentTests(unittest.TestCase):
                 "the DOCX has no source list; document ends: " + repr(text[-400:]),
             )
             self.assertIn("recycling.md", text, "the source list names no file")
-            cited = [row for row in rows if row["evidence_id"] in text]
-            self.assertTrue(cited, "no evidence id in the DOCX can be traced to the ledger")
+            # Traceability is checked the way a reader checks it: the entry
+            # names a line span of a real file. Probing for the ledger's
+            # internal id would only pass while that id was being printed into
+            # the deliverable, which is itself the leak.
+            traced = [
+                row for row in rows
+                if str(row.get("source_span") or "") and str(row["source_span"]) in text
+            ]
+            self.assertTrue(traced, "no source entry in the DOCX can be traced to a ledger row")
+            leaked = [row for row in rows if row["evidence_id"] in text]
+            self.assertFalse(leaked, "internal evidence ids reached the delivered document")
 
     def test_the_fallback_renderer_drops_the_sources_section(self):
         """A measured defect, not a passing behaviour.

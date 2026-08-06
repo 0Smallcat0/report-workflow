@@ -320,7 +320,14 @@ class AutomationHarnessTests(unittest.TestCase):
 
             action = get_controlled_next_action(state.job_id, workspace_root=workspace_root)
             self.assertEqual(action["stage"], "outline")
-            self.assertEqual([Path(p).name for p in action["allowed_write_paths"]], ["outline.json"])
+            # OUTLINE_PLAN can reject the outline over unused figures and names
+            # figure_plan.json as the file to repair, so that file has to be
+            # writable here; otherwise the only way past the gate is to adopt
+            # every starter figure.
+            self.assertEqual(
+                [Path(p).name for p in action["allowed_write_paths"]],
+                ["outline.json", "figure_plan.json"],
+            )
 
             (run_dir / "outline.json").write_text("{}", encoding="utf-8")
             result = run_controlled_stage(state.job_id, _fake_validators(), workspace_root=workspace_root)

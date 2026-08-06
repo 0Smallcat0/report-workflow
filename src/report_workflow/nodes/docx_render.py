@@ -219,6 +219,19 @@ def _load_figure_manifest(manifest_path: str) -> dict | None:
         return None
 
 
+#: A figure or table label an author wrote at the head of a caption — "圖 1：",
+#: "表 2.", "Figure 3:" — which the renderer numbers itself. Writing it is the
+#: natural thing to do, and the document used to carry both ("圖 1. 圖 1：…").
+_LEADING_LABEL_RE = re.compile(
+    r"^\s*(?:(?:圖|图|表)\s*\d+|(?:Figure|Fig\.?|Table)\s+\d+)\s*[：:.、．]\s*",
+    re.IGNORECASE,
+)
+
+
+def _strip_leading_label(title: str) -> str:
+    return _LEADING_LABEL_RE.sub("", title).strip()
+
+
 def _figure_alt_text(
     entry: dict,
     fallback_id: str,
@@ -227,7 +240,7 @@ def _figure_alt_text(
     display_number: str = "",
 ) -> str:
     label = "圖" if language == "zh" else "Figure"
-    title = str(entry.get("title") or inline_caption or "").strip()
+    title = _strip_leading_label(str(entry.get("title") or inline_caption or "").strip())
     figure_id = (
         display_number.strip()
         or str(entry.get("figure_id") or fallback_id).strip()
@@ -295,7 +308,9 @@ def _replace_figure_placeholders(
                 replaced += 1
                 table_number += 1
                 label = "表" if language == "zh" else "Table"
-                title = str(entry.get("title") or inline_caption or "").strip()
+                title = _strip_leading_label(
+                    str(entry.get("title") or inline_caption or "").strip()
+                )
                 caption = f"{label} {table_number}. {title}".strip()
 
                 def esc(value: object) -> str:
