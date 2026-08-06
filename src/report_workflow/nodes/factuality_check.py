@@ -519,9 +519,12 @@ def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
     normalized = unicodedata.normalize("NFKC", text or "")
     for m in _BARE_NUMBER_RE.finditer(normalized):
         suffix = _unit_after(normalized, m.end())
+        unit = _combined_unit(normalized, m.start(1), suffix)
+        # "標價 $71.99" states a currency the same way "71.99 美元" does; only
+        # the side it is written on differs.
         results.append((
             m.group(1).lstrip("~"),
-            _combined_unit(normalized, m.start(1), suffix),
+            unit or _currency_before(normalized, m.start(1)),
         ))
     for m in _CJK_NUMBER_RE.finditer(normalized):
         value = _cjk_numeral_value(m.group(1))
@@ -536,6 +539,57 @@ def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
 
 
 _BOUND_PREFIX_RE = re.compile(r"^(<=|>=|<|>|≤|≥|≦|≧)\s*")
+
+
+#: A currency written in front of the amount, which is how every price column
+#: in a real export is written. The row parser fed each cell to the number
+#: parser as-is, "$71.99" failed to parse, and the cell was dropped — so for a
+#: catalogue of 544 priced products, *every price in the file* was invisible
+#: to the gate. A claim stating a price it had read correctly was refused with
+#: "evidence states: 4.1", the rating being the only cell that had parsed.
+#:
+#: Same treatment ``~`` and the bound prefixes already get: strip the marker,
+#: keep the number, and keep what the marker said — here the currency, which
+#: is a unit and belongs in the unit comparison.
+_CURRENCY_PREFIX_RE = re.compile(
+    r"^\s*(?:(US|NT|HK|AU|CA|SG|RMB)\s*)?([$€£¥₩])\s*",
+    re.IGNORECASE,
+)
+
+_SYMBOL_CURRENCY = {"$": "usd", "€": "eur", "£": "gbp", "¥": "jpy", "₩": "krw"}
+_PREFIXED_CURRENCY = {
+    "us": "usd", "nt": "twd", "hk": "hkd",
+    "au": "aud", "ca": "cad", "sg": "sgd", "rmb": "cny",
+}
+
+
+def _strip_currency(text: str) -> tuple[str, str]:
+    """Split "US$71.99" into ("71.99", "usd"); pass anything else through.
+
+    An unprefixed "$" is read as USD. That is a guess, and a narrow one: it is
+    only ever used as the evidence side of a unit comparison, where the
+    alternative was no unit at all and therefore no number at all.
+    """
+    match = _CURRENCY_PREFIX_RE.match(text or "")
+    if not match:
+        return text, ""
+    prefix, symbol = (match.group(1) or "").casefold(), match.group(2)
+    unit = _PREFIXED_CURRENCY.get(prefix) or _SYMBOL_CURRENCY.get(symbol, "")
+    return text[match.end():].strip(), unit
+
+
+_TRAILING_CURRENCY_RE = re.compile(
+    r"(?:(US|NT|HK|AU|CA|SG|RMB)\s*)?([$€£¥₩])\s*$", re.IGNORECASE
+)
+
+
+def _currency_before(text: str, position: int) -> str:
+    """The currency written immediately in front of a number in prose."""
+    match = _TRAILING_CURRENCY_RE.search(text[max(0, position - 5):position])
+    if not match:
+        return ""
+    prefix = (match.group(1) or "").casefold()
+    return _PREFIXED_CURRENCY.get(prefix) or _SYMBOL_CURRENCY.get(match.group(2), "")
 
 
 #: Units a column header states as a suffix rather than in brackets. A real
@@ -630,14 +684,19 @@ def _row_numbers_with_unit(content: str) -> tuple[list, list] | None:
     if not isinstance(record, dict):
         return None
 
-    measured: list[tuple[str, str]] = []
-    bounded: list[tuple[str, str]] = []
+    measured: list[tuple[str, str, str]] = []
+    bounded: list[tuple[str, str, str]] = []
     for key, value in record.items():
         unit = _unit_from_header(str(key))
-        text = str(value).strip()
+        text = unicodedata.normalize("NFKC", str(value)).strip()
         bound = _BOUND_PREFIX_RE.match(text)
         if bound:
             text = text[bound.end():].strip()
+        text, currency = _strip_currency(text)
+        # The header wins when it states a unit: "price (USD)" is what the
+        # exporter meant, and a stray symbol in one cell should not override
+        # it. Where the header says nothing, the symbol is all there is.
+        unit = unit or currency
         text = text.rstrip("%")
         if not text:
             continue
@@ -648,7 +707,7 @@ def _row_numbers_with_unit(content: str) -> tuple[list, list] | None:
         if bound:
             bounded.append((text, unit, f"{bound.group(1)}{text}"))
         else:
-            measured.append((text, unit))
+            measured.append((text, unit, str(key)))
     return measured, bounded
 
 
@@ -710,6 +769,24 @@ _UNIT_ALIASES = {
     "\u5c0f\u65f6": "h",
     "\u767e\u5206\u6bd4": "%",
     "\uff05": "%",
+    # Currency, written as a symbol on one side and a word on the other. A
+    # price column holding "$71.99" and a claim written "71.99 \u7f8e\u5143" state the
+    # same unit; without these they were two different units and the claim was
+    # refused.
+    "$": "usd",
+    "us$": "usd",
+    "nt$": "twd",
+    "hk$": "hkd",
+    "\u20ac": "eur",
+    "\u00a3": "gbp",
+    "\u00a5": "jpy",
+    "\u20a9": "krw",
+    "\u6b50\u5143": "eur",
+    "\u6b27\u5143": "eur",
+    "\u65e5\u5713": "jpy",
+    "\u65e5\u5143": "jpy",
+    "\u6e2f\u5e63": "hkd",
+    "\u6e2f\u5e01": "hkd",
 }
 
 
@@ -817,7 +894,12 @@ def _check_term_overlap(
     ]
 
 
-def _check_cjk_overlap(claim_text: str, evidence_content: str) -> list[str]:
+def _check_cjk_overlap(
+    claim_text: str,
+    evidence_content: str,
+    *,
+    row_shaped: bool = False,
+) -> list[str]:
     claim_chars = _cjk_chars(claim_text)
     evidence_chars = _cjk_chars(evidence_content)
     if len(claim_chars) < 4 or len(evidence_chars) < 4:
@@ -830,7 +912,15 @@ def _check_cjk_overlap(claim_text: str, evidence_content: str) -> list[str]:
 
     matched = claim_grams & evidence_grams
     coverage = len(matched) / len(claim_grams)
-    threshold = 0.25
+    # The English branch already lowers its floor for a data row, on the
+    # grounds that a row's whole vocabulary is its column headers. A derived
+    # statistic is the same case one step further out: its wording is
+    # generated from column names, so a claim written in a person's words
+    # shares almost no bigrams with it — "本樣本共收錄 544 筆商品" against
+    # "本檔共 544 筆資料列" is the same fact and 0% overlap. What is
+    # substantive for this evidence is the numeric check, and that one is
+    # strict.
+    threshold = 0.10 if row_shaped else 0.25
     if coverage >= threshold:
         return []
 
@@ -900,6 +990,56 @@ def _is_question_only(text: str) -> bool:
     if not stripped.endswith(("?", "？")):
         return False
     return not _ASSERTION_END_RE.search(stripped[:-1])
+
+
+#: Block types that are one record out of a table. A derived statistic is
+#: deliberately not one of them: it is a statement about a whole selection of
+#: rows, and the single-row rules below must not apply to it.
+_RAW_ROW_BLOCK_TYPES = frozenset({"csv_row", "table_row", "data_row"})
+
+#: Words by which a claim says it is talking about the whole dataset rather
+#: than about one record.
+#:
+#: The failure this closes: the claim "本樣本共收錄 544 筆商品" was certified
+#: by the row {"asin": "B0EXAMPLE1", "review_count": 544, "rating": 4.3} —
+#: one product that happens to have 544 reviews. Nothing in that row says
+#: anything about how many products there are. The check was comparing digit
+#: strings, and 544 == 544.
+#:
+#: A single row cannot ground a statement about the sample, whatever digits it
+#: contains. The repair is not to refuse the sentence but to send it to the
+#: evidence that does answer it — the derived statistics built from the same
+#: rows at prepare time.
+_DATASET_SCOPE_RE = re.compile(
+    r"樣本|母體|母体|全體|全体|全部|所有|整體|整体|總共|总共|共計|共计|合計|合计"
+    r"|總計|总计|全檔|全档|平均|中位數|中位数|佔比|占比|分布|分佈|各類|各类"
+    r"|\ball\b|\bsample\b|\btotal\b|\boverall\b|\baverage\b|\bmean\b|\bmedian\b"
+    r"|\baggregate\b|\bdataset\b|\bacross\b|\bcombined\b|\bdistribution\b",
+    re.IGNORECASE,
+)
+
+_COLUMN_BRACKET_RE = re.compile(r"[(（\[［].*?[)）\]］]")
+
+
+def _is_dataset_scope_claim(claim_text: str) -> bool:
+    return bool(_DATASET_SCOPE_RE.search(claim_text or ""))
+
+
+def _claim_names_column(claim_text: str, column: str) -> bool:
+    """True when the claim mentions this column by name.
+
+    Deliberately one-directional. A claim that names no column is left alone,
+    because column names are English in exports whose reports are written in
+    Chinese and demanding a mention would block honest work. But a claim that
+    *does* name one has told us which cell it is talking about, and a number
+    from a different cell is then not its evidence.
+    """
+    text = (claim_text or "").casefold()
+    name = _COLUMN_BRACKET_RE.sub(" ", str(column or ""))
+    for token in re.findall(r"[A-Za-z][A-Za-z0-9]{2,}", name):
+        if token.casefold() in text:
+            return True
+    return any(token in (claim_text or "") for token in re.findall(r"[㐀-鿿]{2,}", name))
 
 
 _LATIN_TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9²³/-]{1,}")
@@ -1011,6 +1151,28 @@ def _content_overlap_findings(
     claim_numbers = _extract_numbers_with_unit(claim_text)
     row_pairs = _row_numbers_with_unit(evidence_content)
     row_measured, row_bounded = row_pairs if row_pairs else ([], [])
+    is_raw_row = (
+        row_pairs is not None
+        and str(evidence.get("block_type", "")) in _RAW_ROW_BLOCK_TYPES
+    )
+
+    if is_raw_row and claim_numbers and _is_dataset_scope_claim(claim_text):
+        return [((
+            "dataset_scope",
+        ), (
+            "Claim states something about the whole dataset, but the evidence is "
+            "a single data row, which says nothing about how many rows there are "
+            "or how they are distributed — a matching digit in one record is a "
+            "coincidence, not support. Cite the derived statistics built from "
+            f"these rows, or register the one you need. Row: {evidence_content[:80]}"
+        ))]
+
+    named_columns = (
+        {column for _n, _u, column in row_measured if _claim_names_column(claim_text, column)}
+        if is_raw_row
+        else set()
+    )
+
     for num_str, unit in claim_numbers:
         try:
             claim_val = _normalize_number_str(num_str)
@@ -1027,8 +1189,23 @@ def _content_overlap_findings(
         evidence_numbers = (
             list(row_measured)
             if row_pairs is not None
-            else _extract_numbers_with_unit(evidence_content)
+            else [
+                (number, number_unit, "")
+                for number, number_unit in _extract_numbers_with_unit(evidence_content)
+            ]
         )
+        # A claim that named a column is asking about that column. Reading its
+        # figure out of a different cell is the same coincidence as reading a
+        # sample size out of a review count, one row narrower.
+        misplaced: list[str] = []
+        if named_columns:
+            kept = []
+            for ev_num, ev_unit, ev_column in evidence_numbers:
+                if ev_column in named_columns:
+                    kept.append((ev_num, ev_unit, ev_column))
+                elif _same_value(claim_val, ev_num) and _units_match(unit, ev_unit):
+                    misplaced.append(f"{ev_column}={ev_num}")
+            evidence_numbers = kept
         found = False
         bounded_match: tuple[str, str] | None = None
         for ev_num, ev_unit, ev_text in row_bounded:
@@ -1041,7 +1218,7 @@ def _content_overlap_findings(
             except ValueError:
                 continue
         inflated_match: tuple[str, str] | None = None
-        for ev_num, ev_unit in evidence_numbers:
+        for ev_num, ev_unit, _ev_column in evidence_numbers:
             # Units must match (after normalization)
             if not _units_match(unit, ev_unit):
                 continue
@@ -1063,7 +1240,14 @@ def _content_overlap_findings(
 
         if not found:
             number_key = ("number", num_str, unit)
-            if bounded_match:
+            if misplaced:
+                reasons.append((number_key, (
+                    f"Claim number {num_str!r}{unit} appears in this row only under "
+                    f"{', '.join(misplaced)}, which is not the column the claim "
+                    f"names ({', '.join(sorted(named_columns))}). A value in a "
+                    "different field does not support it."
+                )))
+            elif bounded_match:
                 reasons.append((number_key, (
                     f"Claim number {num_str!r}{unit} states as measured what the "
                     f"evidence gives only as a bound "
@@ -1085,10 +1269,12 @@ def _content_overlap_findings(
                 # they could not distinguish them.
                 unit_conflicts = sorted({
                     f"{ev_num}{ev_unit}"
-                    for ev_num, ev_unit in evidence_numbers
+                    for ev_num, ev_unit, _column in evidence_numbers
                     if _same_value(claim_val, ev_num) and not _units_match(unit, ev_unit)
                 })
-                ev_nums_str = ", ".join(f"{n}{u}" for n, u in evidence_numbers) or "(none)"
+                ev_nums_str = ", ".join(
+                    f"{n}{u}" for n, u, _column in evidence_numbers
+                ) or "(none)"
                 if unit_conflicts:
                     reasons.append((number_key, (
                         f"Claim number {num_str!r}{unit} states a unit the evidence "
@@ -1116,10 +1302,15 @@ def _content_overlap_findings(
         return total > 0 and (total - ascii_chars) / total > 0.3
 
     source_role = evidence.get("source_role", "primary_source")
-    row_shaped = row_pairs is not None
+    row_shaped = (
+        row_pairs is not None
+        or str(evidence.get("block_type", "")) == "derived_statistic"
+    )
     if _is_likely_non_ascii(evidence_content):
         if len(_cjk_chars(claim_text)) >= 4:
-            term_reasons = _check_cjk_overlap(claim_text, evidence_content)
+            term_reasons = _check_cjk_overlap(
+                claim_text, evidence_content, row_shaped=row_shaped
+            )
         else:
             term_reasons = _check_term_overlap(
                 claim_text, evidence_content, source_role,
@@ -1454,16 +1645,27 @@ def run_factuality_check(state: ReportState) -> ReportState:
 
     results_fa = run_factuality_check_fa(sentence_map, claim_matrix, evidence_ledger)
     all_results = run_factuality_check_fb(results_fa, claim_matrix, evidence_ledger)
-    # Fix #5: content-overlap check (FE)
-    # NOTE: By default skipped for jobs where evidence content uses mixed encoding (Big5 Chinese
-    # corruption) and different vocabulary than claims, causing false-positive mismatches.
-    # FA (linkage) and FB (type matching) both pass for all claims; FE is supplementary.
-    # Use --deep-audit flag to enable FE checking when you need rigorous citation substantiveness.
+    checkers_run = ["FA", "FB"]
+
+    # FE — does the claim's content appear in the evidence it cites?
+    #
+    # This used to run only under --deep-audit, which meant it did not run on
+    # the publish path at all. Everything a caller saw said otherwise: the
+    # plugin advertises that every claim must trace to its sources, and the
+    # delivery summary reported "Factuality: pass (44 verified)". What had
+    # actually been checked was FA (the ids line up) and FS (the prose repeats
+    # the claim's own figures) — both internal consistency, neither a
+    # comparison against the evidence. A median nobody had recorded passed
+    # because the author wrote the same number twice.
+    #
+    # An off-by-default gate that the summary reports as passing is worse than
+    # no gate: it spends the reader's trust without doing the work.
     deep_audit = state.flags.get("deep_audit", False)
     revision_sidecar_mode = _revision_sidecar_mode(state, sentence_map, claim_matrix, evidence_ledger)
     advisory_results: list[dict] = []
-    if deep_audit:
+    if deep_audit or not revision_sidecar_mode:
         all_results = run_factuality_check_fe(all_results, claim_matrix, evidence_ledger)
+        checkers_run.append("FE")
 
     # FS: the drafted prose must state what its claim asserts. Unlike FE this
     # runs on every job, not only under --deep-audit: the failure it catches
@@ -1477,6 +1679,7 @@ def run_factuality_check(state: ReportState) -> ReportState:
         all_results.extend(
             run_factuality_check_fs(merged_text, claim_matrix, state, outline)
         )
+        checkers_run.append("FS")
 
     # F2: wording strength vs evidence grade (FD)
     results_fd = run_factuality_check_fd(sentence_map, claim_matrix, evidence_ledger)
@@ -1484,6 +1687,7 @@ def run_factuality_check(state: ReportState) -> ReportState:
         advisory_results.extend({**result, "status": "advisory"} for result in results_fd)
     else:
         all_results.extend(results_fd)
+        checkers_run.append("FD")
 
     blocked_count = sum(1 for result in all_results if result["status"] == "blocked")
     verified_count = sum(1 for result in all_results if result["status"] == "verified")
@@ -1494,6 +1698,24 @@ def run_factuality_check(state: ReportState) -> ReportState:
         "advisory": advisory_results,
         "blocked_count": blocked_count,
         "verified_count": verified_count,
+        # Which gates actually ran, and what a "verified" line means. Reporting
+        # a count without either was how "Factuality: pass (44 verified)" came
+        # to describe a run in which no claim had been compared against its
+        # evidence at all.
+        "checkers_run": checkers_run,
+        "checker_descriptions": {
+            "FA": "claim, evidence and sentence ids link up",
+            "FB": "a statistical claim cites quantitative evidence",
+            "FE": "the claim's numbers, quotes and terms appear in the evidence it cites",
+            "FS": "the drafted prose states every figure its claim asserts",
+            "FD": "wording strength is allowed by the weakest cited evidence grade",
+        },
+        "verified_means": (
+            "Every checker listed in checkers_run examined this claim and found "
+            "no violation. It is a deterministic, lexical comparison against the "
+            "supplied evidence — not an external fact check, and not a judgement "
+            "that the claim is true."
+        ),
         "sidecars_consumed": {
             "claim_matrix": bool(claim_matrix.get("claims")),
             "sentence_map": bool(sentence_map),

@@ -92,6 +92,7 @@ Details, UTF-8 setup, and decision examples: [reference/setup-and-preflight.md](
 - `get_next_action`
 - `submit_action`
 - `lint_artifacts`
+- `register_derived_evidence`
 - `audit_engineering_report`
 - `publish_report`
 - `query_evidence`

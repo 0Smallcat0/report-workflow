@@ -297,6 +297,27 @@ def build_server():
         )
 
     @server.tool()
+    def register_derived_evidence(
+        job_id: str,
+        derivations: list[dict],
+        workspace_root: str | None = None,
+    ) -> dict:
+        """Make a statistic over the source rows citable.
+
+        The ledger holds one row per record, so a sample size, a median, a
+        share or a concentration index has no evidence id — and the sentence
+        that needs one goes unwritten. Register the derivation instead:
+        `{"id": "photo_count", "source": "products.csv",
+        "rows": "category=攝影", "op": "count"}`. Ops are count, sum, mean,
+        median, min, max, distinct, share, hhi, top_share. The value is
+        computed from the rows here rather than supplied by you; `expect` is
+        checked against it, never trusted. Cite the returned evidence_id.
+        """
+        return agent_wrapper.register_derived_evidence(
+            job_id, derivations, workspace_root
+        )
+
+    @server.tool()
     def lint_artifacts(job_id: str, workspace_root: str | None = None) -> dict:
         """Check the artifacts you authored for shape errors before publishing.
 

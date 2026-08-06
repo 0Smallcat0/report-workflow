@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
 from ..artifact_contract import stable_evidence_id
+from ..derived_evidence import dataset_summary_units
 from ..language import CJK_RE
 from ..parsers.structured_parser import _disambiguate_headers, is_placeholder_value
 from ..parsers.semi_structured_parser import _delimited_table_rows
@@ -1039,6 +1040,46 @@ def determine_topic_tags(content: str) -> list[str]:
     return unique
 
 
+#: Below this a lopsided ratio says nothing — a two-paragraph note citing
+#: five houses is ordinary.
+_SOURCE_COUNT_WARN_FLOOR = 25
+
+
+def _warn_on_implausible_source_count(
+    state: ReportState,
+    source_registry: list,
+    cited: list,
+) -> None:
+    """Say so at prepare time when the source list cannot be a bibliography.
+
+    A document cites fewer houses than it has paragraphs. When the reverse is
+    true by a wide margin, the extractor has read something that is not a
+    citation — and the cost of finding that out later is a delivered DOCX
+    whose reference list is 97% of the file. Warned, not blocked: an
+    aggregator really can cite more than it writes, and refusing to prepare
+    that run would be worse than telling its author what we found.
+    """
+    if len(cited) < _SOURCE_COUNT_WARN_FLOOR:
+        return
+    narrative_blocks = sum(
+        1
+        for entry in source_registry
+        for block in (entry.get("parsed_content") or [])
+        if isinstance(block, dict)
+        and str(block.get("block_type") or "") not in _ROW_BLOCK_TYPES | {"table"}
+    )
+    if len(cited) <= max(narrative_blocks, 1):
+        return
+    state.runtime.setdefault("warnings", []).append(
+        f"CITED_SOURCES: extracted {len(cited)} outside sources from "
+        f"{narrative_blocks} narrative block(s). A document cites fewer sources "
+        "than it writes paragraphs, so this is more likely an extraction fault "
+        "than a bibliography. Inspect cited_sources.json before publishing; if a "
+        "table column really does hold sources, name it in "
+        "source_citation_columns."
+    )
+
+
 def run_evidence_normalize(state: ReportState) -> ReportState:
     """T7: EVIDENCE_NORMALIZE - compute provenance scores and create evidence ledger.
 
@@ -1225,6 +1266,20 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
     # measurement rows — the analysis a reader grades, made evidence.
     evidence_units.extend(_derived_stats_units(source_registry, created_at))
 
+    # Summary statistics over each table: how many rows, how many values per
+    # column, the numeric columns' quartiles, the categorical columns' group
+    # counts and shares. Without these the ledger can state what one product
+    # costs and nothing about what the category costs, which is the only
+    # question a market report asks — measured once at 26 numbers in the
+    # delivered report against 703 written without the tool.
+    evidence_units.extend(
+        dataset_summary_units(
+            source_registry,
+            created_at,
+            zh=bool(CJK_RE.search(str(state.spec.get("user_prompt", "")))),
+        )
+    )
+
     if not evidence_units:
         raise QAHardBlockError("Evidence ledger is empty")
 
@@ -1270,7 +1325,10 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
     # delivered document carried no bibliography at all. Kept beside the
     # ledger rather than merged into it: these are sources this run has not
     # read, and filing them as evidence would let a claim cite one.
-    cited = extract_cited_sources(source_registry)
+    cited = extract_cited_sources(
+        source_registry, state.spec.get("source_citation_columns") or []
+    )
+    _warn_on_implausible_source_count(state, source_registry, cited)
     cited_sources_path = run_dir / "cited_sources.json"
     cited_sources_path.write_text(
         json.dumps({"cited_sources": cited}, ensure_ascii=False, indent=2),

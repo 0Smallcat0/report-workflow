@@ -23,6 +23,7 @@ from .nodes.figure_plan_audit import run_figure_plan_audit
 from .nodes.notebook_sync import run_notebook_sync
 from .nodes.agent_tasks import run_agent_task_briefs
 from .nodes.claim_plan import run_claim_plan
+from .nodes.derived_evidence import run_derived_evidence
 from .nodes.outline_plan import run_outline_plan
 from .nodes.section_draft import run_section_draft
 from .nodes.paper_scope_freeze import run_paper_scope_freeze
@@ -176,6 +177,9 @@ def validate_stages() -> list[WorkflowStage]:
     return [
         _stage(
             "AGENT_ARTIFACTS",
+            # Before CLAIM_PLAN: a claim citing E_D_<id> has to find that id in
+            # the ledger when its citations are checked.
+            _step("DERIVED_EVIDENCE", run_derived_evidence),
             _step("CLAIM_PLAN", run_claim_plan),
             _step("OUTLINE_PLAN", run_outline_plan),
             _step("SECTION_DRAFT", run_section_draft),
@@ -345,6 +349,7 @@ def prepare_workflow(
     notebooklm_notebook_id: str | None = None,
     notebooklm_storage_path: str | None = None,
     reference_docx: str | None = None,
+    source_citation_columns: list[str] | None = None,
 ) -> ReportState:
     """Prepare deterministic artifacts and agent task briefs.
 
@@ -352,6 +357,9 @@ def prepare_workflow(
         intent: 'new_draft' or 'revise_existing'.
         artifact_role_map: mapping from file name to artifact role
             ('source_data' or 'base_document').
+        source_citation_columns: table columns that really hold sources, such
+            as 'source_url'. Nothing else in a table is read as a citation;
+            the default reads no cells at all.
     """
     state = ReportState.new(user_prompt, uploaded_files, output_dir, front_matter=front_matter)
     if report_profile:
@@ -375,6 +383,10 @@ def prepare_workflow(
         state.spec["notebooklm_storage_path"] = notebooklm_storage_path
     if reference_docx:
         state.spec["reference_docx_path"] = str(Path(reference_docx).resolve())
+    if source_citation_columns:
+        state.spec["source_citation_columns"] = [
+            str(name) for name in source_citation_columns if str(name).strip()
+        ]
     try:
         state = run_preflight_checks(state)
     except QAHardBlockError as e:

@@ -256,6 +256,31 @@ tools:
         required: true
         description: The job ID returned by start_report
 
+  - name: register_derived_evidence
+    description: >
+      Make a statistic over the source rows citable. The ledger holds one row
+      per record, so a sample size, a median, a share or a concentration index
+      has no evidence id and the sentence needing one goes unwritten. Each
+      derivation is {"id", "source", "rows", "op", "column", "k", "of",
+      "label", "expect"}; ops are count, sum, mean, median, min, max,
+      distinct, share, hhi, top_share, and row filters are col=value,
+      col!=value, col>=n, col~text joined with &. The value is computed from
+      the rows here rather than supplied by the caller, and "expect" is
+      checked against it instead of trusted. Returns the evidence_id to cite.
+    parameters:
+      - name: job_id
+        type: string
+        required: true
+        description: The job ID returned by start_report
+      - name: derivations
+        type: array
+        required: true
+        description: Derivation requests, each with at least an id and an op
+      - name: workspace_root
+        type: string
+        required: false
+        description: Optional output workspace root if the job is outside the default run registry
+
   - name: audit_engineering_report
     description: >
       Read-only engineering lab audit for units, measurements, and simple

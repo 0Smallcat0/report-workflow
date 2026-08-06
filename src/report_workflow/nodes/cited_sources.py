@@ -20,10 +20,24 @@ The third is the one worth being careful about. It carries no link, so it is
 tempting to drop; but a named house and a year is exactly what a reader needs
 in order to go and check, and dropping it would lose most of what a Chinese
 business report states about its own provenance.
+
+What this module reads is *narrative* content, and that distinction was
+missing at first. Three product CSVs carrying ``product_link`` and
+``image_url`` columns produced 1,071 "references" and a 402 KB DOCX of which
+the author's own prose was 1.7%. A cell is not a citation: a row states a
+fact about one product, and the address in it is that product's own page, not
+a source the document consulted. Nobody has ever wanted a bibliography of 544
+thumbnail URLs.
+
+Table cells are therefore skipped, and a column has to be named before
+anything is read out of it — ``source_citation_columns``, for a sheet that
+really does carry a ``source_url`` column. Guessing is what produced the
+1,071.
 """
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 
 #: A Markdown link. The title is taken verbatim — inventing one would be the
@@ -48,6 +62,32 @@ _YEAR_RE = re.compile(r"(?:^|[\s,，、（(])((?:19|20)\d{2})(?:[\s,，、）)]|
 
 #: Punctuation a publisher name should not end with.
 _TRAILING_PUNCT = " \t，,、。.；;：:）)】」』"
+
+#: Block types that are one row of a grid rather than a passage of writing.
+#: Their cells are data. Reading citations out of them is what turned three
+#: product exports into a 1,071-entry bibliography.
+_ROW_BLOCK_TYPES = frozenset({"csv_row", "table_row", "data_row", "table"})
+
+#: Containers that hold no narrative at all. A CSV has no paragraphs, so
+#: nothing in one is an in-text citation regardless of how its blocks are
+#: typed by whichever parser read it.
+_TABULAR_FILE_TYPES = frozenset({"csv", "xlsx", "xls", "json", "toml"})
+
+#: An address that points at a picture. A thumbnail is never a source, in a
+#: data column or in prose, so this is refused everywhere rather than only on
+#: the path that produced the failure.
+_IMAGE_EXTENSION_RE = re.compile(
+    r"\.(?:jpe?g|png|gif|webp|svg|bmp|ico|tiff?|avif|heic)(?:[?#].*)?$",
+    re.IGNORECASE,
+)
+
+#: Hosts that serve assets rather than publish documents. Matched on the host
+#: alone, so a path-based guess never has to be made.
+_ASSET_HOST_RE = re.compile(
+    r"^(?:m\.media-|images?[.-]|img[.-]|static[.-]|assets?[.-]|cdn[.-]|media[.-])"
+    r"|(?:\.cdn\.|\.imgix\.|cloudfront\.net$|akamaized\.net$)",
+    re.IGNORECASE,
+)
 
 
 def _digest(value: str) -> str:
@@ -83,13 +123,61 @@ def _blocks(entry: dict) -> list[dict]:
     return [block for block in parsed if isinstance(block, dict)]
 
 
-def extract_cited_sources(source_registry: list[dict]) -> list[dict]:
+def _is_asset_url(url: str) -> bool:
+    """True when the address points at an image rather than at a document."""
+    cleaned = url.strip().rstrip(_TRAILING_PUNCT)
+    if _IMAGE_EXTENSION_RE.search(cleaned):
+        return True
+    host = re.sub(r"^https?://", "", cleaned, flags=re.IGNORECASE).split("/", 1)[0]
+    host = host.split("@")[-1].split(":")[0]
+    return bool(_ASSET_HOST_RE.search(host))
+
+
+def _is_tabular(entry: dict, block: dict) -> bool:
+    """True when this block is a row of data rather than a passage of prose."""
+    if str(block.get("block_type") or "") in _ROW_BLOCK_TYPES:
+        return True
+    return str(entry.get("file_type") or "").lower() in _TABULAR_FILE_TYPES
+
+
+def _designated_cell_text(block: dict, citation_columns: frozenset[str]) -> str:
+    """The named source columns of a serialized row, joined; "" when none.
+
+    Only columns the caller named are read. A row whose cells are not JSON —
+    a pipe-delimited grid, say — yields nothing, because there is no way to
+    tell which cell was the named column without inventing one.
+    """
+    if not citation_columns:
+        return ""
+    try:
+        record = json.loads(str(block.get("content") or ""))
+    except (ValueError, TypeError):
+        return ""
+    if not isinstance(record, dict):
+        return ""
+    return " ".join(
+        str(value)
+        for key, value in record.items()
+        if str(key).strip().casefold() in citation_columns and str(value).strip()
+    )
+
+
+def extract_cited_sources(
+    source_registry: list[dict],
+    citation_columns: list[str] | None = None,
+) -> list[dict]:
     """Every outside source the supplied files cite, deduplicated.
 
     Order is the order of first appearance, which is the order a reader met
     them in. Each entry records the file and block it was found in, so a
     reference can always be walked back to the sentence that made it.
+
+    ``citation_columns`` names table columns that really do hold sources — a
+    ``source_url`` or ``citation`` column. Nothing else in a table is read.
     """
+    designated = frozenset(
+        str(name).strip().casefold() for name in (citation_columns or []) if str(name).strip()
+    )
     by_key: dict[str, dict] = {}
 
     def record(
@@ -132,12 +220,18 @@ def extract_cited_sources(source_registry: list[dict]) -> list[dict]:
     for entry in source_registry or []:
         for block in _blocks(entry):
             content = str(block.get("content") or "")
+            if _is_tabular(entry, block):
+                # A cell is data, not a citation. Only the columns the caller
+                # named are read, and by default that is none of them.
+                content = _designated_cell_text(block, designated)
             if not content:
                 continue
 
             linked: set[str] = set()
             for match in _MD_LINK_RE.finditer(content):
                 title, url = match.group(1).strip(), match.group(2)
+                if _is_asset_url(url):
+                    continue
                 linked.add(url)
                 record(
                     _normalize_url(url),
@@ -153,7 +247,7 @@ def extract_cited_sources(source_registry: list[dict]) -> list[dict]:
 
             for match in _BARE_URL_RE.finditer(content):
                 url = match.group(0)
-                if url in linked:
+                if url in linked or _is_asset_url(url):
                     continue
                 record(
                     _normalize_url(url),

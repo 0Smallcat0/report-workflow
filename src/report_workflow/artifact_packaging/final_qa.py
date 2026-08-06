@@ -60,10 +60,15 @@ def _build_final_qa_summary_md(summary: dict) -> str:
         "",
         "## Key Checks",
         "",
+        # A count on its own reads as "44 facts were checked", which is not
+        # what it says. Name the gates that ran, and what "verified" means, on
+        # the page this project sends a reader to first.
         (
             f"- Factuality: {factuality['status']} "
-            f"({factuality['verified_count']} verified, {factuality['blocked_count']} blocked)"
+            f"({factuality['verified_count']} verified, {factuality['blocked_count']} blocked) "
+            f"— checkers run: {', '.join(factuality['checkers_run']) or 'none'}"
         ),
+        f"  - \"verified\" means: {factuality['verified_means']}",
         (
             f"- Artifact lint: {lint['status']} "
             f"({lint['error_count']} errors, {lint['warning_count']} warnings)"
@@ -230,6 +235,10 @@ def build_final_qa_summary(state: ReportState, run_dir: Path) -> dict[str, str]:
             "verified_count": factuality_verified,
             "blocked_count": factuality_blocked,
             "claim_count": len(factuality.get("claims", [])) if isinstance(factuality.get("claims"), list) else 0,
+            "checkers_run": factuality.get("checkers_run", []) if factuality else [],
+            "verified_means": factuality.get("verified_means", "") if factuality else (
+                "No factuality report was produced, so nothing was checked."
+            ),
             "path": existing_path(state.qa.get("factuality_report_path")),
         },
         "artifact_lint": {

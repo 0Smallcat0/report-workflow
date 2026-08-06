@@ -207,8 +207,29 @@ Every evidence-backed sentence in section drafts must include
 `structured_drafts.json` is supplied and canonical draft artifacts are missing,
 `SECTION_DRAFT` compiles it into Markdown section drafts and `sentence_map.jsonl`.
 
+`AGENT_ARTIFACTS` begins with `DERIVED_EVIDENCE`, which recomputes every
+derivation registered in `derived_evidence.json` and refreshes the matching
+`E_D_<id>` rows in `evidence_ledger.jsonl` before `CLAIM_PLAN` resolves any
+citation. Registered values are recomputed rather than trusted; an `expect`
+that disagrees with the rows hard-blocks and names both numbers.
+
+Statistics over structured sources are evidence. `EVIDENCE_BUILD` writes
+summary units for every table — row and per-column value counts, numeric
+column quartiles, categorical group counts and shares — each carrying a
+`derivation` block naming the file, the row filter, the columns, and the
+operation. Anything else an author needs is registered through
+`register_derived_evidence`. A ledger of one row per record can state what one
+product costs and nothing about what the category costs, and an author who
+discovers that mid-draft stops writing the figure rather than reporting a
+block, so the loss never appears in any count.
+
+Table cells are not citations. `cited_sources` reads narrative blocks only;
+CSV/XLSX cells are read solely for columns named in `source_citation_columns`,
+and image or CDN URLs are never references.
+
 Read-only helpers: `query_evidence` for ledger lookup instead of loading huge
-ledgers into context; `lint_artifacts` to write `artifact_lint_report.json`
+ledgers into context; `register_derived_evidence` to make a statistic over the
+source rows citable; `lint_artifacts` to write `artifact_lint_report.json`
 (artifact names, JSON paths, severity, messages, repair hints) before the full
 validate/render path; `audit_engineering_report` (for `engineering_lab_report`) to
 write `engineering_audit_report.json` with measurement extraction, unit-support
@@ -251,6 +272,13 @@ report-workflow invalidate-cache --job-id <id> --sources --drafts
 - Unresolved citation audit entries hard-fail.
 - Placeholder prose, fake metadata, internal paths, and workflow artifacts must
   not leak into publication text.
+- Claim content must appear in the evidence it cites. FE runs on the publish
+  path, not only under `--deep-audit`; `factuality_report.json` records
+  `checkers_run` and what "verified" means, and the delivery summary quotes
+  both. A count reported without naming the checks behind it is a misleading
+  message, which this repo treats as a defect.
+- A single data row cannot ground a claim about the dataset. A digit that
+  matches in an unrelated column is a coincidence; cite the derived statistic.
 - `DOCX_RENDER` requires `qa_decision=pass`.
 
 ## Debugging Guidance

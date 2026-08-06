@@ -66,6 +66,16 @@ Parameters:
 
 - `job_id` (string, required): The job ID returned by start_report
 
+## `register_derived_evidence`
+
+Make a statistic over the source rows citable. The ledger holds one row per record, so a sample size, a median, a share or a concentration index has no evidence id and the sentence needing one goes unwritten. Each derivation is {"id", "source", "rows", "op", "column", "k", "of", "label", "expect"}; ops are count, sum, mean, median, min, max, distinct, share, hhi, top_share, and row filters are col=value, col!=value, col>=n, col~text joined with &. The value is computed from the rows here rather than supplied by the caller, and "expect" is checked against it instead of trusted. Returns the evidence_id to cite.
+
+Parameters:
+
+- `job_id` (string, required): The job ID returned by start_report
+- `derivations` (array, required): Derivation requests, each with at least an id and an op
+- `workspace_root` (string, optional): Optional output workspace root if the job is outside the default run registry
+
 ## `audit_engineering_report`
 
 Read-only engineering lab audit for units, measurements, and simple arithmetic. Writes engineering_audit_report.json with recognized measurements, claim/evidence unit-support warnings, unit notation warnings, table-value support checks, mixed-dimension unit notes, missing-unit notes, and simple calculation result warnings. Recommended for engineering_lab_report.
