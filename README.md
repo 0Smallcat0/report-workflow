@@ -11,7 +11,7 @@ mcp-name: io.github.0Smallcat0/report-workflow
 
 [![CI](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-885%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-893%20passing-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **繁體中文說明 → [README.zh-TW.md](README.zh-TW.md)**

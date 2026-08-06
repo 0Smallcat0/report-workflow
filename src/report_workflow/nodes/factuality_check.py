@@ -476,6 +476,76 @@ def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
 _BOUND_PREFIX_RE = re.compile(r"^(<=|>=|<|>|≤|≥|≦|≧)\s*")
 
 
+#: Units a column header states as a suffix rather than in brackets. A real
+#: CSV is written by whoever exported it, and "recovery_rate_pct" is at least
+#: as common as "recovery rate (%)". Only tokens that name a unit are here:
+#: "rate", "count" and "value" are deliberately absent, because a column
+#: called recovery_rate states no unit and inventing one for it would let a
+#: claim in any unit match it.
+_HEADER_UNIT_SUFFIXES = frozenset({
+    "pct", "percent", "percentage", "ppm", "ppb",
+    "usd", "eur", "gbp", "jpy", "cny", "rmb", "twd", "ntd", "krw",
+    "kg", "g", "mg", "t", "ton", "tons", "tonne", "tonnes", "lb", "lbs",
+    "km", "m", "cm", "mm", "nm", "mi", "ft", "in",
+    "s", "sec", "secs", "second", "seconds", "min", "mins", "minute", "minutes",
+    "h", "hr", "hrs", "hour", "hours", "day", "days", "week", "weeks",
+    "month", "months", "year", "years", "yr", "yrs",
+    "v", "mv", "kv", "a", "ma", "w", "kw", "mw", "gw", "kwh", "mwh",
+    "j", "kj", "mj", "gj", "pa", "kpa", "mpa", "bar", "psi",
+    "c", "f", "k", "deg", "degc", "degf", "celsius", "fahrenheit",
+    "rpm", "hz", "khz", "mhz", "ghz", "db", "l", "ml", "gal",
+    "°c", "°f", "℃", "℉",
+    "噸", "公噸", "公斤", "公克", "克", "毫克", "公里", "公尺", "公分", "毫米",
+    "元", "美元", "度", "座", "家", "件", "次", "人", "年", "月", "日",
+    "小時", "分鐘", "秒", "百分比",
+})
+
+#: A bracketed unit, in either width. The halfwidth-only pattern this replaces
+#: is why a Chinese export headed "價格（USD/噸）" reported no unit at all: the
+#: brackets a Chinese keyboard produces are U+FF08/U+FF09, and the check for
+#: "(" never saw them. Square brackets are the other common convention.
+_HEADER_BRACKET_RE = re.compile(r"[(（\[［]([^)）\]］]{1,24})[)）\]］]")
+
+#: How a header separates its unit suffix from its name.
+_HEADER_SUFFIX_SPLIT_RE = re.compile(r"[\s_\-.,、/]+")
+
+
+def _unit_from_header(header: str) -> str:
+    """The unit a column header states, or "" when it states none.
+
+    A unit used to be read only from a halfwidth parenthetical or a bare "%".
+    Everything else came back unitless, and because an unstated unit is
+    compared as unknown, a claim in any unit matched such a column — while a
+    claim naming the right unit against a column that *did* state one failed
+    for saying more than the header did. Both directions were wrong, and the
+    common shapes (snake_case suffixes, fullwidth brackets) fell in the gap.
+
+    The bracketed form is taken verbatim rather than through unit_signature:
+    that function builds a grouping key for charts and folds "°C" to "degc",
+    which no claim ever writes, so "48.6 °C" failed to match the column
+    holding it.
+    """
+    text = str(header or "").strip()
+    if not text:
+        return ""
+
+    bracketed = _HEADER_BRACKET_RE.findall(text)
+    if bracketed:
+        return bracketed[-1].strip()
+
+    if "%" in text or "％" in text:
+        return "%"
+
+    # A trailing token, but only when the header has more than one: a column
+    # simply called "kg" is a unit; a column called "hours" is the reading
+    # itself, and either way naming it costs nothing. A single-token header
+    # that is not in the vocabulary states no unit.
+    tokens = [token for token in _HEADER_SUFFIX_SPLIT_RE.split(text) if token]
+    if tokens and tokens[-1].casefold() in _HEADER_UNIT_SUFFIXES:
+        return tokens[-1]
+    return ""
+
+
 def _row_numbers_with_unit(content: str) -> tuple[list, list] | None:
     """Number/unit pairs from a serialized table row: (measured, bounded).
 
@@ -501,20 +571,7 @@ def _row_numbers_with_unit(content: str) -> tuple[list, list] | None:
     measured: list[tuple[str, str]] = []
     bounded: list[tuple[str, str]] = []
     for key, value in record.items():
-        header = str(key)
-        # Only a parenthetical or a percent sign states a unit. Reading the
-        # whole header would invent a unit named "trial".
-        #
-        # The parenthetical is taken verbatim rather than through
-        # unit_signature: that function builds a grouping key for charts and
-        # folds "°C" to "degc", which no claim ever writes, so "48.6 °C"
-        # failed to match the column that holds it.
-        unit = ""
-        paren = re.findall(r"\(([^)]+)\)", header)
-        if paren:
-            unit = paren[-1].strip()
-        elif "%" in header:
-            unit = "%"
+        unit = _unit_from_header(str(key))
         text = str(value).strip()
         bound = _BOUND_PREFIX_RE.match(text)
         if bound:
@@ -560,6 +617,20 @@ def _decimal_places(num_str: str) -> int:
 
 _UNIT_ALIASES = {
     "percent": "%",
+    "pct": "%",
+    "percentage": "%",
+    "tonne": "t",
+    "tonnes": "t",
+    "ton": "t",
+    "tons": "t",
+    "噸": "t",
+    "公噸": "t",
+    "美元": "usd",
+    "美金": "usd",
+    "新臺幣": "twd",
+    "新台幣": "twd",
+    "人民幣": "cny",
+    "人民币": "cny",
     "\u516c\u5206": "cm",
     "\u5398\u7c73": "cm",
     "\u6beb\u7c73": "mm",
@@ -587,9 +658,22 @@ def _singular_unit(unit: str) -> str:
 
 
 def _normalize_unit(unit: str) -> str:
+    """A comparison key for a unit, per slash-separated component.
+
+    Aliasing the whole string only ever matched a compound to itself, so a
+    column headed "價格（USD/噸）" and a claim written "8,259 美元/噸" were held
+    to be different units — the same figure, in the same unit, spelled by two
+    people. Each side of the slash is aliased on its own so the two agree.
+    """
     normalized = unicodedata.normalize("NFKC", unit or "").strip().casefold()
     normalized = normalized.replace(" ", "")
-    return _UNIT_ALIASES.get(normalized, normalized)
+    if normalized in _UNIT_ALIASES:
+        return _UNIT_ALIASES[normalized]
+    if "/" in normalized:
+        return "/".join(
+            _UNIT_ALIASES.get(part, part) for part in normalized.split("/")
+        )
+    return normalized
 
 
 def _units_match(claim_unit: str, evidence_unit: str) -> bool:
