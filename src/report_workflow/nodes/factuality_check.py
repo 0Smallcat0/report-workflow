@@ -14,6 +14,7 @@ import unicodedata
 from pathlib import Path
 
 from ..errors import QAHardBlockError
+from ..runtime_support import run_dir_for
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 
 BLOCKING_CLAIM_STATUSES = {"blocked", "unverified", "disputed"}
@@ -1172,6 +1173,209 @@ def _revision_sidecar_mode(
     )
 
 
+#: A currency code or symbol with no number after it, and a thousands group
+#: with no leading digits. Neither occurs in ordinary writing; both are the
+#: fingerprint of a string-processing accident upstream — a shell that expanded
+#: `$500` as a variable, a template that dropped a field, a regex that ate a
+#: digit run. The sentence stays fluent afterwards, which is what makes it
+#: dangerous: "每噸年產能約 US,000 的資本門檻" reads like a finished sentence and
+#: a proofreader does not stop on it, where "US$9,999" would have been caught.
+#: Only the symbol-prefix forms — "US$", "NT$", "HK$" — with the symbol and
+#: the amount gone. The ISO codes are deliberately absent: "USD/噸" and "TWD/kg"
+#: are how a column header legitimately names a unit, and flagging those would
+#: report every price table in the corpus. What mangling produces is the *stem*
+#: of a symbol form: US$500/噸 loses "$500" and leaves "US/噸".
+_MANGLED_AMOUNT_PATTERNS: tuple[tuple[str, str], ...] = (
+    (r"\b(?:US|NT|HK)(?=[/／])", "currency code with no amount"),
+    (r"\b(?:US|NT|HK)\s*[,，]\s*\d", "currency code followed by a thousands group"),
+    (r"[$€£¥₩＄]\s*(?![\d.])", "currency symbol with no amount"),
+    (r"(?:約|约|approximately|approx\.?)\s*[/／]", "approximation marker with no amount"),
+)
+
+_MANGLED_AMOUNT_RE = tuple(
+    (re.compile(pattern), reason) for pattern, reason in _MANGLED_AMOUNT_PATTERNS
+)
+
+#: Paragraphs, not sentences. Splitting on sentence punctuation cut URLs and
+#: decimals in half — "https://…/2025/lfp-recycling" became two fragments, and
+#: the half holding the citation then appeared to state no numbers at all.
+#:
+#: A paragraph is also the safer unit on the merits. It is a superset of the
+#: sentences bound to a claim, so the check can miss a number that moved to a
+#: neighbouring sentence, but it cannot invent a miss — and a false block here
+#: costs an author a correct draft, which is the failure mode this project has
+#: already had to repair once in FE.
+_DRAFT_PARAGRAPH_SPLIT_RE = re.compile(r"\n\s*\n")
+
+#: Workflow markers, removed before any number is read out of a sentence. An
+#: evidence id is mostly hex — `[CITE:E_e8aa9edd_9532732fd7]` — so leaving the
+#: marker in place fed "9532732" to the numeric extractor as though the author
+#: had written it, and the comparison then ran against digits nobody typed.
+_WORKFLOW_MARKER_RE = re.compile(r"\[(?:CITE|FIGURE|TABLE|Source|graphify):[^\]]*\]", re.IGNORECASE)
+
+
+def find_mangled_amounts(text: str) -> list[tuple[str, str]]:
+    """Fragments where a number was lost, as (fragment, reason).
+
+    Cheap, and independent of any claim binding — it guards prose that no
+    claim covers, which is exactly where the claim-level check below cannot
+    reach.
+    """
+    findings: list[tuple[str, str]] = []
+    for pattern, reason in _MANGLED_AMOUNT_RE:
+        for match in pattern.finditer(text or ""):
+            start = max(match.start() - 12, 0)
+            fragment = " ".join(text[start:match.end() + 12].split())
+            findings.append((fragment, reason))
+    return findings
+
+
+def _claim_sentences(merged_text: str, evidence_ids: set[str]) -> list[str]:
+    """Sentences of the draft that cite this claim's evidence.
+
+    The sentence map records which claim a sentence serves but not the words
+    it used, so the binding that can actually be read back is the [CITE:]
+    marker standing in the prose. That is the same link the rest of the
+    pipeline resolves, so a sentence found here is a sentence the reader will
+    see attached to this claim.
+    """
+    if not evidence_ids:
+        return []
+    passages = []
+    for passage in _DRAFT_PARAGRAPH_SPLIT_RE.split(merged_text or ""):
+        cited = {
+            cite_id.strip()
+            for raw in re.findall(r"\[CITE:([^\]]+)\]", passage)
+            for cite_id in re.split(r"[,;]", raw)
+        }
+        if cited & evidence_ids:
+            passages.append(_WORKFLOW_MARKER_RE.sub(" ", passage))
+    return passages
+
+
+def _bound_figure_numbers(state, claim_id: str, outline: dict) -> list[tuple[str, str]]:
+    """Numbers in the figures and tables the claim's sections carry.
+
+    A figure is a legitimate place to state a number. Requiring the prose to
+    repeat every value the table beside it already shows would push an author
+    into writing the table out twice.
+    """
+    section_ids = {
+        section_id
+        for section_id, section in (outline.get("sections") or {}).items()
+        if isinstance(section, dict) and claim_id in (section.get("claim_ids") or [])
+    }
+    if not section_ids:
+        return []
+
+    plan_path = run_dir_for(state) / "section_drafts" / "figure_plan.json"
+    if not plan_path.exists():
+        return []
+    try:
+        payload = json.loads(plan_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return []
+
+    numbers: list[tuple[str, str]] = []
+    for figure in payload.get("figures", []) or []:
+        if not isinstance(figure, dict):
+            continue
+        if figure.get("section_id") and figure["section_id"] not in section_ids:
+            continue
+        numbers.extend(
+            _extract_numbers_with_unit(json.dumps(figure.get("data") or {}, ensure_ascii=False))
+        )
+    return numbers
+
+
+def _covered(claim_number: tuple[str, str], available: list[tuple[str, str]]) -> bool:
+    number, unit = claim_number
+    try:
+        value = _normalize_number_str(number)
+    except ValueError:
+        return True
+    for other, other_unit in available:
+        if not _units_match(unit, other_unit):
+            continue
+        try:
+            if abs(value - _normalize_number_str(other)) <= abs(value * 0.01) + 1e-9:
+                return True
+        except ValueError:
+            continue
+    return False
+
+
+def run_factuality_check_fs(
+    merged_text: str,
+    claim_matrix: dict,
+    state=None,
+    outline: dict | None = None,
+) -> list[dict]:
+    """FS: does the drafted prose actually state what its claim asserts?
+
+    FA checks that claim, evidence and sentence are linked. FE checks that the
+    claim's numbers are in its evidence. Nothing checked the third leg — that
+    the sentence the reader ends up with says the number the claim promised —
+    so a figure could vanish between the claim matrix and the prose with every
+    gate passing.
+
+    That is not hypothetical. A claim asserting "US$500/噸 ... capex 約
+    US$1,000/噸年產能" was drafted as "需約 US/噸的產品售價 ... 資本支出約
+    US,000", the amounts eaten by a shell expanding `$500` as a variable. Every
+    gate passed and it reached the delivered document.
+
+    Compared per claim rather than per sentence, and against the union of
+    everything the claim is attached to. One claim is often written as two or
+    three sentences, and a sentence may set up rather than restate; demanding
+    that each sentence repeat every figure would recreate the "copy the source
+    or be blocked" failure FE was just repaired for.
+    """
+    results: list[dict] = []
+    for claim in claim_matrix.get("claims", []):
+        claim_id = _claim_id(claim)
+        if str(claim.get("status", "supported")).lower() in BLOCKING_CLAIM_STATUSES:
+            continue
+
+        asserted = _extract_numbers_with_unit(claim.get("claim_text", ""))
+        if not asserted:
+            continue
+
+        evidence_ids = {str(eid) for eid in claim.get("evidence_ids", []) if eid}
+        sentences = _claim_sentences(merged_text, evidence_ids)
+        if not sentences:
+            # No sentence in the draft carries this claim's citation. FA owns
+            # that failure; reporting it again here would double-block it.
+            continue
+
+        available = _extract_numbers_with_unit(" ".join(sentences))
+        if state is not None and outline is not None:
+            available.extend(_bound_figure_numbers(state, claim_id, outline))
+
+        missing = [pair for pair in asserted if not _covered(pair, available)]
+        if not missing:
+            results.append({
+                "claim_id": claim_id,
+                "status": "verified",
+                "checker": "FS",
+                "reason": "Draft states every figure the claim asserts",
+            })
+            continue
+
+        rendered = ", ".join(f"{number}{unit}" for number, unit in missing)
+        stated = ", ".join(f"{number}{unit}" for number, unit in available) or "(none)"
+        results.append({
+            "claim_id": claim_id,
+            "status": "blocked",
+            "checker": "FS",
+            "reason": (
+                f"Claim asserts {rendered}, which the drafted sentences do not state "
+                f"(they state: {stated}). Either write the figure into the prose, put it "
+                f"in a figure or table the section carries, or narrow the claim."
+            ),
+        })
+    return results
+
+
 def run_factuality_check(state: ReportState) -> ReportState:
     """T13: FACTUALITY_CHECK - verify claims vs evidence."""
     run_dir = WORKFLOW_RUNS_DIR / state.job_id
@@ -1199,6 +1403,19 @@ def run_factuality_check(state: ReportState) -> ReportState:
     advisory_results: list[dict] = []
     if deep_audit:
         all_results = run_factuality_check_fe(all_results, claim_matrix, evidence_ledger)
+
+    # FS: the drafted prose must state what its claim asserts. Unlike FE this
+    # runs on every job, not only under --deep-audit: the failure it catches
+    # is a number going missing between the claim matrix and the page, which
+    # no other gate looks at and which has already shipped once.
+    merged_text = ""
+    merged_path = state.drafts.get("merged_draft_md") or str(run_dir / "merged_draft.md")
+    if merged_path and Path(merged_path).exists():
+        merged_text = Path(merged_path).read_text(encoding="utf-8")
+    if merged_text and not revision_sidecar_mode:
+        all_results.extend(
+            run_factuality_check_fs(merged_text, claim_matrix, state, outline)
+        )
 
     # F2: wording strength vs evidence grade (FD)
     results_fd = run_factuality_check_fd(sentence_map, claim_matrix, evidence_ledger)

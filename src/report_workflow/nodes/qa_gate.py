@@ -420,6 +420,15 @@ def _artifact_hard_fail_reasons(state: ReportState) -> list[str]:
             reasons.append("merged draft is empty")
         if PLACEHOLDER_TEXT in merged_text:
             reasons.append("merged draft contains placeholder content")
+        # A currency marker with its amount missing. The claim-level check
+        # cannot see prose that carries no claim, and this costs nothing:
+        # "US,000" and "約 /噸" do not occur in writing, only in the wreckage
+        # of a string substitution. The sentence around them stays fluent,
+        # which is why a proofreader walks past it.
+        from .factuality_check import find_mangled_amounts
+
+        for fragment, why in find_mangled_amounts(merged_text)[:5]:
+            reasons.append(f"merged draft has an amount with no number ({why}): {fragment!r}")
 
     return reasons
 

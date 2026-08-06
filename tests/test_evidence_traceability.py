@@ -679,7 +679,10 @@ class DeliveredDocumentTests(unittest.TestCase):
                 lines.extend([f"下表列出來源的原始數據。[TABLE:{table_id} 回收成本]", ""])
             for claim in claims:
                 marker = " ".join(f"[CITE:{eid}]" for eid in claim["evidence_ids"])
-                lines.extend([f"根據來源資料，{claim['claim_text'][:60]} {marker}。", ""])
+                # The whole claim text, not a prefix of it: FS blocks a sentence that
+                # omits a figure its claim asserts, and truncating here would
+                # make this synthetic author commit exactly that.
+                lines.extend([f"根據來源資料，{claim['claim_text']} {marker}。", ""])
                 sentence_rows.append({
                     "sentence_id": f"s_{section_id}_{claim['claim_id']}",
                     "section_id": section_id,
