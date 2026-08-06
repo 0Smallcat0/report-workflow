@@ -95,6 +95,32 @@ def _pypi_versions() -> set[str]:
     return set(payload.get("releases", {}))
 
 
+#: How long a freshly pushed tag is allowed to be absent from PyPI. A release
+#: takes about two minutes to build and publish, and the CI run for the same
+#: push starts immediately — so without this the guard failed on every release,
+#: for a few minutes, for a reason that was not a defect. A guard that cries
+#: wolf on every release is one people learn to ignore, which is the disease
+#: this whole check exists to treat.
+TAG_PUBLISH_GRACE_SECONDS = 45 * 60
+
+
+def _tag_is_in_flight(version: str) -> bool:
+    """Was this tag pushed recently enough that its release may still be running?"""
+    result = subprocess.run(
+        ["git", "for-each-ref", "--format=%(creatordate:unix)", f"refs/tags/v{version}"],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    stamp = result.stdout.strip()
+    if not stamp.isdigit():
+        return False
+    import time
+
+    return (time.time() - int(stamp)) < TAG_PUBLISH_GRACE_SECONDS
+
+
 def _as_tuple(text: str) -> tuple:
     return tuple(int(part) if part.isdigit() else part for part in text.split("."))
 
@@ -114,7 +140,7 @@ def check_published(version: str) -> list[str]:
     problems: list[str] = []
     tags = _git_tags()
 
-    if f"v{version}" in tags and version not in published:
+    if f"v{version}" in tags and version not in published and not _tag_is_in_flight(version):
         problems.append(
             f"tag v{version} exists but PyPI has no {version}. The tag did not publish, "
             f"so `uvx --from report-workflow ...` — which is what "

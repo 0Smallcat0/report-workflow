@@ -112,12 +112,32 @@ class PublishedVersionTest(unittest.TestCase):
         ), unittest.mock.patch.object(self.module, "_git_tags", return_value=set(tags)):
             return self.module.check_published(version)
 
+    def _published_with_age(self, version, *, releases, tags, in_flight):
+        with unittest.mock.patch.object(
+            self.module, "_tag_is_in_flight", return_value=in_flight
+        ):
+            return self._published(version, releases=releases, tags=tags)
+
     def test_a_tag_that_never_published_is_a_failure(self):
-        problems = self._published(
-            "4.30.0", releases={"4.29.1"}, tags={"v4.29.1", "v4.30.0"}
+        problems = self._published_with_age(
+            "4.30.0", releases={"4.29.1"}, tags={"v4.29.1", "v4.30.0"}, in_flight=False
         )
         self.assertTrue(problems)
         self.assertIn("did not publish", problems[0])
+
+    def test_a_tag_pushed_minutes_ago_is_still_publishing(self):
+        """The CI run for a release push starts before the release finishes.
+
+        Without this the guard failed on every release for a few minutes, over
+        something that was not a defect — and a guard that cries wolf on every
+        release is one people learn to ignore.
+        """
+        self.assertEqual(
+            self._published_with_age(
+                "4.30.0", releases={"4.29.1"}, tags={"v4.30.0"}, in_flight=True
+            ),
+            [],
+        )
 
     def test_being_ahead_of_pypi_without_a_tag_is_fine(self):
         """Unreleased work is the normal state of the default branch."""
