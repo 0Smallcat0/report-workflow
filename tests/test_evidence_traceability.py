@@ -623,8 +623,18 @@ class DeliveredDocumentTests(unittest.TestCase):
         rows = _ledger(state)
         table_id = next(iter(collect_source_tables(rows)), "")
 
-        quantitative = [row for row in rows if "statistical" in row["allowed_claim_types"]][:2]
-        qualitative = [row for row in rows if "statistical" not in row["allowed_claim_types"]][:1]
+        # Prose blocks only. This synthetic author writes each claim as a
+        # prefix of the evidence it cites, which is a sentence when the
+        # evidence is a paragraph and a truncated JSON record when it is a
+        # table row — and a heading asserts nothing at all. FE runs on the
+        # publish path now and is right to refuse both; picking them was the
+        # fixture speaking in a way no author would.
+        prose = [
+            row for row in rows
+            if row.get("block_type") not in {"heading", "table_row", "csv_row", "data_row"}
+        ]
+        quantitative = [row for row in prose if "statistical" in row["allowed_claim_types"]][:2]
+        qualitative = [row for row in prose if "statistical" not in row["allowed_claim_types"]][:1]
         picked = quantitative + qualitative
         claims = [
             {

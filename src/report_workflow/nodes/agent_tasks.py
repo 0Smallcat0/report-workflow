@@ -1003,6 +1003,42 @@ query_evidence(job_id="<job_id>", evidence_ids=["E001", "E002"])
 query_evidence(job_id="<job_id>", offset=20, limit=20)  # page 2
 ```
 
+## Statistics Over The Rows
+
+A ledger of one row per record cannot answer the questions a report is
+written to answer — how many rows there are, what the median is, how the
+categories split, how concentrated the top names are. Two places to look
+before deciding a figure is unciteable and writing "most" instead:
+
+1. **Already there.** Every structured source has summary evidence: row and
+   per-column value counts, min/quartile/median/mean/max of each numeric
+   column, group counts and shares for each categorical one. Find them with
+   `query_evidence(job_id="<job_id>", query="衍生統計")` or
+   `query="Derived statistics"`.
+2. **Ask for the rest.** `register_derived_evidence` computes a statistic
+   from the rows and returns the `evidence_id` to cite:
+
+```
+register_derived_evidence(job_id="<job_id>", derivations=[
+  {{"id": "photo_count", "source": "products.csv",
+    "rows": "category=攝影", "op": "count"}},
+  {{"id": "hhi_brand", "source": "products.csv", "op": "hhi", "column": "brand"}},
+  {{"id": "median_price", "source": "products.csv", "op": "median", "column": "price"}},
+])
+```
+
+Ops: `count`, `sum`, `mean`, `median`, `min`, `max`, `distinct`, `share`,
+`hhi`, `top_share` (CR-k, with `k`). Filters: `col=value`, `col!=value`,
+`col>=n`, `col~text`, joined with `&`; omit for every row.
+
+The value is computed from the rows — you do not supply it. `expect` is
+optional, and is compared against the computed value rather than trusted, so
+a statistic you worked out yourself can be registered and checked.
+
+Do not decide in advance that a number cannot be cited. That decision is
+invisible in the finished report: nothing is blocked, the sentence is simply
+never written, and the reader gets "most" where a figure belonged.
+
 ## Facts Freeze (Optional)
 
 If a `facts_freeze.json` file exists in the run directory, its key-value pairs

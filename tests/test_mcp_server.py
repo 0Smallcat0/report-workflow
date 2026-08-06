@@ -181,6 +181,10 @@ class ServerConstructionTests(unittest.TestCase):
             "submit_action": "submit_controlled_action",
             "query_evidence": "query_evidence",
             "lint_artifacts": "lint_agent_artifacts",
+            # A statistic over the rows is what a report is written from, and
+            # the ledger holds none: without this tool there is no id to cite
+            # for a sample size or a median.
+            "register_derived_evidence": "register_derived_evidence",
             "audit_engineering_report": "run_engineering_audit",
             "publish_report": "submit_and_publish_report",
             # Named by the task briefs and by the artifact linter's repair

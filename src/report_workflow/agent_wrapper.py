@@ -10,6 +10,7 @@ Legacy direct submit helpers remain for compatibility, but skill docs should
 route agents through submit_action.
 """
 
+import json
 from pathlib import Path
 
 from report_workflow.run_workflow import (
@@ -229,6 +230,7 @@ def start_report_task(
     preflight_confirmed: bool = False,
     preflight_decisions: dict | None = None,
     allow_degraded_render: bool = False,
+    source_citation_columns: list[str] | None = None,
 ) -> dict:
     """Step 1: Start the report generation workflow.
 
@@ -301,6 +303,7 @@ def start_report_task(
             report_profile=report_profile,
             intent=task_intent,
             artifact_role_map=artifact_role_map,
+            source_citation_columns=source_citation_columns,
             front_matter={
                 key: value for key, value in {
                     "title": title,
@@ -620,6 +623,79 @@ def submit_and_publish_report(
             "not_final_deliverable": rendered_docx.exists(),
             "rendered_docx_path": str(rendered_docx) if rendered_docx.exists() else "",
         }
+
+
+def register_derived_evidence(
+    job_id: str,
+    derivations: list[dict],
+    workspace_root: str | None = None,
+) -> dict:
+    """Make a statistic over the source rows citable.
+
+    A ledger of one row per record cannot answer "how many listings are in
+    this category", "what is the median price", "how concentrated are the
+    brands" — and a claim needing one of those had no evidence id to cite, so
+    the sentence went unwritten. Register the derivation and the pipeline
+    computes it from the rows; the returned ``evidence_id`` is what to put in
+    ``[CITE:]``.
+
+    Each derivation is::
+
+        {"id": "photo_count",          # yours; the evidence id is E_D_<id>
+         "source": "products.csv",     # file name, or omit for the only table
+         "rows": "category=攝影",       # optional filter; omit for every row
+         "op": "count",                # count sum mean median min max
+                                       # distinct share hhi top_share
+         "column": "price",            # which column the op reads
+         "k": 5,                       # top_share only: CR-k
+         "of": "*",                    # share only: the denominator selection
+         "label": "攝影類商品數",        # how the evidence line names it
+         "expect": 243}                # optional check, never an input
+
+    ``expect`` does not set the value. It is compared against what the rows
+    actually produce, and a disagreement is reported rather than published.
+    """
+    try:
+        from report_workflow.nodes.derived_evidence import (
+            DERIVED_EVIDENCE_FILE,
+            apply_derived_evidence,
+            load_requests,
+        )
+
+        state = ReportState.resume(job_id, workspace_root=workspace_root)
+        run_dir = run_dir_for(job_id, workspace_root=workspace_root)
+        run_dir.mkdir(parents=True, exist_ok=True)
+
+        # Registering again replaces the entry with the same id and leaves the
+        # rest alone: an author refining one figure must not silently lose the
+        # others they already cited.
+        existing = {str(item.get("id") or ""): item for item in load_requests(run_dir)}
+        for item in derivations or []:
+            if isinstance(item, dict) and str(item.get("id") or "").strip():
+                existing[str(item["id"]).strip()] = item
+        (run_dir / DERIVED_EVIDENCE_FILE).write_text(
+            json.dumps({"derivations": list(existing.values())}, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
+        report = apply_derived_evidence(state)
+        state.checkpoint("DERIVED_EVIDENCE_REGISTERED")
+        return {
+            "status": "blocked" if report["problems"] else "ok",
+            "job_id": job_id,
+            "registered": report["computed"],
+            "evidence": report["evidence"],
+            "problems": report["problems"],
+            "message": (
+                "Cite these evidence_ids with [CITE:<id>] in the section drafts "
+                "and list them in claim_matrix.json."
+                if not report["problems"]
+                else "Some derivations could not be produced from the rows; fix "
+                     "them before drafting the sentences that need them."
+            ),
+        }
+    except Exception as e:
+        return {"status": "failed", "job_id": job_id, "error": str(e)}
 
 
 #: Ledger fields query_evidence does not return. ``cross_references`` is a list
