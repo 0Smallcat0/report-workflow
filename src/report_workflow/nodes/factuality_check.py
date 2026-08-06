@@ -460,17 +460,78 @@ def _unit_after(text: str, position: int) -> str:
     return unit
 
 
+#: A rate written the way Chinese writes one: the denominator first, as
+#: "每" plus a measure word. English puts it after the number — "500 USD/t" —
+#: and reading only what follows the number found the numerator and dropped
+#: the denominator entirely, so "每噸 500 美元" came back as 500 美元 and did
+#: not match a claim stating 500 美元/噸.
+#:
+#: This is the third time the same failure has appeared: a Chinese way of
+#: writing a quantity is not recognised, the gate blocks a correct sentence,
+#: and the author learns to copy the source instead of writing. Nothing about
+#: it is specific to Chinese numerals — "每噸 500 美元" fails with Arabic
+#: digits too.
+_PER_PREFIX_RE = re.compile(
+    r"每\s*(?P<unit>%s)" % "|".join(sorted(_CJK_UNIT_WORDS, key=len, reverse=True))
+)
+
+#: How far a "每X" may sit from its number. "每噸的成本結構複雜，售價 500 美元"
+#: names a rate in the first clause and a price in the second; they are not one
+#: quantity, and joining them would invent a figure nobody wrote.
+_PER_PREFIX_MAX_GAP = 8
+
+#: Punctuation that ends the reach of a prefix, whatever the gap.
+_CLAUSE_BREAK_RE = re.compile(r"[，。；：！？、,;:!?\n]")
+
+#: Calendar words. "每年 3 月" is a date, not three months per year, and the
+#: combination would turn a month into a rate.
+_CALENDAR_UNITS = frozenset({"年", "月", "日", "天", "週", "周", "季", "季度", "世紀", "世纪"})
+
+
+def _per_prefix_unit(text: str, number_start: int) -> str:
+    """The "每X" denominator governing a number, or "" when none does."""
+    window = text[max(0, number_start - (_PER_PREFIX_MAX_GAP + 6)):number_start]
+    match = None
+    for candidate in _PER_PREFIX_RE.finditer(window):
+        match = candidate
+    if match is None:
+        return ""
+    between = window[match.end():]
+    if len(between) > _PER_PREFIX_MAX_GAP or _CLAUSE_BREAK_RE.search(between):
+        return ""
+    return match.group("unit")
+
+
+def _combined_unit(text: str, number_start: int, suffix_unit: str) -> str:
+    """Join a "每X" denominator to the unit written after the number."""
+    prefix = _per_prefix_unit(text, number_start)
+    if not prefix:
+        return suffix_unit
+    # A calendar word on both sides is a date, not a rate.
+    if prefix in _CALENDAR_UNITS and suffix_unit in _CALENDAR_UNITS:
+        return suffix_unit
+    return f"{suffix_unit}/{prefix}" if suffix_unit else f"/{prefix}"
+
+
 def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
     """Return list of (number_str, unit_str) from text."""
     results = []
     normalized = unicodedata.normalize("NFKC", text or "")
     for m in _BARE_NUMBER_RE.finditer(normalized):
-        results.append((m.group(1).lstrip("~"), _unit_after(normalized, m.end())))
+        suffix = _unit_after(normalized, m.end())
+        results.append((
+            m.group(1).lstrip("~"),
+            _combined_unit(normalized, m.start(1), suffix),
+        ))
     for m in _CJK_NUMBER_RE.finditer(normalized):
         value = _cjk_numeral_value(m.group(1))
         if value is None:
             continue
-        results.append((f"{value:g}", _unit_after(normalized, m.end(1))))
+        suffix = _unit_after(normalized, m.end(1))
+        results.append((
+            f"{value:g}",
+            _combined_unit(normalized, m.start(1), suffix),
+        ))
     return results
 
 

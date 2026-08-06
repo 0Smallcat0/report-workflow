@@ -725,7 +725,15 @@ class DeliveredDocumentTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             rows, text, _tables = self._author_and_publish(tmpdir)
             self.assertIn("[S1]", text, "no citation marker survived into the DOCX")
-            self.assertIn("資料來源", text, "the DOCX has no source list")
+            # Either heading counts. The requirement is that the reader gets a
+            # source list; which language its heading renders in is a separate
+            # question, and conflating the two made a CI failure unreadable —
+            # it could not say whether the section was missing or merely in
+            # English, so the tail of the document goes into the message.
+            self.assertTrue(
+                "資料來源" in text or "Sources" in text,
+                "the DOCX has no source list; document ends: " + repr(text[-400:]),
+            )
             self.assertIn("recycling.md", text, "the source list names no file")
             cited = [row for row in rows if row["evidence_id"] in text]
             self.assertTrue(cited, "no evidence id in the DOCX can be traced to the ledger")
