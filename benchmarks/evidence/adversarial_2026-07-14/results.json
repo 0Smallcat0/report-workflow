@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-28T23:12:47",
+  "generated_at": "2026-08-06T10:48:54",
   "corpus": {
     "total_cases": 69,
     "honest_cases": 25,
@@ -10,6 +10,7 @@
       "dangling_claim",
       "fabricated_citation",
       "fabricated_quote",
+      "invented_quantity",
       "invented_statistic",
       "missing_evidence",
       "off_topic_citation",
@@ -20,9 +21,9 @@
       "unit_mismatch",
       "wording_grade_violation"
     ],
-    "documented_evasions": 6,
+    "documented_evasions": 5,
     "evidence_rows": 16,
-    "corpus_hash": "1b1b0a0ed8df7fc6c96fb5ca744b6ee3d8fb60c25974b2d2bb526fb486e0aaf8"
+    "corpus_hash": "ca71fc6a6180e3d2d5fa9517bb288ae1ad17df75465191187bc90c9f90390193"
   },
   "checkers": {
     "no_gate": {
@@ -614,7 +615,7 @@
         },
         {
           "case_id": "x01",
-          "family": "evasion_bare_number",
+          "family": "invented_quantity",
           "is_hallucination": true,
           "expected_verdict": null,
           "verdict": "published",
@@ -1248,7 +1249,7 @@
         },
         {
           "case_id": "x01",
-          "family": "evasion_bare_number",
+          "family": "invented_quantity",
           "is_hallucination": true,
           "expected_verdict": null,
           "verdict": "published",
@@ -1365,7 +1366,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '12'分鐘 not found in evidence content (evidence has: (none)). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+          "reason": "Claim number '12'分鐘 is not stated in the evidence (evidence states: 1984, 3)"
         },
         {
           "case_id": "fc01",
@@ -1644,7 +1645,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FA",
-          "reason": "Claim type 'statistical' is not allowed by evidence: ev_zh_review"
+          "reason": "Claim type 'statistical' is not allowed by evidence: ev_zh_review allows: contextual, factual, methodological, qualitative"
         },
         {
           "case_id": "d02",
@@ -1653,7 +1654,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FA",
-          "reason": "Claim type 'statistical' is not allowed by evidence: ev_scope"
+          "reason": "Claim type 'statistical' is not allowed by evidence: ev_scope allows: contextual, factual, methodological, qualitative"
         },
         {
           "case_id": "e01",
@@ -1662,7 +1663,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '0.2'% not found in evidence content (evidence has: 3.5%, 9.0%). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+          "reason": "Claim number '0.2'% is not stated in the evidence (evidence states: 3.5%, 9.0%)"
         },
         {
           "case_id": "e02",
@@ -1671,7 +1672,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '2.1'minutes not found in evidence content (evidence has: 12.4minutes, 7.8minutes). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+          "reason": "Claim number '2.1'minutes is not stated in the evidence (evidence states: 12.4minutes, 7.8minutes)"
         },
         {
           "case_id": "e03",
@@ -1680,7 +1681,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '9,900'for not found in evidence content (evidence has: 4,800for). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+          "reason": "Claim number '9,900'for is not stated in the evidence (evidence states: 4,800for)"
         },
         {
           "case_id": "e04",
@@ -1689,7 +1690,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '99'% not found in evidence content (evidence has: 86%). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+          "reason": "Claim number '99'% is not stated in the evidence (evidence states: 86%)"
         },
         {
           "case_id": "e05",
@@ -1698,7 +1699,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '168'participants not found in evidence content (evidence has: 42participants). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+          "reason": "Claim number '168'participants is not stated in the evidence (evidence states: 42participants)"
         },
         {
           "case_id": "e06",
@@ -1707,7 +1708,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '0.9'% not found in evidence content (evidence has: 12.4分鐘, 7.8分鐘, 3.5%). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+          "reason": "Claim number '0.9'% is not stated in the evidence (evidence states: 12.4分鐘, 7.8分鐘, 3.5%)"
         },
         {
           "case_id": "e07",
@@ -1716,7 +1717,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '1.2'分鐘 not found in evidence content (evidence has: 12.4分鐘, 7.8分鐘, 3.5%). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+          "reason": "Claim number '1.2'分鐘 is not stated in the evidence (evidence states: 12.4分鐘, 7.8分鐘, 3.5%)"
         },
         {
           "case_id": "f01",
@@ -1725,7 +1726,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '7.8'hours not found in evidence content (evidence has: 12.4minutes, 7.8minutes). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+          "reason": "Claim number '7.8'hours states a unit the evidence does not: the evidence gives this value as 7.8minutes"
         },
         {
           "case_id": "f02",
@@ -1734,7 +1735,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '3.5'points not found in evidence content (evidence has: 3.5%, 9.0%). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+          "reason": "Claim number '3.5'points states a unit the evidence does not: the evidence gives this value as 3.5%"
         },
         {
           "case_id": "f03",
@@ -1743,7 +1744,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '42'sessions not found in evidence content (evidence has: 42participants). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'."
+          "reason": "Claim number '42'sessions states a unit the evidence does not: the evidence gives this value as 42participants"
         },
         {
           "case_id": "g01",
@@ -1815,7 +1816,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '1'致同 not found in evidence content (evidence has: (none)). Note: numeric extractor supports both spaced and compact unit forms, such as '226 edges' and '226edges'.; Chinese claim terms not in evidence (17% bigram coverage, threshold=25%): 一致, 全面, 即全, 同意, 員一"
+          "reason": "Claim number '1' is not stated in the evidence (evidence states: (none)); Chinese claim terms not in evidence (17% bigram coverage, threshold=25%): 一致, 全面, 即全, 同意, 員一"
         },
         {
           "case_id": "l01",
@@ -1882,12 +1883,12 @@
         },
         {
           "case_id": "x01",
-          "family": "evasion_bare_number",
+          "family": "invented_quantity",
           "is_hallucination": true,
-          "expected_verdict": "published",
-          "verdict": "published",
-          "blocked_by": null,
-          "reason": ""
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FE",
+          "reason": "Claim number '99' is not stated in the evidence (evidence states: 42participants)"
         },
         {
           "case_id": "x02",
@@ -1918,11 +1919,11 @@
         }
       ],
       "metrics": {
-        "true_positives": 38,
-        "false_negatives": 6,
+        "true_positives": 39,
+        "false_negatives": 5,
         "false_positives": 0,
         "true_negatives": 25,
-        "recall": 0.8636,
+        "recall": 0.8864,
         "false_positive_rate": 0.0,
         "precision": 1.0
       },
@@ -1953,13 +1954,6 @@
             "FA"
           ],
           "catch_rate": 1.0
-        },
-        {
-          "family": "evasion_bare_number",
-          "cases": 1,
-          "caught": 0,
-          "gates": [],
-          "catch_rate": 0.0
         },
         {
           "family": "evasion_future_as_completed",
@@ -2002,6 +1996,15 @@
           "family": "fabricated_quote",
           "cases": 5,
           "caught": 5,
+          "gates": [
+            "FE"
+          ],
+          "catch_rate": 1.0
+        },
+        {
+          "family": "invented_quantity",
+          "cases": 1,
+          "caught": 1,
           "gates": [
             "FE"
           ],
@@ -2094,7 +2097,7 @@
   "expected_mismatches": [],
   "determinism": {
     "runs": 5,
-    "verdict_hash": "b49a0ceb962c23df366d9d45f5176b41872e6d2f403718dc1a429eabd209f2ab",
+    "verdict_hash": "889962a0a0bdcf9f7d4a35e2b4312f18034bc158770a6c98dc21a7e512e18fd8",
     "identical": true
   }
 }

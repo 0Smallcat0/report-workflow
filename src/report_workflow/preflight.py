@@ -195,7 +195,7 @@ class FeatureDiscovery:
                             f"要啟用「{f.name}」嗎？{f.description}"
                         ),
                         "requires_user_input": [],
-                        "action": "pass enable_research=True to start_report_task",
+                        "action": "pass enable_research=True to start_report",
                         "ask_every_time": False,
                     })
                 elif not f.ready:
@@ -218,7 +218,7 @@ class FeatureDiscovery:
                         ],
                         "action": (
                             "Agent should write the API key to .env file, "
-                            "then pass enable_research=True to start_report_task"
+                            "then pass enable_research=True to start_report"
                         ),
                         "ask_every_time": False,
                     })
@@ -244,13 +244,13 @@ class FeatureDiscovery:
                                     "Provide the NotebookLM notebook URL or ID for this report"
                                 ),
                                 "param": "notebooklm_notebook_id",
-                                "save_to": "start_report_task parameter (changes per report)",
+                                "save_to": "start_report parameter (changes per report)",
                                 "example": "https://notebooklm.google.com/notebook/abc123",
                             }
                         ],
                         "action": (
                             "Pass enable_notebook_sync=True and "
-                            "notebooklm_notebook_id=<user_provided_id> to start_report_task"
+                            "notebooklm_notebook_id=<user_provided_id> to start_report"
                         ),
                         "ask_every_time": True,  # Different notebook per report!
                     })
@@ -301,7 +301,7 @@ def discover_features(
 ) -> FeatureDiscovery:
     """Scan the environment and return what optional features are available.
 
-    This is called during start_report_task to build the feature_discovery
+    This is called during start_report to build the feature_discovery
     section of the return value. The agent uses this to:
     1. Tell the user what tools to install
     2. Ask the user whether to enable available features

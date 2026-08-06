@@ -183,6 +183,10 @@ class ServerConstructionTests(unittest.TestCase):
             "lint_artifacts": "lint_agent_artifacts",
             "audit_engineering_report": "run_engineering_audit",
             "publish_report": "submit_and_publish_report",
+            # Named by the task briefs and by the artifact linter's repair
+            # hint, so it has to be callable from the surface those messages
+            # are read on.
+            "remap_agent_artifacts": "remap_agent_artifacts",
             "submit_revision_plan": "submit_revision_plan",
             "preview_revision_diff": "preview_revision_diff",
         }

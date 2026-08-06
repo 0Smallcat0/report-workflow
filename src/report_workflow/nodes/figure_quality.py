@@ -226,13 +226,35 @@ def _check_planned_figure_usage(
             ),
         })
 
+    dropped_ids = [
+        issue["figure_id"] for issue in unused if issue.get("type") == "planned_figure_not_used"
+    ]
     if unused and len(unused) == len(recommendation_backed_figures):
         unused.append({
             "type": "recommended_figure_plan_unused",
             "severity": "warning",
-            "figure_ids": [issue["figure_id"] for issue in unused if issue.get("type") == "planned_figure_not_used"],
+            "figure_ids": dropped_ids,
             "detail": "All recommendation-backed figures in figure_plan.json are unused by outline and draft body.",
             "repair_hint": "Use the recommended figures in the outline/draft or remove the unused figure plans.",
+        })
+    elif dropped_ids:
+        # Losing some of them was silent. The all-or-nothing test above only
+        # spoke when every figure was dropped, so a run that planned four and
+        # used one passed without a word and three tables of already-extracted
+        # data disappeared. Partial loss is the common case, not the rare one.
+        unused.append({
+            "type": "recommended_figure_plan_partially_unused",
+            "severity": "warning",
+            "figure_ids": dropped_ids,
+            "detail": (
+                f"{len(dropped_ids)} of {len(recommendation_backed_figures)} "
+                f"recommendation-backed figure(s) in figure_plan.json are unused by the outline "
+                f"and the draft body: " + ", ".join(dropped_ids)
+            ),
+            "repair_hint": (
+                "Keeping a figure means referencing it from a section; dropping one is a "
+                "choice you are entitled to make, but make it having seen the list."
+            ),
         })
     return unused
 

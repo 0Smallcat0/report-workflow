@@ -38,6 +38,10 @@ from typing import Optional
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..runtime_support import write_json_artifact
 from ..policies import get_policy
+from .cited_sources import (
+    format_bibtex_entry as format_cited_bibtex_entry,
+    format_reference_entry as format_cited_reference_entry,
+)
 
 
 # ------------------------------------------------------------------
@@ -252,6 +256,20 @@ LOCAL_ARTIFACT_LABELS = tuple(
 #: finds here, so this string decides the level in the rendered document.
 REFERENCE_LIST_HEADING = "# References"
 
+#: Heading for the generated evidence-trace list, and its Chinese title.
+#:
+#: Separate from References on purpose. A project source file is not a
+#: publication, and the formatter one function up refuses to dress one as
+#: another — but the reader still has to be able to check a number. This list
+#: says where each cited figure sits: file, line span, and the text it was
+#: taken from. It is generated from the ledger, so no author writes it.
+SOURCE_LIST_HEADING = "# Sources"
+SOURCE_LIST_HEADING_ZH = "# 資料來源"
+
+#: How much of the cited row to quote in that list. Long enough to recognize
+#: the figure, short enough that a hundred entries stay readable.
+SOURCE_TRACE_QUOTE_CHARS = 140
+
 
 def _format_apa_reference_entry(file_name: str, file_type: str, source_id: str) -> str:
     """Format a full APA reference entry for a research document."""
@@ -349,6 +367,80 @@ def _format_in_text_citation(evidence: dict) -> str:
         # Default to author-year
         author_year = _format_apa_author_year(file_name, file_type)
         return f"({author_year})"
+
+
+def _load_cited_sources(state: ReportState) -> list[dict]:
+    """The cited-source registry EVIDENCE_NORMALIZE wrote, or an empty list."""
+    path = state.sources.get("cited_sources_path", "")
+    if not path or not Path(path).exists():
+        return []
+    try:
+        payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError):
+        return []
+    rows = payload.get("cited_sources") if isinstance(payload, dict) else payload
+    return [row for row in (rows or []) if isinstance(row, dict)]
+
+
+def _format_source_trace_entry(evidence: dict, number: int) -> str:
+    """One line of the generated Sources list: where this figure came from.
+
+    Everything here is read off the ledger row, so nothing is asserted that
+    the pipeline did not parse out of the source itself — no invented author,
+    no invented year.
+    """
+    file_name = str(
+        evidence.get("source_file_name") or evidence.get("source_id") or "unknown source"
+    )
+    span = str(evidence.get("source_span") or "").strip()
+    evidence_id = str(evidence.get("evidence_id") or "").strip()
+    quote = " ".join(str(evidence.get("quote") or evidence.get("content") or "").split())
+    quote = quote[:SOURCE_TRACE_QUOTE_CHARS].rstrip()
+    if quote.endswith("..."):
+        quote = quote[:-3].rstrip()
+
+    locator = " ".join(part for part in (file_name, span) if part)
+    parts = [f"[S{number}] {locator}"]
+    if evidence_id:
+        parts.append(evidence_id)
+    if quote:
+        parts.append(f"“{quote}”")
+
+    # A cited row often carries the outside source it was taken from — a URL,
+    # or a house named in a parenthetical. The source document had 37 such
+    # links and the deliverable had none, because the entry stopped at the
+    # file name: the reader could find which line of which file the figure sat
+    # on, but not who published it. These are read off the row, so the list
+    # asserts only what the source already stated.
+    external = _external_references(evidence)
+    if external:
+        parts.append(", ".join(external))
+    return " — ".join(parts)
+
+
+#: A URL, and a Chinese source attribution such as "（來源：Fastmarkets，2026）".
+_URL_RE = re.compile(r"https?://[^\s)）】\]」』,，。;；]+")
+_ATTRIBUTION_RE = re.compile(
+    r"[（(]\s*(?:來源|来源|資料來源|资料来源|Source)\s*[:：]\s*([^)）]{2,60})[)）]",
+    re.IGNORECASE,
+)
+
+#: Enough to name the houses without turning one entry into a paragraph.
+MAX_EXTERNAL_REFERENCES = 4
+
+
+def _external_references(evidence: dict) -> list[str]:
+    """Outside sources this evidence row names, in the order it names them."""
+    content = str(evidence.get("content") or "")
+    found: list[str] = []
+    for match in _ATTRIBUTION_RE.finditer(content):
+        value = " ".join(match.group(1).split())
+        if value and value not in found:
+            found.append(value)
+    for url in _URL_RE.findall(content):
+        if url not in found:
+            found.append(url)
+    return found[:MAX_EXTERNAL_REFERENCES]
 
 
 def _format_reference_entry(evidence: dict) -> Optional[str]:
@@ -603,7 +695,7 @@ def resolve_citations_publication(
     citation_audit: list[dict],
     citation_style: str = "apa",
     gbt7714_as_of: date | None = None,
-) -> tuple[str, list[dict], list[str], list[str]]:
+) -> tuple[str, list[dict], list[str], list[str], list[str]]:
     """Resolve [CITE:cite_id] references to publication-ready citations.
 
     Returns:
@@ -611,6 +703,14 @@ def resolve_citations_publication(
         - new_audit: updated citation audit entries
         - literature_refs: list of formatted reference entries (for reference list)
         - internal_trace_refs: list of internal refs (for audit only)
+        - source_trace_refs: generated Sources list, one entry per cited row
+
+    Sources whose citation cannot honestly be author-year — a project markdown
+    file, a dataset, anything the bibliography will not carry — used to
+    resolve to the empty string. The marker was deleted, the row appeared in
+    no list, and the delivered document stated figures the reader could not
+    check against anything. They now resolve to a numbered ``[Sn]`` marker
+    backed by an entry in the generated Sources list.
     """
     cite_pattern = re.compile(r'\[CITE:([^\]]+)\]')
 
@@ -627,6 +727,20 @@ def resolve_citations_publication(
 
     # Track internal trace references
     internal_trace_refs: list[str] = []
+
+    # Generated Sources list: numbered once per cited evidence row, so the
+    # same row cited twice carries the same marker both times.
+    source_trace_numbers: dict[str, int] = {}
+    source_trace_refs: list[str] = []
+
+    def trace_marker(evidence: dict, cite_id: str) -> str:
+        key = str(evidence.get("evidence_id") or cite_id)
+        if key not in source_trace_numbers:
+            source_trace_numbers[key] = len(source_trace_numbers) + 1
+            source_trace_refs.append(
+                _format_source_trace_entry(evidence, source_trace_numbers[key])
+            )
+        return f"[S{source_trace_numbers[key]}]"
 
     # Process each citation. Accept both preferred separate markers
     # ([CITE:E1] [CITE:E2]) and older comma-delimited markers
@@ -666,6 +780,8 @@ def resolve_citations_publication(
                     replacement = f"[{number}]"
                 else:
                     replacement = _format_in_text_citation(evidence)
+                if not replacement:
+                    replacement = trace_marker(evidence, cite_id)
                 audit_entry["evidence_ids"] = [cite_id]
                 audit_entry["resolved"] = True
                 audit_entry["citation_type"] = citation_type
@@ -713,6 +829,8 @@ def resolve_citations_publication(
                     replacement = f"[{number}]"
                 else:
                     replacement = _format_in_text_citation(evidence)
+                if not replacement:
+                    replacement = trace_marker(evidence, cite_id)
                 audit_entry["resolved"] = True
                 audit_entry["citation_type"] = citation_type
 
@@ -760,8 +878,11 @@ def resolve_citations_publication(
 
     resolved_md = _collapse_adjacent_duplicate_citations(resolved_md)
     resolved_md = re.sub(r"[ \t]{2,}", " ", resolved_md)
-    resolved_md = re.sub(r" +([,.;:])", r"\1", resolved_md)
-    return resolved_md, new_audit, literature_refs, internal_trace_refs
+    # Full-width punctuation was missing from this cleanup, so a Chinese
+    # sentence whose citation resolved to nothing shipped as "...價格週期支配 。"
+    # — a space wedged before the period, visible in the delivered document.
+    resolved_md = re.sub(r"[ \t　]+([,.;:，。；：、！？）」』])", r"\1", resolved_md)
+    return resolved_md, new_audit, literature_refs, internal_trace_refs, source_trace_refs
 
 
 def audit_sentence_citations(
@@ -900,7 +1021,7 @@ def run_citation_bind(state: ReportState) -> ReportState:
     # Layer 2: Publication citation resolution
     # ------------------------------------------------------------------
     citation_style = citation_style_for_profile(state.spec.get("report_profile", ""))
-    resolved_md, new_audit, literature_refs, internal_refs = resolve_citations_publication(
+    resolved_md, new_audit, literature_refs, internal_refs, source_trace_refs = resolve_citations_publication(
         merged_md,
         evidence_ledger,
         citation_audit,
@@ -931,6 +1052,20 @@ def run_citation_bind(state: ReportState) -> ReportState:
     def _clean_ref(ref: str) -> str:
         return re.sub(r"\s*\[CITE:[^\]]+\]", "", ref).rstrip()
 
+    # The sources the supplied files themselves cite. They are the reader's
+    # only route to the underlying figures, and they used to reach the
+    # deliverable nowhere at all: a report citing thirty-nine houses published
+    # an empty bibliography, an empty .bib and an empty appendix. Appended
+    # after the refs derived from the ledger and deduplicated against them, so
+    # a source named both ways is listed once.
+    cited_sources = _load_cited_sources(state)
+    seen_refs = {ref.strip().casefold() for ref in literature_refs}
+    for cited in cited_sources:
+        entry = format_cited_reference_entry(cited)
+        if entry.strip().casefold() not in seen_refs:
+            seen_refs.add(entry.strip().casefold())
+            literature_refs.append(entry)
+
     publication_refs_md = ""
     if literature_refs and citation_style == "gb_t_7714_2015":
         publication_refs_md = f"{REFERENCE_LIST_HEADING}\n\n"
@@ -943,6 +1078,12 @@ def run_citation_bind(state: ReportState) -> ReportState:
 
     # Build BibTeX file (basic format for academic compatibility)
     publication_bib = _build_bibtex(evidence_ledger, literature_refs)
+    if cited_sources:
+        extra_bib = "\n\n".join(
+            format_cited_bibtex_entry(cited, index)
+            for index, cited in enumerate(cited_sources, start=1)
+        )
+        publication_bib = (publication_bib.rstrip() + "\n\n" + extra_bib).strip() + "\n"
 
     # ----------------------------------------------------------------------
     # Hard block per policy if any [Source:] remains after stripping.
@@ -969,6 +1110,18 @@ def run_citation_bind(state: ReportState) -> ReportState:
     with open(ref_list_path, "w", encoding="utf-8") as f:
         f.write(publication_refs_md)
 
+    # The generated Sources list. Kept in its own file because REFERENCE_VERIFY
+    # rewrites publication_reference_list.md from the curated publication
+    # entries alone, and anything else parked there is discarded.
+    source_list_md = ""
+    if source_trace_refs:
+        source_list_md = f"{SOURCE_LIST_HEADING}\n\n" + "".join(
+            f"- {_clean_ref(entry)}\n" for entry in source_trace_refs
+        )
+    source_list_path = run_dir / "publication_source_list.md"
+    with open(source_list_path, "w", encoding="utf-8") as f:
+        f.write(source_list_md)
+
     bib_path = run_dir / "publication_references.bib"
     with open(bib_path, "w", encoding="utf-8") as f:
         f.write(publication_bib)
@@ -987,10 +1140,13 @@ def run_citation_bind(state: ReportState) -> ReportState:
     state.drafts["publication_draft_md"] = str(cited_md_path)
     state.citations["citation_audit"] = new_audit
     state.citations["publication_reference_list_path"] = str(ref_list_path)
+    state.citations["publication_source_list_path"] = str(source_list_path)
+    state.citations["source_trace_count"] = len(source_trace_refs)
     state.citations["publication_references_bib_path"] = str(bib_path)
     state.citations["internal_trace_path"] = trace_path
     state.citations["internal_source_appendix_path"] = str(source_appendix_path)
     state.citations["literature_reference_count"] = len(literature_refs)
+    state.citations["cited_source_count"] = len(cited_sources)
     state.citations["publication_citation_style"] = citation_style
     state.citations["internal_ref_count"] = len(internal_refs)
 
@@ -1055,7 +1211,7 @@ def resolve_citations(
     Wraps resolve_citations_publication and returns only the first two values
     (resolved_md, new_audit) that the old API expected.
     """
-    resolved_md, new_audit, _, _ = resolve_citations_publication(
+    resolved_md, new_audit, _, _, _ = resolve_citations_publication(
         merged_md, evidence_ledger, citation_audit
     )
     return resolved_md, new_audit

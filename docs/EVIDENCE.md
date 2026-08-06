@@ -3,6 +3,31 @@
 Every number here is reproducible from this repository. Commands re-run the
 measurement from source and diff against the archived result.
 
+## Does the harness produce a better report?
+
+```bash
+python scripts/run_report_quality_benchmark.py --check
+```
+
+The catch rate below says the gates block fabrication. It does not say the
+deliverable is any good, and for a while it was not: a real run of a 16 KB
+Chinese market report produced a document with none of its source's 37 links,
+none of its 24 table rows, and no citation markers at all — the gates passed
+and the document was worse than the hand-written original.
+
+The report-quality benchmark measures that directly. Same source, same prompt,
+two arms — a live pipeline run, and a recorded write-up produced without the
+harness — scored by one implementation across eight dimensions. The harness
+wins six: external sources, checkable figures, tables, figures,
+counter-evidence, and disclosed derivations. It loses two, kept in the archive
+with an explanation rather than tuned out; one of them,
+`verifiable_number_ratio`, rewards a document for stating nothing checkable,
+and that is a fact about the metric worth recording.
+
+Both arms and the scorer are in the repository, so the result can be argued
+with:
+[`benchmarks/evidence/report_quality_2026-08-06/summary.md`](../benchmarks/evidence/report_quality_2026-08-06/summary.md).
+
 ## Red-team: the catch rate is measured, not asserted
 
 A gate that only sees honest drafts proves nothing. The adversarial benchmark
@@ -17,14 +42,15 @@ the same corpus:
 | --- | --- | --- | --- |
 | No gate (publish everything) | 0.0% | 0.0% | — |
 | Citation-presence check (shallow RAG-style) | 9.1% (4/44) | 0.0% | 100% |
-| **Full deterministic gate stack** | **86.4%** (38/44) | **0.0%** (0/25) | **100%** |
+| **Full deterministic gate stack** | **88.6%** (39/44) | **0.0%** (0/25) | **100%** |
 
-All 14 targeted attack families are caught at 100%, with zero honest claims
+All 15 targeted attack families are caught at 100%, with zero honest claims
 wrongly blocked. The 2026-07-14 gate hardening closed three formerly documented
 evasions (within-tolerance precision fudging, sub-10-character fabricated
-quotes, cross-language citation laundering) and promoted them to regular attack
-families. The remaining 6 misses are **documented evasions** (negation flips,
-bare numbers without units, hedged reinterpretation, value misattribution) kept
+quotes, cross-language citation laundering) and the 2026-08 CJK tokenisation fix
+closed a fourth (invented bare quantities); all were promoted to regular attack
+families. The remaining 5 misses are **documented evasions** (negation flips,
+hedged reinterpretation, value misattribution) kept
 in the corpus deliberately as the measured residual-risk boundary — see the
 limitations section of [`DESIGN.md`](DESIGN.md). The corpus doubles as a
 regression suite: expected verdicts are asserted in CI, and a sha256 verdict
@@ -87,7 +113,7 @@ Archived results ([`benchmarks/evidence/full_benchmark_2026-05-13/summary.md`](.
 | Claims verified against evidence | **42** (6 per profile), **0 blocked** |
 | Unresolved citation-audit entries | **0** |
 | Delivery QA decision | `pass` on every profile |
-| Unit tests at the time of the archived run | **351 passing** (798 today) |
+| Unit tests at the time of the archived run | **351 passing** (885 today) |
 
 Each report is packaged with its QA pack (`final_qa_summary`, factuality,
 scholarly-quality, figure-visual, template-style, and render-layout reports) so

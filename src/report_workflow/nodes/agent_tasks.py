@@ -7,7 +7,7 @@ from pathlib import Path
 from ..state import ReportState
 from ..language import detect_document_language, localized_section_title
 from ..policies import get_policy
-from ..runtime_support import run_dir_for
+from ..runtime_support import load_jsonl, run_dir_for
 from ..artifact_contract import make_artifact_contract
 from .corpus_build import _distinguishing_seed
 from .figure_types import SUPPORTED_FIGURE_TYPES_TEXT
@@ -208,23 +208,51 @@ def _read_recommended_figure_usage_map(path: str | None, limit: int = 8) -> str:
             f"; use the deterministic transformed view `{', '.join(str(item) for item in operations)}`"
             if transform.get("status") == "transformed" and operations else ""
         )
+        # The title and the shape are what let an author judge whether a
+        # recommendation is worth keeping. Without them the brief offered an
+        # id and a chart type, which is not enough to decide with — and the
+        # decision then landed at audit time, after the data had been dropped.
+        shape = rec.get("table_shape") or {}
+        shape_note = (
+            f"; data {shape.get('rows')}×{shape.get('columns')}"
+            if shape.get("rows") and shape.get("columns")
+            else ""
+        )
+        title = " ".join(str(plan.get("title") or "").split())
+        title_note = f'; titled "{title}"' if title else ""
         rows.append(
             (
                 "- `{figure_id}` -> outline `sections.{section_id}.figure_ids`; "
                 "draft `{section_id}.md`; place `[FIGURE:{figure_id}]` at the first paragraph "
-                "that discusses evidence `{evidence}`; recommended chart `{recommended_type}`{transform_note}."
+                "that discusses evidence `{evidence}`; recommended chart "
+                "`{recommended_type}`{shape_note}{title_note}{transform_note}."
             ).format(
                 figure_id=figure_id,
                 section_id=section_id,
                 evidence=", ".join(str(item) for item in evidence_ids) or "unknown",
                 recommended_type=recommended_type,
+                shape_note=shape_note,
+                title_note=title_note,
                 transform_note=transform_note,
             )
         )
     if not rows:
         return "(no recommendation entries contained usable figure_plan guidance)"
     header = "Recommended figure usage map:\n"
-    return header + "\n".join(rows)
+    body = "\n".join(rows)
+    # A silent cap reads as "this is all of them". Say when it is not: an
+    # author never told a recommendation exists cannot decide to keep it, and
+    # the audit will later count it as one they chose to drop.
+    usable = sum(
+        1 for rec in recommendations
+        if isinstance(rec, dict) and _figure_plan_is_valid(rec.get("figure_plan", {}))
+    )
+    if usable > len(rows):
+        body += (
+            f"\n- ... and {usable - len(rows)} further recommendation(s) in "
+            "`figure_recommendations.json`; read that file before deciding which to keep."
+        )
+    return header + body
 
 
 def _recommended_figure_plans(path: str | None) -> tuple[list[dict], str]:
@@ -618,6 +646,46 @@ def _derived_stats_guidance(evidence_path: str) -> str:
     )
 
 
+def _source_table_catalog(evidence_path: str | None, limit: int = 12) -> str:
+    """List the source's own tables and how to place one in the draft.
+
+    A table the source states is evidence the reader can check at a glance,
+    and the only ways to get one into the document used to be retyping it —
+    unchecked by any gate, which is the failure this pipeline exists to
+    prevent — or turning it into a chart, which answers a different question.
+    """
+    from .source_tables import collect_source_tables
+
+    rows = load_jsonl(evidence_path) if evidence_path else []
+    tables = collect_source_tables(rows)
+    if not tables:
+        return ""
+
+    lines = [
+        "### Source tables you can place verbatim",
+        "",
+        "These tables are already in the evidence ledger. Place one with",
+        "`[TABLE:<table_id> <caption>]` in the paragraph that discusses it and the",
+        "renderer rebuilds it from the ledger, with its file and line span printed",
+        "underneath. Do not retype a table into the draft: a retyped number is",
+        "backed by nothing.",
+        "",
+    ]
+    for table_id, table in list(tables.items())[:limit]:
+        headers = ", ".join(header for header in table["headers"] if header.strip())
+        locator = " ".join(
+            part for part in (table["source_file_name"], table["source_span"]) if part
+        )
+        lines.append(
+            f"- `[TABLE:{table_id}]` — {len(table['rows'])} row(s); columns: {headers}"
+            + (f" ({locator})" if locator else "")
+        )
+    if len(tables) > limit:
+        lines.append(f"- ... and {len(tables) - limit} more")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def write_agent_task_briefs(state: ReportState) -> ReportState:
     """Write all task briefs required for the external agent authoring phase.
 
@@ -638,6 +706,7 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
     results_mode_section = _results_mode_section(state.spec.get("report_profile", ""))
     results_mode_rule = _results_mode_rule(state.spec.get("report_profile", ""))
     derived_stats_guidance = _derived_stats_guidance(evidence_path)
+    source_table_catalog = _source_table_catalog(evidence_path)
     task_intent = state.spec.get("task_intent", "new_draft")
     contract = make_artifact_contract(state)
     contract_json = json.dumps(contract, indent=2)
@@ -1003,6 +1072,11 @@ first body paragraph that discusses the listed evidence. If a recommended
 figure does not fit the narrative, remove it from `figure_plan.json` rather
 than leaving an unused planned chart.
 
+{source_table_catalog}
+Not every table wants to be a chart. A rate card, a specification list, or a
+four-row price history is read by looking values up, and turning it into a
+chart loses the values. Place the source table itself in those cases.
+
 When you create `{run_dir / "section_drafts" / "figure_plan.json"}`, each generated chart should include:
 
 ```json
@@ -1034,11 +1108,11 @@ graph LR
 ````markdown
 ```mermaid
 sequenceDiagram
-    Agent->>Pipeline: start_report_task()
+    Agent->>Pipeline: start_report()
     Pipeline-->>Agent: job_id + controlled next action
-    Agent->>Pipeline: get_controlled_next_action()
-    Agent->>Pipeline: submit_controlled_action()
-    Agent->>Pipeline: submit_and_publish_report()
+    Agent->>Pipeline: get_next_action()
+    Agent->>Pipeline: submit_action()
+    Agent->>Pipeline: publish_report()
     Pipeline-->>Agent: rendered_report.docx
 ```
 ````
@@ -1051,7 +1125,7 @@ These render poorly in DOCX and will be **hard-blocked** by the pre-render sanit
 For academic `new_draft`, if `{run_dir / "project_identity_candidate.json"}` exists,
 use it as read-only drafting context to keep the thesis from drifting into a
 topic-adjacent report. Do not write `project_identity.json` during controlled
-authoring; pass an explicit `project_identity` to `start_report_task` when a
+authoring; pass an explicit `project_identity` to `start_report` when a
 fixed identity contract is required.
 """
 
@@ -1138,8 +1212,8 @@ either way and are recorded explicitly in the revision diff report.
    - Returns a diff preview showing what each change would do
 3. If validation fails, fix `revision_plan.json` and call again.
 4. Optionally call `preview_revision_diff(job_id="...")` for a read-only preview.
-5. Call `get_controlled_next_action` and complete whatever it still asks for.
-6. Once nothing is outstanding, call `submit_and_publish_report(job_id="...")`.
+5. Call `get_next_action` and complete whatever it still asks for.
+6. Once nothing is outstanding, call `publish_report(job_id="...")`.
 
 A validated revision plan is not a publishable job. `revise_existing` requires
 the same `claim_matrix.json`, `outline.json`, `section_drafts/*.md`, and

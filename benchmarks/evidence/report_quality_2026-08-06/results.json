@@ -1,0 +1,84 @@
+{
+  "source": "benchmarks/fixtures/recycling_market_report.md",
+  "baseline": "benchmarks/fixtures/unassisted_baseline.md",
+  "prompt": "分析電池、塑膠、紡織、紙張四個品類的回收經濟性，比較單位成本與價格驅動因子",
+  "scores": {
+    "unassisted": {
+      "external_sources": 0,
+      "verifiable_numbers": 1,
+      "verifiable_number_ratio": 1.0,
+      "tables": 0,
+      "figures": 0,
+      "counter_evidence_paragraphs": 2,
+      "disclosed_derivations": 0,
+      "structured_paragraph_ratio": 0.7143
+    },
+    "tool": {
+      "external_sources": 8,
+      "verifiable_numbers": 62,
+      "verifiable_number_ratio": 0.8732,
+      "tables": 4,
+      "figures": 1,
+      "counter_evidence_paragraphs": 3,
+      "disclosed_derivations": 6,
+      "structured_paragraph_ratio": 0.6486
+    }
+  },
+  "comparison": [
+    {
+      "dimension": "external_sources",
+      "unassisted": 0,
+      "tool": 8,
+      "winner": "tool"
+    },
+    {
+      "dimension": "verifiable_numbers",
+      "unassisted": 1,
+      "tool": 62,
+      "winner": "tool"
+    },
+    {
+      "dimension": "verifiable_number_ratio",
+      "unassisted": 1.0,
+      "tool": 0.8732,
+      "winner": "unassisted"
+    },
+    {
+      "dimension": "tables",
+      "unassisted": 0,
+      "tool": 4,
+      "winner": "tool"
+    },
+    {
+      "dimension": "figures",
+      "unassisted": 0,
+      "tool": 1,
+      "winner": "tool"
+    },
+    {
+      "dimension": "counter_evidence_paragraphs",
+      "unassisted": 2,
+      "tool": 3,
+      "winner": "tool"
+    },
+    {
+      "dimension": "disclosed_derivations",
+      "unassisted": 0,
+      "tool": 6,
+      "winner": "tool"
+    },
+    {
+      "dimension": "structured_paragraph_ratio",
+      "unassisted": 0.7143,
+      "tool": 0.6486,
+      "winner": "unassisted"
+    }
+  ],
+  "tool_wins": 6,
+  "unassisted_wins": 2,
+  "ties": 0,
+  "tool_run": {
+    "source_tables_placed": 4,
+    "figures_embedded": 1
+  }
+}

@@ -361,7 +361,7 @@ def run_section_draft(state: ReportState) -> ReportState:
                 + (", ".join(allowed) if allowed else "no evidence")
                 + ". Either add the evidence to one of those claims in claim_matrix.json, or cite "
                 "only what they already list. The controlled harness reopens the claim stage for "
-                "this failure, so ask get_controlled_next_action which file it wants before "
+                "this failure, so ask get_next_action which file it wants before "
                 "editing."
             )
 

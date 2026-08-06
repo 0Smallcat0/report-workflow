@@ -10,8 +10,9 @@ from typing import Any
 from docx import Document
 
 from ..errors import QAHardBlockError
-from ..runtime_support import write_json_artifact
+from ..runtime_support import load_jsonl, write_json_artifact
 from ..state import ReportState
+from .source_tables import resolvable_placeholder_count
 
 
 MAX_FRONT_MATTER_PARAGRAPHS = 8
@@ -209,6 +210,12 @@ def _expected_table_count(state: ReportState) -> int:
     if draft_path and Path(draft_path).exists():
         markdown = Path(draft_path).read_text(encoding="utf-8")
         count += len(re.findall(r"^\|.+\|\s*$\n^\|?\s*:?-{3,}", markdown, re.MULTILINE))
+        # A [TABLE:] marker becomes a real Word table at render, after this
+        # draft was written. Counting only the markdown grids would expect
+        # fewer tables than the document carries and fail a correct render.
+        count += resolvable_placeholder_count(
+            markdown, load_jsonl(state.sources.get("evidence_ledger_path", ""))
+        )
     return count
 
 
@@ -389,6 +396,7 @@ def run_post_render_validate(state: ReportState) -> ReportState:
         (r"\[CITE:", "unresolved CITE marker"),
         (r"\[Source:", "unresolved Source marker"),
         (r"\[FIGURE:", "unresolved FIGURE marker (figure not rendered)"),
+        (r"\[TABLE:", "unresolved TABLE marker (source table not placed)"),
         (r"\[graphify:", "unresolved graphify marker"),
         (r"source_corpus|claim_matrix|evidence_ledger", "internal artifact leakage"),
         (r"Revise the existing academic report|Use revised_report\.md", "prompt residue"),

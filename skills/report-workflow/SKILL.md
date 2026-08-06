@@ -35,14 +35,14 @@ level deep and self-contained.
 
 ## Core Model
 
-1. **Prepare** — `start_report_task` reads sources, infers or accepts
+1. **Prepare** — `start_report` reads sources, infers or accepts
    `report_profile`, and writes `report_spec.json`, `report_profile.json`,
    `blueprint.json`, `evidence_ledger.jsonl`, and task briefs.
-2. **Author** — use the controlled harness: `get_controlled_next_action` returns
+2. **Author** — use the controlled harness: `get_next_action` returns
    the current task, read-first files, and allowed write paths;
-   `submit_controlled_action` validates the stage and records evidence in
+   `submit_action` validates the stage and records evidence in
    `harness_manifest.json`.
-3. **Validate and render** — `submit_and_publish_report` validates contracts,
+3. **Validate and render** — `publish_report` validates contracts,
    evidence, citations, section rules, profile policy, and render quality, then
    packages the DOCX with QA artifacts under `published/qa/`.
 
@@ -53,7 +53,7 @@ arguments and return JSON-serializable dicts. Call them the way your harness
 supports:
 
 - **Codex / OpenAI-style harness**: the tools declared in `skill.yaml` are exposed
-  directly by name, e.g. `start_report_task(...)`.
+  directly by name, e.g. `start_report(...)`.
 - **Claude Code or any shell-capable agent**: use the CLI for deterministic steps,
   or call any wrapper tool via Python:
 
@@ -66,7 +66,7 @@ supports:
   # a user-supplied Word template's styles, margins, and header/footer.
 
   # any wrapper tool, harness-neutral:
-  python -c "import json; from report_workflow.agent_wrapper import get_controlled_next_action as f; print(json.dumps(f(job_id='<job_id>')))"
+  python -c "import json; from report_workflow.agent_wrapper import get_next_action as f; print(json.dumps(f(job_id='<job_id>')))"
   ```
 
 CLI exit codes: `0` success, `1` crash, `2` hard-block validation failure,
@@ -76,7 +76,7 @@ parameters: [reference/tools.md](reference/tools.md).
 ## Required Setup
 
 Python 3.11+, `pip install -e .`, and Pandoc 3.x for high-quality DOCX rendering.
-Call `check_setup` before every `start_report_task`, ask the user about every
+Call `check_environment` before every `start_report`, ask the user about every
 pending install and optional integration, then pass `preflight_confirmed=True`
 with a complete `preflight_decisions` record. Required dependencies must actually
 pass preflight; a decision string does not override a still-missing dependency.
@@ -87,22 +87,22 @@ Details, UTF-8 setup, and decision examples: [reference/setup-and-preflight.md](
 `skill.yaml` and [reference/tools.md](reference/tools.md) document these tools:
 
 <!-- report-workflow:tool-surface:start -->
-- `check_setup`
-- `start_report_task`
-- `get_controlled_next_action`
-- `submit_controlled_action`
-- `lint_agent_artifacts`
-- `run_engineering_audit`
-- `submit_and_publish_report`
+- `check_environment`
+- `start_report`
+- `get_next_action`
+- `submit_action`
+- `lint_artifacts`
+- `audit_engineering_report`
+- `publish_report`
 - `query_evidence`
 - `remap_agent_artifacts`
 - `submit_revision_plan`
 - `preview_revision_diff`
 <!-- report-workflow:tool-surface:end -->
 
-`check_setup` and `start_report_task` run preparation; the `*_controlled_*` tools
-drive staged authoring; `lint_agent_artifacts`, `run_engineering_audit`, and
-`query_evidence` are read-only helpers; `submit_and_publish_report` validates and
+`check_environment` and `start_report` run preparation; the `*_controlled_*` tools
+drive staged authoring; `lint_artifacts`, `audit_engineering_report`, and
+`query_evidence` are read-only helpers; `publish_report` validates and
 renders; `submit_revision_plan` / `preview_revision_diff` support revision.
 
 ## Report Profiles
@@ -125,7 +125,7 @@ Profile contract, custom-profile rules, and template priority:
 ## Start a Run
 
 ```python
-start_report_task(
+start_report(
     prompt="write an engineering lab report from these sources",
     source_files=[{"path": "/path/to/source.pdf", "role": "source_data"}],
     output_dir="/path/to/output",
@@ -149,16 +149,16 @@ revising. Source-role boundaries, front matter, and `project_identity`:
 
 Use the controlled workflow by default:
 
-1. Call `get_controlled_next_action(job_id=...)`.
+1. Call `get_next_action(job_id=...)`.
 2. Read the returned `task_brief_path` and `read_first_paths`.
 3. Edit only files listed in `allowed_write_paths`.
-4. Call `submit_controlled_action(job_id=...)`.
+4. Call `submit_action(job_id=...)`.
 5. Repeat until the returned `status` is `completed`.
 
 `structured_drafts.json` is the preferred low-drift new-draft input; the pipeline
 generates `section_drafts/*.md`, `[CITE:]` markers, and `sentence_map.jsonl` from
 it. Every evidence-backed sentence needs `[CITE:<evidence_id>]`. Optionally call
-`lint_agent_artifacts` for fast read-only feedback. Artifact shapes, evidence
+`lint_artifacts` for fast read-only feedback. Artifact shapes, evidence
 rules, draft rules, controlled-submission failure handling, and validation repair:
 [reference/authoring.md](reference/authoring.md).
 
@@ -175,7 +175,7 @@ defaults, insertion contract, and the prompt pattern:
 For `engineering_lab_report`, the profile is the highest-priority contract, above
 prompt or template details. It expects SOP grounding, requirement-matrix coverage,
 formula/unit/calculation audits, figure/table contracts, and Chinese document
-rules. Call `run_engineering_audit` before publish. Full expectations,
+rules. Call `audit_engineering_report` before publish. Full expectations,
 exact-cover behavior, figure hard gates, and the Chinese publish checklist:
 [reference/engineering-lab.md](reference/engineering-lab.md).
 

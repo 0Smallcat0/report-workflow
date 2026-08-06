@@ -7,15 +7,15 @@ The tools are Python functions in `report_workflow.agent_wrapper` that return
 JSON-serializable dicts. See the SKILL.md "Invoking the Tools" section for how
 to call them in each harness (Codex tool, CLI, or `python -c`).
 
-## `check_setup`
+## `check_environment`
 
-Pre-flight environment check. Call BEFORE start_report_task on every run. Returns pending_installs (missing dependencies the agent should install with user consent), agent_should_ask_user (features to ask about, some requiring user input like API keys or NotebookLM URLs), and a human-readable message summarizing everything. After installing dependencies, re-run check_setup to verify. Does NOT start a workflow.
+Pre-flight environment check. Call BEFORE start_report on every run. Returns pending_installs (missing dependencies the agent should install with user consent), agent_should_ask_user (features to ask about, some requiring user input like API keys or NotebookLM URLs), and a human-readable message summarizing everything. After installing dependencies, re-run check_environment to verify. Does NOT start a workflow.
 
 Parameters: none.
 
-## `start_report_task`
+## `start_report`
 
-Start the report generation workflow. Parses source files, builds evidence ledger, generates blueprint and task briefs for the agent. Requires check_setup first. The caller must ask the user about every pending install and optional feature, then pass preflight_confirmed=true and a complete preflight_decisions record. preflight_confirmed=true alone is rejected. Required dependencies must actually pass preflight after installation; a decision string does not override a still-missing dependency.
+Start the report generation workflow. Parses source files, builds evidence ledger, generates blueprint and task briefs for the agent. Requires check_environment first. The caller must ask the user about every pending install and optional feature, then pass preflight_confirmed=true and a complete preflight_decisions record. preflight_confirmed=true alone is rejected. Required dependencies must actually pass preflight after installation; a decision string does not override a still-missing dependency.
 
 Parameters:
 
@@ -36,51 +36,51 @@ Parameters:
 - `enable_notebook_sync` (boolean, optional): Enable NotebookLM knowledge sync. When true, the pipeline syncs context from a matching NotebookLM notebook after evidence store. Requires notebooklm-py to be installed.
 - `notebooklm_notebook_id` (string, optional): Specific NotebookLM notebook ID to sync with. If not provided, the pipeline selects a notebook matching the report topic.
 - `notebooklm_storage_path` (string, optional): Path to NotebookLM authentication storage state file. Auto-detected if not provided (searches ~/.notebooklm/ and LOCALAPPDATA).
-- `preflight_confirmed` (boolean, optional): Must be true only after the user has explicitly answered every pending install and optional feature question returned by check_setup.
-- `preflight_decisions` (object, optional): Structured record of the user's preflight choices. Required shape: confirmed_by_user=true, install_decisions keyed by pending install, and feature_decisions keyed by feature_id. Use the required_preflight_decisions value from check_setup as the template.
+- `preflight_confirmed` (boolean, optional): Must be true only after the user has explicitly answered every pending install and optional feature question returned by check_environment.
+- `preflight_decisions` (object, optional): Structured record of the user's preflight choices. Required shape: confirmed_by_user=true, install_decisions keyed by pending install, and feature_decisions keyed by feature_id. Use the required_preflight_decisions value from check_environment as the template.
 - `allow_degraded_render` (boolean, optional): Set true only after the user explicitly accepts degraded DOCX rendering when a critical render dependency such as pandoc is missing.
 
-## `get_controlled_next_action`
+## `get_next_action`
 
-Return the current controlled authoring stage for a job, including the task brief, read-first files, allowed write paths, validation tool, and repair context from the previous failed attempt. Use this by default after start_report_task before editing agent-authored artifacts.
+Return the current controlled authoring stage for a job, including the task brief, read-first files, allowed write paths, validation tool, and repair context from the previous failed attempt. Use this by default after start_report before editing agent-authored artifacts.
 
 Parameters:
 
-- `job_id` (string, required): The job ID returned by start_report_task
+- `job_id` (string, required): The job ID returned by start_report
 - `workspace_root` (string, optional): Optional output workspace root if the job is outside the default run registry
 
-## `submit_controlled_action`
+## `submit_action`
 
 Submit the current controlled stage. Enforces the harness write scope before running the stage validator, records evidence in harness_manifest.json, advances only on pass, and returns repair context without rerunning unrelated stages when validation fails. Returns blocked_non_author_repair when a read-only stage fails without a legal author-owned repair target.
 
 Parameters:
 
-- `job_id` (string, required): The job ID returned by start_report_task
+- `job_id` (string, required): The job ID returned by start_report
 - `workspace_root` (string, optional): Optional output workspace root if the job is outside the default run registry
 
-## `lint_agent_artifacts`
+## `lint_artifacts`
 
 Read-only lint for agent-authored artifacts before full validation. Writes artifact_lint_report.json with artifact names, JSON paths, severity, messages, and repair hints. Use after creating or changing claim_matrix.json, outline.json, structured_drafts.json, section_drafts/*.md, sentence_map.jsonl, or revision_plan.json.
 
 Parameters:
 
-- `job_id` (string, required): The job ID returned by start_report_task
+- `job_id` (string, required): The job ID returned by start_report
 
-## `run_engineering_audit`
+## `audit_engineering_report`
 
 Read-only engineering lab audit for units, measurements, and simple arithmetic. Writes engineering_audit_report.json with recognized measurements, claim/evidence unit-support warnings, unit notation warnings, table-value support checks, mixed-dimension unit notes, missing-unit notes, and simple calculation result warnings. Recommended for engineering_lab_report.
 
 Parameters:
 
-- `job_id` (string, required): The job ID returned by start_report_task
+- `job_id` (string, required): The job ID returned by start_report
 
-## `submit_and_publish_report`
+## `publish_report`
 
 Run full validation pipeline and render the final DOCX. Can be called after steps 2-4, or directly after step 1 if all artifacts were created in one shot (legacy 2-step mode). On success, returns post_render_layout_manifest_path for render structure audit evidence plus final_qa_summary_path and final_qa_summary_md_path for delivery readiness review. Also returns scholarly_quality_report_path/scholarly_quality_report_md_path for article-structure and methods/figure/reference scholarly review, figure_visual_quality_report_path for chart readability review, plus template_style_map_path/template_style_map_md_path and template_field_fill_report_path/template_field_fill_report_md_path when published packaging runs.
 
 Parameters:
 
-- `job_id` (string, required): The job ID returned by start_report_task
+- `job_id` (string, required): The job ID returned by start_report
 - `reference_docx` (string, optional): Optional path to a user-supplied .docx template to follow for styles, margins, and header/footer at render time.
 
 ## `query_evidence`
@@ -89,7 +89,7 @@ Look up specific evidence entries by ID, or browse the evidence ledger in pages.
 
 Parameters:
 
-- `job_id` (string, required): The job ID returned by start_report_task
+- `job_id` (string, required): The job ID returned by start_report
 - `evidence_ids` (list[string], optional): Optional list of specific evidence_id values to retrieve. If provided, offset/limit are ignored.
 - `query` (string, optional): Optional text query for relevance-ranked evidence browsing. Supports English terms and CJK bigram matching. Ignored when evidence_ids is provided.
 - `offset` (integer, optional): Starting index for paginated browsing (default 0)
@@ -107,11 +107,11 @@ Parameters:
 
 ## `submit_revision_plan`
 
-Validate a revision_plan.json for revise_existing workflows. Pre-checks all changes against the base document: verifies original_text matches, detects conflicts, and returns a diff preview. This remains available for legacy compatibility; the default public flow should use get_controlled_next_action and submit_controlled_action so revision_plan edits stay within the harness write-scope contract.
+Validate a revision_plan.json for revise_existing workflows. Pre-checks all changes against the base document: verifies original_text matches, detects conflicts, and returns a diff preview. This remains available for legacy compatibility; the default public flow should use get_next_action and submit_action so revision_plan edits stay within the harness write-scope contract.
 
 Parameters:
 
-- `job_id` (string, required): The job ID returned by start_report_task
+- `job_id` (string, required): The job ID returned by start_report
 
 ## `preview_revision_diff`
 
@@ -119,4 +119,4 @@ Preview the diff that revision_plan.json would produce without applying any chan
 
 Parameters:
 
-- `job_id` (string, required): The job ID returned by start_report_task
+- `job_id` (string, required): The job ID returned by start_report

@@ -25,7 +25,9 @@ from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
 from ..language import detect_document_language, localized_section_title
 from ..parsers.office_math import cell_text, element_text
-from ..runtime_support import PLACEHOLDER_TEXT
+from .citation_bind import SOURCE_LIST_HEADING, SOURCE_LIST_HEADING_ZH
+from .source_tables import replace_table_placeholders
+from ..runtime_support import PLACEHOLDER_TEXT, load_jsonl
 from ..policies import get_policy
 
 logger = logging.getLogger(__name__)
@@ -239,7 +241,12 @@ def _figure_alt_text(
     return " ".join(alt.replace("[", "(").replace("]", ")").split())
 
 
-def _replace_figure_placeholders(md_content: str, figure_manifest: dict | None) -> tuple[str, int, list[str]]:
+def _replace_figure_placeholders(
+    md_content: str,
+    figure_manifest: dict | None,
+    *,
+    table_start_number: int = 0,
+) -> tuple[str, int, list[str]]:
     """Replace [FIGURE:id] placeholders with markdown image links.
 
     FIGURE_BUILD already writes real image files and a manifest. The DOCX
@@ -266,7 +273,10 @@ def _replace_figure_placeholders(md_content: str, figure_manifest: dict | None) 
     # rendered "圖 1." followed by "表 2." — 表 1 was unreachable. figure_id
     # stays the stable identity the manifest and gates match on.
     figure_number = 0
-    table_number = 0
+    # Source tables were already placed and numbered; continuing from there
+    # keeps one sequence across the document, which is what a reader following
+    # a cross-reference expects.
+    table_number = table_start_number
 
     def replace(match: re.Match) -> str:
         nonlocal replaced, figure_number, table_number
@@ -1437,8 +1447,24 @@ def run_docx_render(state: ReportState) -> ReportState:
     if mermaid_count > 0:
         state.output["mermaid_figures_converted"] = mermaid_count
 
+    # Source tables first, so table numbering runs in reading order and the
+    # figure pass continues the sequence rather than restarting it.
+    evidence_ledger = load_jsonl(state.sources.get("evidence_ledger_path", ""))
+    md_content, placed_tables, unresolved_tables = replace_table_placeholders(
+        md_content, evidence_ledger
+    )
+    if placed_tables:
+        state.output["source_tables_placed"] = placed_tables
+    if unresolved_tables:
+        state.runtime.setdefault("warnings", []).append(
+            "Unresolved source table placeholder(s): "
+            + ", ".join(sorted(set(unresolved_tables)))
+        )
+
     figure_manifest = _load_figure_manifest(state.output.get("figure_manifest_path", ""))
-    md_content, resolved_figures, unresolved_figures = _replace_figure_placeholders(md_content, figure_manifest)
+    md_content, resolved_figures, unresolved_figures = _replace_figure_placeholders(
+        md_content, figure_manifest, table_start_number=placed_tables
+    )
     if resolved_figures:
         state.output["figure_placeholders_resolved"] = resolved_figures
     if unresolved_figures:
@@ -1491,6 +1517,20 @@ def run_docx_render(state: ReportState) -> ReportState:
     )
     if pub_ref_md.strip():
         md_content = md_content.rstrip() + "\n\n" + pub_ref_md
+
+    # The generated Sources list. Without it a document citing project sources
+    # ships with markers pointing at nothing — which is what happened before:
+    # the markers were deleted instead, and the reader could check no figure
+    # in the document against anything.
+    source_list_path = state.citations.get("publication_source_list_path", "")
+    if source_list_path and Path(source_list_path).exists():
+        source_list_md = Path(source_list_path).read_text(encoding="utf-8")
+        if source_list_md.strip():
+            if detect_document_language(md_content) == "zh":
+                source_list_md = source_list_md.replace(
+                    SOURCE_LIST_HEADING, SOURCE_LIST_HEADING_ZH, 1
+                )
+            md_content = md_content.rstrip() + "\n\n" + source_list_md
 
     run_dir = WORKFLOW_RUNS_DIR / state.job_id
     md_content = _absolutize_image_paths(

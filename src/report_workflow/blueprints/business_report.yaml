@@ -18,6 +18,7 @@ section_order:
   - findings
   - recommendations
   - appendix
+  - references
 sections:
   executive_summary:
     section_id: executive_summary
@@ -33,6 +34,14 @@ sections:
     required: true
     section_type: findings
     order: 2
+    # A business report routinely covers several independent subjects — four
+    # product categories, four sites, four quarters — each with its own cost
+    # structure and its own evidence. One flat findings section could only
+    # hold them as prose, so nothing could check which claims belonged to
+    # which subject. Declaring `subsections` in outline.json says it, and the
+    # claim and figure ids are hoisted into the section so every downstream
+    # gate keeps working unchanged.
+    supports_subsections: true
   recommendations:
     section_id: recommendations
     title: Recommendations
@@ -47,3 +56,14 @@ sections:
     required: false
     section_type: appendix
     order: 4
+    supports_subsections: true
+  # Generated from the evidence ledger by CITATION_BIND and appended at
+  # render; the author writes nothing here. Declared so the heading carries
+  # the blueprint's localized title like every other section.
+  references:
+    section_id: references
+    title: References
+    title_zh: 參考文獻
+    required: false
+    section_type: references
+    order: 5

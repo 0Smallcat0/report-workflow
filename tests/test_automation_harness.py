@@ -287,7 +287,7 @@ class AutomationHarnessTests(unittest.TestCase):
             )
             self.assertEqual(
                 manifest["stages"]["revision_plan"]["validation_tool"],
-                "submit_controlled_action",
+                "submit_action",
             )
 
     def test_stage_run_can_suppress_substep_events_for_dry_run(self):

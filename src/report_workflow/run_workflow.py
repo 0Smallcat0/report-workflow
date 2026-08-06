@@ -583,8 +583,8 @@ def resume_workflow(job_id: str, *, workspace_root: str | None = None) -> Report
 # time, checkpointing after each step.
 #
 # Step 1: submit_claim_matrix  -> validates claim_matrix.json
-# Step 2: submit_outline       -> validates outline.json
-# Step 3: submit_drafts        -> validates section_drafts/*.md + sentence_map.jsonl
+# Step 2: submit_action        -> validates outline.json
+# Step 3: submit_action        -> validates section_drafts/*.md + sentence_map.jsonl
 # Step 4: submit_and_publish   -> runs full validate + render
 # ------------------------------------------------------------------
 
@@ -667,7 +667,7 @@ def validate_step_drafts(job_id: str, *, workspace_root: str | None = None) -> R
     if not outline or not outline.get("sections"):
         raise QAHardBlockError(
             "Step 3 requires Step 2 (outline) to be complete. "
-            "Run submit_outline first."
+            "Run submit_action first."
         )
 
     state.checkpoint("STEP_DRAFTS")

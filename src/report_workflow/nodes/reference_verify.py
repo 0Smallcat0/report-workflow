@@ -152,8 +152,13 @@ def _check_reference_curation(raw_ref: str) -> tuple[bool, str]:
         if re.search(pattern, lowered, re.IGNORECASE):
             return False, reason
 
-    # Catch filename-like authors/titles that slipped through pseudo-APA formatting.
-    if re.search(r"\b[a-z0-9_]+\.(txt|md|json|csv|docx|pdf)\b", text, re.IGNORECASE):
+    # Catch filename-like authors/titles that slipped through pseudo-APA
+    # formatting — but not inside a URL. A published report is very often
+    # served as a .pdf, and "https://oecd.org/…/report.pdf" matched this rule
+    # and was deleted as a local file: a real citation, with a working link,
+    # removed from the bibliography for looking like one.
+    without_urls = re.sub(r"https?://\S+", " ", text)
+    if re.search(r"\b[a-z0-9_]+\.(txt|md|json|csv|docx|pdf)\b", without_urls, re.IGNORECASE):
         return False, "reference contains a local filename"
 
     return True, ""

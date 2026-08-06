@@ -64,22 +64,22 @@ entry_point: report_workflow.agent_wrapper
 
 tools:
   # Step 0: Environment check & dependency install (call on EVERY run)
-  - name: check_setup
+  - name: check_environment
     description: >
-      Pre-flight environment check. Call BEFORE start_report_task on every run.
+      Pre-flight environment check. Call BEFORE start_report on every run.
       Returns pending_installs (missing dependencies the agent should install
       with user consent), agent_should_ask_user (features to ask about, some
       requiring user input like API keys or NotebookLM URLs), and a
       human-readable message summarizing everything. After installing
-      dependencies, re-run check_setup to verify. Does NOT start a workflow.
+      dependencies, re-run check_environment to verify. Does NOT start a workflow.
     parameters: []
 
   # Step 1: Prepare deterministic artifacts and task briefs
-  - name: start_report_task
+  - name: start_report
     description: >
       Start the report generation workflow. Parses source files, builds
       evidence ledger, generates blueprint and task briefs for the agent.
-      Requires check_setup first. The caller must ask the user about every
+      Requires check_environment first. The caller must ask the user about every
       pending install and optional feature, then pass preflight_confirmed=true
       and a complete preflight_decisions record. preflight_confirmed=true alone
       is rejected. Required dependencies must actually pass preflight after
@@ -191,7 +191,7 @@ tools:
         required: false
         description: >
           Must be true only after the user has explicitly answered every
-          pending install and optional feature question returned by check_setup.
+          pending install and optional feature question returned by check_environment.
       - name: preflight_decisions
         type: object
         required: false
@@ -199,7 +199,7 @@ tools:
           Structured record of the user's preflight choices. Required shape:
           confirmed_by_user=true, install_decisions keyed by pending install,
           and feature_decisions keyed by feature_id. Use the
-          required_preflight_decisions value from check_setup as the template.
+          required_preflight_decisions value from check_environment as the template.
       - name: allow_degraded_render
         type: boolean
         required: false
@@ -209,23 +209,23 @@ tools:
 
 
   # Preferred controlled harness workflow
-  - name: get_controlled_next_action
+  - name: get_next_action
     description: >
       Return the current controlled authoring stage for a job, including the
       task brief, read-first files, allowed write paths, validation tool, and
       repair context from the previous failed attempt. Use this by default
-      after start_report_task before editing agent-authored artifacts.
+      after start_report before editing agent-authored artifacts.
     parameters:
       - name: job_id
         type: string
         required: true
-        description: The job ID returned by start_report_task
+        description: The job ID returned by start_report
       - name: workspace_root
         type: string
         required: false
         description: Optional output workspace root if the job is outside the default run registry
 
-  - name: submit_controlled_action
+  - name: submit_action
     description: >
       Submit the current controlled stage. Enforces the harness write scope
       before running the stage validator, records evidence in
@@ -237,13 +237,13 @@ tools:
       - name: job_id
         type: string
         required: true
-        description: The job ID returned by start_report_task
+        description: The job ID returned by start_report
       - name: workspace_root
         type: string
         required: false
         description: Optional output workspace root if the job is outside the default run registry
 
-  - name: lint_agent_artifacts
+  - name: lint_artifacts
     description: >
       Read-only lint for agent-authored artifacts before full validation.
       Writes artifact_lint_report.json with artifact names, JSON paths,
@@ -254,9 +254,9 @@ tools:
       - name: job_id
         type: string
         required: true
-        description: The job ID returned by start_report_task
+        description: The job ID returned by start_report
 
-  - name: run_engineering_audit
+  - name: audit_engineering_report
     description: >
       Read-only engineering lab audit for units, measurements, and simple
       arithmetic. Writes engineering_audit_report.json with recognized
@@ -268,9 +268,9 @@ tools:
       - name: job_id
         type: string
         required: true
-        description: The job ID returned by start_report_task
+        description: The job ID returned by start_report
 
-  - name: submit_and_publish_report
+  - name: publish_report
     description: >
       Run full validation pipeline and render the final DOCX.
       Can be called after steps 2-4, or directly after step 1 if
@@ -288,7 +288,7 @@ tools:
       - name: job_id
         type: string
         required: true
-        description: The job ID returned by start_report_task
+        description: The job ID returned by start_report
       - name: reference_docx
         type: string
         required: false
@@ -306,7 +306,7 @@ tools:
       - name: job_id
         type: string
         required: true
-        description: The job ID returned by start_report_task
+        description: The job ID returned by start_report
       - name: evidence_ids
         type: list[string]
         required: false
@@ -355,14 +355,14 @@ tools:
       Pre-checks all changes against the base document: verifies
       original_text matches, detects conflicts, and returns a diff
       preview. This remains available for legacy compatibility; the
-      default public flow should use get_controlled_next_action and
-      submit_controlled_action so revision_plan edits stay within the
+      default public flow should use get_next_action and
+      submit_action so revision_plan edits stay within the
       harness write-scope contract.
     parameters:
       - name: job_id
         type: string
         required: true
-        description: The job ID returned by start_report_task
+        description: The job ID returned by start_report
 
   - name: preview_revision_diff
     description: >
@@ -372,4 +372,4 @@ tools:
       - name: job_id
         type: string
         required: true
-        description: The job ID returned by start_report_task
+        description: The job ID returned by start_report

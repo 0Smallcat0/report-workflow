@@ -7,6 +7,46 @@ from typing import Any
 INSTALL_DECISIONS = {"install", "installed", "skip", "decline", "accept_degraded"}
 FEATURE_DECISIONS = {"enable", "enabled", "disable", "disabled", "skip", "decline"}
 
+#: feature_id in a decision record -> the configuration flag it turns on.
+FEATURE_DECISION_FLAGS = {
+    "web_research": "enable_research",
+    "notebook_sync": "enable_notebook_sync",
+}
+
+_ENABLING_DECISIONS = {"enable", "enabled"}
+_DISABLING_DECISIONS = {"disable", "disabled", "skip", "decline"}
+
+
+def feature_flags_from_decisions(
+    preflight_decisions: dict | None,
+    enable_research: bool | None,
+    enable_notebook_sync: bool | None,
+) -> tuple[bool | None, bool | None]:
+    """Read the user's recorded feature choices as the enable_* flags.
+
+    The record and the flags used to be two independent inputs that had to
+    agree, and disagreeing was a hard stop: "feature 'web_research' was
+    approved by the user, but the matching enable_* flag was not set". The MCP
+    surface exposed no such argument at all, so over MCP an approved feature
+    could not be turned on by any means. The recorded decision is now the
+    flag. An explicitly passed enable_* still wins, for a caller that means to
+    override what was recorded.
+    """
+    decisions = (preflight_decisions or {}).get("feature_decisions")
+    if not isinstance(decisions, dict):
+        return enable_research, enable_notebook_sync
+
+    resolved = {"enable_research": enable_research, "enable_notebook_sync": enable_notebook_sync}
+    for feature_id, flag in FEATURE_DECISION_FLAGS.items():
+        if resolved[flag] is not None:
+            continue
+        decision = str(decisions.get(feature_id, "")).strip().lower()
+        if decision in _ENABLING_DECISIONS:
+            resolved[flag] = True
+        elif decision in _DISABLING_DECISIONS:
+            resolved[flag] = False
+    return resolved["enable_research"], resolved["enable_notebook_sync"]
+
 
 def preflight_item_key(item: dict) -> str:
     return str(
@@ -94,7 +134,7 @@ def validate_preflight_decisions(
     """Require a structured user-confirmation record before workflow start."""
     issues: list[str] = []
     if not isinstance(decisions, dict):
-        return ["missing preflight_decisions; call check_setup and record the user's choices"]
+        return ["missing preflight_decisions; call check_environment and record the user's choices"]
     if decisions.get("confirmed_by_user") is not True:
         issues.append("preflight_decisions.confirmed_by_user must be true")
 
@@ -190,7 +230,7 @@ def evaluate_preflight_start(
             "ready": False,
             "reason": "decision_issues",
             "message": (
-                "Call check_setup(), ask the user about every pending install "
+                "Call check_environment(), ask the user about every pending install "
                 "and optional integration, then start again with selected feature "
                 "flags and a complete preflight_decisions record."
             ),
