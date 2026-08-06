@@ -133,8 +133,9 @@ def locate_run_dir(job_id: str, workspace_root: str | Path | None = None) -> Pat
     raise FileNotFoundError(
         f"No local workflow run found for job {job_id}. "
         f"Looked under {', '.join(searched)}. "
-        f"If prepare wrote this run somewhere else, re-run with "
-        f"--workspace-root <the directory --output pointed at>."
+        f"If prepare wrote this run somewhere else, pass that directory back: "
+        f'workspace_root="<the output_dir given to start_report>" for the agent '
+        f"tools, or --workspace-root <the directory --output pointed at> on the CLI."
     )
 
 

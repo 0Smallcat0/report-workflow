@@ -345,6 +345,19 @@ def start_report_task(
                 "",
             ]
 
+            # A run written outside the repository cannot be found again from
+            # the job id alone, and every later call fails with "No local
+            # workflow run found" until the caller guesses this argument. Hand
+            # it back next to the job id that needs it.
+            workspace_root = str(state.output.get("workspace_root") or "").strip()
+            if workspace_root:
+                msg_lines.extend([
+                    "This run is outside the default workspace. Pass "
+                    f'workspace_root="{workspace_root}" to get_next_action, '
+                    "submit_action, and publish_report.",
+                    "",
+                ])
+
             # Embed active features in message
             active = [f for f in discovery.features if f.enabled and f.ready]
             inactive_ready = [f for f in discovery.features if not f.enabled and f.ready]
@@ -360,6 +373,7 @@ def start_report_task(
             result = {
                 "status": "awaiting_agent_artifacts",
                 "job_id": state.job_id,
+                "workspace_root": workspace_root or None,
                 "message": "\n".join(msg_lines),
                 "controlled_next_action": controlled_action,
                 "harness_manifest_path": (

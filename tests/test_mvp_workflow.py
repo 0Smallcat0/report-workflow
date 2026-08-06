@@ -3550,6 +3550,31 @@ class MergeDraftNormalizationTests(unittest.TestCase):
         self.assertNotIn("\n# Research Methodology", "\n" + normalized)
         self.assertIn("## Research Methodology", normalized)
 
+    def test_repeated_section_title_heading_is_dropped(self):
+        from report_workflow.nodes.merge_draft import _strip_duplicate_title_heading
+
+        content = "## 主要發現\n\n本節說明四個品類。\n"
+        stripped = _strip_duplicate_title_heading(
+            content, "findings", {"title": "Key Findings", "title_zh": "主要發現"}, "主要發現"
+        )
+        self.assertNotIn("## 主要發現", stripped)
+        self.assertIn("本節說明四個品類。", stripped)
+
+    def test_authors_first_subsection_heading_survives_the_merge(self):
+        """A findings section may open on its own subsection heading.
+
+        Stripping whatever heading led the section deleted that heading, so the
+        first subsection's prose ran into the section intro and every later
+        subsection sat one level deep under nothing.
+        """
+        from report_workflow.nodes.merge_draft import _strip_duplicate_title_heading
+
+        content = "## 一、電池：原料端已把加工利潤吃光\n\n電池回收分三個環節。\n"
+        stripped = _strip_duplicate_title_heading(
+            content, "findings", {"title": "Key Findings", "title_zh": "主要發現"}, "主要發現"
+        )
+        self.assertIn("## 一、電池：原料端已把加工利潤吃光", stripped)
+
 
 # ------------------------------------------------------------------
 # Fix #5: results_mode reading order (outline first, then blueprint)

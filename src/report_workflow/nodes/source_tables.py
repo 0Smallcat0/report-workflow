@@ -99,6 +99,14 @@ def provenance_line(table: dict, language: str) -> str:
     return f"來源：{locator}" if language == "zh" else f"Source: {locator}"
 
 
+#: An author-written table label at the head of a caption — "表 1：", "表1.",
+#: "Table 2:" — which the renderer is about to write itself.
+_LEADING_TABLE_LABEL_RE = re.compile(
+    r"^\s*(?:(?:表|图|圖)\s*\d+|Table\s+\d+)\s*[：:.、．]\s*",
+    re.IGNORECASE,
+)
+
+
 def render_source_table(
     table: dict,
     *,
@@ -114,6 +122,11 @@ def render_source_table(
     """
     label = "表" if language == "zh" else "Table"
     title = " ".join(str(caption or "").split())
+    # The renderer numbers the table, so an author who also wrote the number
+    # into the caption got it twice ("表 1. 表 1：三條路線…"). Writing the
+    # number is the natural thing to do — the caption reads as prose to the
+    # author — so drop the redundant label rather than ask them to omit it.
+    title = _LEADING_TABLE_LABEL_RE.sub("", title).strip()
     heading = f"{label} {number}. {title}".strip() if title else f"{label} {number}."
 
     header_row = "| " + " | ".join(_escape(cell) for cell in table["headers"]) + " |"

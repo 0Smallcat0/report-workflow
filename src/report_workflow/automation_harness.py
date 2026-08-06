@@ -35,10 +35,16 @@ STAGE_DEFS: dict[str, dict[str, Any]] = {
     },
     "outline": {
         "validation_tool": "submit_action",
-        "allowed_write_paths": ["outline.json"],
+        # OUTLINE_PLAN rejects a figure plan whose figures no outline section
+        # uses and tells the author to delete those entries from
+        # section_drafts/figure_plan.json. That repair has to be inside this
+        # stage's write scope, or the only way past the gate is to adopt every
+        # starter figure: the plan file used to become writable one stage late.
+        "allowed_write_paths": ["outline.json", "section_drafts/figure_plan.json"],
         "task_brief": "agent_tasks/02_outline_plan.md",
         "read_first_paths": [
             "agent_tasks/02_outline_plan.md",
+            "section_drafts/figure_plan.json",
             "blueprint.json",
             "claim_matrix.json",
             "figure_recommendations.json",

@@ -393,16 +393,17 @@ def _format_source_trace_entry(evidence: dict, number: int) -> str:
         evidence.get("source_file_name") or evidence.get("source_id") or "unknown source"
     )
     span = str(evidence.get("source_span") or "").strip()
-    evidence_id = str(evidence.get("evidence_id") or "").strip()
     quote = " ".join(str(evidence.get("quote") or evidence.get("content") or "").split())
     quote = quote[:SOURCE_TRACE_QUOTE_CHARS].rstrip()
     if quote.endswith("..."):
         quote = quote[:-3].rstrip()
 
+    # File name, line span and quote are what a reader can act on. The ledger's
+    # evidence id is an internal handle — the same rule that keeps `[CITE:E…]`
+    # out of the body keeps it out of the delivered source list; it stays in
+    # `internal_source_appendix.md`, which is where the audit trail lives.
     locator = " ".join(part for part in (file_name, span) if part)
     parts = [f"[S{number}] {locator}"]
-    if evidence_id:
-        parts.append(evidence_id)
     if quote:
         parts.append(f"“{quote}”")
 

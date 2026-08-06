@@ -449,9 +449,21 @@ def run_post_render_validate(state: ReportState) -> ReportState:
             issues.append("figure references without matching captions: " + ", ".join(missing_captions))
         if len(doc.inline_shapes) == 0:
             issues.append("figure references present but no embedded figures found")
-        undeclared = sorted(mention_ids - outline_figure_ids) if outline_figure_ids else sorted(mention_ids)
+        # A mention names the figure by its printed number ("見圖 1"), which the
+        # renderer assigns in document order; an outline declares plan ids. The
+        # two coincide only when the plan happens to be numbered 1..n, so
+        # comparing them rejected a correct document whose one kept figure was
+        # plan id 2 and printed as 圖 1 — while the section brief tells authors
+        # to reference figures by their number. Captions carry the printed
+        # numbers, so the caption check above is what catches a dangling
+        # mention; what is left to verify is that every declared figure exists.
+        built_figure_ids = {
+            str(figure.get("figure_id", "")).strip().lower()
+            for figure in _manifest_figures(state)
+        }
+        undeclared = sorted(outline_figure_ids - built_figure_ids)
         if undeclared:
-            issues.append("figure references not declared in outline/manifest: " + ", ".join(undeclared))
+            issues.append("outline figure_ids with no built figure: " + ", ".join(undeclared))
 
     report = {
         "job_id": state.job_id,

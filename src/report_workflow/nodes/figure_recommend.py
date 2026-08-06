@@ -778,8 +778,22 @@ def _human_figure_title(
     columns: list[str] = []
     if isinstance(data, dict):
         columns = [_clean_text(str(c)) for c in data.get("columns", []) if _clean_text(str(c))]
-    subject = ", ".join(series_names[:3]) or _clean_text(ylabel) or ", ".join(columns[1:3])
+    subject = ", ".join(series_names[:3]) or _clean_text(ylabel)
     group = _clean_text(xlabel) or (columns[0] if columns else "")
+    measures = [column for column in columns[1:] if column != group]
+    if not subject and measures:
+        # Joining two column headers is a column dump, not a caption
+        # ("鋰回收, 能耗(依路線)"), and the contract that forbids `chart_source`
+        # in a caption forbids this for the same reason. A multi-measure table
+        # has no single subject: lead with what it is grouped by and how many
+        # measures it carries, and leave naming the finding to the author.
+        subject = measures[0]
+        if len(measures) > 1 and group:
+            if CJK_RE.search(subject + group):
+                return f"各{group}的{subject}等 {len(measures)} 項對照{transform_label}"
+            others = len(measures) - 1
+            noun = "measure" if others == 1 else "measures"
+            return f"{subject} and {others} other {noun} by {group}{transform_label}"
     if subject and group and subject != group:
         if CJK_RE.search(subject + group):
             title = f"{subject}(依{group})"
