@@ -497,5 +497,171 @@ class ChineseParaphraseTests(unittest.TestCase):
         self.assertIn("states a unit the evidence does not", verdict["reason"])
 
 
+class DraftStatesItsClaimTests(unittest.TestCase):
+    """A number vanished between the claim and the page, and everything passed.
+
+    A claim asserting "需約 US$500/噸的產品售價才達 10% IRR，capex 約
+    US$1,000/噸年產能" was drafted as "需約 US/噸的產品售價才達 10% 內部報酬率，
+    每噸年產能的資本支出約 US,000" — a shell had expanded `$500` and `$1` as
+    variables. FA checks the links, FE checks the claim against its evidence,
+    and nothing checked the leg the reader actually reads. It shipped.
+
+    What makes it worse than a wrong number is that the sentence stays fluent.
+    "每噸年產能約 US,000 的資本門檻" reads like finished prose; "US$9,999" would
+    have been caught by whoever proofread it.
+    """
+
+    EVIDENCE_ID = "E_plastics_capex"
+
+    def _matrix(self, claim_text: str) -> dict:
+        return {
+            "claims": [{
+                "claim_id": "c9",
+                "claim_text": claim_text,
+                "claim_type": "statistical",
+                "status": "supported",
+                "evidence_ids": [self.EVIDENCE_ID],
+            }]
+        }
+
+    def _verdicts(self, claim_text: str, draft: str) -> list[dict]:
+        from report_workflow.nodes.factuality_check import run_factuality_check_fs
+
+        return run_factuality_check_fs(draft, self._matrix(claim_text))
+
+    def test_a_figure_the_draft_never_states_is_blocked(self):
+        results = self._verdicts(
+            "塑膠機械回收需約 US$500/噸的產品售價才達 10% IRR。",
+            f"機械回收需約 US/噸的產品售價才達 10% 內部報酬率 [CITE:{self.EVIDENCE_ID}]。",
+        )
+        self.assertEqual(results[0]["status"], "blocked")
+        self.assertEqual(results[0]["checker"], "FS")
+        self.assertIn("500", results[0]["reason"])
+
+    def test_a_draft_restating_every_figure_passes(self):
+        results = self._verdicts(
+            "塑膠機械回收需約 US$500/噸的產品售價才達 10% IRR，capex 約 US$1,000/噸年產能。",
+            f"機械回收需約 US$500/噸的售價才達 10% 內部報酬率，"
+            f"資本支出約 US$1,000/噸年產能 [CITE:{self.EVIDENCE_ID}]。",
+        )
+        self.assertEqual(results[0]["status"], "verified", results[0]["reason"])
+
+    def test_several_sentences_may_share_the_work(self):
+        """One claim is often written as two or three sentences."""
+        results = self._verdicts(
+            "回收率 72%，噸成本 210 美元，投資回收期 5 年。",
+            f"機械回收的產出率為 72% [CITE:{self.EVIDENCE_ID}]。\n\n"
+            f"其噸成本為 210 美元 [CITE:{self.EVIDENCE_ID}]。\n\n"
+            f"投資回收期約 5 年 [CITE:{self.EVIDENCE_ID}]。",
+        )
+        self.assertEqual(results[0]["status"], "verified", results[0]["reason"])
+
+    def test_a_figure_stated_in_chinese_words_counts(self):
+        """500 written as 五百 is a restatement, not an omission."""
+        results = self._verdicts(
+            "產品售價需達 500 美元。",
+            f"產品售價需達五百美元 [CITE:{self.EVIDENCE_ID}]。",
+        )
+        self.assertEqual(results[0]["status"], "verified", results[0]["reason"])
+
+    def test_a_figure_shown_in_a_bound_table_counts_as_stated(self):
+        """Making the prose repeat a table it sits beside writes it out twice."""
+        from report_workflow.nodes.factuality_check import run_factuality_check_fs
+        from report_workflow.run_workflow import prepare_workflow
+        from report_workflow.state import WORKFLOW_RUNS_DIR
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            source = Path(tmpdir) / "costs.md"
+            source.write_text(
+                "# 回收成本分析\n\n"
+                "機械回收的噸成本與產出率隨製程而異，本節整理三種主流路線的單位成本，"
+                "並比較其投資回收期與適用料源。\n",
+                encoding="utf-8",
+            )
+            with patch(
+                "report_workflow.preflight.importlib.util.find_spec",
+                side_effect=_all_packages_present,
+            ):
+                state = prepare_workflow(
+                    "analyse costs",
+                    [str(source)],
+                    str(Path(tmpdir) / "out"),
+                    report_profile="business_report",
+                )
+            run_dir = WORKFLOW_RUNS_DIR / state.job_id
+            section_dir = run_dir / "section_drafts"
+            section_dir.mkdir(parents=True, exist_ok=True)
+            (section_dir / "figure_plan.json").write_text(
+                json.dumps({
+                    "figures": [{
+                        "figure_id": "1",
+                        "section_id": "findings",
+                        "data": {"columns": ["製程", "噸成本"], "rows": [["機械回收", "210"]]},
+                    }]
+                }, ensure_ascii=False),
+                encoding="utf-8",
+            )
+            outline = {"sections": {"findings": {"claim_ids": ["c9"]}}}
+            results = run_factuality_check_fs(
+                f"回收率為 72%，投資回收期約 5 年 [CITE:{self.EVIDENCE_ID}]。",
+                self._matrix("回收率 72%，噸成本 210 美元，投資回收期 5 年。"),
+                state,
+                outline,
+            )
+            self.assertEqual(results[0]["status"], "verified", results[0]["reason"])
+
+    def test_a_claim_no_sentence_cites_is_left_to_fa(self):
+        """Reporting it here too would block one mistake twice."""
+        results = self._verdicts(
+            "產品售價需達 US$500/噸。", "一段沒有引用任何證據的文字。"
+        )
+        self.assertEqual(results, [])
+
+    def test_a_claim_asserting_no_figures_is_not_examined(self):
+        results = self._verdicts(
+            "機械回收的瓶頸在於分選而非處理。",
+            f"分選是主要瓶頸 [CITE:{self.EVIDENCE_ID}]。",
+        )
+        self.assertEqual(results, [])
+
+
+class MangledAmountLintTests(unittest.TestCase):
+    """The cheap half: a currency marker whose amount is gone.
+
+    Independent of any claim binding, so it also guards prose that no claim
+    covers — which is where the claim-level check cannot reach.
+    """
+
+    def _lint(self, text: str):
+        from report_workflow.nodes.factuality_check import find_mangled_amounts
+
+        return find_mangled_amounts(text)
+
+    def test_the_shapes_a_lost_substitution_leaves_behind(self):
+        for text in (
+            "每噸年產能約 US,000 的資本門檻",
+            "機械回收需約 US/噸的產品售價",
+            "成本約 /噸",
+            "$ 的成本佔比偏高",
+        ):
+            with self.subTest(text=text):
+                self.assertTrue(self._lint(text), f"{text!r} was not flagged")
+
+    def test_ordinary_writing_is_not_flagged(self):
+        """A lint with false positives gets switched off, so it must have none."""
+        for text in (
+            "US$1,000/噸年產能",
+            "約 500 噸",
+            "成本佔 20%",
+            "價格為 8,259 美元/噸",
+            "US$2,500–10,000 的區間",
+            "價格（USD/噸）",
+            "TWD/kg 的單價",
+            "毛利率 41%",
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(self._lint(text), [], f"{text!r} was wrongly flagged")
+
+
 if __name__ == "__main__":
     unittest.main()

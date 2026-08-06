@@ -330,7 +330,7 @@ def _author_artifacts(state) -> None:
         for claim in claims:
             marker = " ".join(f"[CITE:{eid}]" for eid in claim["evidence_ids"])
             lines.extend([
-                f"就本節主題而言，{claim['claim_text'][:110]} {marker}。"
+                f"就本節主題而言，{claim['claim_text']} {marker}。"
                 "此一觀察限於來源所涵蓋的時點與品類。"
                 "因此在解讀時應同時考慮成本結構與價格驅動因子的差異。",
                 "",
@@ -443,6 +443,9 @@ def build_results() -> dict:
         "unassisted_wins": sum(1 for row in comparison if row["winner"] == "unassisted"),
         "ties": sum(1 for row in comparison if row["winner"] == "tie"),
         "tool_run": tool_run,
+        # The delivered document, recorded the way the unassisted arm is. It
+        # is what makes `--check` reproducible on a machine that cannot render.
+        "tool_document": tool_text,
     }
 
 
@@ -517,17 +520,40 @@ def write_archive(results: dict) -> None:
 
 
 def check_archive() -> list[str]:
+    """Re-score both recorded documents and diff against the archive.
+
+    `--check` used to re-run the pipeline, which meant it re-rendered a DOCX —
+    and a render depends on the machine. It passed here and failed on Linux CI
+    over a caption the renderer produced differently, so the check that exists
+    to prove the result reproduces was itself the least reproducible thing in
+    the repository.
+
+    Both arms are recorded now. `--check` verifies what can actually be held
+    fixed: that the scorer, given these two documents, still produces these
+    numbers. Regenerating the tool arm needs the full environment, and that is
+    what `--write` is for.
+    """
     issues: list[str] = []
     archived_path = EVIDENCE_ROOT / "results.json"
     if not archived_path.exists():
         return ["no archived report-quality results; run with --write"]
     archived = json.loads(archived_path.read_text(encoding="utf-8"))
-    fresh = build_results()
+
+    tool_document = archived.get("tool_document")
+    if not tool_document:
+        return ["the archive predates recording the tool arm's document; run with --write"]
+
+    source_text = SOURCE_PATH.read_text(encoding="utf-8")
+    fresh = {
+        "unassisted": score_document(BASELINE_PATH.read_text(encoding="utf-8"), source_text),
+        "tool": score_document(tool_document, source_text),
+    }
     for arm in ("unassisted", "tool"):
-        if archived["scores"][arm] != fresh["scores"][arm]:
-            issues.append(f"{arm} scores drifted from the archive")
-    if archived["comparison"] != fresh["comparison"]:
-        issues.append("dimension comparison drifted from the archive")
+        if archived["scores"][arm] != fresh[arm]:
+            issues.append(
+                f"{arm} scores drifted from the archive: "
+                f"archived {archived['scores'][arm]}, recomputed {fresh[arm]}"
+            )
     return issues
 
 

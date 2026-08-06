@@ -270,7 +270,9 @@ class DeliveredDocumentTests(unittest.TestCase):
             lines = [f"# {section_id}", ""]
             for claim in claims:
                 marker = " ".join(f"[CITE:{eid}]" for eid in claim["evidence_ids"])
-                lines.extend([f"就本節而言，{claim['claim_text'][:80]} {marker}。", ""])
+                # Not a prefix: FS blocks a sentence omitting a figure its claim
+                # asserts, which a truncated restatement would do.
+                lines.extend([f"就本節而言，{claim['claim_text']} {marker}。", ""])
                 rows.append({
                     "sentence_id": f"s_{section_id}_{claim['claim_id']}",
                     "section_id": section_id,
