@@ -1,5 +1,5 @@
 # Report Workflow: deterministic source-to-report pipeline
-__version__ = "4.32.0"
+__version__ = "4.33.0"
 
 from .verify import verify
 

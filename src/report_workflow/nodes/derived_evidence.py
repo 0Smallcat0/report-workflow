@@ -87,6 +87,7 @@ def apply_derived_evidence(state: ReportState) -> dict:
     ledger_path = Path(
         state.sources.get("evidence_ledger_path") or (run_dir / "evidence_ledger.jsonl")
     )
+    existing = _read_ledger(ledger_path)
     units, problems = build_requested_units(
         requests,
         state.sources.get("source_registry", []),
@@ -94,12 +95,27 @@ def apply_derived_evidence(state: ReportState) -> dict:
         zh=bool(CJK_RE.search(str(state.spec.get("user_prompt", "")))),
     )
 
+    # The value is recomputed from the rows every run, as above. The timestamp
+    # is not a value; regenerating it rewrote every derived line on each run,
+    # which moved the ledger hash and hard-blocked the artifacts that had just
+    # been stamped against it. Carry the original forward so an unchanged
+    # derivation produces an unchanged line.
+    first_seen = {
+        row.get("evidence_id"): row.get("created_at")
+        for row in existing
+        if isinstance(row.get("derivation"), dict) and row.get("created_at")
+    }
+    for unit in units:
+        prior = first_seen.get(unit.get("evidence_id"))
+        if prior:
+            unit["created_at"] = prior
+
     registered_ids = {
         request_evidence_id(str(request.get("id") or "")) for request in requests
     }
     kept = [
         row
-        for row in _read_ledger(ledger_path)
+        for row in existing
         if not (
             isinstance(row.get("derivation"), dict)
             and row["derivation"].get("request_id")
