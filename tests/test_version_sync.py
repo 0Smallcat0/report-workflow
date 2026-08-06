@@ -2,6 +2,7 @@
 import json
 import tomllib
 import unittest
+import unittest.mock
 from pathlib import Path
 
 import report_workflow
@@ -66,6 +67,87 @@ class VersionSyncTest(unittest.TestCase):
         )
         listed = {entry["name"] for entry in marketplace["plugins"]}
         self.assertIn(manifest["name"], listed)
+
+
+class PublishedVersionTest(unittest.TestCase):
+    """The fifth place the version lives is PyPI, and nothing compared it.
+
+    `.claude-plugin/plugin.json` starts the server with
+    `uvx --from report-workflow[mcp,render]`, which resolves from PyPI. So a
+    release that is committed, tagged and never published leaves every installed
+    plugin running the previous version — and testing through MCP then measures
+    code that is not the code in this tree. That has already happened once: a
+    fix was reported as not working when it was working and simply not shipped.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "check_version_sync", ROOT / "scripts" / "check_version_sync.py"
+        )
+        cls.module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(cls.module)
+
+    def test_the_script_sees_the_same_version_this_package_reports(self):
+        version, problems = self.module.check_declared()
+        self.assertEqual(problems, [])
+        self.assertEqual(version, report_workflow.__version__)
+
+    def test_every_version_file_is_covered(self):
+        """A file added later without being registered here drifts unwatched."""
+        covered = set(self.module.declared_versions())
+        for expected in (
+            "pyproject.toml",
+            "src/report_workflow/__init__.py",
+            ".claude-plugin/plugin.json",
+            "server.json",
+        ):
+            self.assertIn(expected, covered)
+
+    def _published(self, version, *, releases, tags):
+        with unittest.mock.patch.object(
+            self.module, "_pypi_versions", return_value=set(releases)
+        ), unittest.mock.patch.object(self.module, "_git_tags", return_value=set(tags)):
+            return self.module.check_published(version)
+
+    def test_a_tag_that_never_published_is_a_failure(self):
+        problems = self._published(
+            "4.30.0", releases={"4.29.1"}, tags={"v4.29.1", "v4.30.0"}
+        )
+        self.assertTrue(problems)
+        self.assertIn("did not publish", problems[0])
+
+    def test_being_ahead_of_pypi_without_a_tag_is_fine(self):
+        """Unreleased work is the normal state of the default branch."""
+        self.assertEqual(
+            self._published("4.30.0", releases={"4.29.1"}, tags={"v4.29.1"}), []
+        )
+
+    def test_a_published_release_is_fine(self):
+        self.assertEqual(
+            self._published("4.30.0", releases={"4.29.1", "4.30.0"}, tags={"v4.30.0"}), []
+        )
+
+    def test_pypi_being_ahead_of_the_repository_is_a_failure(self):
+        """Eleven versions once shipped while the repository said otherwise."""
+        problems = self._published(
+            "4.29.1", releases={"4.29.1", "4.30.0"}, tags={"v4.29.1"}
+        )
+        self.assertTrue(problems)
+        self.assertIn("newer than this", problems[0])
+
+    def test_an_unreachable_pypi_is_reported_not_skipped(self):
+        """A check that passes when it could not run is how drift survives."""
+        import urllib.error
+
+        with unittest.mock.patch.object(
+            self.module, "_pypi_versions", side_effect=urllib.error.URLError("offline")
+        ):
+            problems = self.module.check_published("4.30.0")
+        self.assertTrue(problems)
+        self.assertIn("could not read", problems[0])
 
 
 if __name__ == "__main__":
