@@ -523,6 +523,32 @@ def _combined_unit(text: str, number_start: int, suffix_unit: str) -> str:
     return f"{suffix_unit}/{prefix}" if suffix_unit else f"/{prefix}"
 
 
+#: Classifiers that count abstract items rather than measure anything: a
+#: category, a point in an argument, a market. Only consulted for numerals
+#: written in Chinese -- the digit form is a figure and stays checked.
+_RHETORICAL_CLASSIFIERS = frozenset({"個", "个", "項", "项", "件", "種", "种", "類", "类"})
+
+
+#: A ceiling or a floor the author chose, not a reading they took. The
+#: evidence side has always treated "<0.01" this way -- a limit is not a
+#: measurement -- and the claim side had no equivalent, so 「其餘七個品類沒有
+#: 一個超過 15%」 was refused for stating a 15% the data never states. It does
+#: not need to: the sentence asserts a bound, and the largest value in the
+#: table it cites is 14.15%.
+_CJK_BOUND_BEFORE_RE = re.compile(
+    r"(?:不超過|未超過|沒有超過|沒超過|不高於|不低於|不多於|不少於|不足|不到|低於|少於|多於|高於|超過|至多|最多|至少|最少)"
+    r"\s*(?:[約約莫大約]\s*)?$"
+)
+_CJK_BOUND_AFTER_RE = re.compile(r"^\s*(?:[^\s]{0,3}?)(?:以下|以上|以內|以内)")
+
+
+def _is_bounded_claim_number(text: str, start: int, end: int) -> bool:
+    """Is this figure a limit the sentence sets, rather than a value it reads?"""
+    if _CJK_BOUND_BEFORE_RE.search(text[max(0, start - 6):start]):
+        return True
+    return bool(_CJK_BOUND_AFTER_RE.match(text[end:end + 6]))
+
+
 def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
     """Return list of (number_str, unit_str) from text."""
     results = []
@@ -532,6 +558,8 @@ def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
         unit = _combined_unit(normalized, m.start(1), suffix)
         # "標價 $71.99" states a currency the same way "71.99 美元" does; only
         # the side it is written on differs.
+        if _is_bounded_claim_number(normalized, m.start(1), m.end(1)):
+            continue
         results.append((
             m.group(1).lstrip("~"),
             unit or _currency_before(normalized, m.start(1)),
@@ -553,6 +581,19 @@ def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
         # by a counter and then 就/獨/便 is a quantifier idiom, and reading it
         # as the quantity 1 blocked a sentence whose only figure was the 92.
         if m.group(1) == "一" and normalized[m.end(1) + 1:m.end(1) + 2] in ("就", "獨", "便"):
+            continue
+        # 「自成一個次市場」, 「其餘七個品類」, 「受三項資料限制」. A Chinese
+        # numeral in front of a generic classifier is counting the prose --
+        # an indefinite article, or the items in the list that follows -- not
+        # reading a figure off the data. Seven of the sixteen findings in an
+        # acceptance run were this, every one of them wrong, and the author's
+        # only way past was to rewrite good Chinese into stilted Chinese with
+        # the numbers taken out. A measured quantity in this register is
+        # written in digits, and 「6 個價格帶」 is still checked; so is 三筆,
+        # 兩年, 五家 and 三個月, whose classifiers name real things.
+        if suffix in _RHETORICAL_CLASSIFIERS:
+            continue
+        if _is_bounded_claim_number(normalized, m.start(1), m.end(1)):
             continue
         results.append((
             f"{value:g}",
@@ -977,11 +1018,22 @@ def _check_cjk_overlap(
 #: The four-character floor is the English rule's own, kept rather than
 #: lowered: Chinese uses 「」 for emphasis as well as quotation, and a two- or
 #: three-character 「重要」 is a writer stressing a term, not citing one.
+#: 「」 is deliberately absent. In Chinese it marks emphasis and scare-quotes at
+#: least as often as quotation -- 「應讀成『只有原廠周邊會掛品牌』」 was refused for
+#: not reproducing verbatim a phrase the author had flagged as their own reading.
+#: 『』 is the form that means quotation when 「」 does not, and a real citation in
+#: Chinese technical prose is introduced by a reporting verb, which is handled
+#: below.
 _QUOTED_PHRASE_RE = re.compile(
     r'"([^"]{4,200})"'
-    r"|「([^」]{4,200})」"
     r"|『([^』]{4,200})』"
     r"|“([^”]{4,200})”"
+)
+
+#: 「」 still means quotation after a reporting verb: 評論寫道「…」. Only then.
+_REPORTED_SPEECH_RE = re.compile(
+    r"(?:說|說道|寫道|表示|指出|稱|提到|引述|原文|回覆|評論|留言|批評|抱怨)"
+    r"\s*[:：]?\s*「([^」]{4,200})」"
 )
 
 _QUESTION_SPEAKER_RE = re.compile(r"^\s*(問|answer|question|q|a)\s*[:：.]\s*", re.IGNORECASE)
@@ -1172,7 +1224,7 @@ def _content_overlap_findings(
     quoted_phrases = [
         next(group for group in match if group)
         for match in _QUOTED_PHRASE_RE.findall(claim_text)
-    ]
+    ] + _REPORTED_SPEECH_RE.findall(claim_text)
     for phrase in quoted_phrases:
         # Strip trailing punctuation for matching
         phrase_stripped = phrase.rstrip('.,;:')

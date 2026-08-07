@@ -141,5 +141,93 @@ class ReaderDifferenceTests(unittest.TestCase):
         self.assertEqual([number for number, _unit in found], ["21,570", "21,760"])
 
 
+class ProseIsNotAMeasurementTests(unittest.TestCase):
+    """What a Chinese sentence counts, and what it merely says.
+
+    An acceptance run over three CSVs hit sixteen factuality findings. Six were
+    the gate catching real ungrounded arithmetic. Nine were this: ordinary
+    Chinese prose read as quantities the data was then required to state, and
+    the author's only route past the gate was to rewrite good sentences into
+    stilted ones with the figures taken out -- which costs exactly the thing
+    the gate exists to protect.
+    """
+
+    def _values(self, text: str) -> list[str]:
+        return [number for number, _unit in _extract_numbers_with_unit(text)]
+
+    def test_a_chinese_numeral_before_a_generic_classifier_counts_the_prose(self):
+        for text in (
+            "無人機馬達自成一個低價高週轉的次市場",
+            "品牌層面是一個白牌市場",
+            "其餘七個品類的佔比都不高",
+            "這兩個價格帶的表現相反",
+            "本研究受三項資料限制",
+            "其餘三個專業詞的污染程度較低",
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(self._values(text), [])
+
+    def test_a_classifier_that_names_a_real_thing_still_counts(self):
+        self.assertEqual(self._values("共三筆交易"), ["3"])
+        self.assertEqual(self._values("為期兩年"), ["2"])
+        self.assertEqual(self._values("五家廠商投標"), ["5"])
+        # 個月 is a unit of time; longest-match keeps it out of the carve-out.
+        self.assertEqual(
+            _extract_numbers_with_unit("歷時三個月"), [("3", "個月")]
+        )
+
+    def test_the_digit_form_is_a_figure_and_stays_checked(self):
+        # The carve-out reads the numeral's spelling, not the classifier alone:
+        # an author writing a measured count writes it in digits.
+        self.assertEqual(_extract_numbers_with_unit("6 個價格帶"), [("6", "個")])
+        self.assertEqual(self._values("六個價格帶"), [])
+
+    def test_a_bound_the_sentence_sets_is_not_a_value_it_read(self):
+        # The evidence side has always treated "<0.01" as a limit rather than a
+        # reading. 「沒有一個超過 15%」 asserts a ceiling the author chose; the data
+        # never states 15%, and it does not need to.
+        for text in (
+            "其餘七個品類沒有一個超過 15%",
+            "不超過 15% 的商品有品牌",
+            "價格多在 250 美元以下",
+            "至少 50 則評論才看得到轉換",
+        ):
+            with self.subTest(text=text):
+                self.assertEqual(self._values(text), [])
+
+    def test_the_same_figure_stated_plainly_is_still_a_reading(self):
+        self.assertEqual(self._values("該帶佔 15%"), ["15"])
+        self.assertEqual(self._values("價格中位數 250 美元"), ["250"])
+
+    def test_a_number_after_a_chinese_comma_is_visible(self):
+        # NFKC folds U+FF0C to ASCII ",", and the thousands-separator lookbehind
+        # then swallowed the figure -- in the most common position a number
+        # occupies in Chinese prose.
+        self.assertEqual(
+            self._values("共 544 筆商品列，其中 119 筆沒有價格"), ["544", "119"]
+        )
+        self.assertEqual(self._values("共 1,234 筆"), ["1,234"])
+
+    def test_corner_brackets_are_quotation_only_after_a_reporting_verb(self):
+        from report_workflow.nodes.factuality_check import (
+            _QUOTED_PHRASE_RE,
+            _REPORTED_SPEECH_RE,
+        )
+
+        emphasis = "這個數字應讀成「只有原廠周邊會掛品牌」"
+        self.assertEqual(_QUOTED_PHRASE_RE.findall(emphasis), [])
+        self.assertEqual(_REPORTED_SPEECH_RE.findall(emphasis), [])
+
+        reported = "一則評論寫道「連線常常斷掉」"
+        self.assertEqual(_REPORTED_SPEECH_RE.findall(reported), ["連線常常斷掉"])
+
+        # Every other quotation mark keeps its old meaning.
+        self.assertEqual(
+            [next(g for g in m if g)
+             for m in _QUOTED_PHRASE_RE.findall('the paper says "compiles ASTs" here')],
+            ["compiles ASTs"],
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
