@@ -1,0 +1,275 @@
+<!--
+RECORDED SAMPLE — Arm B, the harness with a real author.
+
+The delivered DOCX of one run of prepare -> author -> validate -> render over
+`benchmarks/fixtures/drone_market/*.csv`, reconstructed as text: heading levels
+from the paragraph styles, tables as pipe tables, everything in document order.
+
+Re-recorded every round. It is the only arm that moves, because it is the only
+arm the work changes; the other two are fixed so that a change in the comparison
+means a change in the pipeline.
+
+Authored, not filled in. The arm this replaces wrote one lead-in per table and
+made no argument between them, which isolated the harness's contribution and
+also guaranteed the argument axis would read zero for it no matter how good the
+harness became. The question being asked is whether the delivered report is
+better than a person's or an AI's, and a mechanical author cannot answer it.
+
+Every figure in here is cited to a ledger row the pipeline computed; nine tables
+carry their own provenance; three of the seven cross tabulations the pipeline
+built at intake were waived by name in the outline with a reason each.
+
+Measured when recorded: 12,801 characters, 52 traceable figures, 9 tables.
+-->
+
+## 目錄
+
+（開啟後按 F9 或於列印時自動更新目錄）
+
+# 1. 執行摘要
+
+## executive_summary
+
+544 件掛牌中攝影 243 件佔 44.67%，植保 63 件累積評論中位數 1.00，配件/零件 71 件，可競爭的整機範圍遠小於掛牌總數。[S1]換句話說，以 544 這個數字為分母估算市場規模，等於把零件貨架與一個沒有交易的品類算進了可競爭範圍。進入決策要用的分母是攝影這一塊，不是搜尋結果的總數。
+
+200–500 這一帶 102 則評論、12 件商品，平均星等 4.66、一二星佔比 4.90%，是聯結表最好的一格。[S2]這一格同時是評論數最多與負評率最低的一格，兩個指標互相獨立卻指向同一個位置。它的樣本很薄，第三節會說明薄到什麼程度，以及那如何限制這個結論。
+
+# 2. 主要發現
+
+## 品類結構：一個關鍵字貨架，四個不相干的市場
+
+攝影 243 件、佔 44.67%、累積評論中位數 225.00，是八個品類中規模與需求訊號同時最高的一個。[S1]規模與需求訊號通常不會同時出現在同一個品類——掛牌多的地方往往是供給過剩，評論多的地方往往是少數爆款。攝影兩者兼具，代表這裡的需求足以支撐多家供應商，而不是一兩件商品的長尾。
+
+下表把八個品類的掛牌數、價格中位數與累積評論中位數並排，用來判斷哪一塊有真實需求。
+
+表 1. 品類結構：八個品類的規模、價格與需求訊號
+
+| 品類 | 掛牌數 | 佔比 | 價格中位數 | 平均星等 | 累積評論中位數 |
+| --- | --- | --- | --- | --- | --- |
+| 攝影 | 243 | 44.67% | 139.98 USD | 4.27 | 225.00 |
+| 無人機馬達 | 77 | 14.15% | 32.70 USD | 4.38 | 14.00 |
+| 配件/零件 | 71 | 13.05% | 79.58 USD | 4.37 | 51.00 |
+| 植保 | 63 | 11.58% | 122.46 USD | 3.27 | 1.00 |
+| 非無人機商品 | 46 | 8.46% | 29.97 USD | 4.39 | 23.50 |
+| 消費級/其他 | 22 | 4.04% | 38.97 USD | 4.03 | 223.00 |
+| 多用途 | 14 | 2.57% | 3,579.00 USD | 4.11 | 5.00 |
+| 消防投彈 | 8 | 1.47% | 39.99 USD | 3.95 | 12.00 |
+| 合計 | 544 | 100.00% | 71.99 USD | 4.26 | 70.00 |
+
+來源：amazon_classified.csv amazon_classified.csv (544 rows)
+
+下表顯示四個關鍵字回收的商品在價格與評論上的差距，用來判斷它們是不是同一個市場。
+
+表 2. 四個搜尋關鍵字各自打到的價格層
+
+| keyword | 筆數 | 佔比 | price 平均 | price 中位數 | rating 平均 | rating 中位數 | review_count 中位數 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| drone | 279 | 51.29% | 1,085.70 USD | 99.97 USD | 4.27 | 4.30 | 197.00 |
+| agricultural spray drone | 111 | 20.40% | 705.99 USD | 113.29 USD | 3.77 | 3.95 | 11.50 |
+| drone brushless motor | 102 | 18.75% | 56.45 USD | 33.61 USD | 4.38 | 4.40 | 14.00 |
+| thermal imaging drone | 52 | 9.56% | 298.69 USD | 124.99 USD | 4.25 | 4.40 | 92.00 |
+| 合計 | 544 | 100.00% | 735.50 USD | 71.99 USD | 4.26 | 4.30 | 70.00 |
+
+來源：amazon_products.csv amazon_products.csv (544 rows)
+
+植保 63 件、佔 11.58%、累積評論中位數 1.00、平均星等 3.27，是八類中星等最低的一類。[S1]63 件掛牌配上這樣的評論中位數，意思是這些商品被上架但沒有被買。把它讀成「競爭尚未形成的藍海」是危險的：更可能的解釋是這個通路本身不是植保機的購買通路。
+
+drone brushless motor 這個關鍵字回收 102 件、佔 18.75%，價格中位數 33.61 USD，與 drone 的 99.97 USD 不在同一個價格層。[S3]同一次抓取裡出現兩個相差三倍的價格層，代表關鍵字回收的不是一個品類而是一個貨架。任何把這些掛牌當成同一個市場的平均價、平均星等，描述的都是一個不存在的商品。
+
+## 價格帶：供給最密的地方不是需求最厚的地方
+
+0–30 有 99 件掛牌、佔 18.20%，累積評論中位數只有 24.00；200–500 只有 53 件、佔 9.74%，累積評論中位數 327.00。[S4]供給最密的一帶評論最少，供給稀薄的一帶評論最多，這個反向關係是這份資料裡最強的結構訊號。它的意思不是低價賣不動，而是低價帶的競爭者多到單件商品分不到注意力。
+
+下表把每個價格帶的掛牌數與累積評論中位數放在一起，看供給與需求是否落在同一帶。
+
+表 3. 價格帶的供給密度與需求厚度
+
+| 價格帶 (USD) | 掛牌數 | 佔比 | 平均星等 | 累積評論中位數 |
+| --- | --- | --- | --- | --- |
+| 0–30 | 99 | 18.20% | 4.24 | 24.00 |
+| 30–50 | 80 | 14.71% | 4.18 | 106.00 |
+| 50–100 | 63 | 11.58% | 4.37 | 22.00 |
+| 100–200 | 64 | 11.76% | 4.16 | 63.00 |
+| 200–500 | 53 | 9.74% | 4.29 | 327.00 |
+| 500–800 | 13 | 2.39% | 4.50 | 321.00 |
+| 800+ | 53 | 9.74% | 4.45 | 65.50 |
+| 合計 | 425 | 78.12% | 4.26 | 51.50 |
+
+來源：amazon_products.csv amazon_products.csv (425 rows)
+
+下表是把評論聯結回掛牌價格之後的結果，用來檢查上一張表的需求訊號是否對應到滿意度。
+
+表 4. 口碑依價格帶（評論檔與掛牌檔以 asin 聯結）
+
+| 價格帶 (USD) | 評論數 | 商品數 | 平均星等 | 一二星佔比 |
+| --- | --- | --- | --- | --- |
+| 0–30 | 25 | 4 | 4.32 | 12.00% |
+| 30–50 | 81 | 10 | 4.30 | 9.88% |
+| 50–100 | 67 | 11 | 4.28 | 13.43% |
+| 100–200 | 77 | 11 | 4.09 | 18.18% |
+| 200–500 | 102 | 12 | 4.66 | 4.90% |
+| 500+ | 21 | 2 | 4.52 | 9.52% |
+| 合計 | 373 | 50 | 4.36 | 10.99% |
+
+來源：amazon_reviews.csv amazon_reviews.csv (373 rows)
+
+500–800 只有 13 件掛牌、佔 2.39%，平均星等 4.50、累積評論中位數 321.00。[S4]這麼少的掛牌撐不起一個結論，但它與上一帶的方向一致，可以當成同一個判斷的第二個獨立佐證。把兩帶合看，兩百美元以上就是供給稀薄而需求存在的區間。
+
+100–200 這一帶 77 則評論、11 件商品，平均星等 4.09、一二星佔比 18.18%，是聯結表最差的一格。[S2]這一格的負評率是相鄰上一格的數倍，而兩格的價差只有一個級距。最合理的解釋是期待落差：買家付了不算便宜的價格，拿到的是規格妥協過的機器。
+
+## 品牌集中度：一個 DJI，和 337 件沒有名字的貨
+
+在有品牌標示的掛牌上，CR3 為 53.62%、CR10 為 72.95%。[S5] [S6]這兩個數字的分母是有品牌標示的掛牌，不是全部掛牌，這一點在資料限制一節會回來談。在這個分母下，品牌側的集中度其實相當高，與「白牌遍地」的直覺相反。
+
+下表列出有品牌標示的掛牌，用來判斷這個貨架上誰真的建立了位置。
+
+表 5. 品牌側的掛牌數、價格與評論分布
+
+| brand | 筆數 | 佔比 | price 平均 | price 中位數 | rating 平均 | rating 中位數 | review_count 中位數 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| DJI | 92 | 16.91% | 1,077.30 USD | 247.50 USD | 4.39 | 4.50 | 307.00 |
+| Holy Stone | 10 | 1.84% | 138.40 USD | 139.99 USD | 4.13 | 4.20 | 2,780.00 |
+| Contixo | 9 | 1.65% | 209.43 USD | 149.99 USD | 3.64 | 3.70 | 28.00 |
+| Potensic | 9 | 1.65% | 323.77 USD | 279.99 USD | 4.49 | 4.50 | 1,871.00 |
+| BetaFPV | 8 | 1.47% | 152.12 USD | 117.99 USD | 4.04 | 4.00 | 12.00 |
+| Antigravity | 6 | 1.10% | 1,599.00 USD | 1,599.00 USD | 4.20 | 4.60 | 1.00 |
+| Autel | 6 | 1.10% | 3,979.00 USD | 3,289.00 USD | 4.47 | 4.50 | 11.00 |
+| Cozyego | 4 | 0.74% | 61.23 USD | 56.98 USD | 4.65 | 4.85 | 4.00 |
+| Ruko | 4 | 0.74% | 454.99 USD | 449.99 USD | 4.45 | 4.45 | 175.50 |
+| MAD COMPONENTS | 3 | 0.55% | 182.99 USD | 227.99 USD | — | — | — |
+| Parrot | 3 | 0.55% | — | — | 3.80 | 3.80 | 198.00 |
+| Bwine | 2 | 0.37% | 399.98 USD | 399.98 USD | 4.45 | 4.45 | 794.00 |
+| CADDXFPV | 2 | 0.37% | 149.99 USD | 149.99 USD | 3.15 | 3.15 | 39.00 |
+| MOCVOO | 2 | 0.37% | 26.99 USD | 26.99 USD | 3.75 | 3.75 | 901.00 |
+| Midzooparts | 2 | 0.37% | 66.14 USD | 66.14 USD | — | — | — |
+| 其他（39 組） | 45 | 8.27% | 470.16 USD | 59.99 USD | 4.30 | 4.30 | 82.00 |
+| 合計 | 207 | 38.05% | 714.22 USD | 119.99 USD | 4.29 | 4.40 | 140.00 |
+
+來源：amazon_products.csv amazon_products.csv (207 rows)
+
+下表用銷量欄位的級距交叉價格與評論，用來檢查評論數是否可以當需求的代理。
+
+表 6. 銷量級距與累積評論的對應關係
+
+| sales | 筆數 | 佔比 | price 平均 | price 中位數 | rating 平均 | rating 中位數 | review_count 中位數 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 100+ bought in past month | 46 | 8.46% | 362.10 USD | 89.99 USD | 4.22 | 4.35 | 198.00 |
+| 50+ bought in past month | 34 | 6.25% | 101.56 USD | 57.99 USD | 4.24 | 4.20 | 121.00 |
+| 200+ bought in past month | 22 | 4.04% | 122.09 USD | 119.98 USD | 4.28 | 4.25 | 794.00 |
+| 500+ bought in past month | 16 | 2.94% | 245.15 USD | 139.99 USD | 4.37 | 4.40 | 806.00 |
+| 400+ bought in past month | 12 | 2.21% | 201.17 USD | 47.99 USD | 4.38 | 4.35 | 413.00 |
+| 1K+ bought in past month | 11 | 2.02% | 68.58 USD | 41.36 USD | 4.42 | 4.50 | 776.50 |
+| 300+ bought in past month | 11 | 2.02% | 500.32 USD | 236.00 USD | 4.40 | 4.40 | 327.00 |
+| 2K+ bought in past month | 5 | 0.92% | 323.89 USD | 59.97 USD | 4.32 | 4.40 | 1,166.00 |
+| 3K+ bought in past month | 2 | 0.37% | 214.49 USD | 214.49 USD | 4.35 | 4.35 | 1,796.50 |
+| 10K+ bought in past month | 1 | 0.18% | 35.99 USD | 35.99 USD | 4.40 | 4.40 | 33,535.00 |
+| 4K+ bought in past month | 1 | 0.18% | 299.00 USD | 299.00 USD | 4.50 | 4.50 | 3,965.00 |
+| 5K+ bought in past month | 1 | 0.18% | 29.58 USD | 29.58 USD | 4.00 | 4.00 | — |
+| 600+ bought in past month | 1 | 0.18% | 49.98 USD | 49.98 USD | 3.90 | 3.90 | 131.00 |
+| 6K+ bought in past month | 1 | 0.18% | 49.99 USD | 49.99 USD | 4.60 | 4.60 | 8,639.00 |
+| 8K+ bought in past month | 1 | 0.18% | 64.98 USD | 64.98 USD | 4.60 | 4.60 | 8,830.00 |
+| 合計 | 165 | 30.33% | 227.31 USD | 69.99 USD | 4.29 | 4.30 | 328.00 |
+
+來源：amazon_products.csv amazon_products.csv (165 rows)
+
+DJI 有 92 件掛牌、佔 16.91%，價格中位數 247.50 USD；第二名 Holy Stone 只有 10 件、佔 1.84%。[S7] [S8]第一名與第二名之間差了將近一個數量級，而第二名之後迅速衰減。這不是一個多強權競爭的品類，是一家獨大加上一群規模相近的小玩家。
+
+帶銷量欄位的 165 件掛牌中，200+ bought in past month 這一組 22 件的累積評論中位數 794.00，遠高於 100+ 那一組 46 件的 198.00。[S9]銷量級距愈高的組別，累積評論中位數也愈高，兩個欄位互相印證。這讓評論數可以在銷量欄位缺漏時當成需求的代理指標，但代理仍然是代理。
+
+## 買家痛點：低分不是因為拍得差，是連不上與壞掉
+
+1–3 星區間 49 則評論中提及連線的佔 28.57%、提及故障的佔 10.20%，而 5 星以上 349 則的對應比例是 14.04% 與 3.44%。[S10]同一個主題在低分區的比例是高分區的兩倍以上，代表它是被抱怨而不是被稱讚。連線與故障是這份評論資料裡唯二具備這個性質的主題。
+
+下表把四個主題的提及率依星等區間拆開，差異方向比絕對值更有訊息。
+
+表 7. 痛點主題在不同星等區間的提及率
+
+| 星等區間 | 評論數 | 提及影像 | 提及連線 | 提及說明 | 提及故障 |
+| --- | --- | --- | --- | --- | --- |
+| 1–3 | 49 | 22.45% | 28.57% | 6.12% | 10.20% |
+| 3–5 | 75 | 30.67% | 13.33% | 8.00% | 4.00% |
+| 5+ | 349 | 36.96% | 14.04% | 5.16% | 3.44% |
+| 合計 | 473 | 34.46% | 15.43% | 5.71% | 4.23% |
+
+來源：amazon_reviews.csv amazon_reviews.csv (473 rows)
+
+下表把評論聯結回品類，用來看滿意度是否隨用途而變。
+
+表 8. 口碑依品類（評論檔與分類檔以 asin 聯結）
+
+| 品類 | 評論數 | 平均星等 | 一二星佔比 |
+| --- | --- | --- | --- |
+| 攝影 | 405 | 4.46 | 9.38% |
+| 無人機馬達 | 32 | 4.25 | 12.50% |
+| 非無人機商品 | 16 | 4.88 | 0.00% |
+| 消防投彈 | 12 | 3.58 | 33.33% |
+| 消費級/其他 | 8 | 3.12 | 37.50% |
+| 合計 | 473 | 4.41 | 10.36% |
+
+來源：amazon_reviews.csv amazon_reviews.csv (473 rows)
+
+提及影像的比例在 1–3 星是 22.45%，在 5 星以上是 36.96%，方向與連線和故障相反。[S10]影像在高分區被提得更多，代表提到它的人多半是滿意的。把提及率當成在意程度會得到相反的結論——這是同一張表裡最容易被誤讀的一列。
+
+攝影類 405 則評論平均星等 4.46、一二星 9.38%；消費級/其他 8 則平均 3.12、一二星 37.50%。[S11]兩個品類的星等差距超過一顆星，而樣本量差了數十倍。後者的評論數太少，不足以下結論，列在這裡是為了說明主流用途以外的滿意度沒有被這份資料涵蓋。
+
+# 3. 資料限制與反面證據
+
+口碑聯結表只涵蓋 373 則評論、50 件商品，其中 500+ 那一格只有 21 則評論、2 件商品。[S2]摘要那個「兩百到五百美元最好」的結論，背後只有十幾件商品；最高價那一格更少。任何以這張表為基礎的價格帶排序，都必須被理解為五十件商品的排序，而不是全部掛牌的排序。
+
+價格分組只涵蓋 425 筆，另有 119 筆在 price 欄無可用值未列入分組。[S4]缺漏不是隨機的：沒有標價的掛牌集中在 B2B 與高價端。這代表價格帶分布低估了高價端的供給，而高價端的需求同樣被銷量欄位的缺漏低估。
+
+下表列出每個品類的分類信心分數，用來判斷哪些品類的結論站得住。
+
+表 9. 分類信心分數依品類
+
+| category | 筆數 | 佔比 | price 平均 | price 中位數 | review_count 平均 | review_count 中位數 | score 中位數 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 攝影 | 243 | 44.67% | 535.95 USD | 139.98 USD | 1,115.95 | 225.00 | 4.00 |
+| 無人機馬達 | 77 | 14.15% | 54.02 USD | 32.70 USD | 48.08 | 14.00 | 2.00 |
+| 配件/零件 | 71 | 13.05% | 514.52 USD | 79.58 USD | 281.70 | 51.00 | 0.00 |
+| 植保 | 63 | 11.58% | 1,008.44 USD | 122.46 USD | 176.57 | 1.00 | 6.00 |
+| 非無人機商品 | 46 | 8.46% | 1,976.10 USD | 29.97 USD | 1,918.41 | 23.50 | 0.00 |
+| 消費級/其他 | 22 | 4.04% | 43.13 USD | 38.97 USD | 2,658.00 | 223.00 | 0.00 |
+| 多用途 | 14 | 2.57% | 4,800.36 USD | 3,579.00 USD | 7.43 | 5.00 | 0.00 |
+| 消防投彈 | 8 | 1.47% | 359.08 USD | 39.99 USD | 30.17 | 12.00 | 2.00 |
+| 合計 | 544 | 100.00% | 735.50 USD | 71.99 USD | 945.92 | 70.00 | 2.00 |
+
+來源：amazon_classified.csv amazon_classified.csv (544 rows)
+
+分類信心分數在配件/零件 71 件是 0.00，在非無人機商品 46 件是 0.00。[S12]低信心集中在殘餘品類，代表攝影與植保這兩個承載主要結論的分類相對可靠。但它同時意味著配件與零件那個掛牌數不能拿來當成零件市場規模的估計。
+
+CR3 的 53.62% 是以 brand 欄有值的掛牌為分母計算的。[S5]換一個分母，這個數字會完全改變：以全部掛牌為分母時，前三名只佔兩成上下。報告採用有品牌標示的掛牌為分母，因此品牌集中度的結論只適用於品牌側，不適用於整個貨架。
+
+# 4. 建議事項
+
+200–500 平均星等 4.66、一二星 4.90%，且該價格帶只有 53 件掛牌、佔 9.74%。[S2] [S4]建議的切點是兩百到五百美元的攝影類整機：口碑最好且供給最稀薄。這是一個關於下限的選擇——它的典型掛牌能活，而不是它的頭部最大。
+
+1–3 星區間提及連線 28.57%、提及說明 6.12%、提及故障 10.20%。[S10]產品主張應該放在連線穩定與開箱即用，而不是影像規格。低分評論裡連線的提及率是說明的數倍，而影像在低分區反而比高分區更少被提到。
+
+植保 63 件掛牌的累積評論中位數是 1.00，平均星等 3.27。[S1]不建議進入植保。掛牌數配上這樣的評論中位數與平均星等，三個數字都指向這個通路上沒有交易在發生，而不是競爭者還沒到。
+
+# 資料來源
+
+[S1] amazon_classified.csv amazon_classified.csv (544 rows) — “衍生統計(來源:amazon_classified.csv ⋈ amazon_products.csv):品類結構（分類×掛牌）。依 category 分為 8 組，涵蓋 544 筆資料列（全檔 544 筆）。本表由 amazon_classified.csv 與 amazon_” — amazon_classified.csv ⋈ amazon_products.csv
+
+[S2] amazon_reviews.csv amazon_reviews.csv (373 rows) — “衍生統計(來源:amazon_reviews.csv ⋈ amazon_products.csv):口碑依價格帶（評論×掛牌）。依 price 分為 6 組，涵蓋 373 筆資料列（全檔 473 筆）。另有 100 筆在該欄無可用值，未列入分組。本表由 amazon_review” — amazon_reviews.csv ⋈ amazon_products.csv
+
+[S3] amazon_products.csv amazon_products.csv (544 rows) — “衍生統計(來源:amazon_products.csv):keyword 分組交叉表。依 keyword 分為 4 組，涵蓋 544 筆資料列（全檔 544 筆）。 keyword | 筆數 | 佔比 | price 平均 | price 中位數 | rating 平均 | ra” — amazon_products.csv
+
+[S4] amazon_products.csv amazon_products.csv (425 rows) — “衍生統計(來源:amazon_products.csv):價格帶供給與需求訊號。依 price 分為 7 組，涵蓋 425 筆資料列（全檔 544 筆）。另有 119 筆在該欄無可用值，未列入分組。價格帶 (USD) | 掛牌數 | 佔比 | 平均星等 | 累積評論中位數 0–” — amazon_products.csv
+
+[S5] amazon_products.csv amazon_products.csv (544 rows) — “衍生統計(來源:amazon_products.csv):品牌 CR3為 53.62%。計算方式:對全部資料列共 544 筆（全檔 544 筆）的 brand 欄施以 top_share 運算。（top DJI, Holy Stone, Contixo）” — amazon_products.csv
+
+[S6] amazon_products.csv amazon_products.csv (544 rows) — “衍生統計(來源:amazon_products.csv):品牌 CR10為 72.95%。計算方式:對全部資料列共 544 筆（全檔 544 筆）的 brand 欄施以 top_share 運算。（top DJI, Holy Stone, Contixo, Potensic,” — amazon_products.csv
+
+[S7] amazon_products.csv amazon_products.csv (92 rows) — “衍生統計(來源:amazon_products.csv):DJI 掛牌佔比為 16.91%。計算方式:對 brand=DJI 共 92 筆（全檔 544 筆）施以 share 運算。（92 of 544）” — amazon_products.csv
+
+[S8] amazon_products.csv amazon_products.csv (207 rows) — “衍生統計(來源:amazon_products.csv):brand 分組交叉表。依 brand 分為 16 組，涵蓋 207 筆資料列（全檔 544 筆）。另有 337 筆在該欄無可用值，未列入分組。 brand | 筆數 | 佔比 | price 平均 | price 中位數” — amazon_products.csv
+
+[S9] amazon_products.csv amazon_products.csv (165 rows) — “衍生統計(來源:amazon_products.csv):sales 分組交叉表。依 sales 分為 15 組，涵蓋 165 筆資料列（全檔 544 筆）。另有 379 筆在該欄無可用值，未列入分組。 sales | 筆數 | 佔比 | price 平均 | price 中位數” — amazon_products.csv
+
+[S10] amazon_reviews.csv amazon_reviews.csv (473 rows) — “衍生統計(來源:amazon_reviews.csv):痛點主題依星等。依 review_rating 分為 3 組，涵蓋 473 筆資料列（全檔 473 筆）。各組實際涵蓋的值：1–3=1 至 2, 3–5=3 至 4, 5+=5 及以上。星等區間 | 評論數 | 提及影像” — amazon_reviews.csv
+
+[S11] amazon_reviews.csv amazon_reviews.csv (473 rows) — “衍生統計(來源:amazon_reviews.csv ⋈ amazon_classified.csv):口碑依品類（評論×分類）。依 category 分為 5 組，涵蓋 473 筆資料列（全檔 473 筆）。本表由 amazon_reviews.csv 與 amazon_cla” — amazon_reviews.csv ⋈ amazon_classified.csv
+
+[S12] amazon_classified.csv amazon_classified.csv (544 rows) — “衍生統計(來源:amazon_classified.csv):category 分組交叉表。依 category 分為 8 組，涵蓋 544 筆資料列（全檔 544 筆）。 category | 筆數 | 佔比 | price 平均 | price 中位數 | review_co” — amazon_classified.csv
