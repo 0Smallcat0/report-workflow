@@ -1,5 +1,33 @@
 # Changelog
 
+## 4.36.0 - 2026-08-07
+
+### Fixed — the grouped form existed and authors still built tables by hand
+
+Two acceptance runs over the same three CSVs registered 22 and then 47
+derivations. The second was 41 scalars against 6 tables, and six of those
+scalars were mean-and-negative-rate across three price bands: a two by three
+table, spelled out one cell at a time. Of the seven cross tabulations the
+pipeline had already computed and listed, that run placed none, and the run
+before it placed two.
+
+Nothing was wrong with any individual request, which is exactly why nothing
+stopped it. Every one returns a working number, and the author never finds out
+the table was one call away.
+
+- **Three or more one-cell derivations that differ only by a row filter are
+  refused**, and the refusal writes out the single grouped request that
+  replaces them — with a note to supply bucket edges when the filters cut a
+  numeric range, since those are the author's to choose. Two of a shape is a
+  comparison and is left alone.
+
+- **The brief leads with the tables that are already built.** They were listed
+  in ledger order among two dozen single-column summaries, which is where they
+  were hardest to find and where they carry the most. They now have their own
+  section, above the summaries, each with the `[TABLE:]` marker that places it,
+  and the registration guide says to work through that list before registering
+  anything.
+
 ## 4.35.0 - 2026-08-07
 
 ### Fixed — ordinary Chinese prose was being read as measurements

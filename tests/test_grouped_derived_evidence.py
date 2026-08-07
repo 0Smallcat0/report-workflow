@@ -384,5 +384,95 @@ class LedgerBytesStayPutTests(unittest.TestCase):
         self.assertEqual(first, second)
 
 
+class BrickLayingIsRefusedTests(unittest.TestCase):
+    """The grouped form existing was not enough to get it used.
+
+    Two acceptance runs registered 22 and then 47 derivations against the same
+    three files. The second was 41 scalars and 6 tables, and six of those
+    scalars were mean-and-negative-rate across three price bands: a two by
+    three table, spelled out. Nothing was wrong with any single request, which
+    is exactly why nothing stopped it — every one returns a working number, and
+    the author never finds out the table was one call away.
+    """
+
+    def _problems(self, requests: list[dict]) -> dict[str, str]:
+        _units, problems = build_requested_units(requests, REGISTRY, CREATED_AT)
+        return {problem["id"]: problem["error"] for problem in problems}
+
+    def test_the_same_shape_three_times_over_is_one_table(self):
+        problems = self._problems([
+            {"id": "low", "source": "products.csv", "op": "mean",
+             "column": "rating", "rows": "price<50"},
+            {"id": "mid", "source": "products.csv", "op": "mean",
+             "column": "rating", "rows": "price>=50 & price<100"},
+            {"id": "high", "source": "products.csv", "op": "mean",
+             "column": "rating", "rows": "price>=100"},
+        ])
+        self.assertEqual(sorted(problems), ["high", "low", "mid"])
+        message = problems["low"]
+        self.assertIn("group_by", message)
+        self.assertIn('"column": "price"', message)
+        # A numeric slice needs edges the author picks; the refusal says so
+        # rather than choosing them.
+        self.assertIn("buckets", message)
+
+    def test_the_refusal_carries_the_request_that_replaces_it(self):
+        problems = self._problems([
+            {"id": "a", "source": "products.csv", "op": "count", "rows": "category=camera"},
+            {"id": "b", "source": "products.csv", "op": "count", "rows": "category=racing"},
+            {"id": "c", "source": "products.csv", "op": "count", "rows": "category=toy"},
+        ])
+        replacement = json.loads(
+            problems["a"][problems["a"].index("{"):problems["a"].rindex("}") + 1]
+        )
+        self.assertEqual(replacement["group_by"], {"column": "category"})
+        self.assertEqual(replacement["measures"], [{"op": "count"}])
+        # A categorical grouping needs no edges, and the message must not
+        # invent any.
+        self.assertNotIn("buckets", problems["a"])
+        _units, _problems = build_requested_units(
+            [{**replacement, "id": "mix"}], REGISTRY, CREATED_AT
+        )
+        self.assertEqual(_problems, [])
+
+    def test_two_of_a_shape_is_a_comparison_not_a_table(self):
+        self.assertEqual(self._problems([
+            {"id": "a", "source": "products.csv", "op": "count", "rows": "category=camera"},
+            {"id": "b", "source": "products.csv", "op": "count", "rows": "category=racing"},
+        ]), {})
+
+    def test_unrelated_scalars_are_left_alone(self):
+        self.assertEqual(self._problems([
+            {"id": "n", "source": "products.csv", "op": "count"},
+            {"id": "hhi", "source": "products.csv", "op": "hhi", "column": "brand"},
+            {"id": "med", "source": "products.csv", "op": "median", "column": "price"},
+            {"id": "one", "source": "products.csv", "op": "max",
+             "column": "price", "rows": "brand=DJI"},
+        ]), {})
+
+
+class TheBriefLeadsWithTheBuiltTablesTests(unittest.TestCase):
+    def test_ready_tables_are_listed_before_the_column_summaries(self):
+        from report_workflow.nodes.agent_tasks import _derived_stats_guidance
+
+        with tempfile.TemporaryDirectory() as workspace:
+            ledger = Path(workspace) / "evidence_ledger.jsonl"
+            ledger.write_text(
+                "\n".join(
+                    json.dumps(unit, ensure_ascii=False)
+                    for unit in dataset_summary_units(REGISTRY, CREATED_AT)
+                ) + "\n",
+                encoding="utf-8",
+            )
+            guidance = _derived_stats_guidance(str(ledger))
+
+        tables_at = guidance.index("Tables already built and ready to place")
+        summaries_at = guidance.index("Single-column summaries computed at intake")
+        self.assertLess(tables_at, summaries_at)
+        # The marker to place one has to be in the section, or the author has
+        # a list of tables and no way to use them.
+        self.assertIn("[TABLE:", guidance[tables_at:summaries_at])
+
+
 if __name__ == "__main__":
     unittest.main()
