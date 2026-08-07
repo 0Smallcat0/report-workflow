@@ -1,5 +1,41 @@
 # Changelog
 
+## 4.35.0 - 2026-08-07
+
+### Fixed — ordinary Chinese prose was being read as measurements
+
+A second independent acceptance run over the fixture CSVs hit sixteen
+factuality findings. Six were the gate doing its job, including four ratios the
+author had computed from two table cells. Nine were the checker mistaking
+Chinese for arithmetic, and the cost was not the blocked claims — it was that
+the only way past the gate was to rewrite good sentences into stilted ones with
+the figures removed, which is the opposite of what the gate exists to protect.
+
+- **A Chinese numeral in front of a generic classifier counts the prose, not
+  the data.** 「自成一個低價高週轉的次市場」 is an indefinite article;
+  「受三項資料限制」 counts the list that follows it; 「其餘七個品類」 counts rows
+  the reader can already see. All of them were read as the quantities 1, 3 and
+  7 and refused for not appearing in the evidence — seven of the sixteen
+  findings. 個, 项/項, 件, 種 and 類 after a *Chinese-form* numeral are no longer
+  quantities. The digit form is: 「6 個價格帶」 is still checked, and so are 三筆,
+  兩年, 五家 and 三個月, whose classifiers name real things.
+
+- **A bound the sentence sets is not a value it read.** 「其餘七個品類沒有一個
+  超過 15%」 was refused for stating a 15% the data never states. It does not
+  need to — the sentence asserts a ceiling, and the largest value in the table
+  it cites is 14.15%. The evidence side has always treated `<0.01` as a limit
+  rather than a reading; the claim side now does the same for 不超過, 未超過,
+  不到, 低於, 至多, 至少 and the 以下/以上/以內 suffixes.
+
+- **「」 is emphasis at least as often as quotation.** A phrase the author had
+  explicitly introduced as their own reading — 「應讀成…」 — was refused for not
+  appearing verbatim in the source. 「」 now counts as quotation only after a
+  reporting verb (評論寫道「…」); 『』 and the ASCII and curly double quotes are
+  unchanged.
+
+Adversarial recall holds at 88.6% with zero false positives, and the verdict
+hash is unchanged: none of these carve-outs touches a case the corpus tests.
+
 ## 4.34.0 - 2026-08-07
 
 ### Added — one request now returns a whole table, and two files can be joined first
