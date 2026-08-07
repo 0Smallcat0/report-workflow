@@ -113,28 +113,16 @@ Waiving is a real decision and costs a sentence; leaving a built table
 unmentioned is not available.
 
 **What would weaken the report.** A blueprint section may set
-`requires_undermines` — `business_report`'s `limitations` does. That section
-carries at least two claims of its own and names the conclusions it qualifies:
-
-```json
-"limitations": {"claim_ids": ["c14", "c15"], "undermines": ["c3", "c7"]}
-```
-
-The ids in `undermines` belong to *other* sections. A section that weakens
+`counter_evidence` — `business_report`'s `limitations` does. That section carries
+at least two claims of its own, and each of them names, in the prose, the
+conclusion it qualifies and the figure that qualifies it. A section that weakens
 nothing is a disclaimer.
 
 **The questions the task statement asked.** When a section sets
-`must_answer_prompt_questions` (`business_report`'s `recommendations`) and the
-statement asks something, the brief lists the questions with indices and the
-section binds a claim to each:
-
-```json
-"recommendations": {"claim_ids": ["c12", "c13"],
-                    "answers": [{"question_index": 0, "claim_ids": ["c12"]}]}
-```
-
-The claims named must be that section's own — the answer is a sentence in the
-conclusion, not a cross-reference to one.
+`must_answer_prompt_questions` and the statement asks something, the brief lists
+the questions against that section. Answer them there, in sentences. There is no
+id mapping to fill in: an earlier version required `answers` by index and
+`undermines` by claim id, and neither ever reached the page.
 
 ## Evidence and Citation Rules
 

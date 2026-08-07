@@ -747,7 +747,7 @@ def _outline_obligations(state, evidence_path: str | None) -> str:
         ]
 
     tables = built_table_entries(_derived_units(evidence_path))
-    counter_sections = flagged("requires_undermines")
+    counter_sections = flagged("counter_evidence")
     answer_sections = flagged("must_answer_prompt_questions")
     questions = (
         extract_questions(state.spec.get("user_prompt", "")) if answer_sections else []
@@ -797,18 +797,11 @@ def _outline_obligations(state, evidence_path: str | None) -> str:
         parts.extend([
             f"### `{section_id}` - what would weaken the conclusions",
             "",
-            "This section carries at least two claims of its own, and declares which",
-            "conclusions elsewhere in the report it qualifies:",
-            "",
-            "```json",
-            f'"{section_id}": {{"claim_ids": ["c14", "c15"], "undermines": ["c3", "c7"]}}',
-            "```",
-            "",
-            "`undermines` names claims in *other* sections. The paragraph this asks for",
-            "is the one that says a headline finding may be an artefact - a field whose",
-            "coverage varies with the thing being measured, a segment the source",
-            "under-samples, a rate resting on a handful of rows. A section that weakens",
-            "nothing is a disclaimer, and the gate reads it as one.",
+            "This section carries at least two claims of its own. The paragraph it asks",
+            "for is the one that says a headline finding may be an artefact - a field",
+            "whose coverage varies with the thing being measured, a segment the source",
+            "under-samples, a rate resting on a handful of rows. Name the conclusion each",
+            "one qualifies in the prose, where the reader will see it.",
             "",
         ])
 
@@ -820,17 +813,10 @@ def _outline_obligations(state, evidence_path: str | None) -> str:
             "",
             listed,
             "",
-            f"`{section_id}` must bind a claim to each one, by index:",
-            "",
-            "```json",
-            f'"{section_id}": {{"claim_ids": ["c12", "c13"],',
-            '  "answers": [{"question_index": 0, "claim_ids": ["c12"]}]}',
-            "```",
-            "",
-            "The claims named have to belong to that section - the answer is a sentence",
-            "in the conclusion, not a cross-reference to one. A report that states four",
-            "hundred checked figures and never says which way the decision goes has not",
-            "been written for the person who asked.",
+            f"Answer each of them in `{section_id}`, in a sentence, with the claim that",
+            "carries the answer. A report that states four hundred checked figures and",
+            "never says which way the decision goes has not been written for the person",
+            "who asked.",
             "",
         ])
 
@@ -988,7 +974,7 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
         "source under-samples, a rate resting on a handful of rows. The outline has "
         "a section for them and will be refused without them.\n"
         if any(
-            isinstance(spec, dict) and spec.get("requires_undermines")
+            isinstance(spec, dict) and spec.get("counter_evidence")
             for spec in ((state.plan.get("blueprint") or {}).get("sections") or {}).values()
         )
         else ""

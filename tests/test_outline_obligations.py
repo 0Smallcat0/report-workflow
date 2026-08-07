@@ -1,10 +1,11 @@
-"""The three things an outline now has to account for.
+"""What an outline has to account for, and what it no longer has to.
 
-Every one of these exists because a run shipped without it and nothing failed:
-a cross tabulation the pipeline had already built went unmentioned, a report
-never said what would weaken it, and a conclusion never answered the question the
-task statement asked. None of those is a hallucination, so no gate saw them.
-"""
+Two rules survive because they change the delivered document: a cross tabulation
+the pipeline built is placed or waived by name, and a counter-evidence section
+carries more than one claim. Three did not: a minimum waiver-reason length, a
+no-duplicate-reasons rule, and two id-mapping exercises (`undermines`,
+`answers`) that never reached the page. They policed rule-following, not reports.
+""" 
 from __future__ import annotations
 
 import json
@@ -20,7 +21,6 @@ from report_workflow.errors import QAHardBlockError  # noqa: E402
 from report_workflow.nodes.outline_plan import (  # noqa: E402
     _validate_counter_evidence,
     _validate_derived_table_coverage,
-    _validate_prompt_answers,
 )
 from report_workflow.prompt_questions import extract_questions  # noqa: E402
 from report_workflow.state import ReportState, WORKFLOW_RUNS_DIR  # noqa: E402
@@ -36,7 +36,7 @@ BLUEPRINT = {
     "section_order": ["findings", "limitations", "recommendations"],
     "sections": {
         "findings": {"section_id": "findings", "required": True},
-        "limitations": {"section_id": "limitations", "required": True, "requires_undermines": True},
+        "limitations": {"section_id": "limitations", "required": True, "counter_evidence": True},
         "recommendations": {
             "section_id": "recommendations",
             "required": True,
@@ -166,23 +166,20 @@ class BuiltTableCoverageTests(unittest.TestCase):
         )
         self.assertEqual(list(coverage["waived"]), ["E_auto_0"])
 
-    def test_a_token_reason_is_not_a_reason(self):
+    def test_a_waiver_with_no_reason_at_all_is_refused(self):
+        # A minimum length and a no-duplicates rule used to police this. Both
+        # measured rule-following rather than the report, and both are gone; what
+        # is left is that dropping a table is a decision someone made in words.
         state = _state()
-        outline = {"sections": _sections(), "unused_derived_evidence": {"E_auto_0": "n/a"}}
+        outline = {"sections": _sections(), "unused_derived_evidence": {"E_auto_0": "  "}}
         with self.assertRaises(QAHardBlockError) as ctx:
             _validate_derived_table_coverage(state, outline)
-        self.assertIn("no usable reason", str(ctx.exception))
+        self.assertIn("no reason at all", str(ctx.exception))
 
-    def test_one_reason_pasted_across_two_tables_is_refused(self):
-        state = _state(tables=2)
-        reason = "this crossing does not separate the segments the report is about"
-        outline = {
-            "sections": _sections(),
-            "unused_derived_evidence": {"E_auto_0": reason, "E_auto_1": reason},
-        }
-        with self.assertRaises(QAHardBlockError) as ctx:
-            _validate_derived_table_coverage(state, outline)
-        self.assertIn("reused for more than one table", str(ctx.exception))
+    def test_a_short_reason_is_accepted(self):
+        state = _state()
+        outline = {"sections": _sections(), "unused_derived_evidence": {"E_auto_0": "重複"}}
+        _validate_derived_table_coverage(state, outline)
 
     def test_waiving_an_id_that_is_not_a_built_table_is_refused(self):
         state = _state()
@@ -203,92 +200,16 @@ class BuiltTableCoverageTests(unittest.TestCase):
 
 
 class CounterEvidenceSectionTests(unittest.TestCase):
-    def _claim_ids(self) -> set:
-        return {"c1", "c_lim_1", "c_lim_2"}
-
     def test_a_single_claim_is_a_disclaimer(self):
         sections = _sections(limitations={
             "section_id": "limitations", "claim_ids": ["c_lim_1"], "undermines": ["c1"],
         })
         with self.assertRaises(QAHardBlockError) as ctx:
-            _validate_counter_evidence(_state(), sections, self._claim_ids())
+            _validate_counter_evidence(_state(), sections)
         self.assertIn("at least 2 are required", str(ctx.exception))
 
-    def test_weakening_nothing_is_refused(self):
-        sections = _sections(limitations={
-            "section_id": "limitations", "claim_ids": ["c_lim_1", "c_lim_2"],
-        })
-        with self.assertRaises(QAHardBlockError) as ctx:
-            _validate_counter_evidence(_state(), sections, self._claim_ids())
-        self.assertIn("undermines", str(ctx.exception))
-
-    def test_naming_its_own_claims_is_refused(self):
-        sections = _sections(limitations={
-            "section_id": "limitations",
-            "claim_ids": ["c_lim_1", "c_lim_2"],
-            "undermines": ["c_lim_1"],
-        })
-        with self.assertRaises(QAHardBlockError) as ctx:
-            _validate_counter_evidence(_state(), sections, self._claim_ids())
-        self.assertIn("its own claims", str(ctx.exception))
-
-    def test_naming_a_claim_that_does_not_exist_is_refused(self):
-        sections = _sections(limitations={
-            "section_id": "limitations",
-            "claim_ids": ["c_lim_1", "c_lim_2"],
-            "undermines": ["c99"],
-        })
-        with self.assertRaises(QAHardBlockError) as ctx:
-            _validate_counter_evidence(_state(), sections, self._claim_ids())
-        self.assertIn("c99", str(ctx.exception))
-
     def test_a_section_naming_what_it_qualifies_is_accepted(self):
-        _validate_counter_evidence(_state(), _sections(), self._claim_ids())
-
-
-class ConclusionAnswersTests(unittest.TestCase):
-    def test_a_conclusion_that_answers_nothing_is_refused_with_the_questions(self):
-        sections = _sections(recommendations={
-            "section_id": "recommendations", "claim_ids": ["c1"],
-        })
-        with self.assertRaises(QAHardBlockError) as ctx:
-            _validate_prompt_answers(_state(), sections)
-        message = str(ctx.exception)
-        self.assertIn("值不值得進入", message)
-        self.assertIn("question_index", message)
-
-    def test_a_half_answered_statement_names_what_is_left(self):
-        sections = _sections(recommendations={
-            "section_id": "recommendations",
-            "claim_ids": ["c1"],
-            "answers": [{"question_index": 0, "claim_ids": ["c1"]}],
-        })
-        with self.assertRaises(QAHardBlockError) as ctx:
-            _validate_prompt_answers(_state(), sections)
-        self.assertIn("哪個切點", str(ctx.exception))
-
-    def test_the_answer_has_to_be_stated_in_the_conclusion(self):
-        sections = _sections(recommendations={
-            "section_id": "recommendations",
-            "claim_ids": ["c1"],
-            "answers": [
-                {"question_index": 0, "claim_ids": ["c_lim_1"]},
-                {"question_index": 1, "claim_ids": ["c1"]},
-            ],
-        })
-        with self.assertRaises(QAHardBlockError) as ctx:
-            _validate_prompt_answers(_state(), sections)
-        self.assertIn("c_lim_1", str(ctx.exception))
-
-    def test_a_task_statement_asking_nothing_requires_nothing(self):
-        state = _state(prompt=RECYCLING_PROMPT)
-        sections = _sections(recommendations={
-            "section_id": "recommendations", "claim_ids": ["c1"],
-        })
-        _validate_prompt_answers(state, sections)
-
-    def test_a_bound_answer_for_each_question_is_accepted(self):
-        _validate_prompt_answers(_state(), _sections())
+        _validate_counter_evidence(_state(), _sections())
 
 
 class JoinCitationMeasurementTests(unittest.TestCase):
