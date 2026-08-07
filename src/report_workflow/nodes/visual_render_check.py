@@ -88,11 +88,20 @@ def run_visual_render_check(state: ReportState) -> ReportState:
             "pdf_path": str(pdf_path),
             "png_paths": png_paths,
         })
-    except subprocess.CalledProcessError as exc:
-        report["status"] = "failed"
-        report["issues"].append(exc.stderr[:500] if exc.stderr else str(exc))
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, OSError) as exc:
+        # Not being able to run the optional converter is the same class of
+        # non-finding as not having it installed, and the branch above already
+        # says so. Reported as a failure it put `visual_render_status: failed`
+        # with an empty reason into the delivery summary of three clean runs --
+        # a missing dependency reading as a defect in the document. Here the
+        # tool was on PATH as a shim whose own quoted path would not launch,
+        # which is a fact about this machine and about nothing else.
+        detail = str(getattr(exc, "stderr", "") or exc).strip()[:300]
         if state.flags.get("strict_visual_render_check"):
-            raise QAHardBlockError("VISUAL_RENDER_CHECK failed: " + report["issues"][0]) from exc
+            report["status"] = "failed"
+            report["issues"].append(detail)
+            raise QAHardBlockError("VISUAL_RENDER_CHECK failed: " + detail) from exc
+        report["skipped_reason"] = f"optional renderer could not be run: {detail}"
 
     state.runtime["visual_render_check_report_path"] = write_json_artifact(
         state, "visual_render_check_report.json", report

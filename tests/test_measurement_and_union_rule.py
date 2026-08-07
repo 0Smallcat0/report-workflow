@@ -17,8 +17,10 @@ thing it measured had quietly stopped being the thing it named.
 import sys
 import tempfile
 import unittest
+import unittest.mock
 import zipfile
 from pathlib import Path
+from types import SimpleNamespace
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
@@ -153,6 +155,53 @@ class OneVotePerEvidenceTests(unittest.TestCase):
             self._verdict("評論數 0–10 則的商品有 120 筆。", ["has_it"])["status"],
             "supported",
         )
+
+
+class AMissingToolIsNotADefectInTheDocumentTests(unittest.TestCase):
+    """Three clean runs reported `visual_render_status: failed`.
+
+    The optional DOCX-to-PNG check found `soffice` on PATH as a shim whose own
+    quoted path would not launch. That is a fact about one machine. Filed as a
+    failure with an empty reason it sat in the delivery summary of three reports
+    that had passed every gate, next to `render.status: pass` and an empty issue
+    list -- the branch for "not installed" already reasons this way and says so
+    in a comment.
+    """
+
+    def _report(self, run_dir: Path, **flags) -> dict:
+        from report_workflow.nodes import visual_render_check as node
+
+        docx = run_dir / "rendered_report.docx"
+        docx.write_bytes(b"not really a docx")
+
+        state = SimpleNamespace(
+            job_id=run_dir.name,
+            output={"final_docx_path": str(docx)},
+            runtime={},
+            flags=dict(flags),
+        )
+        with unittest.mock.patch.object(node, "WORKFLOW_RUNS_DIR", run_dir.parent),              unittest.mock.patch.object(node, "_find_executable", lambda *a: "definitely-not-a-real-binary"),              unittest.mock.patch.object(node, "write_json_artifact",
+                                        lambda _state, _name, report: report):
+            node.run_visual_render_check(state)
+        return state.runtime["visual_render_check_report_path"]
+
+    def test_a_launch_failure_is_reported_as_skipped_with_a_reason(self):
+        with tempfile.TemporaryDirectory() as workspace:
+            run_dir = Path(workspace) / "job"
+            run_dir.mkdir()
+            report = self._report(run_dir)
+        self.assertEqual(report["status"], "skipped")
+        self.assertTrue(report["skipped_reason"], "the reason must not be empty")
+        self.assertEqual(report["issues"], [])
+
+    def test_strict_mode_still_hard_blocks(self):
+        from report_workflow.errors import QAHardBlockError
+
+        with tempfile.TemporaryDirectory() as workspace:
+            run_dir = Path(workspace) / "job"
+            run_dir.mkdir()
+            with self.assertRaises(QAHardBlockError):
+                self._report(run_dir, strict_visual_render_check=True)
 
 
 if __name__ == "__main__":

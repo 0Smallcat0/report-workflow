@@ -1,5 +1,60 @@
 # Changelog
 
+## 4.37.0 - 2026-08-07
+
+Everything three independent acceptance runs turned up, closed in one pass.
+
+### Fixed — a clause break was read as a thousands separator, inventing a figure
+
+NFKC folds the fullwidth comma to ASCII, and the thousands-separator branch of
+the number pattern then matched across it. 「跳升至 327，500–1,000 為 317」 states
+327, then a new clause about the 500–1,000 band, then 317; it came out as the
+single number **327,500**, which appears in no evidence because it does not
+exist. This is the mirror of the 4.35.0 repair — same fold, opposite direction —
+and the worse of the two: a suppressed figure blocks a true sentence and the
+author notices, an invented one is reported as the author's own claim. The
+fullwidth comma is now held apart through the fold, so a real `1,234` still
+reads as one number and a clause break never does.
+
+### Fixed — 「並非只有一家」 was a count of one
+
+`一` before a classifier, after a limiting phrase (只有, 僅有, 不只, 不止, 不僅,
+並非), means "a single one" — which the sentence is asserting or denying as a
+whole, not counting. `家` still counts companies in 「五家廠商」 and
+「併購了一家公司」; the carve-out keys on the phrase in front, not on the
+classifier, because the classifier is doing honest work elsewhere. 超過一家 was
+already handled as a bound.
+
+### Fixed — a half-open band said neither of the values it holds
+
+A band cut at `[1, 3)` over star ratings is labelled `1–3` and contains 1 and 2.
+An author read the table, wrote 「1–2 星」, and the content check refused it: the
+digit 2 appeared nowhere in the evidence. The same phrase passed against a
+different table solely because that table's column header spelled the range out
+— same fact, same words, opposite verdict depending on a header. Bucketed tables
+over integral columns now state each band's membership in the evidence text
+(`1–3=1 至 2`). Columns holding fractions get no such claim: writing "0 to 29"
+for a band containing 29.99 would be false about the data.
+
+### Fixed — a tool that would not launch was reported as a defect in the document
+
+The optional DOCX-to-PNG check found `soffice` on PATH as a shim whose own
+quoted path would not execute. Filed as `status: failed` with an empty reason, it
+sat in the delivery summary of three reports that passed every gate, beside
+`render.status: pass` and an empty issue list. Not being able to run the optional
+converter is the same non-finding as not having it installed, which the adjacent
+branch already says in a comment: it is now `skipped` with the reason stated.
+`strict_visual_render_check` still hard-blocks.
+
+### Fixed — a failed publish did not say which file to open
+
+`publish_report` returned the gate text and nothing about repair, and
+`get_next_action` then reports the publish stage, whose write scope is empty by
+design — so an author reading both concluded nothing was legally editable.
+`submit_action` is what routes the failure back to the stage that owns the fix
+and returns `allowed_repair_paths`, and that was discoverable only by guessing.
+The failure response now says so.
+
 ## 4.36.1 - 2026-08-07
 
 ### Fixed — the measurement counted the source list as analysis
