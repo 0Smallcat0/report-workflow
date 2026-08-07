@@ -1085,6 +1085,11 @@ For `new_draft`, the editable artifacts are `claim_matrix.json`, `outline.json`,
 - Mark medium-grade or qualitative source wording as hedged in `sentence_map.jsonl`;
   reserve `measured` wording for high-grade evidence (FD blocks it on
   medium-grade evidence even when that evidence is quantitative).
+- **Give a load-bearing claim two independent evidence ids, not one.** Independent
+  means they do not derive from each other: a CR3 and a CR10 over the same column
+  are one piece of evidence at two cuts, while a share, a median and a coverage
+  rate from three different columns are three. A conclusion resting on one figure
+  is a conclusion that dies with that figure.
 {claim_role_rule}
 {counter_evidence_claim_rule}
 {derived_stats_guidance}## Making a statistic citable
@@ -1213,6 +1218,14 @@ Do not edit `merged_draft.md` directly. For `new_draft`, fix section files under
 - Do not invent claims not present in `claim_matrix.json`.
 - Do not write placeholder text such as "This section is under development".
 - Use `wording_strength="hedged"` unless the linked evidence is high-grade.
+- **Put the figure in the sentence, not only in the table.** A table a reader
+  scrolls past carries nothing; the number that decides the paragraph belongs in
+  the paragraph. Placing a table and then writing "as shown above" spends the
+  table and states nothing.
+- **Say what the second piece of evidence adds.** Where a claim cites two
+  independent figures, the prose has to use both — one sentence for what each
+  shows, one for why they agree or disagree. Two ids on a claim and one figure in
+  the prose is a claim resting on one figure with a citation for decoration.
   FD hard-blocks `measured` on medium-grade evidence, quantitative or not.
 - Write one Markdown file for each required blueprint section, plus any optional section included in `outline.json`.
 - **Publication text forbidden patterns** (hard blocks in the pipeline):

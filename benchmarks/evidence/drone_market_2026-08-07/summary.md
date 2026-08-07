@@ -11,18 +11,18 @@ scorers. Reproduce with `python scripts/run_drone_market_benchmark.py --check`.
 | Axis | Dimension | hand | tool | llm_direct |
 | --- | --- | ---: | ---: | ---: |
 | numeric | external_sources | 0 | 6 | 0 |
-| numeric | verifiable_numbers | 121 | 52 | 72 |
-| numeric | verifiable_number_ratio | 0.7035 | 0.486 | 0.5714 |
+| numeric | verifiable_numbers | 121 | 71 | 72 |
+| numeric | verifiable_number_ratio | 0.7035 | 0.4465 | 0.5714 |
 | numeric | tables | 13 | 9 | 11 |
 | numeric | figures | 0 | 0 | 0 |
-| numeric | counter_evidence_paragraphs | 0 | 3 | 0 |
+| numeric | counter_evidence_paragraphs | 0 | 5 | 0 |
 | numeric | disclosed_derivations | 0 | 0 | 0 |
 | numeric | structured_paragraph_ratio | 0.3784 | 0.6774 | 0.3548 |
 | layout | heading_informativeness | 0.3571 | 0.6667 | 0.3333 |
 | layout | table_lead_in_ratio | 0.9231 | 1.0 | 0.8182 |
-| layout | paragraph_length_fitness | 0.5172 | 0.541 | 0.8 |
+| layout | paragraph_length_fitness | 0.5172 | 0.5333 | 0.8 |
 | argument | claim_strength | 3 | 3 | 4 |
-| argument | evidence_depth | 3 | 2 | 3 |
+| argument | evidence_depth | 3 | 3 | 3 |
 | argument | counter_specificity | 4 | 3 | 4 |
 
 ## Where the tool arm stands
@@ -34,7 +34,7 @@ AI-direct arm, and loses at most one axis to the hand-written control.
 | --- | --- | --- |
 | numeric | 3W 3L not yet | 3W 3L not yet |
 | layout | 2W 1L won | 3W 0L won |
-| argument | 0W 3L not yet | 0W 2L not yet |
+| argument | 0W 2L not yet | 0W 1L not yet |
 
 Beats the AI-direct arm on every axis: **False**. Axes lost to the hand-written control: **2**. Stop condition met: **False**.
 
