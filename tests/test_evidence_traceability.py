@@ -455,15 +455,21 @@ class OutlineFigureContractTests(unittest.TestCase):
     def _outline_state(self, tmpdir: str, used_figures: list[str]) -> ReportState:
         state, _src = _prepare_market_report(tmpdir)
         run_dir = WORKFLOW_RUNS_DIR / state.job_id
-        state.plan["claim_matrix"] = {"claims": [{"claim_id": "c1"}]}
+        state.plan["claim_matrix"] = {
+            "claims": [{"claim_id": "c1"}, {"claim_id": "c_limit_1"}, {"claim_id": "c_limit_2"}]
+        }
         sections = {
             section_id: {
                 "section_id": section_id,
-                "claim_ids": ["c1"],
+                "claim_ids": (
+                    ["c_limit_1", "c_limit_2"] if section_id == "limitations" else ["c1"]
+                ),
                 "figure_ids": used_figures if section_id == "findings" else [],
             }
             for section_id in state.plan["blueprint"]["section_order"]
         }
+        if "limitations" in sections:
+            sections["limitations"]["undermines"] = ["c1"]
         (run_dir / "outline.json").write_text(
             json.dumps({"sections": sections}), encoding="utf-8"
         )
@@ -517,11 +523,20 @@ class OutlineSubsectionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmpdir:
             state, _src = _prepare_market_report(tmpdir)
             state.plan["claim_matrix"] = {
-                "claims": [{"claim_id": "c1"}, {"claim_id": "c2"}]
+                "claims": [
+                    {"claim_id": "c1"}, {"claim_id": "c2"},
+                    {"claim_id": "c_limit_1"}, {"claim_id": "c_limit_2"},
+                ]
             }
             sections = {
                 section_id: {"section_id": section_id, "claim_ids": ["c1"], "figure_ids": []}
                 for section_id in state.plan["blueprint"]["section_order"]
+            }
+            sections["limitations"] = {
+                "section_id": "limitations",
+                "claim_ids": ["c_limit_1", "c_limit_2"],
+                "undermines": ["c1"],
+                "figure_ids": [],
             }
             sections["findings"] = {
                 "section_id": "findings",
@@ -651,6 +666,15 @@ class DeliveredDocumentTests(unittest.TestCase):
             }
             for index, row in enumerate(picked, start=1)
         ]
+        # The counter-evidence section this blueprint requires has to carry
+        # claims of its own and name conclusions it does not carry, so it gets
+        # its own copies rather than sharing the body's.
+        body_claim_ids = [claim["claim_id"] for claim in claims]
+        claims.extend(
+            {**claims[-1], "claim_id": f"c_limit_{index}", "claim_role": "supporting"}
+            for index in (1, 2)
+        )
+        counter_claim_ids = ["c_limit_1", "c_limit_2"]
         (run_dir / "claim_matrix.json").write_text(
             json.dumps({"claims": claims}, ensure_ascii=False), encoding="utf-8"
         )
@@ -665,16 +689,24 @@ class DeliveredDocumentTests(unittest.TestCase):
 
         order = state.plan["blueprint"]["section_order"]
         claimless = {"references", "appendix"}
+
+        def _section_claim_ids(section_id: str) -> list[str]:
+            if section_id in claimless:
+                return []
+            return counter_claim_ids if section_id == "limitations" else body_claim_ids
+
         sections = {
             section_id: {
                 "section_id": section_id,
                 "goals": f"cover {section_id}",
-                "claim_ids": [] if section_id in claimless else [c["claim_id"] for c in claims],
+                "claim_ids": _section_claim_ids(section_id),
                 "paragraph_order": ["state the supported claims"],
                 "figure_ids": [],
             }
             for section_id in order
         }
+        if "limitations" in sections:
+            sections["limitations"]["undermines"] = body_claim_ids[:1]
         (run_dir / "outline.json").write_text(
             json.dumps({"sections": sections}, ensure_ascii=False), encoding="utf-8"
         )
@@ -691,7 +723,8 @@ class DeliveredDocumentTests(unittest.TestCase):
             lines = [f"# {section_id}", ""]
             if section_id == "findings" and table_id:
                 lines.extend([f"下表列出來源的原始數據。[TABLE:{table_id} 回收成本]", ""])
-            for claim in claims:
+            wanted = set(_section_claim_ids(section_id))
+            for claim in (c for c in claims if c["claim_id"] in wanted):
                 marker = " ".join(f"[CITE:{eid}]" for eid in claim["evidence_ids"])
                 # The whole claim text, not a prefix of it: FS blocks a sentence that
                 # omits a figure its claim asserts, and truncating here would

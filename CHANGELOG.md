@@ -1,5 +1,85 @@
 # Changelog
 
+## 4.38.0 - 2026-08-07
+
+Three acceptance runs of one task, same code, same data, ten minutes apart:
+1050 body figures and ten tables, then 777 and eight, then 668 and six. The
+worst of the three lost to the hand-written control. A reader gets one run, not
+the average of three, so the run that loses is the one the tool is judged on —
+and nothing in it failed. This release closes the three ways a run could quietly
+be the worse one.
+
+### Fixed — a table the pipeline had already built could go unmentioned
+
+Seven cross tabulations are computed at intake, identically on every run: the
+same seven evidence ids appeared in all three acceptance runs, so the variance
+was never the tool's. The three authors placed four of them, then three, then
+two. Nothing blocked, nothing was reported, and the document with two tables
+fewer looked like a smaller job rather than a lossier one.
+
+`OUTLINE_PLAN` now refuses an outline until every built table is accounted for:
+placed — a claim cites it, or a figure draws on it — or waived by name in
+`unused_derived_evidence` with a reason of its own. Waiving is a real option and
+costs one sentence; what is gone is dropping one by omission. The reason must be
+at least 20 characters and may not be pasted across two tables, because one
+reason covering five tables is the omission wearing a sentence. The outline
+brief lists the tables with their ids before the outline is written, and
+`derived_table_coverage.json` records what happened to each.
+
+### Added — `business_report` must say what would weaken it, and answer what was asked
+
+The hand-written control won on something no count could see. It spent a chapter
+on seven pieces of counter-evidence, opening by conceding that its own headline
+recommendation might be an artefact of which listings carry a sales figure —
+coverage falls from 53.8% in the $30–50 band to 13.2% above $800, so "no demand
+at the high end" is not something the data supports. It also answered, in its
+first line, the two things the brief asked. Three assisted runs did neither,
+because nothing asked them to.
+
+`business_report` now has a required **資料限制與反面證據** section, and required
+is not enough on its own — a heading over "limitations apply" would satisfy it.
+The section carries at least two claims and declares `undermines`: the claim ids
+*elsewhere in the report* whose support it qualifies. Naming a claim it carries
+itself is refused, so the author has to find a conclusion of theirs the data does
+not fully carry.
+
+The conclusion is held to the task statement the same way. The questions are
+extracted from `user_prompt` deterministically — Chinese briefs ask without a
+question mark far more often than with one — listed in the outline brief with
+their indices, and the conclusion binds a claim to each by index. The author
+never retypes the question, so a mis-extraction shows up in the brief rather
+than being answered with something else. A statement that asks for work rather
+than answers extracts nothing and this costs nothing.
+
+### Added — a second quality benchmark, over raw data, against the arm that was ahead
+
+`benchmarks/evidence/report_quality_2026-08-06` measures a prose source, where
+the harness was already winning. The comparison that mattered was three raw CSVs
+and a market question, and it existed only in an output directory that is not in
+the repository.
+
+`scripts/run_drone_market_benchmark.py` records it: the same three CSVs, the same
+task statement, the hand-built control checked in as
+`benchmarks/fixtures/drone_market_unassisted.md` (11,670 characters, 703 figures,
+13 tables), and a live run of prepare → author → validate → render. Both arms are
+scored by the *other* benchmark's functions, imported rather than copied, so a
+scorer change cannot improve one arm and not the other. `--check` fails on drift;
+`--write` regenerates. The archive records three losses as measured, including
+`tables` 13 to 7 — the tool arm places every built table and registers none of
+its own, and that gap is what an author adds.
+
+### Fixed — the measurement said cross-file joins reached no conclusion
+
+It said so because it looked for a `join` marker on the evidence record, where
+one never appears: a joined derivation surfaces as `E_D_<request id>`. Measured
+correctly, the three acceptance runs carried nine, ten and ten join-backed
+conclusions out of 36, 34 and 28 claims. The feature was working and the
+instrument was not.
+
+`scripts/measure_report_body_density.py` now takes a run directory and reports
+it: join-backed conclusions, built tables placed and waived, and derivations
+registered by hand, beside the body density it already measured.
+
 ## 4.37.0 - 2026-08-07
 
 Everything three independent acceptance runs turned up, closed in one pass.

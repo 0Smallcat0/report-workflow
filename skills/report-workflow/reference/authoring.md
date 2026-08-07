@@ -93,6 +93,49 @@ missing, the pipeline writes `section_drafts/*.md`, inserts `[CITE:]` markers fr
 Use manual `section_drafts/*.md` plus `sentence_map.jsonl` only when the draft
 needs direct Markdown control or when repairing generated canonical drafts.
 
+## What the Outline Must Account For
+
+`OUTLINE_PLAN` refuses the outline until three things are settled. The outline
+brief lists all of them, filled in with this run's ids, before you write it.
+
+**Every cross tabulation the pipeline built.** They are computed at intake and
+listed in the brief. Each is either placed — a claim cites its id, or a figure
+draws on it — or waived by name:
+
+```json
+"unused_derived_evidence": {
+  "E_28767e63_1af1b725ea": "the sales axis repeats the price-band table at a cut the argument does not use"
+}
+```
+
+A reason is at least 20 characters, and one reason may not cover two tables.
+Waiving is a real decision and costs a sentence; leaving a built table
+unmentioned is not available.
+
+**What would weaken the report.** A blueprint section may set
+`requires_undermines` — `business_report`'s `limitations` does. That section
+carries at least two claims of its own and names the conclusions it qualifies:
+
+```json
+"limitations": {"claim_ids": ["c14", "c15"], "undermines": ["c3", "c7"]}
+```
+
+The ids in `undermines` belong to *other* sections. A section that weakens
+nothing is a disclaimer.
+
+**The questions the task statement asked.** When a section sets
+`must_answer_prompt_questions` (`business_report`'s `recommendations`) and the
+statement asks something, the brief lists the questions with indices and the
+section binds a claim to each:
+
+```json
+"recommendations": {"claim_ids": ["c12", "c13"],
+                    "answers": [{"question_index": 0, "claim_ids": ["c12"]}]}
+```
+
+The claims named must be that section's own — the answer is a sentence in the
+conclusion, not a cross-reference to one.
+
 ## Evidence and Citation Rules
 
 - Every publishable claim needs at least one valid `evidence_id`.

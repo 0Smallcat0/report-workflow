@@ -10,13 +10,13 @@ Reproduce with `python scripts/run_report_quality_benchmark.py --check`.
 | Dimension | Unassisted | Tool | Winner |
 | --- | ---: | ---: | --- |
 | external_sources | 0 | 8 | tool |
-| verifiable_numbers | 1 | 68 | tool |
-| verifiable_number_ratio | 1.0 | 0.9189 | unassisted |
+| verifiable_numbers | 1 | 64 | tool |
+| verifiable_number_ratio | 1.0 | 0.9014 | unassisted |
 | tables | 0 | 4 | tool |
 | figures | 0 | 1 | tool |
-| counter_evidence_paragraphs | 2 | 3 | tool |
+| counter_evidence_paragraphs | 2 | 4 | tool |
 | disclosed_derivations | 0 | 6 | tool |
-| structured_paragraph_ratio | 0.7143 | 0.6486 | unassisted |
+| structured_paragraph_ratio | 0.7143 | 0.5714 | unassisted |
 
 Tool wins 6 of 8 dimensions; unassisted wins 2; 0 tie.
 
@@ -45,9 +45,8 @@ its own author can adjust until it wins is not evidence of anything.
 checkable figures: it writes 八萬 and 兩千四百 where the source writes 80,000
 and 2,383, and a Chinese numeral is a paraphrase of a quantity rather than
 the quantity. Its perfect ratio is one verifiable number out of one. The
-tool arm states 62 and can trace 87% of them; the rest are derived figures,
-which the derivation dimension covers. Read the ratio next to the count or
-the metric rewards vagueness.
+tool arm states 64 and can trace 90% of them; the rest are derived figures, which the derivation dimension covers. Read the
+ratio next to the count or the metric rewards vagueness.
 
 **structured_paragraph_ratio.** The tool arm is dragged down by its own
 mechanical author, which writes one-line lead-ins before a table ('下表為

@@ -49,6 +49,9 @@ jobs:
       - name: Report-quality benchmark check (harness versus unassisted)
         run: python scripts/run_report_quality_benchmark.py --check
 
+      - name: Drone-market benchmark check (harness versus the hand-built control)
+        run: python scripts/run_drone_market_benchmark.py --check
+
       - name: Unit tests
         run: python -m unittest discover -s tests -v
 

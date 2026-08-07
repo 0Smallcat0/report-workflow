@@ -16,6 +16,7 @@ front_matter:
 section_order:
   - executive_summary
   - findings
+  - limitations
   - recommendations
   - appendix
   - references
@@ -42,20 +43,42 @@ sections:
     # claim and figure ids are hoisted into the section so every downstream
     # gate keeps working unchanged.
     supports_subsections: true
+  # What would weaken the conclusions above. Required, and required to name
+  # them: an unassisted write-up of the same source opened its counter-evidence
+  # chapter by conceding that its own headline recommendation might be an
+  # artefact of which listings carry a sales figure, and three assisted runs of
+  # the same task shipped no equivalent paragraph because nothing asked for one.
+  # `requires_undermines` is what stops this becoming a "limitations apply"
+  # sentence: the outline has to name the claim ids this section qualifies, so
+  # the author has to find a conclusion of theirs the data does not fully carry.
+  limitations:
+    section_id: limitations
+    title: Data Limitations and Counter-Evidence
+    title_zh: 資料限制與反面證據
+    required: true
+    section_type: limitations
+    order: 3
+    requires_undermines: true
   recommendations:
     section_id: recommendations
     title: Recommendations
     title_zh: 建議事項
     required: true
     section_type: recommendations
-    order: 3
+    order: 4
+    # The reader asked something — whether to enter, where to enter — and a
+    # report can state four hundred checked figures without answering it. The
+    # questions are extracted from the task statement and this section has to
+    # bind a claim to each. A statement that asks for work rather than answers
+    # extracts none, and then this costs nothing.
+    must_answer_prompt_questions: true
   appendix:
     section_id: appendix
     title: Appendix
     title_zh: 附錄
     required: false
     section_type: appendix
-    order: 4
+    order: 5
     supports_subsections: true
   # Generated from the evidence ledger by CITATION_BIND and appended at
   # render; the author writes nothing here. Declared so the heading carries
@@ -66,4 +89,4 @@ sections:
     title_zh: 參考文獻
     required: false
     section_type: references
-    order: 5
+    order: 6
