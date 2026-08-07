@@ -43,14 +43,17 @@ sections:
     # claim and figure ids are hoisted into the section so every downstream
     # gate keeps working unchanged.
     supports_subsections: true
-  # What would weaken the conclusions above. Required, and required to name
-  # them: an unassisted write-up of the same source opened its counter-evidence
-  # chapter by conceding that its own headline recommendation might be an
-  # artefact of which listings carry a sales figure, and three assisted runs of
-  # the same task shipped no equivalent paragraph because nothing asked for one.
-  # `requires_undermines` is what stops this becoming a "limitations apply"
-  # sentence: the outline has to name the claim ids this section qualifies, so
-  # the author has to find a conclusion of theirs the data does not fully carry.
+  # What would weaken the conclusions above. An unassisted write-up of the same
+  # source opened its counter-evidence chapter by conceding that its own headline
+  # recommendation might be an artefact of which listings carry a sales figure,
+  # and three assisted runs of the same task shipped no equivalent paragraph
+  # because nothing asked for one. Requiring the section is what fixed that.
+  #
+  # It briefly also required the outline to list the claim ids this section
+  # qualified. That list never reached the page — it was bookkeeping the reader
+  # never saw — so it is gone. `counter_evidence` now carries one rule that does
+  # change the document: a section with a single claim is a disclaimer, so it
+  # needs two.
   limitations:
     section_id: limitations
     title: Data Limitations and Counter-Evidence
@@ -58,7 +61,7 @@ sections:
     required: true
     section_type: limitations
     order: 3
-    requires_undermines: true
+    counter_evidence: true
   recommendations:
     section_id: recommendations
     title: Recommendations
@@ -68,9 +71,14 @@ sections:
     order: 4
     # The reader asked something — whether to enter, where to enter — and a
     # report can state four hundred checked figures without answering it. The
-    # questions are extracted from the task statement and this section has to
-    # bind a claim to each. A statement that asks for work rather than answers
-    # extracts none, and then this costs nothing.
+    # questions are extracted from the task statement and listed in the outline
+    # brief against this section.
+    #
+    # They used to have to be answered by index, each bound to a claim. That was
+    # a JSON mapping exercise standing in for a sentence, and the sentence is
+    # what the reader needs: the brief now says which questions were found and
+    # the gate is gone. A statement that asks for work rather than answers
+    # extracts none, and then this shows nothing.
     must_answer_prompt_questions: true
   appendix:
     section_id: appendix

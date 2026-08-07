@@ -139,7 +139,7 @@ def _write_agent_artifacts(state: ReportState) -> None:
     counter_sections = [
         section_id
         for section_id, spec in (state.plan["blueprint"].get("sections") or {}).items()
-        if isinstance(spec, dict) and spec.get("requires_undermines")
+        if isinstance(spec, dict) and spec.get("counter_evidence")
     ]
     counter_claim_ids = ["c_limit_1", "c_limit_2"] if counter_sections else []
     for claim_id in counter_claim_ids:

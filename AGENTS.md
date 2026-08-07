@@ -218,16 +218,16 @@ writes `derived_table_coverage.json` recording what happened to each:
 
 - `unused_derived_evidence` — `{evidence_id: reason}`. Every cross tabulation in
   the ledger is placed (a claim cites it, or a figure draws on it) or waived
-  here. A reason is at least 20 characters and may not be reused for a second
-  table.
-- `<section>.undermines` — required when the blueprint section sets
-  `requires_undermines`. Claim ids **elsewhere in the report** whose support this
-  section qualifies; the section carries at least two claims of its own.
-- `<section>.answers` — `[{"question_index": n, "claim_ids": [...]}]`, required
-  when the blueprint section sets `must_answer_prompt_questions` **and** the task
-  statement asks something. Questions are extracted from `user_prompt` by
-  `report_workflow.prompt_questions.extract_questions`, listed in the outline
-  brief, and answered by index; the claims named must belong to that section.
+  here with a reason. A minimum reason length and a no-duplicate-reasons rule
+  were tried and removed: they measured rule-following, and the delivered
+  document was byte-identical with and without them.
+
+A blueprint section marked `counter_evidence` carries at least two claims. A
+section marked `must_answer_prompt_questions` has the task statement's questions
+listed against it in the outline brief — extracted by
+`report_workflow.prompt_questions.extract_questions` — and answers them in prose.
+Neither is an id-mapping exercise any more; `undermines` and `answers` were both
+bookkeeping the reader never saw.
 
 Statistics over structured sources are evidence. `EVIDENCE_BUILD` writes
 summary units for every table — row and per-column value counts, numeric
@@ -299,11 +299,8 @@ report-workflow invalidate-cache --job-id <id> --sources --drafts
   reason. Leaving it unmentioned is the loss-by-omission this gate exists for:
   three runs of one task placed four of seven, then three, then two, and the
   document with two tables fewer failed nothing.
-- A blueprint section marked `requires_undermines` names the conclusions it
-  qualifies and carries at least two claims. A limitations section that weakens
-  nothing is a disclaimer.
-- A blueprint section marked `must_answer_prompt_questions` binds a claim to
-  every question the task statement asks.
+- A blueprint section marked `counter_evidence` carries at least two claims. A
+  limitations section holding one is a disclaimer.
 - `DOCX_RENDER` requires `qa_decision=pass`.
 
 ## Debugging Guidance

@@ -4,7 +4,6 @@ from pathlib import Path
 
 from ..derived_evidence import built_table_entries
 from ..errors import AgentWorkRequired, QAHardBlockError
-from ..prompt_questions import extract_questions
 from ..runtime_support import run_dir_for, write_json_artifact
 from ..state import ReportState
 from ..artifact_contract import make_artifact_contract, validate_artifact_contract, write_artifact_contract
@@ -148,11 +147,6 @@ def _validate_figure_plan_against_outline(state: ReportState, sections: dict) ->
         raise QAHardBlockError("OUTLINE_PLAN: " + " ".join(problems))
 
 
-#: How much an author has to write to drop a table the pipeline already built.
-#: Long enough to be a reason ("the price axis is already carried at a coarser
-#: cut by the band table") rather than a token ("n/a").
-MIN_WAIVER_REASON_CHARS = 20
-
 #: Where an outline records a deliberate decision not to place a built table.
 WAIVER_KEY = "unused_derived_evidence"
 
@@ -244,29 +238,12 @@ def _validate_derived_table_coverage(state: ReportState, outline: dict) -> None:
             + ". Only the tables listed in the drafting brief can be waived."
         )
 
-    short = sorted(
-        evidence_id
-        for evidence_id, reason in waived.items()
-        if len(reason) < MIN_WAIVER_REASON_CHARS
-    )
-    if short:
+    blank = sorted(evidence_id for evidence_id, reason in waived.items() if not reason)
+    if blank:
         problems.append(
-            "these waivers give no usable reason: "
-            + ", ".join(short)
-            + f". Each needs at least {MIN_WAIVER_REASON_CHARS} characters saying what "
-            "the table would have added and why the report is better without it."
-        )
-
-    # One reason pasted across several tables is the omission this gate exists
-    # to catch, wearing a sentence.
-    reasons = [reason for reason in waived.values() if reason]
-    repeated = sorted({reason for reason in reasons if reasons.count(reason) > 1})
-    if repeated:
-        problems.append(
-            "the same waiver reason is reused for more than one table: "
-            + "; ".join(f"{reason[:40]!r}" for reason in repeated)
-            + ". Each table was dropped for its own reason, or it was not "
-            "considered separately."
+            "these waivers give no reason at all: "
+            + ", ".join(blank)
+            + ". Say what the table would have shown; one clause is enough."
         )
 
     missing = [
@@ -307,18 +284,16 @@ def _flagged_sections(state: ReportState, flag: str) -> list[str]:
     ]
 
 
-def _validate_counter_evidence(state: ReportState, sections: dict, claim_ids: set) -> None:
-    """A counter-evidence section has to name the conclusion it weakens.
+def _validate_counter_evidence(state: ReportState, sections: dict) -> None:
+    """A counter-evidence section has to carry more than a disclaimer.
 
-    The unassisted control opened its counter-evidence chapter by conceding that
-    its own headline recommendation might be an artefact of which listings carry
-    a sales figure. That is the paragraph a reader needs and the one no gate
-    asked for, so a required section alone would buy a heading over a
-    "limitations apply" sentence. Naming the claims is what makes it cost
-    something: the author has to find a conclusion of theirs that the data does
-    not fully carry.
+    It used to also have to declare `undermines` — the claim ids elsewhere in the
+    report it qualified. That list never reached the page: it was bookkeeping the
+    reader never saw, and the section it was supposed to shape is shaped by the
+    blueprint requiring the section at all. What is left is the part that changes
+    the document: a section carrying one claim is a sentence, so it needs two.
     """
-    for section_id in _flagged_sections(state, "requires_undermines"):
+    for section_id in _flagged_sections(state, "counter_evidence"):
         section = sections.get(section_id)
         if not isinstance(section, dict):
             continue  # absence is the required-section check's business
@@ -330,101 +305,6 @@ def _validate_counter_evidence(state: ReportState, sections: dict, claim_ids: se
                 "states what the evidence does not support — coverage that varies by "
                 "band, a population the source under-samples, a figure resting on one "
                 "row — and each of those is a claim of its own."
-            )
-        undermines = section.get("undermines")
-        if not isinstance(undermines, list) or not undermines:
-            raise QAHardBlockError(
-                f"OUTLINE_PLAN: section {section_id} must declare 'undermines': the "
-                "claim ids elsewhere in the report whose support this section "
-                'qualifies. Example: "undermines": ["c7", "c12"]. A limitations '
-                "section that weakens nothing is a disclaimer."
-            )
-        unknown = sorted(str(c) for c in undermines if str(c) not in claim_ids)
-        if unknown:
-            raise QAHardBlockError(
-                f"OUTLINE_PLAN: section {section_id} 'undermines' names claims that do "
-                f"not exist: {', '.join(unknown)}."
-            )
-        self_referential = sorted(str(c) for c in undermines if str(c) in own)
-        if self_referential:
-            raise QAHardBlockError(
-                f"OUTLINE_PLAN: section {section_id} 'undermines' names its own claims: "
-                f"{', '.join(self_referential)}. Name the conclusions elsewhere in the "
-                "report that this section qualifies, not the qualifications themselves."
-            )
-
-
-def _validate_prompt_answers(state: ReportState, sections: dict) -> None:
-    """The conclusion has to answer what the task statement asked.
-
-    Extracted rather than declared, and answered by index rather than by text, so
-    the questions cannot drift into ones the report happens to have answered. A
-    task statement that asks for work rather than answers extracts nothing and
-    this requires nothing.
-    """
-    questions = extract_questions(state.spec.get("user_prompt", ""))
-    if not questions:
-        return
-    for section_id in _flagged_sections(state, "must_answer_prompt_questions"):
-        section = sections.get(section_id)
-        if not isinstance(section, dict):
-            continue
-        listed = "\n".join(f"  [{index}] {q}" for index, q in enumerate(questions))
-        answers = section.get("answers")
-        if not isinstance(answers, list):
-            raise QAHardBlockError(
-                f"OUTLINE_PLAN: the task statement asks {len(questions)} question(s), so "
-                f"section {section_id} must declare 'answers' — one entry per question, "
-                "binding it to the claim that answers it:\n"
-                f"{listed}\n"
-                '  "answers": [{"question_index": 0, "claim_ids": ["c12"]}, ...]'
-            )
-        own = {str(claim_id) for claim_id in section.get("claim_ids") or []}
-        covered: dict[int, list[str]] = {}
-        for position, answer in enumerate(answers):
-            if not isinstance(answer, dict):
-                raise QAHardBlockError(
-                    f"OUTLINE_PLAN: section {section_id} answers[{position}] must be an "
-                    'object like {"question_index": 0, "claim_ids": ["c12"]}.'
-                )
-            try:
-                index = int(answer.get("question_index"))
-            except (TypeError, ValueError):
-                raise QAHardBlockError(
-                    f"OUTLINE_PLAN: section {section_id} answers[{position}] needs an "
-                    f"integer 'question_index' between 0 and {len(questions) - 1}."
-                ) from None
-            if not 0 <= index < len(questions):
-                raise QAHardBlockError(
-                    f"OUTLINE_PLAN: section {section_id} answers[{position}] has "
-                    f"question_index {index}; the task statement asks "
-                    f"{len(questions)} question(s):\n{listed}"
-                )
-            bound = [str(claim_id) for claim_id in answer.get("claim_ids") or []]
-            outside = sorted(claim_id for claim_id in bound if claim_id not in own)
-            if outside:
-                raise QAHardBlockError(
-                    f"OUTLINE_PLAN: section {section_id} answers question {index} with "
-                    f"claims it does not carry: {', '.join(outside)}. The answer has to "
-                    f"be stated in {section_id}, so its claims belong to that section's "
-                    "claim_ids."
-                )
-            if not bound:
-                raise QAHardBlockError(
-                    f"OUTLINE_PLAN: section {section_id} answers question {index} with no "
-                    "claim. A question is answered by a sentence the evidence carries, "
-                    "not by a heading."
-                )
-            covered.setdefault(index, []).extend(bound)
-        unanswered = [index for index in range(len(questions)) if index not in covered]
-        if unanswered:
-            missing = "\n".join(f"  [{index}] {questions[index]}" for index in unanswered)
-            raise QAHardBlockError(
-                f"OUTLINE_PLAN: section {section_id} leaves the task statement's "
-                f"question(s) unanswered:\n{missing}\n"
-                "Add an entry to 'answers' binding each to the claim that answers it. "
-                "A report that never says which way the decision goes has not been "
-                "written for the person who asked."
             )
 
 
@@ -504,8 +384,7 @@ def run_outline_plan(state: ReportState) -> ReportState:
         # A revision inherits the base document's shape and its author's
         # decisions; these three ask what a *new* draft covers.
         _validate_derived_table_coverage(state, result)
-        _validate_counter_evidence(state, sections, claim_ids)
-        _validate_prompt_answers(state, sections)
+        _validate_counter_evidence(state, sections)
 
     state.plan["outline"] = result
     state.plan["outline_path"] = write_json_artifact(state, "outline.json", result)
