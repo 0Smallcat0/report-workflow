@@ -72,16 +72,16 @@ hallucinated answer — 20,000 verdicts, zero tokens.
 
 | Metric | Value |
 | --- | --- |
-| False-positive rate (right answers blocked) | **0.06%** (6/10,000) |
-| Precision of a block verdict | **99.7%** |
-| Recall — all hallucinations | 23.2% (2,320/10,000) |
-| Recall — numeric subset (answers carrying a number+unit) | 66.7% |
+| False-positive rate (right answers blocked) | **0.11%** (11/10,000) |
+| Precision of a block verdict | **99.6%** |
+| Recall — all hallucinations | 25.6% (2,557/10,000) |
+| Recall — numeric subset (answers carrying a number+unit) | 39.8% |
 
 Read it honestly: HaluEval hallucinations are open-domain *entity swaps*
 engineered to reuse the passage's own vocabulary — the class
 [`DESIGN.md`](DESIGN.md) explicitly places outside deterministic lexical
 checking. The out-of-domain claim is the **discipline**, not the recall: the
-gates almost never cry wolf (all six false positives are characterized in the
+gates almost never cry wolf (all eleven false positives are characterized in the
 archive — film titles and street addresses whose leading numeral parses as a
 measurement), and every block they issue is near-certain to be a real
 hallucination. A linter does not catch every bug; it must not lie about the
@@ -113,7 +113,7 @@ Archived results ([`benchmarks/evidence/full_benchmark_2026-05-13/summary.md`](.
 | Claims verified against evidence | **42** (6 per profile), **0 blocked** |
 | Unresolved citation-audit entries | **0** |
 | Delivery QA decision | `pass` on every profile |
-| Unit tests at the time of the archived run | **351 passing** (942 today) |
+| Unit tests at the time of the archived run | **351 passing** (962 today) |
 
 Each report is packaged with its QA pack (`final_qa_summary`, factuality,
 scholarly-quality, figure-visual, template-style, and render-layout reports) so

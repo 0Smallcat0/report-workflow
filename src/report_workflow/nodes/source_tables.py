@@ -56,6 +56,33 @@ def collect_source_tables(evidence_ledger: list[dict]) -> dict[str, dict]:
     span they came from, and the evidence ids that back them — everything a
     caption needs in order to be checkable.
     """
+    tables: dict[str, dict] = {}
+    # A derived cross table is one ledger entry carrying a whole grid, not a
+    # run of row entries: the pipeline computed it, so there is nothing to
+    # reassemble. It is placed with the same marker, because from the author's
+    # side "put this table here" is one act whichever way the grid was built.
+    aliases: dict[str, dict] = {}
+    for row in evidence_ledger or []:
+        grid = row.get("table_grid")
+        if not isinstance(grid, dict):
+            continue
+        headers = [str(cell) for cell in grid.get("headers") or []]
+        body = [[str(cell) for cell in line] for line in grid.get("rows") or []]
+        if not headers or not body:
+            continue
+        entry = {
+            "table_id": str(row.get("table_id") or row.get("evidence_id") or ""),
+            "headers": headers,
+            "rows": body,
+            "source_file_name": str(row.get("source_file_name") or ""),
+            "source_span": str(row.get("source_span") or ""),
+            "evidence_ids": [str(row.get("evidence_id") or "")],
+        }
+        tables[entry["table_id"]] = entry
+        request_id = (row.get("derivation") or {}).get("request_id")
+        if request_id:
+            aliases.setdefault(str(request_id), entry)
+
     grouped: dict[str, list[dict]] = {}
     for row in evidence_ledger or []:
         table_id = table_id_for_row(row)
@@ -66,7 +93,6 @@ def collect_source_tables(evidence_ledger: list[dict]) -> dict[str, dict]:
             continue
         grouped.setdefault(table_id, []).append(row)
 
-    tables: dict[str, dict] = {}
     for table_id, rows in grouped.items():
         rows.sort(key=lambda item: _row_order(str(item.get("block_id") or "")))
         headers = [str(cell) for cell in rows[0]["table_data"][0]]
@@ -82,6 +108,11 @@ def collect_source_tables(evidence_ledger: list[dict]) -> dict[str, dict]:
             "source_span": str(first.get("source_span") or ""),
             "evidence_ids": [str(row.get("evidence_id") or "") for row in rows],
         }
+    # The author registered the derivation under their own id, so that is what
+    # they will reach for when placing it. The evidence id still works; the
+    # short name only fills a slot nothing else claimed.
+    for alias, entry in aliases.items():
+        tables.setdefault(alias, entry)
     return tables
 
 

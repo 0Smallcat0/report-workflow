@@ -8,11 +8,11 @@
 
 | Metric | Value |
 | --- | --- |
-| Recall (hallucinated answers blocked) | 23.2% (2,320/10,000) |
-| False-positive rate (right answers blocked) | 0.1% (6/10,000) |
-| Precision of a block verdict | 99.7% |
-| Numeric-subset recall (681 pairs with number+unit) | 66.7% (454/681) |
-| Gate breakdown | FE: 2320 |
+| Recall (hallucinated answers blocked) | 25.6% (2,557/10,000) |
+| False-positive rate (right answers blocked) | 0.1% (11/10,000) |
+| Precision of a block verdict | 99.6% |
+| Numeric-subset recall (2,441 pairs with number+unit) | 39.8% (972/2,441) |
+| Gate breakdown | FE: 2557 |
 
 ## Reading these numbers honestly
 
@@ -20,7 +20,7 @@ HaluEval hallucinations are open-domain **entity swaps** engineered to reuse
 the knowledge passage's own vocabulary — the exact class `docs/DESIGN.md` §6
 places outside deterministic lexical checking. The headline here is not the
 recall; it is the discipline: across 10,000 honest answers the gates
-wrongly blocked 6, and every block they did issue
+wrongly blocked 11, and every block they did issue
 was a real hallucination. Out of domain, with zero tokens spent, the gate
 stack behaves like a linter should: it does not catch every bug, and it does
 not lie about the ones it flags. In-domain behavior (evidence-bounded

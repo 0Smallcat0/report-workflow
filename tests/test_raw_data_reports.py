@@ -176,7 +176,7 @@ class StatisticsAreEvidenceTests(unittest.TestCase):
                 derivation = unit["derivation"]
                 self.assertIn(
                     derivation["method"],
-                    {"row_count", "column_summary_stats", "group_counts"},
+                    {"row_count", "column_summary_stats", "group_counts", "group_table"},
                 )
                 self.assertEqual(derivation["source_file"], "products.csv")
                 self.assertEqual(derivation["rows_total"], 24)

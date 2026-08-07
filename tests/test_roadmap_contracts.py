@@ -1593,8 +1593,8 @@ class DocumentationContractTests(unittest.TestCase):
         today. Pinned so they keep agreeing.
 
         The fractions are pinned, not the percentages: the archive rounds
-        6/10,000 to 0.1% and the page renders it as 0.06%, and both are honest
-        readings of the same six answers.
+        11/10,000 to 0.1% and the page renders it as 0.11%, and both are honest
+        readings of the same eleven answers.
         """
         archives = sorted(Path("benchmarks/evidence").glob("halueval_*/summary.md"))
         self.assertTrue(archives, "no archived external benchmark summary")
@@ -1603,8 +1603,8 @@ class DocumentationContractTests(unittest.TestCase):
 
         fractions = set(re.findall(r"\((\d[\d,]*/[\d,]+)\)", summary))
         for name, pattern in (
-            ("false positives", r"\((6/10,000)\)"),
-            ("recall", r"\((2,320/10,000)\)"),
+            ("false positives", r"\((11/10,000)\)"),
+            ("recall", r"\((2,557/10,000)\)"),
         ):
             match = re.search(pattern, summary)
             with self.subTest(metric=name):

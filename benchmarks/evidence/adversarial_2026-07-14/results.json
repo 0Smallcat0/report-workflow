@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-06T10:48:54",
+  "generated_at": "2026-08-07T08:18:25",
   "corpus": {
     "total_cases": 69,
     "honest_cases": 25,
@@ -1816,7 +1816,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '1' is not stated in the evidence (evidence states: (none)); Chinese claim terms not in evidence (17% bigram coverage, threshold=25%): 一致, 全面, 即全, 同意, 員一"
+          "reason": "Chinese claim terms not in evidence (17% bigram coverage, threshold=25%): 一致, 全面, 即全, 同意, 員一"
         },
         {
           "case_id": "l01",
@@ -2097,7 +2097,7 @@
   "expected_mismatches": [],
   "determinism": {
     "runs": 5,
-    "verdict_hash": "889962a0a0bdcf9f7d4a35e2b4312f18034bc158770a6c98dc21a7e512e18fd8",
+    "verdict_hash": "d5de48b172a27ba9e4d57956d6aea9bfd8cce28a7e724e748e4867e2617fb96d",
     "identical": true
   }
 }
