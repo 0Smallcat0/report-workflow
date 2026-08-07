@@ -1269,6 +1269,35 @@ def _auto_cross_tables(
 _ID_SAFE_RE = re.compile(r"[^A-Za-z0-9_]+")
 
 
+def built_table_entries(rows: list[dict]) -> list[dict]:
+    """Every cross tabulation sitting in a ledger, ready to be placed.
+
+    One reading, shared by the brief that offers these tables to the author and
+    the gate that asks what happened to each of them. When those two disagreed
+    about what counted as a table, the brief listed seven and the gate demanded
+    an accounting for a different set.
+    """
+    entries: list[dict] = []
+    for row in rows:
+        if not isinstance(row, dict) or not row.get("table_grid"):
+            continue
+        evidence_id = str(row.get("evidence_id") or "")
+        if not evidence_id:
+            continue
+        group_by = (row.get("derivation") or {}).get("group_by")
+        if isinstance(group_by, dict):
+            group_by = group_by.get("column")
+        entries.append({
+            "evidence_id": evidence_id,
+            "origin": str(row.get("origin") or "auto"),
+            "description": (
+                f"{row.get('source_file_name') or 'source'} grouped by "
+                f"{group_by or 'an unnamed column'}"
+            ),
+        })
+    return entries
+
+
 def request_evidence_id(request_id: str) -> str:
     """The id a registered derivation will have, before it is computed.
 

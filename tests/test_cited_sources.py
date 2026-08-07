@@ -233,6 +233,16 @@ class DeliveredDocumentTests(unittest.TestCase):
             }
             for index, row in enumerate(picked, start=1)
         ]
+        # business_report requires a section stating what would weaken the
+        # conclusions, and requires it to name conclusions it does not itself
+        # carry. Give it claims of its own rather than sharing the body's.
+        body_claim_ids = [claim["claim_id"] for claim in claims]
+        counter_claims = [
+            {**claims[-1], "claim_id": f"c_limit_{index}", "claim_role": "supporting"}
+            for index in (1, 2)
+        ]
+        claims.extend(counter_claims)
+        counter_claim_ids = [claim["claim_id"] for claim in counter_claims]
         (run_dir / "claim_matrix.json").write_text(
             json.dumps({"claims": claims}, ensure_ascii=False), encoding="utf-8"
         )
@@ -244,16 +254,24 @@ class DeliveredDocumentTests(unittest.TestCase):
 
         order = state.plan["blueprint"]["section_order"]
         claimless = {"references", "appendix"}
+
+        def _section_claim_ids(section_id: str) -> list[str]:
+            if section_id in claimless:
+                return []
+            return counter_claim_ids if section_id == "limitations" else body_claim_ids
+
         sections = {
             section_id: {
                 "section_id": section_id,
                 "goals": f"cover {section_id}",
-                "claim_ids": [] if section_id in claimless else [c["claim_id"] for c in claims],
+                "claim_ids": _section_claim_ids(section_id),
                 "paragraph_order": ["context", "content", "conclusion"],
                 "figure_ids": [],
             }
             for section_id in order
         }
+        if "limitations" in sections:
+            sections["limitations"]["undermines"] = body_claim_ids[:1]
         (run_dir / "outline.json").write_text(
             json.dumps({"sections": sections}, ensure_ascii=False), encoding="utf-8"
         )
@@ -268,7 +286,8 @@ class DeliveredDocumentTests(unittest.TestCase):
                 )
                 continue
             lines = [f"# {section_id}", ""]
-            for claim in claims:
+            wanted = set(_section_claim_ids(section_id))
+            for claim in (c for c in claims if c["claim_id"] in wanted):
                 marker = " ".join(f"[CITE:{eid}]" for eid in claim["evidence_ids"])
                 # Not a prefix: FS blocks a sentence omitting a figure its claim
                 # asserts, which a truncated restatement would do.

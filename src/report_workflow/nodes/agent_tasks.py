@@ -726,6 +726,117 @@ def _derived_stats_guidance(evidence_path: str) -> str:
     return "\n".join(parts) + "\n\n"
 
 
+def _outline_obligations(state, evidence_path: str | None) -> str:
+    """What OUTLINE_PLAN will refuse the outline for, listed before it is written.
+
+    Each of these is a hard gate. An author who meets them by reading the error
+    message has already written the outline twice, and the second write is the
+    one that gets shortened — so the accounting is put here, with the ids and
+    the questions filled in, while there is still nothing to redo.
+    """
+    from ..derived_evidence import built_table_entries
+    from ..prompt_questions import extract_questions
+
+    blueprint_sections = (state.plan.get("blueprint") or {}).get("sections") or {}
+
+    def flagged(flag: str) -> list[str]:
+        return [
+            section_id
+            for section_id, spec in blueprint_sections.items()
+            if isinstance(spec, dict) and spec.get(flag)
+        ]
+
+    tables = built_table_entries(_derived_units(evidence_path))
+    counter_sections = flagged("requires_undermines")
+    answer_sections = flagged("must_answer_prompt_questions")
+    questions = (
+        extract_questions(state.spec.get("user_prompt", "")) if answer_sections else []
+    )
+    if not tables and not counter_sections and not questions:
+        return ""
+
+    parts = [
+        "## What this outline must account for",
+        "",
+        "Each item below is checked when `outline.json` is loaded, and the run stops",
+        "if it is not met.",
+        "",
+    ]
+
+    if tables:
+        listed = "\n".join(
+            f"- `{table['evidence_id']}` ({table['origin']}) - {table['description']}"
+            for table in tables
+        )
+        parts.extend([
+            f"### The {len(tables)} tables already built",
+            "",
+            listed,
+            "",
+            "Each one is either **placed** - a claim in `claim_matrix.json` cites its id,",
+            "or a figure in `figure_plan.json` draws on it - or **waived**, by naming it",
+            "in outline.json with the reason it is not used:",
+            "",
+            "```json",
+            '"unused_derived_evidence": {',
+            f'  "{tables[0]["evidence_id"]}": "what this crossing would have shown, and '
+            'why the report is better without it"',
+            "}",
+            "```",
+            "",
+            "Waiving is a real option and costs one sentence. What is not available is",
+            "leaving a built table unmentioned: three runs of one task placed four of",
+            "these, then three, then two, and the run that placed two shipped a document",
+            "with six tables where the run that placed four shipped ten. Nothing failed",
+            "in the run that lost them; the tables were simply never brought up.",
+            "",
+        ])
+
+    if counter_sections:
+        section_id = counter_sections[0]
+        parts.extend([
+            f"### `{section_id}` - what would weaken the conclusions",
+            "",
+            "This section carries at least two claims of its own, and declares which",
+            "conclusions elsewhere in the report it qualifies:",
+            "",
+            "```json",
+            f'"{section_id}": {{"claim_ids": ["c14", "c15"], "undermines": ["c3", "c7"]}}',
+            "```",
+            "",
+            "`undermines` names claims in *other* sections. The paragraph this asks for",
+            "is the one that says a headline finding may be an artefact - a field whose",
+            "coverage varies with the thing being measured, a segment the source",
+            "under-samples, a rate resting on a handful of rows. A section that weakens",
+            "nothing is a disclaimer, and the gate reads it as one.",
+            "",
+        ])
+
+    if questions:
+        listed = "\n".join(f"- `[{index}]` {question}" for index, question in enumerate(questions))
+        section_id = answer_sections[0]
+        parts.extend([
+            "### The questions the task statement asks",
+            "",
+            listed,
+            "",
+            f"`{section_id}` must bind a claim to each one, by index:",
+            "",
+            "```json",
+            f'"{section_id}": {{"claim_ids": ["c12", "c13"],',
+            '  "answers": [{"question_index": 0, "claim_ids": ["c12"]}]}',
+            "```",
+            "",
+            "The claims named have to belong to that section - the answer is a sentence",
+            "in the conclusion, not a cross-reference to one. A report that states four",
+            "hundred checked figures and never says which way the decision goes has not",
+            "been written for the person who asked.",
+            "",
+        ])
+
+    return "\n".join(parts) + "\n"
+
+
 #: How to ask for a statistic the intake summaries do not already state. Shown
 #: in the claim brief as well as the drafting brief: the decision that a figure
 #: cannot be cited is made while the claims are being written, and by the time
@@ -867,6 +978,21 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
     results_mode_section = _results_mode_section(state.spec.get("report_profile", ""))
     results_mode_rule = _results_mode_rule(state.spec.get("report_profile", ""))
     derived_stats_guidance = _derived_stats_guidance(evidence_path)
+    outline_obligations = _outline_obligations(state, evidence_path)
+    # The counter-evidence section is filled from the claim matrix, and the
+    # claim matrix is written first. An author told about it only at OUTLINE_PLAN
+    # has to go back and add claims for evidence they already read past.
+    counter_evidence_claim_rule = (
+        "- Plan at least two claims stating what the evidence does *not* support: a "
+        "field whose coverage varies with the thing being measured, a segment the "
+        "source under-samples, a rate resting on a handful of rows. The outline has "
+        "a section for them and will be refused without them.\n"
+        if any(
+            isinstance(spec, dict) and spec.get("requires_undermines")
+            for spec in ((state.plan.get("blueprint") or {}).get("sections") or {}).values()
+        )
+        else ""
+    )
     register_derived_evidence_guide = REGISTER_DERIVED_EVIDENCE_GUIDE
     evidence_summary_limit = EVIDENCE_SUMMARY_LIMIT
     source_table_catalog = _source_table_catalog(evidence_path)
@@ -974,7 +1100,7 @@ For `new_draft`, the editable artifacts are `claim_matrix.json`, `outline.json`,
   reserve `measured` wording for high-grade evidence (FD blocks it on
   medium-grade evidence even when that evidence is quantitative).
 {claim_role_rule}
-
+{counter_evidence_claim_rule}
 {derived_stats_guidance}## Making a statistic citable
 
 {register_derived_evidence_guide}
@@ -1051,7 +1177,7 @@ Use this deterministic chart-selection guidance when deciding `figure_ids` and f
 ## Recommended Figure Usage Map
 {recommended_figure_usage_map}
 
-## Hard Rules
+{outline_obligations}## Hard Rules
 - Assign every claim to at least one non-reference/non-appendix section.
 - Use only section IDs defined by the blueprint.
 - Use only claim IDs from `claim_matrix.json`.
@@ -1059,6 +1185,7 @@ Use this deterministic chart-selection guidance when deciding `figure_ids` and f
 - If `report_profile=academic_paper`, fill `paper_spine`; do not leave it as template text.
 - If `report_profile=engineering_lab_report`, fill `lab_spine`; do not leave it as template text.
 - The outline should create a real argument path: problem/gap/objective before methods, results before interpretation, and limitations before conclusion.
+- Account for every built table listed above: place it, or waive it by name with a reason.
 """
 
     section_task = f"""# 03 Section Draft

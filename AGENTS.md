@@ -213,6 +213,22 @@ derivation registered in `derived_evidence.json` and refreshes the matching
 citation. Registered values are recomputed rather than trusted; an `expect`
 that disagrees with the rows hard-blocks and names both numbers.
 
+`outline.json` also carries what the outline must account for. `OUTLINE_PLAN`
+writes `derived_table_coverage.json` recording what happened to each:
+
+- `unused_derived_evidence` — `{evidence_id: reason}`. Every cross tabulation in
+  the ledger is placed (a claim cites it, or a figure draws on it) or waived
+  here. A reason is at least 20 characters and may not be reused for a second
+  table.
+- `<section>.undermines` — required when the blueprint section sets
+  `requires_undermines`. Claim ids **elsewhere in the report** whose support this
+  section qualifies; the section carries at least two claims of its own.
+- `<section>.answers` — `[{"question_index": n, "claim_ids": [...]}]`, required
+  when the blueprint section sets `must_answer_prompt_questions` **and** the task
+  statement asks something. Questions are extracted from `user_prompt` by
+  `report_workflow.prompt_questions.extract_questions`, listed in the outline
+  brief, and answered by index; the claims named must belong to that section.
+
 Statistics over structured sources are evidence. `EVIDENCE_BUILD` writes
 summary units for every table — row and per-column value counts, numeric
 column quartiles, categorical group counts and shares — each carrying a
@@ -279,6 +295,15 @@ report-workflow invalidate-cache --job-id <id> --sources --drafts
   message, which this repo treats as a defect.
 - A single data row cannot ground a claim about the dataset. A digit that
   matches in an unrelated column is a coincidence; cite the derived statistic.
+- A cross tabulation the pipeline built is placed or waived by name with a
+  reason. Leaving it unmentioned is the loss-by-omission this gate exists for:
+  three runs of one task placed four of seven, then three, then two, and the
+  document with two tables fewer failed nothing.
+- A blueprint section marked `requires_undermines` names the conclusions it
+  qualifies and carries at least two claims. A limitations section that weakens
+  nothing is a disclaimer.
+- A blueprint section marked `must_answer_prompt_questions` binds a claim to
+  every question the task statement asks.
 - `DOCX_RENDER` requires `qa_decision=pass`.
 
 ## Debugging Guidance
@@ -355,3 +380,17 @@ artifact, and adjusting it is how a benchmark stops meaning anything. Do not
 delete a dimension the harness loses; the archive records two losses on
 purpose, and one of them is a fact about the metric rather than about the
 pipeline.
+
+The same comparison over raw data — three CSVs and a market question, against
+the hand-built control that was ahead of the pipeline — is the drone-market
+benchmark. It shares the other one's scorers by importing them, so a scorer
+change cannot improve one arm and not the other:
+
+```powershell
+python scripts/run_drone_market_benchmark.py --check
+```
+
+The same two rules apply, and its archive records three losses. Its tool arm
+places every table the pipeline built and registers none of its own, which is
+what the `tables` loss measures: the gap to the control is what a real author
+adds on top.

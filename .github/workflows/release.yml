@@ -57,6 +57,7 @@ jobs:
           python scripts/run_report_benchmarks.py --check
           python scripts/run_adversarial_benchmark.py --check
           python scripts/run_report_quality_benchmark.py --check
+          python scripts/run_drone_market_benchmark.py --check
 
       - name: Unit tests
         run: python -m unittest discover -s tests

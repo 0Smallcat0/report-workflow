@@ -303,16 +303,37 @@ def _author_artifacts(state) -> None:
 
     order = state.plan["blueprint"]["section_order"]
     claimless = {"references", "appendix"}
+    # The blueprint requires a section saying what would weaken the report, and
+    # requires it to name conclusions it does not itself carry. Two of the
+    # claims are handed to it so the naming is not self-referential.
+    counter_id = next(
+        (
+            section_id
+            for section_id, spec in (state.plan["blueprint"].get("sections") or {}).items()
+            if isinstance(spec, dict) and spec.get("requires_undermines")
+        ),
+        "",
+    )
+    counter_claims = [c["claim_id"] for c in claims[-2:]] if counter_id else []
+    body_claims = [c["claim_id"] for c in claims if c["claim_id"] not in counter_claims]
+
+    def claim_ids_for(section_id: str) -> list[str]:
+        if section_id in claimless:
+            return []
+        return counter_claims if section_id == counter_id else body_claims
+
     sections = {
         section_id: {
             "section_id": section_id,
             "goals": f"cover {section_id}",
-            "claim_ids": [] if section_id in claimless else [c["claim_id"] for c in claims],
+            "claim_ids": claim_ids_for(section_id),
             "paragraph_order": ["context", "content", "conclusion"],
             "figure_ids": kept_figures if section_id == "findings" else [],
         }
         for section_id in order
     }
+    if counter_id in sections and body_claims:
+        sections[counter_id]["undermines"] = body_claims[:1]
     (run_dir / "outline.json").write_text(
         json.dumps({"sections": sections}, ensure_ascii=False), encoding="utf-8"
     )
@@ -327,7 +348,8 @@ def _author_artifacts(state) -> None:
             )
             continue
         lines = [f"# {section_id}", ""]
-        for claim in claims:
+        wanted = set(claim_ids_for(section_id))
+        for claim in (c for c in claims if c["claim_id"] in wanted):
             marker = " ".join(f"[CITE:{eid}]" for eid in claim["evidence_ids"])
             lines.extend([
                 f"就本節主題而言，{claim['claim_text']} {marker}。"
@@ -497,9 +519,10 @@ def _summary_markdown(results: dict) -> str:
         "checkable figures: it writes 八萬 and 兩千四百 where the source writes 80,000",
         "and 2,383, and a Chinese numeral is a paraphrase of a quantity rather than",
         "the quantity. Its perfect ratio is one verifiable number out of one. The",
-        "tool arm states 62 and can trace 87% of them; the rest are derived figures,",
-        "which the derivation dimension covers. Read the ratio next to the count or",
-        "the metric rewards vagueness.",
+        f"tool arm states {results['scores']['tool']['verifiable_numbers']} and can trace "
+        f"{results['scores']['tool']['verifiable_number_ratio'] * 100:.0f}% of them; the "
+        "rest are derived figures, which the derivation dimension covers. Read the",
+        "ratio next to the count or the metric rewards vagueness.",
         "",
         "**structured_paragraph_ratio.** The tool arm is dragged down by its own",
         "mechanical author, which writes one-line lead-ins before a table ('下表為",

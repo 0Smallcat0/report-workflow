@@ -132,18 +132,51 @@ def _write_agent_artifacts(state: ReportState) -> None:
             "claim_role": "primary",
         }]
     }
+    # A blueprint may require a section that says what would weaken the report,
+    # and require it to name the conclusions it qualifies. Its claims have to be
+    # its own — naming a claim the same section carries is the self-referential
+    # shape the gate rejects — so they are added here rather than reusing c1.
+    counter_sections = [
+        section_id
+        for section_id, spec in (state.plan["blueprint"].get("sections") or {}).items()
+        if isinstance(spec, dict) and spec.get("requires_undermines")
+    ]
+    counter_claim_ids = ["c_limit_1", "c_limit_2"] if counter_sections else []
+    for claim_id in counter_claim_ids:
+        # Same wording as c1 on purpose: the factuality gates check a claim
+        # against the evidence and against the drafted sentence, and a fixture
+        # that invents plausible limitation prose fails them for the right
+        # reason, which is not what this fixture is here to exercise.
+        claim_matrix["claims"].append({
+            "claim_id": claim_id,
+            "claim_text": "The data show 42 participants.",
+            "claim_type": "statistical",
+            "risk_level": "low",
+            "status": "supported",
+            "evidence_ids": [evidence_id],
+            "requires_hedged_wording": False,
+            "claim_role": "supporting",
+        })
     (run_dir / "claim_matrix.json").write_text(json.dumps(claim_matrix), encoding="utf-8")
+
+    def _claims_for(section_id: str) -> list[str]:
+        if section_id in {"references", "appendix"}:
+            return []
+        return counter_claim_ids if section_id in counter_sections else ["c1"]
 
     sections = {
         section_id: {
             "section_id": section_id,
             "goals": f"Cover {section_id}",
-            "claim_ids": [] if section_id in {"references", "appendix"} else ["c1"],
+            "claim_ids": _claims_for(section_id),
             "paragraph_order": ["summarize the supported claim"],
             "figure_ids": [],
         }
         for section_id in state.plan["blueprint"]["section_order"]
     }
+    for section_id in counter_sections:
+        if section_id in sections:
+            sections[section_id]["undermines"] = ["c1"]
     (run_dir / "outline.json").write_text(json.dumps({"sections": sections}), encoding="utf-8")
 
     section_dir = run_dir / "section_drafts"
@@ -157,7 +190,7 @@ def _write_agent_artifacts(state: ReportState) -> None:
             citations = []
         else:
             text = f"# {section_id.title()}\n\nThe pilot program enrolled 42 participants [CITE:{evidence_id}]."
-            claims = ["c1"]
+            claims = _claims_for(section_id)
             evidence = [evidence_id]
             citations = [evidence_id]
         (section_dir / f"{section_id}.md").write_text(text, encoding="utf-8")
@@ -482,21 +515,31 @@ class StageWorkflowTests(unittest.TestCase):
             run_dir = WORKFLOW_RUNS_DIR / state.job_id
             evidence_id = _read_jsonl(state.sources["evidence_ledger_path"])[0]["evidence_id"]
             (run_dir / "claim_matrix.json").write_text(json.dumps({
-                "claims": [{
-                    "claim_id": "c1",
-                    "claim_text": "The pilot program enrolled 42 participants.",
-                    "claim_type": "statistical",
-                    "status": "supported",
-                    "evidence_ids": [evidence_id],
-                }]
+                "claims": [
+                    {
+                        "claim_id": claim_id,
+                        "claim_text": "The pilot program enrolled 42 participants.",
+                        "claim_type": "statistical",
+                        "status": "supported",
+                        "evidence_ids": [evidence_id],
+                    }
+                    for claim_id in ("c1", "c_limit_1", "c_limit_2")
+                ]
             }), encoding="utf-8")
-            required_sections = ["executive_summary", "findings", "recommendations"]
+            required_sections = [
+                "executive_summary", "findings", "limitations", "recommendations",
+            ]
             (run_dir / "outline.json").write_text(json.dumps({
                 "sections": {
                     section_id: {
                         "section_id": section_id,
                         "goals": f"Cover {section_id}",
-                        "claim_ids": ["c1"],
+                        "claim_ids": (
+                            ["c_limit_1", "c_limit_2"]
+                            if section_id == "limitations"
+                            else ["c1"]
+                        ),
+                        "undermines": ["c1"] if section_id == "limitations" else [],
                         "paragraph_order": ["summary"],
                         "figure_ids": [],
                     }
@@ -515,7 +558,11 @@ class StageWorkflowTests(unittest.TestCase):
                     f.write(json.dumps({
                         "sentence_id": f"sent_{index}",
                         "section_id": section_id,
-                        "claim_ids": ["c1"],
+                        "claim_ids": (
+                            ["c_limit_1", "c_limit_2"]
+                            if section_id == "limitations"
+                            else ["c1"]
+                        ),
                         "evidence_ids": [evidence_id],
                         "citation_ids": [evidence_id],
                     }) + "\n")

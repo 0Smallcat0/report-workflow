@@ -96,27 +96,102 @@ def measure(docx_path: str | Path) -> dict:
     }
 
 
+def measure_run(run_dir: str | Path) -> dict:
+    """The density of a run's document, plus what the run did with its evidence.
+
+    Three of the acceptance conditions are not properties of the DOCX. Whether a
+    cross-file join reached a conclusion, how many built tables were placed, and
+    how many derivations the author had to register by hand all live in the run's
+    artifacts, and measuring them by eye produced a wrong answer once already: a
+    join was looked for as a marker on the evidence record, where it does not
+    appear, and three runs that each carried nine or ten join-backed conclusions
+    were reported as carrying none. A joined derivation surfaces under the id
+    ``E_D_<request id>``, which is what this matches.
+    """
+    run_dir = Path(run_dir)
+    result: dict = {"run_dir": str(run_dir)}
+
+    docx_path = run_dir / "published" / "report.docx"
+    if docx_path.exists():
+        result.update(measure(docx_path))
+
+    derivations = []
+    request_path = run_dir / "derived_evidence.json"
+    if request_path.exists():
+        payload = json.loads(request_path.read_text(encoding="utf-8"))
+        rows = payload.get("derivations") if isinstance(payload, dict) else payload
+        derivations = [row for row in (rows or []) if isinstance(row, dict)]
+
+    claims = []
+    claim_path = run_dir / "claim_matrix.json"
+    if claim_path.exists():
+        payload = json.loads(claim_path.read_text(encoding="utf-8"))
+        claims = [c for c in (payload.get("claims") or []) if isinstance(c, dict)]
+
+    join_ids = {
+        "E_D_" + re.sub(r"[^A-Za-z0-9_]+", "_", str(row.get("id") or "").strip())[:48]
+        for row in derivations
+        if row.get("join")
+    }
+    result["join_derivations"] = len(join_ids)
+    result["claims_citing_a_join"] = sum(
+        1 for claim in claims if join_ids & set(claim.get("evidence_ids") or [])
+    )
+    result["claims"] = len(claims)
+    # Registered by hand is the whole request file: every entry in it is one the
+    # author wrote. The pipeline's own cross tabulations never appear here.
+    result["hand_registered_derivations"] = len(derivations)
+
+    coverage_path = run_dir / "derived_table_coverage.json"
+    if coverage_path.exists():
+        coverage = json.loads(coverage_path.read_text(encoding="utf-8"))
+        result["built_tables"] = len(coverage.get("available") or [])
+        result["built_tables_placed"] = len(coverage.get("placed") or [])
+        result["built_tables_waived"] = len(coverage.get("waived") or {})
+    return result
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("docx", nargs="+", help="published report.docx path(s)")
+    parser.add_argument(
+        "target",
+        nargs="+",
+        help="published report.docx path(s), or run directories to measure whole",
+    )
     parser.add_argument("--json", action="store_true", help="emit JSON")
     args = parser.parse_args()
 
-    results = [measure(path) for path in args.docx]
+    results = [
+        measure_run(target) if Path(target).is_dir() else measure(target)
+        for target in args.target
+    ]
     if args.json:
         print(json.dumps(results, ensure_ascii=False, indent=2))
         return 0
     for result in results:
-        print(Path(result["path"]).parent.parent.name or result["path"])
-        print(f"  body numbers  {result['body_numbers']}")
-        print(f"  tables        {result['tables']}")
-        print(f"  figures       {result['figures']}")
-        print(f"  body share    {result['body_share']}%")
-        if result["tail_heading"] is None:
-            print("  tail heading  (none found - the whole document counted as body)")
+        if "path" in result:
+            print(Path(result["path"]).parent.parent.name or result["path"])
+            print(f"  body numbers  {result['body_numbers']}")
+            print(f"  tables        {result['tables']}")
+            print(f"  figures       {result['figures']}")
+            print(f"  body share    {result['body_share']}%")
+            if result["tail_heading"] is None:
+                print("  tail heading  (none found - the whole document counted as body)")
+            else:
+                print(f"  tail heading  {result['tail_heading']}"
+                      f" ({result['tail_numbers']} numbers after it)")
         else:
-            print(f"  tail heading  {result['tail_heading']}"
-                  f" ({result['tail_numbers']} numbers after it)")
+            print(result["run_dir"])
+            print("  (no published/report.docx under this run)")
+        if "claims_citing_a_join" in result:
+            print(f"  join claims   {result['claims_citing_a_join']}"
+                  f" of {result['claims']} (from {result['join_derivations']}"
+                  " joined derivation(s))")
+            print(f"  hand-registered derivations {result['hand_registered_derivations']}")
+        if "built_tables" in result:
+            print(f"  built tables  {result['built_tables_placed']} placed,"
+                  f" {result['built_tables_waived']} waived,"
+                  f" of {result['built_tables']}")
     return 0
 
 

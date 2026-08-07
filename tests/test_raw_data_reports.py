@@ -325,32 +325,46 @@ class ReportedChecksMatchTheChecksRunTests(unittest.TestCase):
             ]
             row = next(item for item in ledger if "95" in item["content"])
             (run_dir / "claim_matrix.json").write_text(
-                json.dumps({"claims": [{
-                    "claim_id": "c1",
-                    "claim_text": row["content"][:120],
-                    "claim_type": "factual",
-                    "risk_level": "low",
-                    "status": "supported",
-                    "evidence_ids": [row["evidence_id"]],
-                    "requires_hedged_wording": True,
-                    "claim_role": "primary",
-                }]}, ensure_ascii=False),
+                json.dumps({"claims": [
+                    {
+                        "claim_id": claim_id,
+                        "claim_text": row["content"][:120],
+                        "claim_type": "factual",
+                        "risk_level": "low",
+                        "status": "supported",
+                        "evidence_ids": [row["evidence_id"]],
+                        "requires_hedged_wording": True,
+                        "claim_role": "primary" if claim_id == "c1" else "supporting",
+                    }
+                    # The counter-evidence section this blueprint requires needs
+                    # claims of its own; it may not name the ones it carries.
+                    for claim_id in ("c1", "c_limit_1", "c_limit_2")
+                ]}, ensure_ascii=False),
                 encoding="utf-8",
             )
 
             order = state.plan["blueprint"]["section_order"]
             claimless = {"references", "appendix"}
+
+            def _section_claim_ids(section_id: str) -> list[str]:
+                if section_id in claimless:
+                    return []
+                return ["c_limit_1", "c_limit_2"] if section_id == "limitations" else ["c1"]
+
+            outline_sections = {
+                section_id: {
+                    "section_id": section_id,
+                    "goals": f"cover {section_id}",
+                    "claim_ids": _section_claim_ids(section_id),
+                    "paragraph_order": ["context", "content", "conclusion"],
+                    "figure_ids": [],
+                }
+                for section_id in order
+            }
+            if "limitations" in outline_sections:
+                outline_sections["limitations"]["undermines"] = ["c1"]
             (run_dir / "outline.json").write_text(
-                json.dumps({"sections": {
-                    section_id: {
-                        "section_id": section_id,
-                        "goals": f"cover {section_id}",
-                        "claim_ids": [] if section_id in claimless else ["c1"],
-                        "paragraph_order": ["context", "content", "conclusion"],
-                        "figure_ids": [],
-                    }
-                    for section_id in order
-                }}, ensure_ascii=False),
+                json.dumps({"sections": outline_sections}, ensure_ascii=False),
                 encoding="utf-8",
             )
 
@@ -379,7 +393,7 @@ class ReportedChecksMatchTheChecksRunTests(unittest.TestCase):
                 sentences.append({
                     "sentence_id": f"s_{section_id}",
                     "section_id": section_id,
-                    "claim_ids": ["c1"],
+                    "claim_ids": _section_claim_ids(section_id),
                     "evidence_ids": [row["evidence_id"]],
                     "citation_ids": [row["evidence_id"]],
                     "wording_strength": "hedged",
