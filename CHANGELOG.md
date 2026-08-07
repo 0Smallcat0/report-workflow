@@ -1,5 +1,36 @@
 # Changelog
 
+## 4.36.1 - 2026-08-07
+
+### Fixed — the measurement counted the source list as analysis
+
+The acceptance bar takes three numbers off a published DOCX, and the script that
+took them split the body from the tail on
+`參考文獻|參考資料|References|來源清單|Sources` — every heading except the one this
+pipeline actually emits, which is `資料來源`. So the split never fired: three
+consecutive runs measured their own generated source list as body text and
+reported a body share of 100%, which is a threshold nothing can fail. Measured
+properly the same three documents are 74.5%, 66.9% and 71.0%, and their body
+figure counts drop from 1200/937/799 to 1050/777/668.
+
+`scripts/measure_report_body_density.py` now does it, and takes the heading from
+`SOURCE_LIST_HEADING`/`SOURCE_LIST_HEADING_ZH` rather than a list retyped beside
+them, so renaming the heading breaks a test instead of quietly restoring a
+perfect score. A document with no recognised tail heading is reported as such
+rather than shown as a clean 100% — a missing source list and an unknown heading
+give the same number and are not the same thing.
+
+### Fixed — a repeated figure outvoted the citation that stated it
+
+The content gate counts a check as failed only when no cited evidence satisfied
+it, which is what lets a claim rest on the union of its sources. The counter
+incremented once per finding rather than once per evidence, and a claim naming
+two bands — 「0–10 則」 and 「10–50 則」 — states the number 10 twice. Against two
+citations, the single failing one contributed two votes and reached the
+threshold alone, so the claim was blocked while the other citation was stating
+the figure outright. It only ever affected multi-citation claims, which is
+precisely the case the union rule exists to protect.
+
 ## 4.36.0 - 2026-08-07
 
 ### Fixed — the grouped form existed and authors still built tables by hand

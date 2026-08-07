@@ -264,8 +264,19 @@ def run_factuality_check_fe(
             if not evidence:
                 continue
             examined += 1
-            for key, reason in _content_overlap_findings(claim, evidence):
+            # One vote per evidence, not per occurrence. The counter used to
+            # increment for every finding returned, and a claim that writes the
+            # same figure twice -- 「0-10 則」 and 「10-50 則」 name two bands and
+            # one number -- produced two findings from a single failing
+            # citation. Against two cited entries that alone reached
+            # `>= examined`, so the union rule was defeated by repetition: the
+            # other citation did state the number, and the claim was blocked
+            # anyway. It only ever bit multi-citation claims, which is the case
+            # the rule exists to protect.
+            findings = _content_overlap_findings(claim, evidence)
+            for key in {key for key, _reason in findings}:
                 failure_counts[key] = failure_counts.get(key, 0) + 1
+            for key, reason in findings:
                 failures.setdefault(key, reason)
 
         all_reasons = [
