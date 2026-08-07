@@ -682,6 +682,13 @@ def _derived_stats_guidance(evidence_path: str) -> str:
 
     auto = [unit for unit in units if unit.get("origin", "auto") != "requested"]
     requested = [unit for unit in units if unit.get("origin") == "requested"]
+    # Tables first, and separately. Listed in ledger order they sat among two
+    # dozen single-column summaries, and two acceptance runs placed almost none
+    # of them: one author used two of the seven built, the next used none and
+    # hand-registered forty-one scalars instead. They are the densest thing in
+    # the ledger and they were the hardest thing to find in it.
+    auto_tables = [unit for unit in auto if unit.get("table_grid")]
+    auto_scalars = [unit for unit in auto if not unit.get("table_grid")]
     parts = [
         "## Derived Statistics (citable, computed from the source rows)",
         "",
@@ -690,16 +697,28 @@ def _derived_stats_guidance(evidence_path: str) -> str:
         "They are listed here in full because they sit at the end of the ledger,",
         "past the sample the Evidence Summary shows.",
         "",
-        f"Computed automatically at intake ({len(auto)}):",
+        f"### Tables already built and ready to place ({len(auto_tables)})",
+        "",
+        "Each one is a finished cross tabulation. Placing it costs a single",
+        "`[TABLE:]` marker in the paragraph that discusses it - you do not",
+        "retype it, and its numbers are checked by construction. Work through",
+        "this list before registering anything: a table you were about to build",
+        "cell by cell may already be here.",
         "",
     ]
-    parts.extend(rendered(unit) for unit in auto)
+    parts.extend(rendered(unit) for unit in auto_tables)
+    parts.extend([
+        "",
+        f"### Single-column summaries computed at intake ({len(auto_scalars)})",
+        "",
+    ])
+    parts.extend(rendered(unit) for unit in auto_scalars)
     parts.extend([
         "",
         (
-            f"Registered by request ({len(requested)}):"
+            f"### Registered by request ({len(requested)})"
             if requested
-            else "Registered by request: none yet — see the registration guide below."
+            else "### Registered by request: none yet - see the registration guide below."
         ),
         "",
     ])
@@ -750,6 +769,12 @@ register_derived_evidence(job_id="<job_id>", derivations=[
   {"id": "hhi_brand", "source": "products.csv", "op": "hhi", "column": "brand"},
 ])
 ```
+
+**Check the tables listed above first.** Several cross tabulations are already
+built and citable; registering scalars that reproduce their cells is wasted
+work. Registering three or more one-cell derivations that differ only by a row
+filter is refused outright — that shape is a grouped table typed out by hand,
+and the refusal names the single request that replaces it.
 
 `measures` entries take `op`, `column`, an optional `rows` filter applied
 inside each group, and a `label` that becomes the column header. A `share`

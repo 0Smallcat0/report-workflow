@@ -1259,6 +1259,113 @@ def _request_text(request: dict, dataset: Dataset, result: dict, zh: bool) -> st
     return text
 
 
+_FILTER_COLUMN_RE = re.compile(r"^\s*([^!=<>~]+?)\s*(?:!=|>=|<=|=|>|<|~)")
+
+
+def _filter_columns(expression: str) -> list[str]:
+    """The columns a row filter names, in the order it names them."""
+    columns: list[str] = []
+    for clause in str(expression or "").split("&"):
+        match = _FILTER_COLUMN_RE.match(clause)
+        if match:
+            column = match.group(1).strip()
+            if column and column not in columns:
+                columns.append(column)
+    return columns
+
+
+def _source_key(request: dict) -> tuple:
+    source = request.get("source")
+    return tuple(str(name or "") for name in source) if isinstance(source, list) else (str(source or ""),)
+
+
+#: How many one-cell derivations of the same shape it takes before they are a
+#: table being typed out by hand.
+BRICK_LAYING_THRESHOLD = 3
+
+
+def brick_laying_problems(requests: list[dict]) -> dict[str, str]:
+    """Scalar derivations that are one table, registered one cell at a time.
+
+    The grouped form exists so a six-band table costs one request. An
+    acceptance run registered 47 derivations anyway, 41 of them scalars, and
+    six of those were mean-and-negative-rate over three price bands -- a two by
+    three table, spelled out. Nothing was wrong with any of them, which is why
+    nothing stopped it: the author gets a working number every time and never
+    finds out the table was one call away.
+
+    A hint would not have been read. So the same shape three times over is
+    refused, with the request that replaces it written out in the refusal.
+    """
+    families: dict[tuple, list[dict]] = {}
+    for request in requests or []:
+        if not isinstance(request, dict) or request.get("group_by") is not None:
+            continue
+        op = str(request.get("op") or "").strip().lower()
+        rows_expression = str(request.get("rows") or "").strip()
+        if not op or not rows_expression:
+            continue
+        key = (_source_key(request), op, str(request.get("column") or ""))
+        families.setdefault(key, []).append(request)
+
+    problems: dict[str, str] = {}
+    for (source, op, column), members in families.items():
+        filters = {str(member.get("rows") or "").strip() for member in members}
+        if len(filters) < BRICK_LAYING_THRESHOLD:
+            continue
+        shared = [
+            candidate
+            for candidate in _filter_columns(next(iter(filters)))
+            if all(candidate in _filter_columns(other) for other in filters)
+        ]
+        if not shared:
+            continue
+        group_column = shared[0]
+        ids = sorted(str(member.get("id") or "") for member in members)
+        measure = {"op": op}
+        if column:
+            measure["column"] = column
+        replacement = {
+            "id": f"{op}_by_{_ID_SAFE_RE.sub('_', group_column)}",
+            "source": list(source) if len(source) > 1 else source[0],
+            "group_by": {"column": group_column},
+            "measures": [measure],
+        }
+        numeric = all(
+            any(
+                symbol in clause
+                for symbol in (">=", "<=", ">", "<")
+            )
+            for expression in filters
+            for clause in expression.split("&")
+            if group_column in clause
+        )
+        note = (
+            " Because these filters cut a numeric range, give group_by a"
+            ' "buckets" list with the edges you want; a categorical column'
+            " needs no buckets."
+            if numeric
+            else ""
+        )
+        message = (
+            f"{len(members)} derivations apply {op}"
+            + (f" to {column!r}" if column else "")
+            + f" over different slices of {group_column!r}: "
+            + ", ".join(ids)
+            + ". That is one grouped table typed out one cell at a time, and it"
+            " costs a registration per cell for the rest of the report. Replace"
+            " them with a single request, which returns every row at once and"
+            " can be placed in the document with a [TABLE:] marker:\n"
+            + json.dumps(replacement, ensure_ascii=False, indent=2)
+            + note
+            + " Add more entries to 'measures' for the other columns you were"
+            " about to register separately."
+        )
+        for member in members:
+            problems[str(member.get("id") or "")] = message
+    return problems
+
+
 def build_requested_units(
     requests: list[dict],
     source_registry: list[dict],
@@ -1274,6 +1381,7 @@ def build_requested_units(
     datasets = structured_datasets(source_registry)
     units: list[dict] = []
     problems: list[dict] = []
+    bricks = brick_laying_problems(requests)
     for request in requests or []:
         if not isinstance(request, dict):
             problems.append({"id": "", "error": "Derivation entry is not an object"})
@@ -1281,6 +1389,9 @@ def build_requested_units(
         request_id = str(request.get("id") or "").strip()
         if not request_id:
             problems.append({"id": "", "error": "Derivation is missing 'id'"})
+            continue
+        if request_id in bricks:
+            problems.append({"id": request_id, "error": bricks[request_id]})
             continue
         try:
             dataset = resolve_frame(request, datasets)
