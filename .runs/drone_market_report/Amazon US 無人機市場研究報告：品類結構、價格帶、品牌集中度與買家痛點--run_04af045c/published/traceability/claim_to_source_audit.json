@@ -1,0 +1,772 @@
+{
+  "claims": [
+    {
+      "claim_id": "c1",
+      "claim_text": "\u672c\u6b21\u5206\u6790\u6db5\u84cb\u7684 544 \u7b46\u5546\u54c1\u5217\u5206\u5c6c 8 \u500b\u54c1\u985e\uff0c\u5176\u4e2d\u651d\u5f71\u7528\u6574\u6a5f 243 \u7b46\u3001\u4f54 44.67%\uff0c\u662f\u55ae\u4e00\u6700\u5927\u54c1\u985e\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_7b036ce9_337d76a7e2",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):category \u5206\u7d44\u4ea4\u53c9\u8868\u3002\u4f9d category \u5206\u70ba 8 \u7d44\uff0c\u6db5\u84cb 544 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 544 \u7b46\uff09\u3002\ncategory | \u7b46\u6578 | \u4f54\u6bd4 | price \u5e73\u5747 | price \u4e2d\u4f4d\u6578 | review_count \u5e73\u5747 | review_count \u4e2d\u4f4d\u6578 | score \u4e2d\u4f4d\u6578\n\u651d\u5f71 | 243 | 44.67% | 535.95 USD | 139.98 USD | 1,115.95 | 225.0 [...]"
+        },
+        {
+          "evidence_id": "E_7b036ce9_272ec71407",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):category \u6b04\u5171 8 \u500b\u76f8\u7570\u503c\u3001544 \u7b46\u6709\u503c\u8cc7\u6599\u5217\u3002\u5206\u5e03\u70ba \u651d\u5f71 243 \u7b46(44.7%)\u3001\u7121\u4eba\u6a5f\u99ac\u9054 77 \u7b46(14.2%)\u3001\u914d\u4ef6/\u96f6\u4ef6 71 \u7b46(13.1%)\u3001\u690d\u4fdd 63 \u7b46(11.6%)\u3001\u975e\u7121\u4eba\u6a5f\u5546\u54c1 46 \u7b46(8.5%)\u3001\u6d88\u8cbb\u7d1a/\u5176\u4ed6 22 \u7b46(4.0%)\u3001\u591a\u7528\u9014 14 \u7b46(2.6%)\u3001\u6d88\u9632\u6295\u5f48 8 \u7b46(1.5%)\u3002\u524d\u4e94\u5927\u5408\u8a08\u4f54 91.9%\uff0c\u4ee5\u6b64\u6b04\u8a08\u7b97\u7684 HHI \u70ba 2597\u3002"
+        }
+      ]
+    },
+    {
+      "claim_id": "c2",
+      "claim_text": "\u7121\u4eba\u6a5f\u99ac\u9054 77 \u7b46\u8207\u914d\u4ef6\uff0f\u96f6\u4ef6 71 \u7b46\u5408\u8a08 148 \u7b46\u3001\u4f54\u5168\u6a23\u672c 27.21%\uff0c\u8d85\u904e\u56db\u5206\u4e4b\u4e00\u7684\u641c\u5c0b\u7d50\u679c\u4e26\u4e0d\u662f\u53ef\u76f4\u63a5\u8ca9\u552e\u7684\u6574\u6a5f\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_7b036ce9_337d76a7e2",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):category \u5206\u7d44\u4ea4\u53c9\u8868\u3002\u4f9d category \u5206\u70ba 8 \u7d44\uff0c\u6db5\u84cb 544 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 544 \u7b46\uff09\u3002\ncategory | \u7b46\u6578 | \u4f54\u6bd4 | price \u5e73\u5747 | price \u4e2d\u4f4d\u6578 | review_count \u5e73\u5747 | review_count \u4e2d\u4f4d\u6578 | score \u4e2d\u4f4d\u6578\n\u651d\u5f71 | 243 | 44.67% | 535.95 USD | 139.98 USD | 1,115.95 | 225.0 [...]"
+        },
+        {
+          "evidence_id": "E_D_component_share",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):\u96f6\u7d44\u4ef6\uff08\u7121\u4eba\u6a5f\u99ac\u9054\u8207\u914d\u4ef6\uff0f\u96f6\u4ef6\uff09\u5408\u8a08\u4f54\u6bd4\u70ba 27.21%\u3002\u8a08\u7b97\u65b9\u5f0f:\u5c0d category!=\u651d\u5f71 & category!=\u690d\u4fdd & category!=\u975e\u7121\u4eba\u6a5f\u5546\u54c1 & category!=\u6d88\u8cbb\u7d1a/\u5176\u4ed6 & category!=\u591a\u7528\u9014 & category!=\u6d88\u9632\u6295\u5f48 \u5171 148 \u7b46\uff08\u5168\u6a94 544 \u7b46\uff09\u65bd\u4ee5 share \u904b\u7b97\u3002\uff08148 of 544\uff09"
+        }
+      ]
+    },
+    {
+      "claim_id": "c3",
+      "claim_text": "\u5206\u985e\u7d50\u679c\u4e2d\u6709 46 \u7b46\u3001\u4f54 8.46% \u88ab\u5224\u5b9a\u70ba\u975e\u7121\u4eba\u6a5f\u5546\u54c1\uff0c\u4ee3\u8868\u95dc\u9375\u5b57\u641c\u5c0b\u672c\u8eab\u5c31\u5e36\u9032\u53ef\u89c0\u7684\u96dc\u8a0a\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_nondrone_share",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):\u641c\u5c0b\u7d50\u679c\u4e2d\u975e\u7121\u4eba\u6a5f\u5546\u54c1\u4f54\u6bd4\u70ba 8.46%\u3002\u8a08\u7b97\u65b9\u5f0f:\u5c0d category=\u975e\u7121\u4eba\u6a5f\u5546\u54c1 \u5171 46 \u7b46\uff08\u5168\u6a94 544 \u7b46\uff09\u65bd\u4ee5 share \u904b\u7b97\u3002\uff0846 of 544\uff09"
+        },
+        {
+          "evidence_id": "E_7b036ce9_337d76a7e2",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):category \u5206\u7d44\u4ea4\u53c9\u8868\u3002\u4f9d category \u5206\u70ba 8 \u7d44\uff0c\u6db5\u84cb 544 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 544 \u7b46\uff09\u3002\ncategory | \u7b46\u6578 | \u4f54\u6bd4 | price \u5e73\u5747 | price \u4e2d\u4f4d\u6578 | review_count \u5e73\u5747 | review_count \u4e2d\u4f4d\u6578 | score \u4e2d\u4f4d\u6578\n\u651d\u5f71 | 243 | 44.67% | 535.95 USD | 139.98 USD | 1,115.95 | 225.0 [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c4",
+      "claim_text": "\u690d\u4fdd\u985e\u96d6\u6709 63 \u7b46\u5546\u54c1\u5217\u3001\u4f54 11.58%\uff0c\u537b\u6709 88.89% \u5b8c\u5168\u6c92\u6709\u7d2f\u7a4d\u4efb\u4f55\u8a55\u8ad6\u6578\uff0c\u8a72\u985e\u8a55\u8ad6\u6578\u4e2d\u4f4d\u6578\u50c5 1\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_agri_no_review",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):\u690d\u4fdd\u985e\u5b8c\u5168\u6c92\u6709\u8a55\u8ad6\u6578\u7684\u5546\u54c1\u5217\u6bd4\u91cd\u70ba 88.89%\u3002\u8a08\u7b97\u65b9\u5f0f:\u5c0d category=\u690d\u4fdd & review_count= \u5171 56 \u7b46\uff08\u5168\u6a94 544 \u7b46\uff09\u65bd\u4ee5 share \u904b\u7b97\u3002\uff0856 of 63\uff09"
+        },
+        {
+          "evidence_id": "E_7b036ce9_337d76a7e2",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):category \u5206\u7d44\u4ea4\u53c9\u8868\u3002\u4f9d category \u5206\u70ba 8 \u7d44\uff0c\u6db5\u84cb 544 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 544 \u7b46\uff09\u3002\ncategory | \u7b46\u6578 | \u4f54\u6bd4 | price \u5e73\u5747 | price \u4e2d\u4f4d\u6578 | review_count \u5e73\u5747 | review_count \u4e2d\u4f4d\u6578 | score \u4e2d\u4f4d\u6578\n\u651d\u5f71 | 243 | 44.67% | 535.95 USD | 139.98 USD | 1,115.95 | 225.0 [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c5",
+      "claim_text": "\u4ee5 agricultural spray drone \u95dc\u9375\u5b57\u53d6\u5f97\u7684 111 \u7b46\u5546\u54c1\u5217\u5e73\u5747\u661f\u7b49 3.77\uff0c\u662f\u56db\u7d44\u95dc\u9375\u5b57\u4e2d\u6700\u4f4e\uff0c\u8a55\u8ad6\u6578\u4e2d\u4f4d\u6578\u50c5 11.5\uff1b\u76f8\u5c0d\u5730 drone \u95dc\u9375\u5b57\u7684 279 \u7b46\u5e73\u5747 4.27\u3001\u8a55\u8ad6\u6578\u4e2d\u4f4d\u6578 197\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_28767e63_ed49ab53fd",
+          "source_id": "28767e63",
+          "source_file_name": "amazon_products.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_products.csv):keyword \u5206\u7d44\u4ea4\u53c9\u8868\u3002\u4f9d keyword \u5206\u70ba 4 \u7d44\uff0c\u6db5\u84cb 544 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 544 \u7b46\uff09\u3002\nkeyword | \u7b46\u6578 | \u4f54\u6bd4 | price \u5e73\u5747 | price \u4e2d\u4f4d\u6578 | rating \u5e73\u5747 | rating \u4e2d\u4f4d\u6578 | review_count \u4e2d\u4f4d\u6578\ndrone | 279 | 51.29% | 1,085.70 USD | 99.97 USD | 4.27 | 4.30 | 197.00\na [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c6",
+      "claim_text": "\u54c1\u985e\u5206\u5e03\u7684 HHI \u70ba 2597\u3001\u524d\u4e94\u5927\u54c1\u985e\u5408\u8a08\u4f54 91.9%\uff0c\u986f\u793a\u9019\u500b\u641c\u5c0b\u9762\u9ad8\u5ea6\u96c6\u4e2d\u65bc\u5c11\u6578\u5e7e\u7a2e\u5546\u54c1\u578b\u614b\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_7b036ce9_272ec71407",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):category \u6b04\u5171 8 \u500b\u76f8\u7570\u503c\u3001544 \u7b46\u6709\u503c\u8cc7\u6599\u5217\u3002\u5206\u5e03\u70ba \u651d\u5f71 243 \u7b46(44.7%)\u3001\u7121\u4eba\u6a5f\u99ac\u9054 77 \u7b46(14.2%)\u3001\u914d\u4ef6/\u96f6\u4ef6 71 \u7b46(13.1%)\u3001\u690d\u4fdd 63 \u7b46(11.6%)\u3001\u975e\u7121\u4eba\u6a5f\u5546\u54c1 46 \u7b46(8.5%)\u3001\u6d88\u8cbb\u7d1a/\u5176\u4ed6 22 \u7b46(4.0%)\u3001\u591a\u7528\u9014 14 \u7b46(2.6%)\u3001\u6d88\u9632\u6295\u5f48 8 \u7b46(1.5%)\u3002\u524d\u4e94\u5927\u5408\u8a08\u4f54 91.9%\uff0c\u4ee5\u6b64\u6b04\u8a08\u7b97\u7684 HHI \u70ba 2597\u3002"
+        }
+      ]
+    },
+    {
+      "claim_id": "c7",
+      "claim_text": "\u591a\u7528\u9014\u985e\u50c5 14 \u7b46\u5546\u54c1\u5217\uff0c\u50f9\u683c\u4e2d\u4f4d\u6578\u537b\u9ad8\u9054 3,579 \u7f8e\u5143\uff0c\u8a55\u8ad6\u6578\u4e2d\u4f4d\u6578\u53ea\u6709 5\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_7b036ce9_337d76a7e2",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):category \u5206\u7d44\u4ea4\u53c9\u8868\u3002\u4f9d category \u5206\u70ba 8 \u7d44\uff0c\u6db5\u84cb 544 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 544 \u7b46\uff09\u3002\ncategory | \u7b46\u6578 | \u4f54\u6bd4 | price \u5e73\u5747 | price \u4e2d\u4f4d\u6578 | review_count \u5e73\u5747 | review_count \u4e2d\u4f4d\u6578 | score \u4e2d\u4f4d\u6578\n\u651d\u5f71 | 243 | 44.67% | 535.95 USD | 139.98 USD | 1,115.95 | 225.0 [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c8",
+      "claim_text": "425 \u7b46\u6709\u6a19\u50f9\u5546\u54c1\u5217\u7684\u50f9\u683c\u4e2d\u4f4d\u6578\u70ba 71.99 \u7f8e\u5143\uff0c\u5e73\u5747\u6578\u537b\u9054 735.50 \u7f8e\u5143\uff0c\u7b2c\u4e09\u56db\u5206\u4f4d 269.99 \u7f8e\u5143\u3001\u6700\u9ad8\u503c 36,999 \u7f8e\u5143\uff0c\u5206\u5e03\u6975\u5ea6\u53f3\u504f\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_28767e63_020c41e5a7",
+          "source_id": "28767e63",
+          "source_file_name": "amazon_products.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_products.csv):price \u6b04\u5171 425 \u7b46\u6578\u503c\uff0c\u6700\u5c0f\u503c 0 USD\uff0c\u7b2c\u4e00\u56db\u5206\u4f4d 32.99 USD\uff0c\u4e2d\u4f4d\u6578 71.99 USD\uff0c\u5e73\u5747\u6578 735.50 USD\uff0c\u7b2c\u4e09\u56db\u5206\u4f4d 269.99 USD\uff0c\u6700\u5927\u503c 36,999 USD\u3002"
+        }
+      ]
+    },
+    {
+      "claim_id": "c9",
+      "claim_text": "\u5168\u90e8 544 \u7b46\u5546\u54c1\u5217\u7576\u4e2d\u6709 119 \u7b46\u3001\u4f54 21.88% \u5728\u8cc7\u6599\u64f7\u53d6\u7576\u4e0b\u672a\u986f\u793a\u50f9\u683c\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_no_price_share",
+          "source_id": "28767e63",
+          "source_file_name": "amazon_products.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_products.csv):\u672a\u986f\u793a\u50f9\u683c\u7684\u5546\u54c1\u5217\u4f54\u6bd4\u70ba 21.88%\u3002\u8a08\u7b97\u65b9\u5f0f:\u5c0d price= \u5171 119 \u7b46\uff08\u5168\u6a94 544 \u7b46\uff09\u65bd\u4ee5 share \u904b\u7b97\u3002\uff08119 of 544\uff09"
+        }
+      ]
+    },
+    {
+      "claim_id": "c10",
+      "claim_text": "0 \u81f3 50 \u7f8e\u5143\u5e36\u96c6\u4e2d\u4e86 179 \u7b46\u5546\u54c1\u5217\u3001\u4f54\u5168\u6a23\u672c 32.90%\uff0c\u662f\u8ca8\u67b6\u4e0a\u6700\u64c1\u64e0\u7684\u4e00\u6bb5\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_price_band_structure",
+          "source_id": "28767e63",
+          "source_file_name": "amazon_products.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_products.csv):\u50f9\u683c\u5e36\u7d50\u69cb\u8207\u8a55\u50f9\u8868\u73fe\u3002\u4f9d price \u5206\u70ba 6 \u7d44\uff0c\u6db5\u84cb 425 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 544 \u7b46\uff09\u3002\u53e6\u6709 119 \u7b46\u5728\u8a72\u6b04\u7121\u53ef\u7528\u503c\uff0c\u672a\u5217\u5165\u5206\u7d44\u3002\n\u50f9\u683c\u5e36 (USD) | \u5546\u54c1\u6578 | \u4f54\u5168\u6a23\u672c | \u5e73\u5747\u661f\u7b49 | \u4f4e\u65bc 4 \u661f\u6bd4\u7387 | \u8a55\u8ad6\u6578\u4e2d\u4f4d\u6578\n0\u201350 | 179 | 32.90% | 4.21 | 16.76% | 46.00\n50\u2013100 | 63 | 11.58% | 4.37 | 14.29% | 22.00\n1 [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c11",
+      "claim_text": "100 \u81f3 200 \u7f8e\u5143\u5e36\u7684 64 \u7b46\u5546\u54c1\u5217\u4e2d\u6709 25.00% \u661f\u7b49\u4f4e\u65bc 4\uff0c\u662f\u6240\u6709\u50f9\u683c\u5e36\u4e2d\u6bd4\u4f8b\u6700\u9ad8\u7684\u4e00\u6bb5\uff0c\u5e73\u5747\u661f\u7b49 4.16 \u4e5f\u662f\u6700\u4f4e\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_price_band_structure",
+          "source_id": "28767e63",
+          "source_file_name": "amazon_products.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_products.csv):\u50f9\u683c\u5e36\u7d50\u69cb\u8207\u8a55\u50f9\u8868\u73fe\u3002\u4f9d price \u5206\u70ba 6 \u7d44\uff0c\u6db5\u84cb 425 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 544 \u7b46\uff09\u3002\u53e6\u6709 119 \u7b46\u5728\u8a72\u6b04\u7121\u53ef\u7528\u503c\uff0c\u672a\u5217\u5165\u5206\u7d44\u3002\n\u50f9\u683c\u5e36 (USD) | \u5546\u54c1\u6578 | \u4f54\u5168\u6a23\u672c | \u5e73\u5747\u661f\u7b49 | \u4f4e\u65bc 4 \u661f\u6bd4\u7387 | \u8a55\u8ad6\u6578\u4e2d\u4f4d\u6578\n0\u201350 | 179 | 32.90% | 4.21 | 16.76% | 46.00\n50\u2013100 | 63 | 11.58% | 4.37 | 14.29% | 22.00\n1 [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c12",
+      "claim_text": "1,500 \u7f8e\u5143\u4ee5\u4e0a\u5171\u6709 44 \u7b46\u5546\u54c1\u5217\uff0c\u4f46\u5728\u8a55\u8ad6\u8cc7\u6599\u4e2d\u9019\u4e00\u5e36\u6c92\u6709\u4efb\u4f55\u4e00\u5247\u5c0d\u61c9\u8a55\u8ad6\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_heavy_listing_count",
+          "source_id": "28767e63",
+          "source_file_name": "amazon_products.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_products.csv):\u552e\u50f9 1500 \u7f8e\u5143\u4ee5\u4e0a\u7684\u5546\u54c1\u5217\u6578\u70ba 44\u3002\u8a08\u7b97\u65b9\u5f0f:\u5c0d price>=1500 \u5171 44 \u7b46\uff08\u5168\u6a94 544 \u7b46\uff09\u65bd\u4ee5 count \u904b\u7b97\u3002"
+        },
+        {
+          "evidence_id": "E_D_price_band_satisfaction",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_reviews.csv \u22c8 amazon_products.csv):\u5404\u50f9\u683c\u5e36\u7684\u5be6\u969b\u8cb7\u5bb6\u8a55\u5206\u3002\u4f9d price \u5206\u70ba 6 \u7d44\uff0c\u6db5\u84cb 373 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 473 \u7b46\uff09\u3002\u53e6\u6709 100 \u7b46\u5728\u8a72\u6b04\u7121\u53ef\u7528\u503c\uff0c\u672a\u5217\u5165\u5206\u7d44\u3002\u672c\u8868\u7531 amazon_reviews.csv \u8207 amazon_products.csv \u4ee5 asin \u5167\u63a5\u800c\u6210\uff0c\u63a5\u5f97 473 \u7b46\uff1bamazon_reviews.csv \u6709 0 \u7b46\u3001amazon_products.csv \u6709 481 \u7b46\u63a5 [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c13",
+      "claim_text": "\u651d\u5f71\u985e\u4e2d\uff0c0 \u81f3 50 \u7f8e\u5143\u5e36\u7684\u8a55\u8ad6\u6578\u4e2d\u4f4d\u6578\u70ba 433\u3001200 \u81f3 500 \u7f8e\u5143\u5e36\u70ba 387\uff0c\u593e\u5728\u4e2d\u9593\u7684 100 \u81f3 200 \u7f8e\u5143\u5e36\u537b\u53ea\u6709 74\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_photo_price_band",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):\u651d\u5f71\u985e\u7121\u4eba\u6a5f\u7684\u50f9\u683c\u5e36\u8ca8\u67b6\u7d50\u69cb\u3002\u4f9d price \u5206\u70ba 6 \u7d44\uff0c\u6db5\u84cb 179 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 544 \u7b46\uff09\u3002\u53e6\u6709 64 \u7b46\u5728\u8a72\u6b04\u7121\u53ef\u7528\u503c\uff0c\u672a\u5217\u5165\u5206\u7d44\u3002\n\u50f9\u683c\u5e36 (USD) | \u5546\u54c1\u6578 | \u4f54\u651d\u5f71\u985e | \u8a55\u8ad6\u6578\u4e2d\u4f4d\u6578 | \u6709\u8fd1\u6708\u92b7\u91cf\u6a19\u793a\n0\u201350 | 49 | 20.16% | 433.00 | 31\n50\u2013100 | 27 | 11.11% | 167.00 | 14\n100\u2013200 | 39 | 16.05% | 7 [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c14",
+      "claim_text": "\u651d\u5f71\u985e 179 \u7b46\u6709\u6a19\u50f9\u5546\u54c1\u5217\u4e2d\uff0c\u6709\u8fd1\u6708\u92b7\u91cf\u6a19\u793a\u7684\u5171 101 \u7b46\uff0c\u5176\u4e2d 100 \u81f3 200 \u7f8e\u5143\u5e36\u6709 23 \u7b46\u3001200 \u81f3 500 \u7f8e\u5143\u5e36\u6709 21 \u7b46\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_photo_price_band",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):\u651d\u5f71\u985e\u7121\u4eba\u6a5f\u7684\u50f9\u683c\u5e36\u8ca8\u67b6\u7d50\u69cb\u3002\u4f9d price \u5206\u70ba 6 \u7d44\uff0c\u6db5\u84cb 179 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 544 \u7b46\uff09\u3002\u53e6\u6709 64 \u7b46\u5728\u8a72\u6b04\u7121\u53ef\u7528\u503c\uff0c\u672a\u5217\u5165\u5206\u7d44\u3002\n\u50f9\u683c\u5e36 (USD) | \u5546\u54c1\u6578 | \u4f54\u651d\u5f71\u985e | \u8a55\u8ad6\u6578\u4e2d\u4f4d\u6578 | \u6709\u8fd1\u6708\u92b7\u91cf\u6a19\u793a\n0\u201350 | 49 | 20.16% | 433.00 | 31\n50\u2013100 | 27 | 11.11% | 167.00 | 14\n100\u2013200 | 39 | 16.05% | 7 [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c15",
+      "claim_text": "207 \u7b46\u6709\u6a19\u793a\u54c1\u724c\u7684\u5546\u54c1\u5217\u5171\u4f86\u81ea 54 \u500b\u54c1\u724c\uff0c\u5176\u4e2d DJI \u55ae\u4e00\u54c1\u724c\u5c31\u4f54 92 \u7b46\u300144.4%\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_28767e63_afdac4a7c6",
+          "source_id": "28767e63",
+          "source_file_name": "amazon_products.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_products.csv):brand \u6b04\u5171 54 \u500b\u76f8\u7570\u503c\u3001207 \u7b46\u6709\u503c\u8cc7\u6599\u5217\u3002\u5206\u5e03\u70ba DJI 92 \u7b46(44.4%)\u3001Holy Stone 10 \u7b46(4.8%)\u3001Contixo 9 \u7b46(4.3%)\u3001Potensic 9 \u7b46(4.3%)\u3001BetaFPV 8 \u7b46(3.9%)\u3001Antigravity 6 \u7b46(2.9%)\u3001Autel 6 \u7b46(2.9%)\u3001Cozyego 4 \u7b46(1.9%)\u3001Ruko 4 \u7b46(1.9%)\u3001MAD COMPONENTS [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c16",
+      "claim_text": "\u54c1\u724c\u524d\u4e94\u5927\u96c6\u4e2d\u5ea6 CR5 \u70ba 61.84%\uff0c\u4ee5\u54c1\u724c\u6b04\u8a08\u7b97\u7684 HHI \u70ba 2097\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_brand_cr5",
+          "source_id": "28767e63",
+          "source_file_name": "amazon_products.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_products.csv):\u54c1\u724c\u524d\u4e94\u5927\u96c6\u4e2d\u5ea6 CR5\u70ba 61.84%\u3002\u8a08\u7b97\u65b9\u5f0f:\u5c0d \u5168\u90e8\u8cc7\u6599\u5217 \u5171 544 \u7b46\uff08\u5168\u6a94 544 \u7b46\uff09\u7684 brand \u6b04\u65bd\u4ee5 top_share \u904b\u7b97\u3002\uff08top DJI, Holy Stone, Contixo, Potensic, BetaFPV\uff09"
+        },
+        {
+          "evidence_id": "E_28767e63_afdac4a7c6",
+          "source_id": "28767e63",
+          "source_file_name": "amazon_products.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_products.csv):brand \u6b04\u5171 54 \u500b\u76f8\u7570\u503c\u3001207 \u7b46\u6709\u503c\u8cc7\u6599\u5217\u3002\u5206\u5e03\u70ba DJI 92 \u7b46(44.4%)\u3001Holy Stone 10 \u7b46(4.8%)\u3001Contixo 9 \u7b46(4.3%)\u3001Potensic 9 \u7b46(4.3%)\u3001BetaFPV 8 \u7b46(3.9%)\u3001Antigravity 6 \u7b46(2.9%)\u3001Autel 6 \u7b46(2.9%)\u3001Cozyego 4 \u7b46(1.9%)\u3001Ruko 4 \u7b46(1.9%)\u3001MAD COMPONENTS [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c17",
+      "claim_text": "544 \u7b46\u5546\u54c1\u5217\u4e2d\u6709 337 \u7b46\u3001\u4f54 61.95% \u5b8c\u5168\u6c92\u6709\u6a19\u793a\u54c1\u724c\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_unbranded_share",
+          "source_id": "28767e63",
+          "source_file_name": "amazon_products.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_products.csv):\u672a\u6a19\u793a\u54c1\u724c\u7684\u5546\u54c1\u5217\u4f54\u6bd4\u70ba 61.95%\u3002\u8a08\u7b97\u65b9\u5f0f:\u5c0d brand= \u5171 337 \u7b46\uff08\u5168\u6a94 544 \u7b46\uff09\u65bd\u4ee5 share \u904b\u7b97\u3002\uff08337 of 544\uff09"
+        }
+      ]
+    },
+    {
+      "claim_id": "c18",
+      "claim_text": "\u651d\u5f71\u985e\u4e2d\u50c5 53.50% \u7684\u5546\u54c1\u5217\u6a19\u793a\u54c1\u724c\uff0cDJI \u4f54\u5168\u651d\u5f71\u985e\u7684 24.28%\uff0c\u8a72\u985e\u4ee5\u54c1\u724c\u6b04\u8a08\u7b97\u7684 HHI \u70ba 2,259\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_photo_branded_share",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):\u651d\u5f71\u985e\u4e2d\u6709\u6a19\u793a\u54c1\u724c\u7684\u5546\u54c1\u5217\u6bd4\u91cd\u70ba 53.50%\u3002\u8a08\u7b97\u65b9\u5f0f:\u5c0d category=\u651d\u5f71 & brand!= \u5171 130 \u7b46\uff08\u5168\u6a94 544 \u7b46\uff09\u65bd\u4ee5 share \u904b\u7b97\u3002\uff08130 of 243\uff09"
+        },
+        {
+          "evidence_id": "E_D_dji_photo_share",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):DJI \u4f54\u651d\u5f71\u985e\u5546\u54c1\u5217\u6bd4\u91cd\u70ba 24.28%\u3002\u8a08\u7b97\u65b9\u5f0f:\u5c0d category=\u651d\u5f71 & brand=DJI \u5171 59 \u7b46\uff08\u5168\u6a94 544 \u7b46\uff09\u65bd\u4ee5 share \u904b\u7b97\u3002\uff0859 of 243\uff09"
+        },
+        {
+          "evidence_id": "E_D_photo_brand_hhi",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):\u651d\u5f71\u985e\u54c1\u724c HHI\u70ba 2,259.17\u3002\u8a08\u7b97\u65b9\u5f0f:\u5c0d category=\u651d\u5f71 \u5171 243 \u7b46\uff08\u5168\u6a94 544 \u7b46\uff09\u7684 brand \u6b04\u65bd\u4ee5 hhi \u904b\u7b97\u3002\uff0828 groups over 130 rows\uff09"
+        }
+      ]
+    },
+    {
+      "claim_id": "c19",
+      "claim_text": "DJI \u5546\u54c1\u5217\u7684\u50f9\u683c\u4e2d\u4f4d\u6578\u70ba 247.50 \u7f8e\u5143\uff0c\u5176\u4e2d\u53ea\u6709 25% \u552e\u50f9\u4f4e\u65bc 200 \u7f8e\u5143\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_dji_median_price",
+          "source_id": "28767e63",
+          "source_file_name": "amazon_products.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_products.csv):DJI \u5546\u54c1\u5217\u50f9\u683c\u4e2d\u4f4d\u6578\u70ba 247.50 USD\u3002\u8a08\u7b97\u65b9\u5f0f:\u5c0d brand=DJI \u5171 92 \u7b46\uff08\u5168\u6a94 544 \u7b46\uff09\u7684 price \u6b04\u65bd\u4ee5 median \u904b\u7b97\u3002\uff0848 of 92 selected rows carry a number\uff09"
+        },
+        {
+          "evidence_id": "E_D_dji_under200_share",
+          "source_id": "28767e63",
+          "source_file_name": "amazon_products.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_products.csv):DJI \u5546\u54c1\u5217\u4e2d\u552e\u50f9\u4f4e\u65bc 200 \u7f8e\u5143\u7684\u6bd4\u91cd\u70ba 25%\u3002\u8a08\u7b97\u65b9\u5f0f:\u5c0d brand=DJI & price<200 \u5171 23 \u7b46\uff08\u5168\u6a94 544 \u7b46\uff09\u65bd\u4ee5 share \u904b\u7b97\u3002\uff0823 of 92\uff09"
+        }
+      ]
+    },
+    {
+      "claim_id": "c20",
+      "claim_text": "DJI \u7684 92 \u7b46\u5546\u54c1\u5217\u5e73\u5747\u661f\u7b49 4.39\u3001\u8a55\u8ad6\u6578\u4e2d\u4f4d\u6578 307\uff0c\u5169\u9805\u90fd\u9ad8\u65bc\u5168\u9ad4\u6709\u54c1\u724c\u5546\u54c1\u5217\u7684 4.29 \u8207 140\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_28767e63_afbea52c52",
+          "source_id": "28767e63",
+          "source_file_name": "amazon_products.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_products.csv):brand \u5206\u7d44\u4ea4\u53c9\u8868\u3002\u4f9d brand \u5206\u70ba 16 \u7d44\uff0c\u6db5\u84cb 207 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 544 \u7b46\uff09\u3002\u53e6\u6709 337 \u7b46\u5728\u8a72\u6b04\u7121\u53ef\u7528\u503c\uff0c\u672a\u5217\u5165\u5206\u7d44\u3002\nbrand | \u7b46\u6578 | \u4f54\u6bd4 | price \u5e73\u5747 | price \u4e2d\u4f4d\u6578 | rating \u5e73\u5747 | rating \u4e2d\u4f4d\u6578 | review_count \u4e2d\u4f4d\u6578\nDJI | 92 | 16.91% | 1,077.30 USD | 247.50 USD | 4.39 | [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c21",
+      "claim_text": "100 \u81f3 200 \u7f8e\u5143\u5e36\u7684 64 \u7b46\u5546\u54c1\u5217\u4e2d\u6709 40 \u7b46\u6c92\u6709\u6a19\u793a\u54c1\u724c\uff1b\u5176\u9918 24 \u7b46\u5e73\u5747 4.13 \u661f\uff0c\u5176\u4e2d\u5546\u54c1\u6578\u8f03\u591a\u7684 Contixo \u70ba 3.58 \u661f\u3001CADDXFPV \u70ba 3.15 \u661f\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_mid_band_brands",
+          "source_id": "28767e63",
+          "source_file_name": "amazon_products.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_products.csv):100\u2013200 \u7f8e\u5143\u50f9\u683c\u5e36\u7684\u54c1\u724c\u8207\u8a55\u50f9\u3002\u4f9d brand \u5206\u70ba 7 \u7d44\uff0c\u6db5\u84cb 24 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 544 \u7b46\uff09\u3002\u53e6\u6709 40 \u7b46\u5728\u8a72\u6b04\u7121\u53ef\u7528\u503c\uff0c\u672a\u5217\u5165\u5206\u7d44\u3002\n\u54c1\u724c | \u5546\u54c1\u6578 | \u5e73\u5747\u661f\u7b49 | \u50f9\u683c\u4e2d\u4f4d\u6578 | \u8a55\u8ad6\u6578\u4e2d\u4f4d\u6578\nBetaFPV | 5 | 4.42 | 115.99 USD | 7.50\nContixo | 4 | 3.58 | 154.99 USD | 33.50\nDJI | 3 | 4.80 | 119. [...]"
+        },
+        {
+          "evidence_id": "E_D_price_band_structure",
+          "source_id": "28767e63",
+          "source_file_name": "amazon_products.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_products.csv):\u50f9\u683c\u5e36\u7d50\u69cb\u8207\u8a55\u50f9\u8868\u73fe\u3002\u4f9d price \u5206\u70ba 6 \u7d44\uff0c\u6db5\u84cb 425 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 544 \u7b46\uff09\u3002\u53e6\u6709 119 \u7b46\u5728\u8a72\u6b04\u7121\u53ef\u7528\u503c\uff0c\u672a\u5217\u5165\u5206\u7d44\u3002\n\u50f9\u683c\u5e36 (USD) | \u5546\u54c1\u6578 | \u4f54\u5168\u6a23\u672c | \u5e73\u5747\u661f\u7b49 | \u4f4e\u65bc 4 \u661f\u6bd4\u7387 | \u8a55\u8ad6\u6578\u4e2d\u4f4d\u6578\n0\u201350 | 179 | 32.90% | 4.21 | 16.76% | 46.00\n50\u2013100 | 63 | 11.58% | 4.37 | 14.29% | 22.00\n1 [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c22",
+      "claim_text": "\u8a55\u8ad6\u8cc7\u6599\u5171 473 \u5247\u3001\u5e73\u5747 4.41 \u5206\uff0c\u4f46\u53ea\u6db5\u84cb 63 \u500b\u76f8\u7570\u5546\u54c1\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_0d77ee19_abffba77dd",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_reviews.csv):\u672c\u6a23\u672c\u5171\u6536\u9304 473 \u7b46\u8cc7\u6599\u5217\uff0c\u7e3d\u7b46\u6578 473 \u7b46\uff0c\u6b04\u4f4d 6 \u500b\u3002\u5404\u6b04\u6709\u503c\u7b46\u6578\u70ba review_id 473 \u7b46\u3001asin 473 \u7b46\u3001review_rating 473 \u7b46\u3001review_title 382 \u7b46\u3001review_body 473 \u7b46\u3001review_date 382 \u7b46\u3002"
+        },
+        {
+          "evidence_id": "E_0d77ee19_8eb9aa068f",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_reviews.csv):review_rating \u6b04\u5171 473 \u7b46\u6578\u503c\uff0c\u6700\u5c0f\u503c 1\uff0c\u7b2c\u4e00\u56db\u5206\u4f4d 4\uff0c\u4e2d\u4f4d\u6578 5\uff0c\u5e73\u5747\u6578 4.41\uff0c\u7b2c\u4e09\u56db\u5206\u4f4d 5\uff0c\u6700\u5927\u503c 5\u3002"
+        },
+        {
+          "evidence_id": "E_D_reviewed_asins",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_reviews.csv):\u8a55\u8ad6\u8cc7\u6599\u6db5\u84cb\u7684\u76f8\u7570\u5546\u54c1\u6578\u70ba 63\u3002\u8a08\u7b97\u65b9\u5f0f:\u5c0d \u5168\u90e8\u8cc7\u6599\u5217 \u5171 473 \u7b46\uff08\u5168\u6a94 473 \u7b46\uff09\u7684 asin \u6b04\u65bd\u4ee5 distinct \u904b\u7b97\u3002"
+        }
+      ]
+    },
+    {
+      "claim_id": "c23",
+      "claim_text": "1 \u661f\u8a55\u8ad6\u4e2d\u6709 27.03% \u63d0\u53ca\u9023\u7dda\u6216\u914d\u5c0d\u554f\u984c\uff0c5 \u661f\u8a55\u8ad6\u5247\u70ba 14.04%\uff0c\u5dee\u8ddd\u63a5\u8fd1\u4e00\u500d\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_pain_theme_by_star",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_reviews.csv):\u5404\u661f\u7b49\u8a55\u8ad6\u63d0\u53ca\u7684\u554f\u984c\u4e3b\u984c\u6bd4\u7387\u3002\u4f9d review_rating \u5206\u70ba 5 \u7d44\uff0c\u6db5\u84cb 473 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 473 \u7b46\uff09\u3002\n\u8a55\u5206\u5340\u9593\uff08\u661f\uff09 | \u8a55\u8ad6\u5247\u6578 | \u63d0\u53ca\u9023\u7dda\u914d\u5c0d | \u63d0\u53ca\u589c\u6a5f | \u63d0\u53ca\u96f6\u4ef6\u640d\u58de | \u63d0\u53ca\u9000\u8ca8 | \u63d0\u53ca\u96fb\u6c60\u7e8c\u822a\n1\u20132 | 37 | 27.03% | 18.92% | 10.81% | 21.62% | 29.73%\n2\u20133 | 12 | 33.33% | 8.33% | 8.33% | 8.33% [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c24",
+      "claim_text": "\u63d0\u53ca\u96fb\u6c60\u8207\u7e8c\u822a\u7684\u6bd4\u7387\u5728 5 \u661f\u8a55\u8ad6\u9ad8\u9054 43.55%\uff0c\u5728 1 \u661f\u8a55\u8ad6\u53cd\u800c\u964d\u5230 29.73%\uff0c\u65b9\u5411\u8207\u5176\u4ed6\u554f\u984c\u4e3b\u984c\u5b8c\u5168\u76f8\u53cd\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_pain_theme_by_star",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_reviews.csv):\u5404\u661f\u7b49\u8a55\u8ad6\u63d0\u53ca\u7684\u554f\u984c\u4e3b\u984c\u6bd4\u7387\u3002\u4f9d review_rating \u5206\u70ba 5 \u7d44\uff0c\u6db5\u84cb 473 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 473 \u7b46\uff09\u3002\n\u8a55\u5206\u5340\u9593\uff08\u661f\uff09 | \u8a55\u8ad6\u5247\u6578 | \u63d0\u53ca\u9023\u7dda\u914d\u5c0d | \u63d0\u53ca\u589c\u6a5f | \u63d0\u53ca\u96f6\u4ef6\u640d\u58de | \u63d0\u53ca\u9000\u8ca8 | \u63d0\u53ca\u96fb\u6c60\u7e8c\u822a\n1\u20132 | 37 | 27.03% | 18.92% | 10.81% | 21.62% | 29.73%\n2\u20133 | 12 | 33.33% | 8.33% | 8.33% | 8.33% [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c25",
+      "claim_text": "1 \u661f\u8a55\u8ad6\u63d0\u53ca\u96f6\u4ef6\u640d\u58de\u7684\u6bd4\u7387\u70ba 10.81%\u3001\u63d0\u53ca\u9000\u8ca8\u70ba 21.62%\u3001\u63d0\u53ca\u589c\u6a5f\u70ba 18.92%\uff0c\u5206\u5225\u662f 5 \u661f\u8a55\u8ad6 3.44%\u300111.17%\u30018.60% \u7684\u5169\u500d\u4e0a\u4e0b\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_pain_theme_by_star",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_reviews.csv):\u5404\u661f\u7b49\u8a55\u8ad6\u63d0\u53ca\u7684\u554f\u984c\u4e3b\u984c\u6bd4\u7387\u3002\u4f9d review_rating \u5206\u70ba 5 \u7d44\uff0c\u6db5\u84cb 473 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 473 \u7b46\uff09\u3002\n\u8a55\u5206\u5340\u9593\uff08\u661f\uff09 | \u8a55\u8ad6\u5247\u6578 | \u63d0\u53ca\u9023\u7dda\u914d\u5c0d | \u63d0\u53ca\u589c\u6a5f | \u63d0\u53ca\u96f6\u4ef6\u640d\u58de | \u63d0\u53ca\u9000\u8ca8 | \u63d0\u53ca\u96fb\u6c60\u7e8c\u822a\n1\u20132 | 37 | 27.03% | 18.92% | 10.81% | 21.62% | 29.73%\n2\u20133 | 12 | 33.33% | 8.33% | 8.33% | 8.33% [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c26",
+      "claim_text": "100 \u81f3 200 \u7f8e\u5143\u5e36\u7684\u8cb7\u5bb6\u5e73\u5747\u8a55\u5206 4.09\u30011 \u81f3 2 \u661f\u4f54 18.18%\uff0c\u662f\u6240\u6709\u50f9\u683c\u5e36\u4e2d\u6700\u5dee\u7684\u4e00\u6bb5\uff1b200 \u81f3 500 \u7f8e\u5143\u5e36\u5247\u662f 4.66 \u8207 4.90%\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_price_band_satisfaction",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_reviews.csv \u22c8 amazon_products.csv):\u5404\u50f9\u683c\u5e36\u7684\u5be6\u969b\u8cb7\u5bb6\u8a55\u5206\u3002\u4f9d price \u5206\u70ba 6 \u7d44\uff0c\u6db5\u84cb 373 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 473 \u7b46\uff09\u3002\u53e6\u6709 100 \u7b46\u5728\u8a72\u6b04\u7121\u53ef\u7528\u503c\uff0c\u672a\u5217\u5165\u5206\u7d44\u3002\u672c\u8868\u7531 amazon_reviews.csv \u8207 amazon_products.csv \u4ee5 asin \u5167\u63a5\u800c\u6210\uff0c\u63a5\u5f97 473 \u7b46\uff1bamazon_reviews.csv \u6709 0 \u7b46\u3001amazon_products.csv \u6709 481 \u7b46\u63a5 [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c27",
+      "claim_text": "\u651d\u5f71\u985e 405 \u5247\u8a55\u8ad6\u5e73\u5747 4.46 \u5206\u30011 \u81f3 2 \u661f\u4f54 9.38%\uff1b\u6d88\u9632\u6295\u5f48\u8207\u6d88\u8cbb\u7d1a\uff0f\u5176\u4ed6\u5169\u985e\u5206\u5225\u53ea\u6709 3.58 \u8207 3.12 \u5206\uff0c\u4f46\u6a23\u672c\u50c5 12 \u5247\u8207 8 \u5247\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_category_satisfaction",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_reviews.csv \u22c8 amazon_classified.csv):\u5404\u54c1\u985e\u7684\u5be6\u969b\u8cb7\u5bb6\u8a55\u5206\u3002\u4f9d category \u5206\u70ba 5 \u7d44\uff0c\u6db5\u84cb 473 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 473 \u7b46\uff09\u3002\u672c\u8868\u7531 amazon_reviews.csv \u8207 amazon_classified.csv \u4ee5 asin \u5167\u63a5\u800c\u6210\uff0c\u63a5\u5f97 473 \u7b46\uff1bamazon_reviews.csv \u6709 0 \u7b46\u3001amazon_classified.csv \u6709 481 \u7b46\u63a5\u4e0d\u4e0a\u3002\n\u54c1\u985e | \u8a55\u8ad6\u5247\u6578 [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c28",
+      "claim_text": "\u6709\u8cb7\u5bb6\u6307\u51fa\u5546\u54c1\u6a19\u7a31\u7684\u6700\u5927\u98db\u884c\u8ddd\u96e2\u9060\u9ad8\u65bc\u5be6\u969b\u8868\u73fe\uff0c\u6a5f\u9ad4\u5728\u9060\u4f4e\u65bc\u6a19\u7a31\u8ddd\u96e2\u8655\u5c31\u5931\u53bb\u9023\u7dda\uff0c\u96a8\u5f8c\u5931\u53bb\u5f71\u50cf\u4e26\u589c\u6bc0\u3002",
+      "claim_type": "factual",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_0d77ee19_0e08c17a78",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "{\"review_id\": \"RTT5AD0VU5K90\", \"asin\": \"B0C5T7SZQZ\", \"review_rating\": \"1.0\", \"review_title\": \"Lost connection completly after 100 feet (says it can reach 3,200 feet)\", \"review_body\": \"Calibrated multiple times still was not stable, says can [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c29",
+      "claim_text": "\u6709\u8cb7\u5bb6\u8868\u793a\u958b\u7bb1\u5f8c\u82b1\u8d85\u904e\u4e00\u5c0f\u6642\u4ecd\u7121\u6cd5\u8b93\u9059\u63a7\u5668\u8207\u6a5f\u9ad4\u7a69\u5b9a\u914d\u5c0d\uff0c\u9059\u63a7\u5668\u6301\u7e8c\u767c\u51fa\u63d0\u793a\u97f3\u537b\u59cb\u7d42\u7121\u6cd5\u53d6\u5f97\u63a7\u5236\u6b0a\u3002",
+      "claim_type": "factual",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_0d77ee19_8aa0890afd",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "{\"review_id\": \"R1KAJFO1FRJMFJ\", \"asin\": \"B0CWKWBZJT\", \"review_rating\": \"1.0\", \"review_title\": \"Didn't work out of the box\", \"review_body\": \"This was a complete waste of time. I was never able to reliably pair the drone with the controller, [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c30",
+      "claim_text": "\u6709\u8cb7\u5bb6\u5728\u7b2c\u4e09\u6b21\u98db\u884c\u6309\u4e0b\u8fd4\u822a\u9375\u5f8c\uff0c\u6a5f\u9ad4\u53cd\u800c\u5411\u5f8c\u98db\u96e2\u8996\u7dda\u4e14\u672a\u518d\u8fd4\u56de\u3002",
+      "claim_type": "factual",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_0d77ee19_2841cca5ec",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "{\"review_id\": \"R3U1POWSMN3MDI\", \"asin\": \"B0FC5RTNX7\", \"review_rating\": \"2.0\", \"review_title\": \"Disappointed in purchase!\", \"review_body\": \"The drone flew 3 times total. The drone worked fine the first two flights. The second flight was in t [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c31",
+      "claim_text": "\u6709\u8cb7\u5bb6\u5728\u7b2c\u4e8c\u6b21\u98db\u884c\u6642\u5931\u53bb\u9059\u63a7\u56de\u61c9\u3001\u649e\u5165\u6a39\u53e2\u4e26\u6298\u65b7\u6a5f\u81c2\uff0c\u4e26\u76f4\u8a00\u9019\u4e0d\u662f\u8a72\u50f9\u4f4d\u61c9\u6709\u7684\u8868\u73fe\u3002",
+      "claim_type": "factual",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_0d77ee19_0a54e7d7a0",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "{\"review_id\": \"R3B5JFYL8GLEQ\", \"asin\": \"B0F6Y9PB64\", \"review_rating\": \"1.0\", \"review_title\": \"Junk\", \"review_body\": \"Seemed good on the first flight. Second flight it took off into the trees with no response from remote commands. It crashed [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c32",
+      "claim_text": "\u6709\u8cb7\u5bb6\u53cd\u6620\u6a5f\u9ad4\u98db\u884c\u672c\u8eab\u6c92\u6709\u554f\u984c\uff0c\u537b\u56e0\u624b\u6a5f\u61c9\u7528\u7a0b\u5f0f\u7121\u6cd5\u9023\u7dda\u800c\u4f7f\u76f8\u6a5f\u529f\u80fd\u5b8c\u5168\u7121\u6cd5\u4f7f\u7528\u3002",
+      "claim_type": "factual",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_0d77ee19_7b22dad8bd",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "{\"review_id\": \"RS8H031JBUX4E\", \"asin\": \"B0C5T9GZQY\", \"review_rating\": \"1.0\", \"review_title\": \"Hard pass\", \"review_body\": \"Flies great, fun to use but couldn\u2019t get app on iPhone to connect to drone making the camera function unusable.\\nPoor [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c33",
+      "claim_text": "\u6709\u8cb7\u5bb6\u56e0\u61c9\u7528\u7a0b\u5f0f\u5728\u5176\u6240\u5728\u5730\u5340\u7121\u6cd5\u4e0b\u8f09\uff0c\u5c0e\u81f4\u6574\u53f0\u6a5f\u9ad4\u7121\u6cd5\u4f7f\u7528\u3002",
+      "claim_type": "factual",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_0d77ee19_3d7d6f00d7",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "{\"review_id\": \"RU2LAUMYO88PG\", \"asin\": \"B0GC5NFDHR\", \"review_rating\": \"1.0\", \"review_title\": \"App not downloadable\", \"review_body\": \"The app is not available in my region. Would have been nice to know before I bought it. Now I just have a p [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c34",
+      "claim_text": "25.79% \u7684\u8a55\u8ad6\u63d0\u53ca beginner\u30017.61% \u63d0\u53ca easy to fly\uff0c\u986f\u793a\u7559\u4e0b\u8a55\u8ad6\u7684\u4e3b\u529b\u662f\u5165\u9580\u8cb7\u5bb6\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_beginner_share",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_reviews.csv):\u8a55\u8ad6\u5167\u6587\u63d0\u53ca beginner\uff08\u65b0\u624b\uff09\u7684\u6bd4\u7387\u70ba 25.79%\u3002\u8a08\u7b97\u65b9\u5f0f:\u5c0d review_body~beginner \u5171 122 \u7b46\uff08\u5168\u6a94 473 \u7b46\uff09\u65bd\u4ee5 share \u904b\u7b97\u3002\uff08122 of 473\uff09"
+        },
+        {
+          "evidence_id": "E_D_easyfly_share",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_reviews.csv):\u8a55\u8ad6\u5167\u6587\u63d0\u53ca easy to fly\uff08\u597d\u4e0a\u624b\uff09\u7684\u6bd4\u7387\u70ba 7.61%\u3002\u8a08\u7b97\u65b9\u5f0f:\u5c0d review_body~easy to fly \u5171 36 \u7b46\uff08\u5168\u6a94 473 \u7b46\uff09\u65bd\u4ee5 share \u904b\u7b97\u3002\uff0836 of 473\uff09"
+        }
+      ]
+    },
+    {
+      "claim_id": "c35",
+      "claim_text": "\u4ee5\u5546\u54c1\u7de8\u865f\u5167\u63a5\u6642\uff0c473 \u5247\u8a55\u8ad6\u5168\u90e8\u627e\u5f97\u5230\u5c0d\u61c9\u5546\u54c1\uff0c\u4f46\u6709 481 \u7b46\u5546\u54c1\u5217\u6c92\u6709\u4efb\u4f55\u8a55\u8ad6\u53ef\u5c0d\u63a5\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_price_band_satisfaction",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_reviews.csv \u22c8 amazon_products.csv):\u5404\u50f9\u683c\u5e36\u7684\u5be6\u969b\u8cb7\u5bb6\u8a55\u5206\u3002\u4f9d price \u5206\u70ba 6 \u7d44\uff0c\u6db5\u84cb 373 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 473 \u7b46\uff09\u3002\u53e6\u6709 100 \u7b46\u5728\u8a72\u6b04\u7121\u53ef\u7528\u503c\uff0c\u672a\u5217\u5165\u5206\u7d44\u3002\u672c\u8868\u7531 amazon_reviews.csv \u8207 amazon_products.csv \u4ee5 asin \u5167\u63a5\u800c\u6210\uff0c\u63a5\u5f97 473 \u7b46\uff1bamazon_reviews.csv \u6709 0 \u7b46\u3001amazon_products.csv \u6709 481 \u7b46\u63a5 [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c36",
+      "claim_text": "\u92b7\u91cf\u6b04\u4f4d\u50c5 165 \u7b46\u5546\u54c1\u5217\u6709\u503c\uff0c\u4e14\u4ee5\u300c100+ bought in past month\u300d\u9019\u985e\u5206\u7d1a\u5b57\u4e32\u8a18\u9304\uff0c\u7121\u6cd5\u9084\u539f\u6210\u5be6\u969b\u92b7\u552e\u6578\u91cf\u3002",
+      "claim_type": "factual",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_28767e63_4f305b8385",
+          "source_id": "28767e63",
+          "source_file_name": "amazon_products.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_products.csv):sales \u6b04\u5171 15 \u500b\u76f8\u7570\u503c\u3001165 \u7b46\u6709\u503c\u8cc7\u6599\u5217\u3002\u5206\u5e03\u70ba 100+ bought in past month 46 \u7b46(27.9%)\u300150+ bought in past month 34 \u7b46(20.6%)\u3001200+ bought in past month 22 \u7b46(13.3%)\u3001500+ bought in past month 16 \u7b46(9.7%)\u3001400+ bought in past month 12 [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c37",
+      "claim_text": "\u50f9\u683c\u5e36\u5206\u6790\u53ea\u6db5\u84cb 425 \u7b46\u6709\u6a19\u50f9\u7684\u5546\u54c1\u5217\uff0c\u53e6\u6709 119 \u7b46\u672a\u5217\u5165\u5206\u7d44\uff1b\u8cb7\u5bb6\u8a55\u5206\u7684\u50f9\u683c\u5e36\u5206\u6790\u4e2d\uff0c\u53e6\u6709 100 \u5247\u8a55\u8ad6\u56e0\u5c0d\u61c9\u5546\u54c1\u672a\u6a19\u50f9\u800c\u672a\u5217\u5165\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_price_band_structure",
+          "source_id": "28767e63",
+          "source_file_name": "amazon_products.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_products.csv):\u50f9\u683c\u5e36\u7d50\u69cb\u8207\u8a55\u50f9\u8868\u73fe\u3002\u4f9d price \u5206\u70ba 6 \u7d44\uff0c\u6db5\u84cb 425 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 544 \u7b46\uff09\u3002\u53e6\u6709 119 \u7b46\u5728\u8a72\u6b04\u7121\u53ef\u7528\u503c\uff0c\u672a\u5217\u5165\u5206\u7d44\u3002\n\u50f9\u683c\u5e36 (USD) | \u5546\u54c1\u6578 | \u4f54\u5168\u6a23\u672c | \u5e73\u5747\u661f\u7b49 | \u4f4e\u65bc 4 \u661f\u6bd4\u7387 | \u8a55\u8ad6\u6578\u4e2d\u4f4d\u6578\n0\u201350 | 179 | 32.90% | 4.21 | 16.76% | 46.00\n50\u2013100 | 63 | 11.58% | 4.37 | 14.29% | 22.00\n1 [...]"
+        },
+        {
+          "evidence_id": "E_D_price_band_satisfaction",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_reviews.csv \u22c8 amazon_products.csv):\u5404\u50f9\u683c\u5e36\u7684\u5be6\u969b\u8cb7\u5bb6\u8a55\u5206\u3002\u4f9d price \u5206\u70ba 6 \u7d44\uff0c\u6db5\u84cb 373 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 473 \u7b46\uff09\u3002\u53e6\u6709 100 \u7b46\u5728\u8a72\u6b04\u7121\u53ef\u7528\u503c\uff0c\u672a\u5217\u5165\u5206\u7d44\u3002\u672c\u8868\u7531 amazon_reviews.csv \u8207 amazon_products.csv \u4ee5 asin \u5167\u63a5\u800c\u6210\uff0c\u63a5\u5f97 473 \u7b46\uff1bamazon_reviews.csv \u6709 0 \u7b46\u3001amazon_products.csv \u6709 481 \u7b46\u63a5 [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c38",
+      "claim_text": "100 \u81f3 200 \u7f8e\u5143\u5e36\u7684\u8cb7\u5bb6\u8a55\u5206\u7d50\u8ad6\u53ea\u7531 11 \u500b\u5546\u54c1\u300177 \u5247\u8a55\u8ad6\u652f\u6490\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_price_band_satisfaction",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_reviews.csv \u22c8 amazon_products.csv):\u5404\u50f9\u683c\u5e36\u7684\u5be6\u969b\u8cb7\u5bb6\u8a55\u5206\u3002\u4f9d price \u5206\u70ba 6 \u7d44\uff0c\u6db5\u84cb 373 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 473 \u7b46\uff09\u3002\u53e6\u6709 100 \u7b46\u5728\u8a72\u6b04\u7121\u53ef\u7528\u503c\uff0c\u672a\u5217\u5165\u5206\u7d44\u3002\u672c\u8868\u7531 amazon_reviews.csv \u8207 amazon_products.csv \u4ee5 asin \u5167\u63a5\u800c\u6210\uff0c\u63a5\u5f97 473 \u7b46\uff1bamazon_reviews.csv \u6709 0 \u7b46\u3001amazon_products.csv \u6709 481 \u7b46\u63a5 [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c39",
+      "claim_text": "\u651d\u5f71\u985e\u662f\u552f\u4e00\u540c\u6642\u5177\u5099\u898f\u6a21\uff08243 \u7b46\u5546\u54c1\u5217\uff09\u8207\u8cb7\u5bb6\u5be6\u8b49\uff08405 \u5247\u8a55\u8ad6\u3001\u6db5\u84cb 51 \u500b\u5546\u54c1\uff09\u7684\u6574\u6a5f\u54c1\u985e\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_7b036ce9_337d76a7e2",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):category \u5206\u7d44\u4ea4\u53c9\u8868\u3002\u4f9d category \u5206\u70ba 8 \u7d44\uff0c\u6db5\u84cb 544 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 544 \u7b46\uff09\u3002\ncategory | \u7b46\u6578 | \u4f54\u6bd4 | price \u5e73\u5747 | price \u4e2d\u4f4d\u6578 | review_count \u5e73\u5747 | review_count \u4e2d\u4f4d\u6578 | score \u4e2d\u4f4d\u6578\n\u651d\u5f71 | 243 | 44.67% | 535.95 USD | 139.98 USD | 1,115.95 | 225.0 [...]"
+        },
+        {
+          "evidence_id": "E_D_category_satisfaction",
+          "source_id": "0d77ee19",
+          "source_file_name": "amazon_reviews.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_reviews.csv \u22c8 amazon_classified.csv):\u5404\u54c1\u985e\u7684\u5be6\u969b\u8cb7\u5bb6\u8a55\u5206\u3002\u4f9d category \u5206\u70ba 5 \u7d44\uff0c\u6db5\u84cb 473 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 473 \u7b46\uff09\u3002\u672c\u8868\u7531 amazon_reviews.csv \u8207 amazon_classified.csv \u4ee5 asin \u5167\u63a5\u800c\u6210\uff0c\u63a5\u5f97 473 \u7b46\uff1bamazon_reviews.csv \u6709 0 \u7b46\u3001amazon_classified.csv \u6709 481 \u7b46\u63a5\u4e0d\u4e0a\u3002\n\u54c1\u985e | \u8a55\u8ad6\u5247\u6578 [...]"
+        }
+      ]
+    },
+    {
+      "claim_id": "c40",
+      "claim_text": "\u651d\u5f71\u985e\u552e\u50f9\u843d\u5728 100 \u81f3 200 \u7f8e\u5143\u7684\u5546\u54c1\u5217\u5171 39 \u7b46\uff0c\u4f54\u8a72\u985e 16.05%\u3002",
+      "claim_type": "statistical",
+      "status": "verified",
+      "evidence": [
+        {
+          "evidence_id": "E_D_photo_mid_count",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):\u651d\u5f71\u985e\u552e\u50f9 100\u2013200 \u7f8e\u5143\u7684\u5546\u54c1\u5217\u6578\u70ba 39\u3002\u8a08\u7b97\u65b9\u5f0f:\u5c0d category=\u651d\u5f71 & price>=100 & price<200 \u5171 39 \u7b46\uff08\u5168\u6a94 544 \u7b46\uff09\u65bd\u4ee5 count \u904b\u7b97\u3002"
+        },
+        {
+          "evidence_id": "E_D_photo_price_band",
+          "source_id": "7b036ce9",
+          "source_file_name": "amazon_classified.csv",
+          "evidence_grade": "high",
+          "evidence_type": "quantitative",
+          "content_preview": "\u884d\u751f\u7d71\u8a08(\u4f86\u6e90:amazon_classified.csv):\u651d\u5f71\u985e\u7121\u4eba\u6a5f\u7684\u50f9\u683c\u5e36\u8ca8\u67b6\u7d50\u69cb\u3002\u4f9d price \u5206\u70ba 6 \u7d44\uff0c\u6db5\u84cb 179 \u7b46\u8cc7\u6599\u5217\uff08\u5168\u6a94 544 \u7b46\uff09\u3002\u53e6\u6709 64 \u7b46\u5728\u8a72\u6b04\u7121\u53ef\u7528\u503c\uff0c\u672a\u5217\u5165\u5206\u7d44\u3002\n\u50f9\u683c\u5e36 (USD) | \u5546\u54c1\u6578 | \u4f54\u651d\u5f71\u985e | \u8a55\u8ad6\u6578\u4e2d\u4f4d\u6578 | \u6709\u8fd1\u6708\u92b7\u91cf\u6a19\u793a\n0\u201350 | 49 | 20.16% | 433.00 | 31\n50\u2013100 | 27 | 11.11% | 167.00 | 14\n100\u2013200 | 39 | 16.05% | 7 [...]"
+        }
+      ]
+    }
+  ]
+}

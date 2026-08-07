@@ -1,0 +1,480 @@
+{
+  "claims": [
+    {
+      "claim_id": "c1",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c2",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c3",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c4",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c5",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c6",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c7",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c8",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c9",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c10",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c11",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c12",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c13",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c14",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c15",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c16",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c17",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c18",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c19",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c20",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c21",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c22",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c23",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c24",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c25",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c26",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c27",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c28",
+      "status": "verified",
+      "checker": "FA",
+      "reason": "Claim/evidence/sentence linkage confirmed"
+    },
+    {
+      "claim_id": "c29",
+      "status": "verified",
+      "checker": "FA",
+      "reason": "Claim/evidence/sentence linkage confirmed"
+    },
+    {
+      "claim_id": "c30",
+      "status": "verified",
+      "checker": "FA",
+      "reason": "Claim/evidence/sentence linkage confirmed"
+    },
+    {
+      "claim_id": "c31",
+      "status": "verified",
+      "checker": "FA",
+      "reason": "Claim/evidence/sentence linkage confirmed"
+    },
+    {
+      "claim_id": "c32",
+      "status": "verified",
+      "checker": "FA",
+      "reason": "Claim/evidence/sentence linkage confirmed"
+    },
+    {
+      "claim_id": "c33",
+      "status": "verified",
+      "checker": "FA",
+      "reason": "Claim/evidence/sentence linkage confirmed"
+    },
+    {
+      "claim_id": "c34",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c35",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c36",
+      "status": "verified",
+      "checker": "FA",
+      "reason": "Claim/evidence/sentence linkage confirmed"
+    },
+    {
+      "claim_id": "c37",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c38",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c39",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c40",
+      "status": "verified",
+      "checker": "FA+FB",
+      "reason": "Claim/evidence linkage and quantitative support confirmed"
+    },
+    {
+      "claim_id": "c1",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c2",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c3",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c4",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c5",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c6",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c7",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c8",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c9",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c10",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c11",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c12",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c13",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c14",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c15",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c16",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c17",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c18",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c19",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c20",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c21",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c22",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c23",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c24",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c25",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c26",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c27",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c29",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c34",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c35",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c36",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c37",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c38",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c39",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c40",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    }
+  ],
+  "advisory": [],
+  "blocked_count": 0,
+  "verified_count": 75,
+  "checkers_run": [
+    "FA",
+    "FB",
+    "FE",
+    "FS",
+    "FD"
+  ],
+  "checker_descriptions": {
+    "FA": "claim, evidence and sentence ids link up",
+    "FB": "a statistical claim cites quantitative evidence",
+    "FE": "the claim's numbers, quotes and terms appear in the evidence it cites",
+    "FS": "the drafted prose states every figure its claim asserts",
+    "FD": "wording strength is allowed by the weakest cited evidence grade"
+  },
+  "verified_means": "Every checker listed in checkers_run examined this claim and found no violation. It is a deterministic, lexical comparison against the supplied evidence \u2014 not an external fact check, and not a judgement that the claim is true.",
+  "sidecars_consumed": {
+    "claim_matrix": true,
+    "sentence_map": true,
+    "evidence_ledger": true,
+    "outline": true
+  },
+  "deep_audit": false,
+  "revision_sidecar_mode": false
+}

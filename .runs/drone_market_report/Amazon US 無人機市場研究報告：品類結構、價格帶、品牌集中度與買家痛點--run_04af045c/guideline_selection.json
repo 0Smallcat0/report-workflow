@@ -1,0 +1,18 @@
+{
+  "matched_rule": {
+    "id": "default:business_report",
+    "matched_keywords": []
+  },
+  "candidate_guidelines": [],
+  "selected_guidelines": [],
+  "unavailable_guidelines": [],
+  "available_guidelines": [
+    "CHINESE_ENGINEERING",
+    "CONSORT",
+    "PRISMA",
+    "SRQR",
+    "STARD",
+    "STROBE",
+    "TRIPOD"
+  ]
+}

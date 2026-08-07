@@ -1,0 +1,28 @@
+{
+  "job_id": "run_04af045c",
+  "status": "passed_with_warnings",
+  "figure_plan_path": "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US \u7121\u4eba\u6a5f\u5e02\u5834\u7814\u7a76\u5831\u544a\uff1a\u54c1\u985e\u7d50\u69cb\u3001\u50f9\u683c\u5e36\u3001\u54c1\u724c\u96c6\u4e2d\u5ea6\u8207\u8cb7\u5bb6\u75db\u9ede--run_04af045c\\section_drafts\\figure_plan.json",
+  "recommendation_count": 10,
+  "figure_count": 0,
+  "issues": [
+    {
+      "severity": "warning",
+      "type": "recommendations_unused",
+      "recommendation_ids": [
+        "figrec_1",
+        "figrec_2",
+        "figrec_3",
+        "figrec_4",
+        "figrec_5",
+        "figrec_6",
+        "figrec_7",
+        "figrec_8",
+        "figrec_9",
+        "figrec_10"
+      ],
+      "detail": "10 of 10 chart recommendation(s) are not used by figure_plan.json: figrec_1 \u201c\u5404keyword\u7684\u7b46\u6578\u7b49 7 \u9805\u5c0d\u7167 after sort desc\u201d 5\u00d78 table; figrec_2 \u201c\u4f54\u6bd4(\u4f9d\u7b46\u6578)\u201d 17\u00d78 scatter; figrec_3 \u201c\u4f54\u6bd4(\u4f9d\u7b46\u6578)\u201d 16\u00d78 scatter; figrec_4 \u201c\u4f54\u6bd4(\u4f9d\u7b46\u6578)\u201d 17\u00d78 scatter; figrec_5 \u201c\u5404category\u7684\u7b46\u6578\u7b49 7 \u9805\u5c0d\u7167\u201d 9\u00d78 table; figrec_6 \u201c\u4f54\u6bd4(\u4f9d\u7b46\u6578)\u201d 17\u00d78 scatter; figrec_7 \u201c\u4f54\u6bd4(\u4f9d\u7b46\u6578)\u201d 16\u00d78 scatter; figrec_8 \u201cbrand and 7 other measures by title\u201d 544\u00d79 table; figrec_9 \u201cbrand and 6 other measures by title\u201d 544\u00d78 table; figrec_10 \u201cFrequency count by review_rating\u201d 473\u00d74 histogram",
+      "repair_hint": "Dropping a recommendation is a legitimate editorial choice \u2014 this is a warning, not a block. Reference each one you keep by recommendation_id in figure_plan.json; delete the rest deliberately, having seen what they held."
+    }
+  ],
+  "hard_issues": []
+}

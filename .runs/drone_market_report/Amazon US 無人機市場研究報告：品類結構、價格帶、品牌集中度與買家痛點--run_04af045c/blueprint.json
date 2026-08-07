@@ -1,0 +1,66 @@
+{
+  "name": "business_report",
+  "description": "Business/work report format with executive summary",
+  "front_matter": {
+    "title": "Amazon US \u7121\u4eba\u6a5f\u5e02\u5834\u7814\u7a76\u5831\u544a\uff1a\u54c1\u985e\u7d50\u69cb\u3001\u50f9\u683c\u5e36\u3001\u54c1\u724c\u96c6\u4e2d\u5ea6\u8207\u8cb7\u5bb6\u75db\u9ede",
+    "short_title": "",
+    "author_block": "",
+    "affiliation_block": "",
+    "correspondence": "",
+    "keywords": [],
+    "acknowledgements": "",
+    "funding": "",
+    "conflict_note": ""
+  },
+  "section_order": [
+    "executive_summary",
+    "findings",
+    "recommendations",
+    "appendix",
+    "references"
+  ],
+  "sections": {
+    "executive_summary": {
+      "section_id": "executive_summary",
+      "title": "Executive Summary",
+      "title_zh": "\u57f7\u884c\u6458\u8981",
+      "required": true,
+      "section_type": "exec_summary",
+      "order": 1
+    },
+    "findings": {
+      "section_id": "findings",
+      "title": "Key Findings",
+      "title_zh": "\u4e3b\u8981\u767c\u73fe",
+      "required": true,
+      "section_type": "findings",
+      "order": 2,
+      "supports_subsections": true
+    },
+    "recommendations": {
+      "section_id": "recommendations",
+      "title": "Recommendations",
+      "title_zh": "\u5efa\u8b70\u4e8b\u9805",
+      "required": true,
+      "section_type": "recommendations",
+      "order": 3
+    },
+    "appendix": {
+      "section_id": "appendix",
+      "title": "Appendix",
+      "title_zh": "\u9644\u9304",
+      "required": false,
+      "section_type": "appendix",
+      "order": 4,
+      "supports_subsections": true
+    },
+    "references": {
+      "section_id": "references",
+      "title": "References",
+      "title_zh": "\u53c3\u8003\u6587\u737b",
+      "required": false,
+      "section_type": "references",
+      "order": 5
+    }
+  }
+}

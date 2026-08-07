@@ -1,0 +1,27 @@
+{
+  "job_id": "run_04af045c",
+  "created_at": "2026-08-07T09:04:44.923309",
+  "status": "pass",
+  "report_profile": "business_report",
+  "reference_template_mode": "style_reference",
+  "rendered_docx_path": "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US \u7121\u4eba\u6a5f\u5e02\u5834\u7814\u7a76\u5831\u544a\uff1a\u54c1\u985e\u7d50\u69cb\u3001\u50f9\u683c\u5e36\u3001\u54c1\u724c\u96c6\u4e2d\u5ea6\u8207\u8cb7\u5bb6\u75db\u9ede--run_04af045c\\final.docx",
+  "reference_docx_path": "D:\\report_workflow\\src\\report_workflow\\templates\\reference.docx",
+  "placeholder_count": 0,
+  "field_count": 1,
+  "filled_count": 1,
+  "missing_value_count": 0,
+  "not_found_count": 0,
+  "fields": [
+    {
+      "key": "title",
+      "label": "Title",
+      "value": "Amazon US \u7121\u4eba\u6a5f\u5e02\u5834\u7814\u7a76\u5831\u544a\uff1a\u54c1\u985e\u7d50\u69cb\u3001\u50f9\u683c\u5e36\u3001\u54c1\u724c\u96c6\u4e2d\u5ea6\u8207\u8cb7\u5bb6\u75db\u9ede",
+      "source": "front_matter",
+      "placeholder": "",
+      "required_by_reference": false,
+      "rendered_match_count": 1,
+      "status": "filled"
+    }
+  ],
+  "warnings": []
+}

@@ -1,0 +1,717 @@
+{
+  "job_id": "run_04af045c",
+  "qa_decision": "pass",
+  "artifact_completeness_status": "pass",
+  "hard_fail_reasons": [],
+  "citation_policy_warnings": [],
+  "style_lint_warnings": [],
+  "evidence_policy_warnings": [],
+  "citation_audit": [
+    {
+      "cite_id": "E_7b036ce9_337d76a7e2",
+      "evidence_ids": [
+        "E_7b036ce9_337d76a7e2"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_category_satisfaction",
+      "evidence_ids": [
+        "E_D_category_satisfaction"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_7b036ce9_337d76a7e2",
+      "evidence_ids": [
+        "E_7b036ce9_337d76a7e2"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_component_share",
+      "evidence_ids": [
+        "E_D_component_share"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_unbranded_share",
+      "evidence_ids": [
+        "E_D_unbranded_share"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_price_band_satisfaction",
+      "evidence_ids": [
+        "E_D_price_band_satisfaction"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_price_band_structure",
+      "evidence_ids": [
+        "E_D_price_band_structure"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_pain_theme_by_star",
+      "evidence_ids": [
+        "E_D_pain_theme_by_star"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_agri_no_review",
+      "evidence_ids": [
+        "E_D_agri_no_review"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_7b036ce9_337d76a7e2",
+      "evidence_ids": [
+        "E_7b036ce9_337d76a7e2"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_dji_median_price",
+      "evidence_ids": [
+        "E_D_dji_median_price"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_dji_under200_share",
+      "evidence_ids": [
+        "E_D_dji_under200_share"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_category_satisfaction",
+      "evidence_ids": [
+        "E_D_category_satisfaction"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_7b036ce9_337d76a7e2",
+      "evidence_ids": [
+        "E_7b036ce9_337d76a7e2"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_7b036ce9_272ec71407",
+      "evidence_ids": [
+        "E_7b036ce9_272ec71407"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_component_share",
+      "evidence_ids": [
+        "E_D_component_share"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_7b036ce9_337d76a7e2",
+      "evidence_ids": [
+        "E_7b036ce9_337d76a7e2"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_nondrone_share",
+      "evidence_ids": [
+        "E_D_nondrone_share"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_agri_no_review",
+      "evidence_ids": [
+        "E_D_agri_no_review"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_7b036ce9_337d76a7e2",
+      "evidence_ids": [
+        "E_7b036ce9_337d76a7e2"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_28767e63_ed49ab53fd",
+      "evidence_ids": [
+        "E_28767e63_ed49ab53fd"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_7b036ce9_337d76a7e2",
+      "evidence_ids": [
+        "E_7b036ce9_337d76a7e2"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_28767e63_020c41e5a7",
+      "evidence_ids": [
+        "E_28767e63_020c41e5a7"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_no_price_share",
+      "evidence_ids": [
+        "E_D_no_price_share"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_price_band_structure",
+      "evidence_ids": [
+        "E_D_price_band_structure"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_heavy_listing_count",
+      "evidence_ids": [
+        "E_D_heavy_listing_count"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_price_band_structure",
+      "evidence_ids": [
+        "E_D_price_band_structure"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_heavy_listing_count",
+      "evidence_ids": [
+        "E_D_heavy_listing_count"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_price_band_satisfaction",
+      "evidence_ids": [
+        "E_D_price_band_satisfaction"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_photo_price_band",
+      "evidence_ids": [
+        "E_D_photo_price_band"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_photo_price_band",
+      "evidence_ids": [
+        "E_D_photo_price_band"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_28767e63_afdac4a7c6",
+      "evidence_ids": [
+        "E_28767e63_afdac4a7c6"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_brand_cr5",
+      "evidence_ids": [
+        "E_D_brand_cr5"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_unbranded_share",
+      "evidence_ids": [
+        "E_D_unbranded_share"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_28767e63_afbea52c52",
+      "evidence_ids": [
+        "E_28767e63_afbea52c52"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_dji_median_price",
+      "evidence_ids": [
+        "E_D_dji_median_price"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_dji_under200_share",
+      "evidence_ids": [
+        "E_D_dji_under200_share"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_photo_branded_share",
+      "evidence_ids": [
+        "E_D_photo_branded_share"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_dji_photo_share",
+      "evidence_ids": [
+        "E_D_dji_photo_share"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_photo_brand_hhi",
+      "evidence_ids": [
+        "E_D_photo_brand_hhi"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_mid_band_brands",
+      "evidence_ids": [
+        "E_D_mid_band_brands"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_price_band_structure",
+      "evidence_ids": [
+        "E_D_price_band_structure"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_0d77ee19_abffba77dd",
+      "evidence_ids": [
+        "E_0d77ee19_abffba77dd"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_0d77ee19_8eb9aa068f",
+      "evidence_ids": [
+        "E_0d77ee19_8eb9aa068f"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_reviewed_asins",
+      "evidence_ids": [
+        "E_D_reviewed_asins"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_pain_theme_by_star",
+      "evidence_ids": [
+        "E_D_pain_theme_by_star"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_pain_theme_by_star",
+      "evidence_ids": [
+        "E_D_pain_theme_by_star"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_pain_theme_by_star",
+      "evidence_ids": [
+        "E_D_pain_theme_by_star"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_0d77ee19_0e08c17a78",
+      "evidence_ids": [
+        "E_0d77ee19_0e08c17a78"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_0d77ee19_2841cca5ec",
+      "evidence_ids": [
+        "E_0d77ee19_2841cca5ec"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_0d77ee19_0a54e7d7a0",
+      "evidence_ids": [
+        "E_0d77ee19_0a54e7d7a0"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_0d77ee19_8aa0890afd",
+      "evidence_ids": [
+        "E_0d77ee19_8aa0890afd"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_0d77ee19_7b22dad8bd",
+      "evidence_ids": [
+        "E_0d77ee19_7b22dad8bd"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_0d77ee19_3d7d6f00d7",
+      "evidence_ids": [
+        "E_0d77ee19_3d7d6f00d7"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_price_band_satisfaction",
+      "evidence_ids": [
+        "E_D_price_band_satisfaction"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_category_satisfaction",
+      "evidence_ids": [
+        "E_D_category_satisfaction"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_beginner_share",
+      "evidence_ids": [
+        "E_D_beginner_share"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_easyfly_share",
+      "evidence_ids": [
+        "E_D_easyfly_share"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_price_band_satisfaction",
+      "evidence_ids": [
+        "E_D_price_band_satisfaction"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_price_band_structure",
+      "evidence_ids": [
+        "E_D_price_band_structure"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_price_band_satisfaction",
+      "evidence_ids": [
+        "E_D_price_band_satisfaction"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_28767e63_4f305b8385",
+      "evidence_ids": [
+        "E_28767e63_4f305b8385"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_price_band_satisfaction",
+      "evidence_ids": [
+        "E_D_price_band_satisfaction"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_7b036ce9_337d76a7e2",
+      "evidence_ids": [
+        "E_7b036ce9_337d76a7e2"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_category_satisfaction",
+      "evidence_ids": [
+        "E_D_category_satisfaction"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_photo_mid_count",
+      "evidence_ids": [
+        "E_D_photo_mid_count"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_photo_price_band",
+      "evidence_ids": [
+        "E_D_photo_price_band"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_photo_price_band",
+      "evidence_ids": [
+        "E_D_photo_price_band"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_price_band_satisfaction",
+      "evidence_ids": [
+        "E_D_price_band_satisfaction"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_mid_band_brands",
+      "evidence_ids": [
+        "E_D_mid_band_brands"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_photo_price_band",
+      "evidence_ids": [
+        "E_D_photo_price_band"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_pain_theme_by_star",
+      "evidence_ids": [
+        "E_D_pain_theme_by_star"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_agri_no_review",
+      "evidence_ids": [
+        "E_D_agri_no_review"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_7b036ce9_337d76a7e2",
+      "evidence_ids": [
+        "E_7b036ce9_337d76a7e2"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_28767e63_ed49ab53fd",
+      "evidence_ids": [
+        "E_28767e63_ed49ab53fd"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_dji_median_price",
+      "evidence_ids": [
+        "E_D_dji_median_price"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_dji_under200_share",
+      "evidence_ids": [
+        "E_D_dji_under200_share"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_photo_brand_hhi",
+      "evidence_ids": [
+        "E_D_photo_brand_hhi"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_dji_photo_share",
+      "evidence_ids": [
+        "E_D_dji_photo_share"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_photo_branded_share",
+      "evidence_ids": [
+        "E_D_photo_branded_share"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_price_band_satisfaction",
+      "evidence_ids": [
+        "E_D_price_band_satisfaction"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_price_band_satisfaction",
+      "evidence_ids": [
+        "E_D_price_band_satisfaction"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_mid_band_brands",
+      "evidence_ids": [
+        "E_D_mid_band_brands"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_pain_theme_by_star",
+      "evidence_ids": [
+        "E_D_pain_theme_by_star"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_photo_mid_count",
+      "evidence_ids": [
+        "E_D_photo_mid_count"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_price_band_satisfaction",
+      "evidence_ids": [
+        "E_D_price_band_satisfaction"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    },
+    {
+      "cite_id": "E_D_photo_price_band",
+      "evidence_ids": [
+        "E_D_photo_price_band"
+      ],
+      "resolved": true,
+      "citation_type": "reference_entry"
+    }
+  ],
+  "sidecar_traceability": {
+    "mode": "sidecar",
+    "fulfilled": true,
+    "issues": [],
+    "sentence_count": 41,
+    "evidence_backed_sentence_count": 41,
+    "claim_count": 40,
+    "evidence_count": 1608
+  },
+  "factuality_report_path": "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US \u7121\u4eba\u6a5f\u5e02\u5834\u7814\u7a76\u5831\u544a\uff1a\u54c1\u985e\u7d50\u69cb\u3001\u50f9\u683c\u5e36\u3001\u54c1\u724c\u96c6\u4e2d\u5ea6\u8207\u8cb7\u5bb6\u75db\u9ede--run_04af045c\\factuality_report.json"
+}
