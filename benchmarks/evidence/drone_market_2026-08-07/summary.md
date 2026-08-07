@@ -1,78 +1,56 @@
-# Drone-market benchmark: harness versus the hand-built control
+# Drone-market benchmark: three reports, one source, three axes
 
-Three raw CSVs, one task statement, one scorer, both arms checked in.
-Reproduce with `python scripts/run_drone_market_benchmark.py --check`.
+Same three CSVs, same task statement, all three arms recorded, one set of
+scorers. Reproduce with `python scripts/run_drone_market_benchmark.py --check`.
 
-- Source: `benchmarks/fixtures/drone_market/amazon_classified.csv`, `benchmarks/fixtures/drone_market/amazon_products.csv`, `benchmarks/fixtures/drone_market/amazon_reviews.csv`
-- Unassisted arm: `benchmarks/fixtures/drone_market_unassisted.md` (recorded sample; see the file header)
-- Tool arm: a live run of prepare -> author -> validate -> render
+- **hand** — `benchmarks/fixtures/drone_market_unassisted.md`
+- **tool** — `benchmarks/fixtures/drone_market_tool_arm.md`
+- **llm_direct** — `benchmarks/fixtures/drone_market_llm_direct.md`
+- Argument rubric: `benchmarks/rubrics/argument_rubric.md`
 
-| Dimension | Unassisted | Tool | Winner |
-| --- | ---: | ---: | --- |
-| external_sources | 0 | 2 | tool |
-| verifiable_numbers | 121 | 45 | unassisted |
-| verifiable_number_ratio | 0.7035 | 0.4091 | unassisted |
-| tables | 13 | 7 | unassisted |
-| figures | 0 | 0 | tie |
-| counter_evidence_paragraphs | 0 | 1 | tool |
-| disclosed_derivations | 0 | 0 | tie |
-| structured_paragraph_ratio | 0.3784 | 0.7143 | tool |
+| Axis | Dimension | hand | tool | llm_direct |
+| --- | --- | ---: | ---: | ---: |
+| numeric | external_sources | 0 | 6 | 0 |
+| numeric | verifiable_numbers | 121 | 52 | 72 |
+| numeric | verifiable_number_ratio | 0.7035 | 0.486 | 0.5714 |
+| numeric | tables | 13 | 9 | 11 |
+| numeric | figures | 0 | 0 | 0 |
+| numeric | counter_evidence_paragraphs | 0 | 3 | 0 |
+| numeric | disclosed_derivations | 0 | 0 | 0 |
+| numeric | structured_paragraph_ratio | 0.3784 | 0.6774 | 0.3548 |
+| layout | heading_informativeness | 0.3571 | 0.6667 | 0.3333 |
+| layout | table_lead_in_ratio | 0.9231 | 1.0 | 0.8182 |
+| layout | paragraph_length_fitness | 0.5172 | 0.541 | 0.8 |
+| argument | claim_strength | 3 | 3 | 4 |
+| argument | evidence_depth | 3 | 2 | 3 |
+| argument | counter_specificity | 4 | 3 | 4 |
 
-Tool wins 3 of 8 dimensions; unassisted wins 3; 2 tie.
+## Where the tool arm stands
 
-## What the run itself shows
+The stop condition for this round: the tool arm wins every axis against the
+AI-direct arm, and loses at most one axis to the hand-written control.
 
-- Cross tabulations the pipeline built at intake: **7**
-- Placed in the document: **7**
-- Tables in the delivered DOCX: **7**
-- Derivations the author had to register by hand: **0**
-- Questions extracted from the task statement, each bound to a claim in the conclusion: **2**
+| Axis | vs llm_direct | vs hand |
+| --- | --- | --- |
+| numeric | 3W 3L not yet | 3W 3L not yet |
+| layout | 2W 1L won | 3W 0L won |
+| argument | 0W 3L not yet | 0W 2L not yet |
 
-The last three are the round's subject. The tables were computed whether or not
-anyone asked; before this round an author could leave them unmentioned, and three
-runs of this task placed four of them, then three, then two. The outline now
-refuses to load until each is either placed or waived by name with a reason, so
-the number above is a floor rather than an average.
+Beats the AI-direct arm on every axis: **False**. Axes lost to the hand-written control: **2**. Stop condition met: **False**.
 
 ## What this claims, and what it does not
 
-It claims the harness carries checkable material into the document without the
-author having to build it: every table above is computed from the rows, keeps its
-provenance, and is cited by a claim the gates check.
+It claims the delivered document can be compared to a person's and to an
+AI's on the same three axes, and reports where it leads and where it trails.
 
-It does not claim the harness writes better prose. The tool arm is authored
-mechanically - one lead-in sentence per table, no argument between them - which
-is what isolates the harness's contribution from the writer's. Rewriting that
-author to score better would be tuning the arm rather than measuring the harness.
+It does not claim the argument scores are impartial. The judge is the same
+agent that wrote the harness one of the arms belongs to; the rubric was fixed
+before any arm was judged, every vote records the passage it rests on, and the
+votes are archived so a third party can re-read a document and disagree with a
+specific score. That is mitigation, not independence.
 
-The unassisted arm is a recorded artifact rather than a live generation. That is
-a limitation and it is deliberate: it is one write-up by one author on one day,
-and regenerating it would move the baseline for reasons unrelated to the
-pipeline. It is also not a strawman - it is the arm that was ahead.
-
-## The dimensions the tool loses
-
-Reported as measured rather than tuned away, because a benchmark its own
-author can adjust until it wins is not evidence of anything.
-
-- **verifiable_numbers**: unassisted 121, tool 45.
-- **verifiable_number_ratio**: unassisted 0.7035, tool 0.4091.
-- **tables**: unassisted 13, tool 7.
-
-All three come from the same property of this arm: it registers nothing. It
-places the tables the pipeline built and states no figures beyond what those
-tables' evidence text already contains, where the unassisted arm computed
-whatever its argument needed and typed the result into a sentence.
-
-`tables` is the clearest reading of that. The tool arm carries the built
-tables and no others; the three real acceptance runs of this same task
-registered six, five and four grouped tables of their own on top of them.
-The gap is what an author adds, and this arm has no author.
-
-`verifiable_numbers` and its ratio are counted over prose paragraphs, and the
-paragraph filter excludes table rows from *both* arms — so a figure the tool
-puts in a checked table is not counted, while the same figure typed into a
-sentence by the unassisted arm is. Read beside it: every number this arm
-states is traceable to a ledger row, and none of the unassisted arm's 121 is
-traceable to anything at all. That is the trade, and this scorer is not the
-instrument that shows it.
+The hand-written and AI-direct arms are recorded artifacts rather than live
+generations. That is deliberate: a baseline regenerated each run makes the
+comparison move for reasons unrelated to the pipeline. Neither is a strawman —
+the hand-written arm was ahead of the pipeline when it was recorded, and the
+AI-direct arm is the strongest of four independent drafts.
