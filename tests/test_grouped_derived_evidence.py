@@ -474,5 +474,64 @@ class TheBriefLeadsWithTheBuiltTablesTests(unittest.TestCase):
         self.assertIn("[TABLE:", guidance[tables_at:summaries_at])
 
 
+class BandLabelsSayWhatTheyHoldTests(unittest.TestCase):
+    """A half-open band labelled 1-3 contains 1 and 2, and said neither.
+
+    An author read the table, wrote 「1-2 星」 -- correct -- and the content check
+    refused it: the digit 2 appears nowhere in the evidence. The identical phrase
+    passed when it cited a different table, solely because that table's column
+    header happened to spell the range out. Same fact, same words, opposite
+    verdict depending on a header.
+    """
+
+    RATINGS = [
+        {"review_id": f"R{index}", "review_rating": str(rating)}
+        for index, rating in enumerate([1, 1, 2, 3, 3, 4, 5, 5, 5, 5])
+    ]
+
+    def _unit(self, buckets: list, zh: bool = True) -> dict:
+        units, problems = build_requested_units(
+            [{"id": "band", "source": "reviews.csv",
+              "group_by": {"column": "review_rating", "buckets": buckets},
+              "measures": [{"op": "count"}]}],
+            [_source("s", "reviews.csv", self.RATINGS)],
+            CREATED_AT,
+            zh=zh,
+        )
+        self.assertEqual(problems, [])
+        return units[0]
+
+    def test_an_integer_band_states_the_values_it_covers(self):
+        unit = self._unit([1, 3, 4, 5])
+        self.assertEqual(
+            unit["derivation"]["band_members"],
+            ["1 至 2", "3", "4", "5 及以上"],
+        )
+        # The figure the author will write has to be findable in the text.
+        self.assertIn("1–3=1 至 2", unit["content"])
+        self.assertIn("2", unit["content"])
+
+    def test_a_column_with_fractions_gets_no_membership_claim(self):
+        # Spelling a price band as "0 to 29" when the data holds 29.99 would be
+        # a statement about the band that is false about the data.
+        prices = [{"asin": f"A{i}", "price": p} for i, p in enumerate(
+            ["$10.50", "$20.99", "$40.00", "$70.25"]
+        )]
+        units, problems = build_requested_units(
+            [{"id": "p", "source": "p.csv",
+              "group_by": {"column": "price", "buckets": [0, 30, 60]},
+              "measures": [{"op": "count"}]}],
+            [_source("s", "p.csv", prices)],
+            CREATED_AT,
+            zh=True,
+        )
+        self.assertEqual(problems, [])
+        self.assertNotIn("band_members", units[0]["derivation"])
+        self.assertNotIn("實際涵蓋", units[0]["content"])
+
+    def test_english_membership_reads_as_english(self):
+        self.assertIn("1 to 2", self._unit([1, 3, 4, 5], zh=False)["content"])
+
+
 if __name__ == "__main__":
     unittest.main()

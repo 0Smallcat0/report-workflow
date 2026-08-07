@@ -664,6 +664,43 @@ def _render_cell(value: float | None, unit: str, *, fixed: bool = False) -> str:
     return f"{text} {unit}" if unit else text
 
 
+def _integer_band_members(edges: list[float], zh: bool) -> list[str]:
+    """What each half-open band actually contains, when the column is integral.
+
+    A band cut at [1, 3) over star ratings is labelled 1-3 and holds 1 and 2.
+    An author who reads the table writes 「1-2 星」, which is correct, and the
+    content check refused it: the digit 2 appears nowhere in the evidence. The
+    same sentence passed when it cited a table whose column header happened to
+    spell the range out -- same fact, same words, opposite verdict depending on
+    a header. So the membership is stated, and the figure the author will reach
+    for is in the text.
+
+    Only for integral columns. Spelling a price band as "0 to 29" when the data
+    holds 29.99 would be a statement about the band that is false about the
+    data.
+    """
+    members: list[str] = []
+    for low, high in zip(edges, edges[1:]):
+        first, last = int(low), int(high) - 1
+        if last < first:
+            members.append(f"{first}")
+        elif last == first:
+            members.append(f"{first}")
+        else:
+            members.append(f"{first} 至 {last}" if zh else f"{first} to {last}")
+    last_edge = int(edges[-1])
+    members.append(f"{last_edge} 及以上" if zh else f"{last_edge} and above")
+    return members
+
+
+def _column_is_integral(frame: Dataset, column: str) -> bool:
+    numbers = [
+        value for value in (parse_number(cell) for cell in frame.column_values(column))
+        if value is not None
+    ]
+    return bool(numbers) and all(abs(value - round(value)) < 1e-9 for value in numbers)
+
+
 def compute_group_table(frame: Dataset, request: dict, zh: bool = False) -> dict:
     """One grouped table: a row per group, a column per measure.
 
@@ -797,6 +834,8 @@ def compute_group_table(frame: Dataset, request: dict, zh: bool = False) -> dict
     }
     if grouping == "buckets":
         derivation["buckets"] = edges
+        if _column_is_integral(frame, column):
+            derivation["band_members"] = _integer_band_members(edges, zh)
     join_info = getattr(frame, "join_info", None)
     if join_info:
         derivation["join"] = join_info
@@ -822,6 +861,21 @@ def _group_table_text(frame: Dataset, request: dict, table: dict, zh: bool) -> s
     grid = [" | ".join(row) for row in [table["headers"], *table["rows"]]]
     ungrouped = derivation.get("rows_ungrouped", 0)
     join_info = derivation.get("join") or {}
+    # A band cut at [1, 3) is labelled 1-3 and holds 1 and 2. An author
+    # reading the table writes 「1-2 星」, correctly, and the content check
+    # refused it for a digit 2 the evidence never spelled out. So the
+    # membership is stated, and the figure they will reach for is there.
+    members = derivation.get("band_members") or []
+    membership = ""
+    if members:
+        pairs = ", ".join(
+            f"{label}={member}"
+            for label, member in zip([row[0] for row in table["rows"]], members)
+        )
+        membership = (
+            f"各組實際涵蓋的值：{pairs}。" if zh
+            else f"Each band covers: {pairs}. "
+        )
     if zh:
         head = (
             f"衍生統計(來源:{frame.display_name}):"
@@ -859,7 +913,7 @@ def _group_table_text(frame: Dataset, request: dict, table: dict, zh: bool) -> s
                 f"{join_info['left_file']} and {join_info['right_unmatched']} of "
                 f"{join_info['right_file']} found no partner."
             )
-    return head + "\n" + "\n".join(grid)
+    return head + membership + "\n" + "\n".join(grid)
 
 
 # ----------------------------------------------------------------------

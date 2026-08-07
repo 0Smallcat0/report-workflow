@@ -608,6 +608,19 @@ def submit_and_publish_report(
             "status": "validation_failed",
             "job_id": job_id,
             "message": "QA Gates Failed. Revise your artifacts and submit again.",
+            # Which file to open was not in the answer. get_next_action still
+            # reports the publish stage, whose write scope is empty, so an
+            # author reading it concluded nothing was legally editable;
+            # submit_action is what routes the failure back to the stage that
+            # owns the fix and returns allowed_repair_paths. That was
+            # discoverable only by guessing.
+            "next_step": (
+                f"Call submit_action(job_id=\"{job_id}\") to route this failure to "
+                "the authoring stage that can repair it. It returns "
+                "allowed_repair_paths naming the files you may edit. Until then "
+                "get_next_action reports the publish stage, whose write scope is "
+                "empty by design."
+            ),
             "error_details": str(e),
             "rendered_but_not_publishable": rendered_docx.exists(),
             "not_final_deliverable": rendered_docx.exists(),

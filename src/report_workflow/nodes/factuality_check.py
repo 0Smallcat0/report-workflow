@@ -560,10 +560,40 @@ def _is_bounded_claim_number(text: str, start: int, end: int) -> bool:
     return bool(_CJK_BOUND_AFTER_RE.match(text[end:end + 6]))
 
 
+#: NFKC folds the fullwidth comma to ASCII, which is right for every other
+#: purpose and wrong for exactly one: the thousands-separator branch of the
+#: number pattern then reads across it. 「跳升至 327，500-1,000 為 317」 states
+#: two separately grounded figures either side of ordinary Chinese
+#: punctuation, and came out as the single number 327,500 -- which no
+#: evidence contains, because it does not exist. Fabricating a figure is a
+#: worse failure than the mirror bug that suppressed one.
+#:
+#: Held apart through the fold, so the clause break stays a clause break.
+#: Same length in, same length out: every offset below still points where it
+#: did.
+_FULLWIDTH_COMMA = "\uff0c"
+_COMMA_SHIELD = "\u0001"
+
+
+#: 只有一家, 並非只有一家, 不只一家 -- a limiting phrase in front of 一 plus a
+#: classifier makes it "a single one", which the sentence is denying or
+#: asserting as a whole rather than counting.
+_LIMITING_PHRASE_RE = re.compile(
+    r"(?:只有|僅有|仅有|不只|不止|不僅|不仅|並非|并非)\s*$"
+)
+
+
+def _normalize_for_numbers(text: str) -> str:
+    shielded = (text or "").replace(_FULLWIDTH_COMMA, _COMMA_SHIELD)
+    return unicodedata.normalize("NFKC", shielded).replace(
+        _COMMA_SHIELD, _FULLWIDTH_COMMA
+    )
+
+
 def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
     """Return list of (number_str, unit_str) from text."""
     results = []
-    normalized = unicodedata.normalize("NFKC", text or "")
+    normalized = _normalize_for_numbers(text)
     for m in _BARE_NUMBER_RE.finditer(normalized):
         suffix = _unit_after(normalized, m.end())
         unit = _combined_unit(normalized, m.start(1), suffix)
@@ -592,6 +622,15 @@ def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
         # by a counter and then 就/獨/便 is a quantifier idiom, and reading it
         # as the quantity 1 blocked a sentence whose only figure was the 92.
         if m.group(1) == "一" and normalized[m.end(1) + 1:m.end(1) + 2] in ("就", "獨", "便"):
+            continue
+        # 「低分並非只有一家」 means "not just one brand", and 家 counts real
+        # companies elsewhere ("五家廠商"), so the classifier cannot be
+        # carved out wholesale. What marks the idiom is the limiting phrase
+        # in front of it. 超過一家 is a genuine bound and is already handled
+        # as one.
+        if m.group(1) == "一" and _LIMITING_PHRASE_RE.search(
+            normalized[max(0, m.start(1) - 4):m.start(1)]
+        ):
             continue
         # 「自成一個次市場」, 「其餘七個品類」, 「受三項資料限制」. A Chinese
         # numeral in front of a generic classifier is counting the prose --

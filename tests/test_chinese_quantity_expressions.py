@@ -229,5 +229,53 @@ class ProseIsNotAMeasurementTests(unittest.TestCase):
         )
 
 
+class NumbersNeitherInventedNorLostTests(unittest.TestCase):
+    """The fullwidth comma, twice, in opposite directions.
+
+    NFKC folds U+FF0C to an ASCII comma, and two separate mechanisms then read
+    it as a thousands separator. The first suppressed every figure written after
+    one -- the most common position a number occupies in Chinese prose. The fix
+    for that left the second: the thousands branch still matched *across* it, so
+    two separately grounded figures either side of a clause break became one
+    number that appears in no source because it does not exist.
+
+    Fabricating a figure is the worse of the two. A suppressed number blocks a
+    true sentence and the author notices; an invented one is reported as the
+    author's own claim.
+    """
+
+    def _values(self, text: str) -> list[str]:
+        return [number for number, _unit in _extract_numbers_with_unit(text)]
+
+    def test_a_clause_break_is_not_a_thousands_separator(self):
+        # 「跳升至 327，500-1,000 為 317」 states 327, then a new clause about the
+        # 500-1,000 band, then 317. It came out as the single figure 327,500.
+        self.assertEqual(
+            self._values("跳升至 327，500–1,000 為 317"),
+            ["327", "500", "1,000", "317"],
+        )
+
+    def test_a_real_thousands_separator_still_reads_as_one_number(self):
+        self.assertEqual(self._values("共 1,234 筆"), ["1,234"])
+        self.assertEqual(self._values("價格 12,345.67 美元"), ["12,345.67"])
+
+    def test_a_number_after_a_clause_break_is_still_visible(self):
+        self.assertEqual(
+            self._values("共 544 筆商品列，其中 119 筆沒有價格"), ["544", "119"]
+        )
+
+    def test_a_limiting_phrase_makes_one_mean_a_single_one(self):
+        # 「低分並非只有一家」 is "not just one brand". 家 counts real companies
+        # elsewhere, so the classifier cannot be carved out wholesale -- what
+        # marks the idiom is the phrase in front of it.
+        for text in ("低分並非只有一家：MOCVOO 也是", "只有一家廠商達標", "不只一家"):
+            with self.subTest(text=text):
+                self.assertEqual(self._values(text), [])
+
+    def test_counting_companies_still_counts(self):
+        self.assertEqual(self._values("五家廠商投標"), ["5"])
+        self.assertEqual(self._values("併購了一家公司"), ["1"])
+
+
 if __name__ == "__main__":
     unittest.main()
