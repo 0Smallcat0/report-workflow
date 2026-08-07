@@ -1,0 +1,130 @@
+{
+  "job_id": "run_04af045c",
+  "markers_stripped": 0,
+  "tables_removed": 0,
+  "total_violations": 87,
+  "structural_violations": 0,
+  "removable_violations": 87,
+  "violations": [
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_7b036ce9_337d76a7e2]",
+      "position": 93,
+      "context": "\u8207\u5176\u54c1\u985e\u5206\u985e\u7d50\u679c\uff0c\u5176\u4e2d\u651d\u5f71\u7528\u6574\u6a5f 243 \u7b46\u3001\u4f54 44.67%\uff0c\u662f\u55ae\u4e00\u6700\u5927\u54c1\u985e [CITE:E_7b036ce9_337d76a7e2]\u3002\u8cb7\u5bb6\u7aef\u7684\u8b49\u64da\u5247\u4f86\u81ea\u6db5\u84cb 51 \u500b\u651d\u5f71\u985e\u5546\u54c1\u7684 405 \u5247\u8a55\u8ad6 [CITE:E_"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_D_category_satisfaction]",
+      "position": 153,
+      "context": "d76a7e2]\u3002\u8cb7\u5bb6\u7aef\u7684\u8b49\u64da\u5247\u4f86\u81ea\u6db5\u84cb 51 \u500b\u651d\u5f71\u985e\u5546\u54c1\u7684 405 \u5247\u8a55\u8ad6 [CITE:E_D_category_satisfaction]\u3002\u8981\u56de\u7b54\u7684\u554f\u984c\u53ea\u6709\u4e00\u500b\uff1a\u9019\u500b\u985e\u76ee\u503c\u4e0d\u503c\u5f97\u6295\u5165\uff1b\u82e5\u503c\u5f97\uff0c\u7b2c\u4e00\u6b3e\u7522\u54c1\u8a72\u843d\u5728\u54ea\u500b\u50f9\u683c\u5e36"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_7b036ce9_337d76a7e2]",
+      "position": 327,
+      "context": "\u4ef6 71 \u7b46\u5408\u8a08 148 \u7b46\u3001\u4f54 27.21%\uff0c\u8ce3\u7684\u662f\u96f6\u7d44\u4ef6\u800c\u4e0d\u662f\u53ef\u4e0a\u67b6\u7684\u6574\u6a5f [CITE:E_7b036ce9_337d76a7e2] [CITE:E_D_component_share]\u3002\u4f9b\u7d66\u7aef\u7684\u53e6\u4e00\u534a\u6a23\u8c8c\u5beb\u5728\u54c1"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_D_component_share]",
+      "position": 356,
+      "context": "\u4ef6\u800c\u4e0d\u662f\u53ef\u4e0a\u67b6\u7684\u6574\u6a5f [CITE:E_7b036ce9_337d76a7e2] [CITE:E_D_component_share]\u3002\u4f9b\u7d66\u7aef\u7684\u53e6\u4e00\u534a\u6a23\u8c8c\u5beb\u5728\u54c1\u724c\u6b04\u7684\u7a7a\u7f3a\u88e1\uff1a337 \u7b46\u5546\u54c1\u5217\u3001\u4f54 61.95% \u9023\u54c1"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_D_unbranded_share]",
+      "position": 429,
+      "context": "\u534a\u6a23\u8c8c\u5beb\u5728\u54c1\u724c\u6b04\u7684\u7a7a\u7f3a\u88e1\uff1a337 \u7b46\u5546\u54c1\u5217\u3001\u4f54 61.95% \u9023\u54c1\u724c\u540d\u7a31\u90fd\u6c92\u6709 [CITE:E_D_unbranded_share]\u3002\u771f\u6b63\u5728\u6253\u54c1\u724c\u6230\u7684\u7af6\u722d\u9762\uff0c\u9060\u6bd4\u6e05\u55ae\u9577\u5ea6\u6697\u793a\u7684\u7a84\u3002\n\n\u7d50\u8ad6\u662f\u503c\u5f97\u9032\u5165\uff0c\u4f46\u53ea\u6709\u4e00\u500b\u5207"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_D_price_band_satisfaction]",
+      "position": 622,
+      "context": "18.18%\uff0c\u800c\u76f8\u9130\u7684 200 \u81f3 500 \u7f8e\u5143\u5e36\u662f 4.66 \u8207 4.90% [CITE:E_D_price_band_satisfaction]\u3002\u540c\u4e00\u6bb5\u5728\u5546\u54c1\u7aef\u4e5f\u6700\u5f31\uff1a64 \u7b46\u5546\u54c1\u5217\u4e2d\u6709 25.00% \u661f\u7b49\u4f4e\u65bc 4\uff0c\u5e73\u5747\u661f\u7b49"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_D_price_band_structure]",
+      "position": 712,
+      "context": "\u5546\u54c1\u5217\u4e2d\u6709 25.00% \u661f\u7b49\u4f4e\u65bc 4\uff0c\u5e73\u5747\u661f\u7b49 4.16 \u662f\u516d\u500b\u50f9\u683c\u5e36\u4e2d\u6700\u4f4e [CITE:E_D_price_band_structure]\u3002\u4ed8\u4e86\u4e2d\u50f9\u7684\u9322\u537b\u62ff\u5230\u6700\u5dee\u7684\u9ad4\u9a57\uff0c\u7f3a\u53e3\u5c31\u958b\u5728\u9019\u88e1\u3002\n\n\u8cb7\u5bb6\u4e0d\u6eff\u7684\u5167\u5bb9\uff0c\u6c7a\u5b9a\u4e86\u7522\u54c1\u8a72"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_D_pain_theme_by_star]",
+      "position": 830,
+      "context": "\u30021 \u661f\u8a55\u8ad6\u6709 27.03% \u63d0\u53ca\u9023\u7dda\u6216\u914d\u5c0d\u554f\u984c\uff0c5 \u661f\u8a55\u8ad6\u53ea\u6709 14.04% [CITE:E_D_pain_theme_by_star]\u3002\u6c7a\u5b9a\u6210\u6557\u7684\u4e0d\u662f\u898f\u683c\u8868\uff0c\u662f\u9019\u53f0\u6a5f\u5668\u80fd\u4e0d\u80fd\u7a69\u5b9a\u9023\u4e0a\u4e26\u98db\u5b8c\u4e00\u8d9f\u3002\n\n\u76f8\u5c0d\u5730\uff0c\u6709\u5169\u500b\u65b9"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_D_agri_no_review]",
+      "position": 976,
+      "context": "8.89% \u5f9e\u672a\u7d2f\u7a4d\u4efb\u4f55\u8a55\u8ad6\uff0c\u8a72\u985e\u8a55\u8ad6\u6578\u4e2d\u4f4d\u6578\u53ea\u6709 1\uff0c\u662f\u6709\u4f9b\u7d66\u800c\u7121\u8cb7\u5bb6\u7684\u4e00\u6bb5 [CITE:E_D_agri_no_review] [CITE:E_7b036ce9_337d76a7e2]\u3002200 \u7f8e\u5143\u4ee5\u4e0a\u7684\u651d"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_7b036ce9_337d76a7e2]",
+      "position": 1002,
+      "context": "1\uff0c\u662f\u6709\u4f9b\u7d66\u800c\u7121\u8cb7\u5bb6\u7684\u4e00\u6bb5 [CITE:E_D_agri_no_review] [CITE:E_7b036ce9_337d76a7e2]\u3002200 \u7f8e\u5143\u4ee5\u4e0a\u7684\u651d\u5f71\u4e3b\u6230\u5834\u5247\u7531 DJI \u628a\u6301\uff0c\u5176\u5546\u54c1\u5217\u50f9\u683c\u4e2d\u4f4d\u6578 247.5"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_D_dji_median_price]",
+      "position": 1093,
+      "context": "\u6301\uff0c\u5176\u5546\u54c1\u5217\u50f9\u683c\u4e2d\u4f4d\u6578 247.50 \u7f8e\u5143\u3001\u50c5 25% \u552e\u50f9\u4f4e\u65bc 200 \u7f8e\u5143 [CITE:E_D_dji_median_price] [CITE:E_D_dji_under200_share]\uff0c\u6b63\u9762\u5c0d\u6253\u627e\u4e0d\u5230\u53ef\u653b"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_D_dji_under200_share]",
+      "position": 1121,
+      "context": "\u552e\u50f9\u4f4e\u65bc 200 \u7f8e\u5143 [CITE:E_D_dji_median_price] [CITE:E_D_dji_under200_share]\uff0c\u6b63\u9762\u5c0d\u6253\u627e\u4e0d\u5230\u53ef\u653b\u64ca\u7684\u7e2b\u9699\u3002\n\n\u9019\u500b\u5224\u65b7\u6700\u8106\u5f31\u7684\u5730\u65b9\u662f\u8cb7\u5bb6\u8b49\u64da\u7684\u8986\u84cb\u7387\uff1a\u6574\u4efd\u8a55"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_D_category_satisfaction]",
+      "position": 1209,
+      "context": "\u5224\u65b7\u6700\u8106\u5f31\u7684\u5730\u65b9\u662f\u8cb7\u5bb6\u8b49\u64da\u7684\u8986\u84cb\u7387\uff1a\u6574\u4efd\u8a55\u8ad6\u8cc7\u6599\u53ea\u843d\u5728\u651d\u5f71\u985e\u7684 51 \u500b\u5546\u54c1\u4e0a [CITE:E_D_category_satisfaction]\u3002\u82e5\u5f8c\u7e8c\u64f4\u5927\u6293\u53d6\u5f8c\u8a72\u50f9\u683c\u5e36\u7684\u8a55\u5206\u56de\u5347\uff0c\u5207\u9ede\u5c31\u4e0d\u6210\u7acb\u3002\u5b8c\u6574\u7684\u8cc7\u6599\u908a\u754c\u8207\u5426\u8b49\u689d\u4ef6\u5217\u65bc"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_7b036ce9_337d76a7e2]",
+      "position": 1532,
+      "context": "\u7b46\uff084.04%\uff09\u3001\u591a\u7528\u9014 14 \u7b46\uff082.57%\uff09\u8207\u6d88\u9632\u6295\u5f48 8 \u7b46\uff081.47%\uff09[CITE:E_7b036ce9_337d76a7e2]\u3002\u516b\u500b\u54c1\u985e\u7684 HHI \u70ba 2597\u3001\u524d\u4e94\u5927\u5408\u8a08\u4f54 91.9%\uff0c\u96c6\u4e2d\u7a0b\u5ea6\u76f8\u7576\u9ad8 ["
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_7b036ce9_272ec71407]",
+      "position": 1599,
+      "context": "]\u3002\u516b\u500b\u54c1\u985e\u7684 HHI \u70ba 2597\u3001\u524d\u4e94\u5927\u5408\u8a08\u4f54 91.9%\uff0c\u96c6\u4e2d\u7a0b\u5ea6\u76f8\u7576\u9ad8 [CITE:E_7b036ce9_272ec71407]\u3002\n\n[TABLE:E_7b036ce9_337d76a7e2 \u8868 1\uff1a\u5404\u54c1\u985e\u7684"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_D_component_share]",
+      "position": 1722,
+      "context": "\u9019\u5f35\u8868\u76f4\u63a5\u7576\u6210\u5e02\u5834\u898f\u6a21\u4f86\u8b80\u6703\u9ad8\u4f30\u3002\u99ac\u9054\u8207\u914d\u4ef6\u5408\u8a08 148 \u7b46\u3001\u4f54 27.21% [CITE:E_D_component_share]\uff0c\u8ce3\u7684\u662f\u96f6\u7d44\u4ef6\uff0c\u548c\u6574\u6a5f\u4e0d\u662f\u540c\u4e00\u9580\u751f\u610f [CITE:E_7b036ce9_337d"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_7b036ce9_337d76a7e2]",
+      "position": 1767,
+      "context": ":E_D_component_share]\uff0c\u8ce3\u7684\u662f\u96f6\u7d44\u4ef6\uff0c\u548c\u6574\u6a5f\u4e0d\u662f\u540c\u4e00\u9580\u751f\u610f [CITE:E_7b036ce9_337d76a7e2]\uff1b\u53e6\u6709 46 \u7b46\u30018.46% \u88ab\u5224\u5b9a\u70ba\u975e\u7121\u4eba\u6a5f\u5546\u54c1\uff0c\u4ee3\u8868\u95dc\u9375\u5b57\u641c\u5c0b\u672c\u8eab\u5c31\u628a\u4e0d\u76f8\u5e72"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_D_nondrone_share]",
+      "position": 1843,
+      "context": "\u30018.46% \u88ab\u5224\u5b9a\u70ba\u975e\u7121\u4eba\u6a5f\u5546\u54c1\uff0c\u4ee3\u8868\u95dc\u9375\u5b57\u641c\u5c0b\u672c\u8eab\u5c31\u628a\u4e0d\u76f8\u5e72\u7684\u6771\u897f\u5e36\u4e86\u9032\u4f86 [CITE:E_D_nondrone_share]\u3002\u5169\u8005\u76f8\u52a0\uff0c\u6e05\u55ae\u4e0a\u8d85\u904e\u4e09\u5206\u4e4b\u4e00\u7684\u5546\u54c1\u5217\u8207\u6574\u6a5f\u5e02\u5834\u7121\u95dc\u3002\n\n\u6709\u5546\u54c1\u6578\u4e0d\u7b49\u65bc\u6709\u8cb7\u5bb6\uff0c"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_D_agri_no_review]",
+      "position": 2004,
+      "context": "\u7684\u5340\u9694\uff1b\u4f46\u5176\u4e2d 88.89% \u5b8c\u5168\u6c92\u6709\u7d2f\u7a4d\u4efb\u4f55\u8a55\u8ad6\u6578\uff0c\u8a72\u985e\u8a55\u8ad6\u6578\u4e2d\u4f4d\u6578\u53ea\u6709 1 [CITE:E_D_agri_no_review] [CITE:E_7b036ce9_337d76a7e2]\u3002\u9019\u662f\u4e00\u6574\u6392\u4e0a\u4e86\u67b6\u537b\u6c92"
+    },
+    {
+      "type": "cite_marker",
+      "matched": "[CITE:E_7b036ce9_337d76a7e2]",
+      "position": 2030,
+      "context": "\uff0c\u8a72\u985e\u8a55\u8ad6\u6578\u4e2d\u4f4d\u6578\u53ea\u6709 1 [CITE:E_D_agri_no_review] [CITE:E_7b036ce9_337d76a7e2]\u3002\u9019\u662f\u4e00\u6574\u6392\u4e0a\u4e86\u67b6\u537b\u6c92\u6709\u6210\u4ea4\u7d00\u9304\u7684\u8ca8\u3002\n\n\u63db\u6210\u641c\u5c0b\u8a5e\u7684\u89d2\u5ea6\u770b\uff0c\u540c\u4e00\u500b\u8a0a\u865f\u66f4\u52a0\u660e\u986f"
+    }
+  ]
+}

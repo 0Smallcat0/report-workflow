@@ -1,0 +1,79 @@
+{
+  "task_intent": "new_draft",
+  "report_profile": "business_report",
+  "delivery_mode": "fresh_doc",
+  "audience": "expert",
+  "citation_style": "apa",
+  "artifact_role_map": {
+    "D:\\report_workflow\\benchmarks\\fixtures\\drone_market\\amazon_products.csv": "source_data",
+    "amazon_products.csv": "source_data",
+    "D:\\report_workflow\\benchmarks\\fixtures\\drone_market\\amazon_classified.csv": "source_data",
+    "amazon_classified.csv": "source_data",
+    "D:\\report_workflow\\benchmarks\\fixtures\\drone_market\\amazon_reviews.csv": "source_data",
+    "amazon_reviews.csv": "source_data"
+  },
+  "keywords": [],
+  "report_profile_override": "business_report",
+  "selected_guidelines": [],
+  "user_prompt": "\u6839\u64da Amazon US \u7121\u4eba\u6a5f\u985e\u5546\u54c1\u8cc7\u6599\uff08\u5546\u54c1\u6e05\u55ae\u3001\u54c1\u985e\u5206\u985e\u3001\u8cb7\u5bb6\u8a55\u8ad6\u4e09\u4efd\u8cc7\u6599\u96c6\uff09\uff0c\u64b0\u5beb\u4e00\u4efd\u5e02\u5834\u7814\u7a76\u5831\u544a\u3002\u9700\u6db5\u84cb\u54c1\u985e\u7d50\u69cb\u3001\u50f9\u683c\u5e36\u5206\u5e03\u3001\u54c1\u724c\u96c6\u4e2d\u5ea6\u3001\u8cb7\u5bb6\u75db\u9ede\u56db\u500b\u9762\u5411\uff0c\u4e26\u4ee5\u8cc7\u6599\u70ba\u4f9d\u64da\u56de\u7b54\u300c\u9019\u500b\u5e02\u5834\u503c\u4e0d\u503c\u5f97\u9032\u5165\u3001\u61c9\u8a72\u5f9e\u54ea\u500b\u5207\u9ede\u9032\u5165\u300d\u3002",
+  "uploaded_files": [
+    "D:\\report_workflow\\benchmarks\\fixtures\\drone_market\\amazon_products.csv",
+    "D:\\report_workflow\\benchmarks\\fixtures\\drone_market\\amazon_classified.csv",
+    "D:\\report_workflow\\benchmarks\\fixtures\\drone_market\\amazon_reviews.csv"
+  ],
+  "front_matter": {
+    "title": "Amazon US \u7121\u4eba\u6a5f\u5e02\u5834\u7814\u7a76\u5831\u544a\uff1a\u54c1\u985e\u7d50\u69cb\u3001\u50f9\u683c\u5e36\u3001\u54c1\u724c\u96c6\u4e2d\u5ea6\u8207\u8cb7\u5bb6\u75db\u9ede"
+  },
+  "report_profile_contract": {
+    "profile_id": "business_report",
+    "display_name": "Business Report",
+    "blueprint_file": "business_report.yaml",
+    "policy_id": "business_report",
+    "aliases": [
+      "work report",
+      "business",
+      "business report",
+      "\u5de5\u4f5c\u5831\u544a",
+      "\u5546\u696d\u5831\u544a"
+    ],
+    "description": "",
+    "evidence_backed_claims": true,
+    "section_contract_required": true,
+    "strictness": "medium",
+    "reference_template": {
+      "default_mode": "style_reference",
+      "fixed_template_prompt_markers": [
+        "exact format",
+        "exact cover",
+        "same format",
+        "same cover",
+        "\u5b8c\u5168\u7167\u683c\u5f0f",
+        "\u5b8c\u5168\u7167\u5c01\u9762",
+        "\u76f8\u540c\u683c\u5f0f",
+        "\u76f8\u540c\u5c01\u9762",
+        "\u56fa\u5b9a\u6a21\u677f"
+      ]
+    }
+  },
+  "reference_template_mode": "style_reference",
+  "report_spec_path": "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US \u7121\u4eba\u6a5f\u5e02\u5834\u7814\u7a76\u5831\u544a\uff1a\u54c1\u985e\u7d50\u69cb\u3001\u50f9\u683c\u5e36\u3001\u54c1\u724c\u96c6\u4e2d\u5ea6\u8207\u8cb7\u5bb6\u75db\u9ede--run_04af045c\\report_spec.json",
+  "guideline_selection": {
+    "matched_rule": {
+      "id": "default:business_report",
+      "matched_keywords": []
+    },
+    "candidate_guidelines": [],
+    "selected_guidelines": [],
+    "unavailable_guidelines": [],
+    "available_guidelines": [
+      "CHINESE_ENGINEERING",
+      "CONSORT",
+      "PRISMA",
+      "SRQR",
+      "STARD",
+      "STROBE",
+      "TRIPOD"
+    ]
+  },
+  "guideline_selection_path": "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US \u7121\u4eba\u6a5f\u5e02\u5834\u7814\u7a76\u5831\u544a\uff1a\u54c1\u985e\u7d50\u69cb\u3001\u50f9\u683c\u5e36\u3001\u54c1\u724c\u96c6\u4e2d\u5ea6\u8207\u8cb7\u5bb6\u75db\u9ede--run_04af045c\\guideline_selection.json"
+}

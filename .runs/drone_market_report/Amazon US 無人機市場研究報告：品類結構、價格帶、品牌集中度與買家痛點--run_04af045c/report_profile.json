@@ -1,0 +1,31 @@
+{
+  "profile_id": "business_report",
+  "display_name": "Business Report",
+  "blueprint_file": "business_report.yaml",
+  "policy_id": "business_report",
+  "aliases": [
+    "work report",
+    "business",
+    "business report",
+    "\u5de5\u4f5c\u5831\u544a",
+    "\u5546\u696d\u5831\u544a"
+  ],
+  "description": "",
+  "evidence_backed_claims": true,
+  "section_contract_required": true,
+  "strictness": "medium",
+  "reference_template": {
+    "default_mode": "style_reference",
+    "fixed_template_prompt_markers": [
+      "exact format",
+      "exact cover",
+      "same format",
+      "same cover",
+      "\u5b8c\u5168\u7167\u683c\u5f0f",
+      "\u5b8c\u5168\u7167\u5c01\u9762",
+      "\u76f8\u540c\u683c\u5f0f",
+      "\u76f8\u540c\u5c01\u9762",
+      "\u56fa\u5b9a\u6a21\u677f"
+    ]
+  }
+}

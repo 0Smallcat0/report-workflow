@@ -1,0 +1,152 @@
+{
+  "version": 1,
+  "job_id": "run_04af045c",
+  "created_at": "2026-08-07T08:37:28.229837",
+  "updated_at": "2026-08-07T09:02:50.385015",
+  "current_stage": "artifact_lint",
+  "stage_order": [
+    "claim_matrix",
+    "outline",
+    "drafts",
+    "artifact_lint",
+    "publish"
+  ],
+  "stages": {
+    "claim_matrix": {
+      "status": "passed",
+      "attempts": 1,
+      "validation_tool": "submit_action",
+      "allowed_write_paths": [
+        "claim_matrix.json"
+      ],
+      "task_brief_path": "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\agent_tasks\\01_claim_plan.md",
+      "read_first_paths": [
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\agent_tasks\\01_claim_plan.md",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\report_spec.json",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\blueprint.json",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\evidence_ledger.jsonl"
+      ],
+      "evidence_paths": [
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\harness_manifest.json"
+      ],
+      "last_error": null,
+      "passed_hashes": {
+        "claim_matrix.json": "30e00ce2f3f109b21fc5060eee13bdcda83e675ddac35efbe7854143340e1dbb"
+      }
+    },
+    "outline": {
+      "status": "passed",
+      "attempts": 1,
+      "validation_tool": "submit_action",
+      "allowed_write_paths": [
+        "outline.json",
+        "section_drafts/figure_plan.json"
+      ],
+      "task_brief_path": "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\agent_tasks\\02_outline_plan.md",
+      "read_first_paths": [
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\agent_tasks\\02_outline_plan.md",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\section_drafts\\figure_plan.json",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\blueprint.json",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\claim_matrix.json",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\figure_recommendations.json"
+      ],
+      "evidence_paths": [
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\harness_manifest.json"
+      ],
+      "last_error": null,
+      "passed_hashes": {
+        "outline.json": "805b579c696a14f43a63937ebf5225c7e55f102b9568088cdade19e82c4f50df",
+        "section_drafts/figure_plan.json": "98e682b93870d4ac10be76511e063cbd16eef751800bd9cde4d5f5db5e8082e1"
+      }
+    },
+    "drafts": {
+      "status": "passed",
+      "attempts": 1,
+      "validation_tool": "submit_action",
+      "allowed_write_paths": [
+        "structured_drafts.json",
+        "section_drafts/*.md",
+        "section_drafts/figure_plan.json",
+        "sentence_map.jsonl"
+      ],
+      "task_brief_path": "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\agent_tasks\\03_section_draft.md",
+      "read_first_paths": [
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\agent_tasks\\03_section_draft.md",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\blueprint.json",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\claim_matrix.json",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\outline.json",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\evidence_ledger.jsonl",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\figure_recommendations.json"
+      ],
+      "evidence_paths": [
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\artifact_lint_report.json",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\harness_manifest.json"
+      ],
+      "last_error": null,
+      "passed_hashes": {
+        "section_drafts/executive_summary.md": "1d840a5f3eb8561a6758bf62e53bf0bc0803db8a440772f340ec040095e0ea2f",
+        "section_drafts/figure_plan.json": "98e682b93870d4ac10be76511e063cbd16eef751800bd9cde4d5f5db5e8082e1",
+        "section_drafts/findings.md": "af017cb771ec56f5b87f23fb4d23a4c408d16f078d3db3910e3cfc2e587a940f",
+        "section_drafts/recommendations.md": "705592f25d2ef9f4e631490af4000b5aadb957c821016a0433735e9e4c68a460",
+        "section_drafts/references.md": "63f75c1a90834ff7a28cd86da96ea2c7a76b36810c3f32a327b7d82b9da20ed2",
+        "sentence_map.jsonl": "65c58e58b4792c973db1efc548537460bb1ee1330d25a9faf532554446180eb8",
+        "structured_drafts.json": "6c9e4ea552e3bbb3fc45ae4cf0c8f9c7f014d4f7b964a05e8bf38f10d31fbc1d"
+      }
+    },
+    "artifact_lint": {
+      "status": "pending",
+      "attempts": 0,
+      "validation_tool": "lint_agent_artifacts",
+      "allowed_write_paths": [],
+      "task_brief_path": "",
+      "read_first_paths": [
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\claim_matrix.json",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\outline.json",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\structured_drafts.json",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\section_drafts",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\sentence_map.jsonl",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\revision_plan.json"
+      ],
+      "evidence_paths": [],
+      "last_error": null,
+      "passed_hashes": {}
+    },
+    "publish": {
+      "status": "pending",
+      "attempts": 0,
+      "validation_tool": "publish_report",
+      "allowed_write_paths": [],
+      "task_brief_path": "",
+      "read_first_paths": [
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\qa_summary.json",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\artifact_lint_report.json",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\factuality_report.json",
+        "D:\\report_workflow\\.runs\\drone_market_report\\Amazon US 無人機市場研究報告：品類結構、價格帶、品牌集中度與買家痛點--run_04af045c\\final_qa_summary.json"
+      ],
+      "evidence_paths": [],
+      "last_error": null,
+      "passed_hashes": {}
+    }
+  },
+  "observed_hashes": {
+    "claim_matrix.json": "30e00ce2f3f109b21fc5060eee13bdcda83e675ddac35efbe7854143340e1dbb",
+    "outline.json": "805b579c696a14f43a63937ebf5225c7e55f102b9568088cdade19e82c4f50df",
+    "revision_plan.json": null,
+    "section_drafts/executive_summary.md": "1d840a5f3eb8561a6758bf62e53bf0bc0803db8a440772f340ec040095e0ea2f",
+    "section_drafts/figure_plan.json": "98e682b93870d4ac10be76511e063cbd16eef751800bd9cde4d5f5db5e8082e1",
+    "section_drafts/findings.md": "af017cb771ec56f5b87f23fb4d23a4c408d16f078d3db3910e3cfc2e587a940f",
+    "section_drafts/recommendations.md": "705592f25d2ef9f4e631490af4000b5aadb957c821016a0433735e9e4c68a460",
+    "section_drafts/references.md": "63f75c1a90834ff7a28cd86da96ea2c7a76b36810c3f32a327b7d82b9da20ed2",
+    "sentence_map.jsonl": "65c58e58b4792c973db1efc548537460bb1ee1330d25a9faf532554446180eb8",
+    "structured_drafts.json": "6c9e4ea552e3bbb3fc45ae4cf0c8f9c7f014d4f7b964a05e8bf38f10d31fbc1d"
+  },
+  "author_owned_patterns": [
+    "claim_matrix.json",
+    "outline.json",
+    "structured_drafts.json",
+    "section_drafts/*.md",
+    "section_drafts/figure_plan.json",
+    "sentence_map.jsonl",
+    "revision_plan.json"
+  ]
+}

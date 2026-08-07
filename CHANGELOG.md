@@ -94,6 +94,36 @@ columns survive, so a reading indexed by sample id or a single column of
 observations is still charted — and the derived cross tables are offered ahead
 of raw per-record rows.
 
+### Fixed — five false blocks the acceptance run walked into
+
+An independent run of the full pipeline over the three fixture CSVs hit nine
+factuality blocks. Four were the gate doing its job, including one where the
+author's own arithmetic gave 27.20% and the rows gave 27.21%. The other five
+were the checker being wrong:
+
+- **A number written straight after a Chinese comma was invisible.** The text
+  is NFKC-normalised, which folds `，` to `,`, and the lookbehind that stops
+  "1,234" matching at "234" then swallowed it. A draft that literally read
+  「544 筆商品列，其中 119 筆…」 was reported as not stating 544 — in the single
+  most common position a number appears in Chinese prose. Only a comma with a
+  digit in front of it is a thousands separator now.
+- **「DJI 一家就佔 92 筆」** was read as the quantity 1 with unit 家. 一 before a
+  counter and then 就/獨/便 is a quantifier idiom meaning *alone*.
+- **「六個價格帶」 was refused against evidence saying 「6組」.** 個, 組, 項, 筆 and
+  種 state that something was counted and nothing else; the author was being
+  required to adopt the pipeline's measure word to describe the pipeline's own
+  table. A reading in 座 still does not support a claim in 公噸.
+
+Adversarial recall stays at 88.6% with zero false positives.
+
+### Fixed — the briefs stopped describing the ledger they were describing
+
+After twenty-one registrations `01_claim_plan.md` still read
+`Registered by request: none yet` and still carried a ledger hash two calls out
+of date — the hash the brief tells the author to copy into `_contract`. The
+briefs are now regenerated when evidence is registered, and whatever that
+rewrites is re-accepted with the artifacts.
+
 ### Added — the fixtures the comparison runs on
 
 `benchmarks/fixtures/drone_market/` holds the three CSVs the hand-written and

@@ -426,8 +426,18 @@ _ASCII_UNIT_RE = re.compile(r"[a-zA-Z%°]+")
 #: states two numbers and no unit, and a claim saying "2025 年 6 月" cites both
 #: of them. Requiring a unit meant the evidence's 2025 was never extracted at
 #: all, so a correct claim about that date could not be matched to it.
+#:
+#: The comma in the lookbehind is there to stop "1,234" matching at "234" and
+#: reporting a number the text does not state. Written as a plain character
+#: class it also rejected every number written after a *Chinese* comma: this
+#: text is NFKC-normalised first, which folds U+FF0C to ASCII ",", and
+#: 「共 544 筆商品列，其中 119 筆無價格」 is an entirely ordinary sentence. So a
+#: claim could state a figure in that position, plainly, and the gate would
+#: report the drafted sentences as not stating it — on a Chinese report, in the
+#: single most common place a number appears. Only a comma with a digit in
+#: front of it is a thousands separator; a comma ending a clause is punctuation.
 _BARE_NUMBER_RE = re.compile(
-    r"(?<![A-Za-z0-9.,])(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)"
+    r"(?<![A-Za-z0-9.])(?<!\d,)(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)"
 )
 
 _APOSTROPHE_SUFFIX_RE = re.compile(r"'[strelmv]|'ll|'ve|'d\b")
@@ -538,6 +548,11 @@ def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
         # in front of a unit — 三筆, 兩年 — still counts, because that is where
         # the notation actually appears.
         if len(m.group(1)) == 1 and not suffix:
+            continue
+        # 「DJI 一家就佔 92 筆」 says DJI *alone*, not one company: 一 followed
+        # by a counter and then 就/獨/便 is a quantifier idiom, and reading it
+        # as the quantity 1 blocked a sentence whose only figure was the 92.
+        if m.group(1) == "一" and normalized[m.end(1) + 1:m.end(1) + 2] in ("就", "獨", "便"):
             continue
         results.append((
             f"{value:g}",
@@ -795,6 +810,18 @@ _UNIT_ALIASES = {
     "\u65e5\u5143": "jpy",
     "\u6e2f\u5e63": "hkd",
     "\u6e2f\u5e01": "hkd",
+    # Generic counters. 個, 組, 項, 筆 and 種 state that something was
+    # counted and nothing else — there is no dimension in them to disagree
+    # about. Held apart, a report describing the tool's own six-row table as
+    # 「六個價格帶」 was refused because the table calls them 「6組」: the value is
+    # right, the claim is true, and the author is being required to adopt the
+    # pipeline's measure word to describe the pipeline's own output. A reading
+    # in 座 still does not support a claim in 公噸.
+    "個": "count", "个": "count",
+    "組": "count", "组": "count",
+    "項": "count", "项": "count",
+    "筆": "count", "笔": "count",
+    "種": "count", "种": "count",
 }
 
 

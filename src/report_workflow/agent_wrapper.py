@@ -659,8 +659,13 @@ def _restamp_author_artifacts(state, run_dir) -> list[str]:
         make_artifact_contract,
         write_artifact_contract,
     )
-    from report_workflow.automation_harness import resync_author_artifact_hashes
+    from report_workflow.automation_harness import (
+        _snapshot_author_owned,
+        resync_author_artifact_hashes,
+    )
+    from report_workflow.nodes.agent_tasks import write_agent_task_briefs
 
+    before = _snapshot_author_owned(run_dir)
     contract = make_artifact_contract(state)
     rewritten: list[str] = []
     for name in _CONTRACT_STAMPED_ARTIFACTS:
@@ -680,8 +685,27 @@ def _restamp_author_artifacts(state, run_dir) -> list[str]:
         except Exception:
             continue
         rewritten.append(name)
-    if rewritten:
-        resync_author_artifact_hashes(run_dir, rewritten)
+
+    # The briefs quote the derived statistics and carry the contract the author
+    # is told to copy. Left alone they said "Registered by request: none yet"
+    # after twenty-one registrations, and handed out a ledger hash two calls
+    # out of date — so the tool's answer to "what can I cite" was a snapshot
+    # from before the author asked for anything.
+    try:
+        write_agent_task_briefs(state)
+    except Exception:
+        pass
+
+    after = _snapshot_author_owned(run_dir)
+    touched = sorted({
+        *rewritten,
+        *(
+            path for path, digest in after.items()
+            if digest is not None and before.get(path) != digest
+        ),
+    })
+    if touched:
+        resync_author_artifact_hashes(run_dir, touched)
     return rewritten
 
 
