@@ -21,6 +21,7 @@ venv/
 # Workflow run data (generated at runtime)
 output/
 out/
+.runs/
 custom-out/
 # ...except the sample deliverable, which is committed on purpose: `output/`
 # matches at any depth, so examples/output/ was silently dropped from its own
