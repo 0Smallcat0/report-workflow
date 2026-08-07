@@ -625,6 +625,66 @@ def submit_and_publish_report(
         }
 
 
+#: Artifacts an author writes that carry a contract stamped against the
+#: evidence ledger. Listed here rather than globbed so a file the pipeline
+#: generates is never rewritten by this path.
+_CONTRACT_STAMPED_ARTIFACTS = (
+    "claim_matrix.json",
+    "outline.json",
+    "structured_drafts.json",
+    "sentence_map.jsonl",
+    "revision_plan.json",
+)
+
+
+def _restamp_author_artifacts(state, run_dir) -> list[str]:
+    """Point already-accepted artifacts at the ledger that now exists.
+
+    Registering a statistic appends to the ledger, and the ledger's hash is
+    what every stamped artifact was checked against — so the act of making one
+    more figure citable invalidated the claim matrix that cited the others. The
+    author was then told to run `remap-evidence --from-job <old>`, which is
+    advice for a different situation entirely: there is no old job here, the
+    evidence they added is their own, from this run, minutes ago.
+
+    Nothing about the artifact's content is stale. Only the hash moved, and it
+    moved because the pipeline was asked to do its job. So the stamp is
+    refreshed and the harness is told the refreshed file is the accepted one.
+
+    A stamp naming a *different* job is left alone: that one really is a
+    foreign artifact, and remapping is the right answer for it.
+    """
+    from report_workflow.artifact_contract import (
+        load_artifact_contract,
+        make_artifact_contract,
+        write_artifact_contract,
+    )
+    from report_workflow.automation_harness import resync_author_artifact_hashes
+
+    contract = make_artifact_contract(state)
+    rewritten: list[str] = []
+    for name in _CONTRACT_STAMPED_ARTIFACTS:
+        path = run_dir / name
+        if not path.exists():
+            continue
+        try:
+            existing = load_artifact_contract(path)
+        except Exception:
+            continue
+        if not existing or existing.get("job_id") != contract.get("job_id"):
+            continue
+        if existing == contract:
+            continue
+        try:
+            write_artifact_contract(path, contract)
+        except Exception:
+            continue
+        rewritten.append(name)
+    if rewritten:
+        resync_author_artifact_hashes(run_dir, rewritten)
+    return rewritten
+
+
 def register_derived_evidence(
     job_id: str,
     derivations: list[dict],
@@ -639,7 +699,12 @@ def register_derived_evidence(
     computes it from the rows; the returned ``evidence_id`` is what to put in
     ``[CITE:]``.
 
-    Each derivation is::
+    One request can return a whole table. A six-band price breakdown with
+    three columns is one registration, not eighteen; a real run registered 117
+    scalar derivations to produce three tables, which is the shape of the
+    request costing more than the analysis.
+
+    A scalar derivation is::
 
         {"id": "photo_count",          # yours; the evidence id is E_D_<id>
          "source": "products.csv",     # file name, or omit for the only table
@@ -651,6 +716,35 @@ def register_derived_evidence(
          "of": "*",                    # share only: the denominator selection
          "label": "攝影類商品數",        # how the evidence line names it
          "expect": 243}                # optional check, never an input
+
+    A grouped one returns a grid — one row per group, one column per measure —
+    and registers as a single evidence entry that a ``[TABLE:<id>]`` marker can
+    place in the document::
+
+        {"id": "price_band_reliability",
+         "source": "products.csv",
+         "group_by": {"column": "price",            # categorical: omit buckets
+                      "buckets": [0, 30, 50, 100],  # numeric: yours to choose
+                      "label": "Price band"},
+         "measures": [{"op": "count"},
+                      {"op": "mean", "column": "rating"},
+                      {"op": "share", "rows": "rating < 4"}]}
+
+    Bucket edges are never guessed. Where a price axis is cut is an analytical
+    judgement, and a tool that picks the bands is wrong in a way the reader
+    cannot see.
+
+    ``source`` also takes two files with a ``join``, which is the only way to
+    reach a finding neither file states on its own::
+
+        {"id": "band_review_rating",
+         "source": ["reviews.csv", "products.csv"],
+         "join": {"on": "asin", "how": "inner"},
+         "group_by": {"column": "price", "buckets": [0, 30, 50, 100]},
+         "measures": [{"op": "mean", "column": "review_rating"}]}
+
+    Rows that find no partner are counted and reported in the evidence text,
+    and a column name present on both sides is renamed rather than overwritten.
 
     ``expect`` does not set the value. It is compared against what the rows
     actually produce, and a disagreement is reported rather than published.
@@ -679,6 +773,7 @@ def register_derived_evidence(
         )
 
         report = apply_derived_evidence(state)
+        restamped = _restamp_author_artifacts(state, run_dir)
         state.checkpoint("DERIVED_EVIDENCE_REGISTERED")
         return {
             "status": "blocked" if report["problems"] else "ok",
@@ -686,6 +781,7 @@ def register_derived_evidence(
             "registered": report["computed"],
             "evidence": report["evidence"],
             "problems": report["problems"],
+            "restamped_artifacts": restamped,
             "message": (
                 "Cite these evidence_ids with [CITE:<id>] in the section drafts "
                 "and list them in claim_matrix.json."

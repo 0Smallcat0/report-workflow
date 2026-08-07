@@ -160,11 +160,65 @@ def _rows_from_table_data(table_data: Any) -> list[list[str]]:
     return [row for row in normalized if any(cell for cell in row)]
 
 
+#: Columns that identify a record rather than measure it. Charting them
+#: produced a "figure" titled `title and 10 other measures by asin` whose
+#: series were 544 Amazon tracking URLs and thumbnail links — the ledger
+#: reprinted as a picture. The outline gate refused it, correctly, but it was
+#: still the first thing the pipeline put in front of the author, and it
+#: demonstrates the exact failure the rest of this file exists to avoid.
+_UNPLOTTABLE_COLUMN_RE = re.compile(
+    r"(?:^|[_\s-])(?:id|ids|asin|sku|upc|ean|isbn|uuid|guid)(?:$|[_\s-])"
+    r"|^(?:id|asin|sku|url|link|image|img|photo|thumbnail|description)"
+    r"|(?:url|link|image|img|photo|thumbnail|src|href)$",
+    re.IGNORECASE,
+)
+
+
+def _plottable(rows: list[list[str]]) -> list[list[str]]:
+    """The same table with its identifier and link columns taken out.
+
+    Dropping columns only ever improves a table here; it never deletes one. A
+    two-column reading indexed by sample id, or a single column of
+    observations, is a legitimate chart whose label happens to match the
+    pattern, and refusing those to spare the reader a tracking URL trades one
+    silent loss for another.
+    """
+    if not rows:
+        return rows
+    keep = [
+        index
+        for index, header in enumerate(rows[0])
+        if not _UNPLOTTABLE_COLUMN_RE.search(str(header))
+    ]
+    if len(keep) < 2 or len(keep) == len(rows[0]):
+        return rows
+    return [[row[index] if index < len(row) else "" for index in keep] for row in rows]
+
+
 def _table_candidates(evidence: list[dict]) -> list[dict]:
     full_tables: list[dict] = []
     row_groups: dict[tuple[str, str, tuple[str, ...]], dict] = {}
 
     for entry in evidence:
+        # A derived cross table is already the aggregate a chart wants: one row
+        # per group, one column per measure, no identifiers in it. Offering
+        # these is the difference between a starter plan the author keeps and
+        # one they have to delete before the outline gate will pass.
+        grid = entry.get("table_grid")
+        if isinstance(grid, dict) and grid.get("headers") and grid.get("rows"):
+            full_tables.append({
+                "source_id": str(entry.get("source_id") or ""),
+                "source_file_name": str(entry.get("source_file_name") or ""),
+                "evidence_ids": [str(entry.get("evidence_id") or "")],
+                "rows": [
+                    [str(cell) for cell in grid["headers"]],
+                    *[[str(cell) for cell in line] for line in grid["rows"]],
+                ],
+                "content": str(entry.get("content") or ""),
+                "derived": True,
+            })
+            continue
+
         rows = _rows_from_table_data(entry.get("table_data"))
         if len(rows) < 2:
             continue
@@ -199,7 +253,18 @@ def _table_candidates(evidence: list[dict]) -> list[dict]:
         group["content"] = (group["content"] + "\n" + str(entry.get("content") or "")).strip()
 
     grouped_tables = [group for group in row_groups.values() if len(group.get("rows", [])) >= 3]
-    return full_tables + grouped_tables
+    usable: list[dict] = []
+    for table in full_tables + grouped_tables:
+        rows = _plottable(table.get("rows") or [])
+        if not rows:
+            continue
+        usable.append({**table, "rows": rows})
+    # Aggregates before raw rows. The starter plan takes the first few
+    # recommendations, and the derived cross tables are appended to the ledger
+    # last — so in ledger order the author's starter figures were all built
+    # from per-record rows and every one of them had to be deleted.
+    usable.sort(key=lambda table: 0 if table.get("derived") else 1)
+    return usable
 
 
 def _column_values(rows: list[list[str]], index: int) -> list[str]:

@@ -60,6 +60,15 @@ _ID_COLUMN_RE = re.compile(
 #: How many groups a distribution names before it stops being a distribution
 #: and starts being the column reprinted.
 MAX_GROUPS_LISTED = 15
+#: How many groups a cross table shows before the tail folds into one "other"
+#: row. A table longer than this is read by scrolling, not by looking.
+MAX_GROUPS_IN_TABLE = 15
+#: How many cross tables one source gets without anybody asking. Every
+#: categorical column crossed with every numeric one is a combinatorial
+#: explosion in a ledger the author has to read.
+MAX_AUTO_CROSS_TABLES = 6
+#: How many numeric columns an automatic cross table averages over.
+MAX_AUTO_MEASURE_COLUMNS = 4
 #: More distinct values than this and the column is a label, not a category.
 MAX_CATEGORY_CARDINALITY = 60
 #: Wide exports exist; a summary of 300 columns is not a summary.
@@ -140,6 +149,14 @@ class Dataset:
                 if key not in seen:
                     seen.append(key)
         self.columns = seen
+        #: Set when this frame is two files joined. The evidence still records
+        #: the left file as its source, because that is where the rows live;
+        #: the label is what the reader is told the figure was computed over.
+        self.join_label = ""
+
+    @property
+    def display_name(self) -> str:
+        return self.join_label or self.file_name
 
     def column_values(self, column: str) -> list[str]:
         return [str(row.get(column, "")) for row in self.rows]
@@ -203,17 +220,20 @@ def _row_matches(row: dict, column: str, op: str, wanted: str) -> bool:
     return left <= right
 
 
-def select_rows(dataset: Dataset, expression: str | None) -> list[dict]:
-    """The rows an expression names.
+def filter_rows(rows: list[dict], dataset: Dataset, expression: str | None) -> list[dict]:
+    """The subset of ``rows`` an expression names.
 
-    ``category=攝影``, ``price>=100``, ``brand~DJI``, joined with ``&``. An
-    empty expression is every row, which is the ordinary case for a sample
-    size or a median.
+    Taking the rows as an argument rather than reading them off the dataset is
+    what lets one measure run inside a group: the same filter that means "the
+    listings under four stars" over a whole file has to mean "the listings
+    under four stars *in this price band*" inside a cross table, and a filter
+    that quietly reached past its group would put the file's number in every
+    row of the table.
     """
     text = (expression or "").strip()
     if not text or text == "*":
-        return list(dataset.rows)
-    rows = list(dataset.rows)
+        return list(rows)
+    selected = list(rows)
     for clause in text.split("&"):
         match = _FILTER_RE.match(clause)
         if not match:
@@ -228,8 +248,18 @@ def select_rows(dataset: Dataset, expression: str | None) -> list[dict]:
                 f"does not have. Its columns are: {', '.join(dataset.columns[:12])}"
             )
         op, wanted = match.group("op"), match.group("val")
-        rows = [row for row in rows if _row_matches(row, column, op, wanted)]
-    return rows
+        selected = [row for row in selected if _row_matches(row, column, op, wanted)]
+    return selected
+
+
+def select_rows(dataset: Dataset, expression: str | None) -> list[dict]:
+    """The rows of one dataset an expression names.
+
+    ``category=攝影``, ``price>=100``, ``brand~DJI``, joined with ``&``. An
+    empty expression is every row, which is the ordinary case for a sample
+    size or a median.
+    """
+    return filter_rows(dataset.rows, dataset, expression)
 
 
 # ----------------------------------------------------------------------
@@ -261,28 +291,42 @@ def format_number(value: float) -> str:
     return f"{value:.4g}"
 
 
-def compute(dataset: Dataset, request: dict) -> dict:
-    """Carry out one derivation and report how it was carried out.
-
-    Returns ``{"value", "unit", "rows_used", "detail", "derivation"}``. The
-    caller never supplies the value; that is the point.
-    """
+def _check_op(dataset: Dataset, request: dict) -> tuple[str, str]:
+    """The (op, column) a request names, or the reason it cannot be carried out."""
     op = str(request.get("op") or "").strip().lower()
     if op not in SUPPORTED_OPS:
         raise DerivationError(
             f"Operation {op!r} is not supported. Use one of: {', '.join(SUPPORTED_OPS)}"
         )
-    rows_expression = str(request.get("rows") or "")
-    rows = select_rows(dataset, rows_expression)
     column = str(request.get("column") or "").strip()
     if op != "count" and op != "share" and not column:
         raise DerivationError(f"Operation {op!r} needs a 'column'")
     if column and column not in dataset.columns:
         raise DerivationError(
-            f"Column {column!r} is not in {dataset.file_name}. Its columns are: "
+            f"Column {column!r} is not in {dataset.display_name}. Its columns are: "
             f"{', '.join(dataset.columns[:12])}"
         )
+    return op, column
 
+
+def _op_value(
+    op: str,
+    rows: list[dict],
+    universe: list[dict],
+    dataset: Dataset,
+    column: str,
+    request: dict,
+) -> tuple[float, str, str]:
+    """One operation over one row set: ``(value, unit, detail)``.
+
+    ``universe`` is what a share is a share *of* when the request names no
+    denominator. Over a whole file that is the file; inside a cross table it is
+    the group, so "the share under four stars" is read per band rather than
+    silently repeating the file-wide figure in every row.
+
+    Raises when the selected rows state nothing, which the grouped path reads
+    as an empty cell rather than as a failed run.
+    """
     unit = ""
     detail = ""
     if op == "count":
@@ -315,7 +359,7 @@ def compute(dataset: Dataset, request: dict) -> dict:
             unit = "%"
         detail = f"{len(numbers)} of {len(rows)} selected rows carry a number"
     elif op == "share":
-        whole = select_rows(dataset, str(request.get("of") or ""))
+        whole = filter_rows(universe, dataset, str(request.get("of") or ""))
         if not whole:
             raise DerivationError("Share has no denominator: the 'of' selection is empty")
         value = len(rows) / len(whole) * 100
@@ -337,10 +381,25 @@ def compute(dataset: Dataset, request: dict) -> dict:
         value = sum(count for _name, count in counts[:k]) / total * 100
         unit = "%"
         detail = "top " + ", ".join(name for name, _count in counts[:k])
+    return value, unit, detail
+
+
+def compute(dataset: Dataset, request: dict) -> dict:
+    """Carry out one derivation and report how it was carried out.
+
+    Returns ``{"value", "unit", "rows_used", "detail", "derivation"}``. The
+    caller never supplies the value; that is the point.
+    """
+    op, column = _check_op(dataset, request)
+    rows_expression = str(request.get("rows") or "")
+    rows = select_rows(dataset, rows_expression)
+    value, unit, detail = _op_value(
+        op, rows, dataset.rows, dataset, column, request
+    )
 
     derivation = {
         "method": op,
-        "source_file": dataset.file_name,
+        "source_file": dataset.display_name,
         "row_filter": rows_expression or "*",
         "rows_matched": len(rows),
         "rows_total": len(dataset.rows),
@@ -360,6 +419,450 @@ def compute(dataset: Dataset, request: dict) -> dict:
 
 
 # ----------------------------------------------------------------------
+# Two files, joined
+# ----------------------------------------------------------------------
+
+
+def _stem(file_name: str) -> str:
+    return _ID_SAFE_RE.sub("_", str(file_name or "").rsplit(".", 1)[0]).strip("_") or "right"
+
+
+def join_datasets(left: Dataset, right: Dataset, spec: dict) -> Dataset:
+    """Two tables on one key, as one frame of rows.
+
+    The strongest finding of a market study is usually the one no single file
+    states: the products table holds the price and the reviews table holds what
+    buyers said, and "which price band do buyers rate worst" lives in neither
+    until they are joined. Without this the sentence is simply not written —
+    not blocked, not hedged, not written.
+
+    Rows that find no partner are dropped, and *how many* were dropped is
+    recorded rather than swallowed: a hundred reviews that cannot be traced to
+    a listing is itself a limitation the report should state.
+    """
+    how = str(spec.get("how") or "inner").strip().lower()
+    if how != "inner":
+        raise DerivationError(
+            f"Join type {how!r} is not supported yet; use \"inner\""
+        )
+    left_key = str(spec.get("left_on") or spec.get("on") or "").strip()
+    right_key = str(spec.get("right_on") or spec.get("on") or "").strip()
+    if not left_key or not right_key:
+        raise DerivationError(
+            "A join needs 'on' (the key both files share), or 'left_on' and 'right_on'"
+        )
+    for key, dataset in ((left_key, left), (right_key, right)):
+        if key not in dataset.columns:
+            raise DerivationError(
+                f"Join key {key!r} is not in {dataset.file_name}. Its columns are: "
+                f"{', '.join(dataset.columns[:12])}"
+            )
+
+    # A name that exists on both sides is renamed rather than overwritten. A
+    # silent overwrite would put the products table's rating in a column the
+    # request thinks holds the review's, and the number would be wrong in a way
+    # no gate could see.
+    suffix = _stem(right.file_name)
+    renamed = {
+        column: f"{column}__{suffix}"
+        for column in right.columns
+        if column in left.columns and column != right_key
+    }
+
+    index: dict[str, list[dict]] = {}
+    for row in right.rows:
+        key = str(row.get(right_key, "")).strip()
+        if key:
+            index.setdefault(key, []).append(row)
+
+    rows: list[dict] = []
+    left_matched = 0
+    keys_hit: set[str] = set()
+    for row in left.rows:
+        key = str(row.get(left_key, "")).strip()
+        partners = index.get(key) or []
+        if not partners:
+            continue
+        left_matched += 1
+        keys_hit.add(key)
+        for partner in partners:
+            merged = dict(row)
+            for column, value in partner.items():
+                merged[renamed.get(column, column)] = value
+            rows.append(merged)
+
+    right_matched = sum(len(index[key]) for key in keys_hit)
+    frame = Dataset(
+        {
+            "source_id": left.source_id,
+            "file_name": left.file_name,
+            "file_path": left.file_path,
+            "file_type": left.file_type,
+        },
+        rows,
+    )
+    frame.join_label = f"{left.file_name} ⋈ {right.file_name}"
+    frame.join_info = {
+        "join": how,
+        "join_key": left_key if left_key == right_key else f"{left_key}={right_key}",
+        "left_file": left.file_name,
+        "right_file": right.file_name,
+        "left_rows": len(left.rows),
+        "right_rows": len(right.rows),
+        "joined_rows": len(rows),
+        "left_unmatched": len(left.rows) - left_matched,
+        "right_unmatched": len(right.rows) - right_matched,
+        "renamed_columns": renamed,
+    }
+    return frame
+
+
+def resolve_frame(request: dict, datasets: list[Dataset]) -> Dataset:
+    """The rows one request runs over: a file, or two of them joined."""
+    wanted = request.get("source")
+    names = [str(name or "") for name in (wanted if isinstance(wanted, list) else [wanted])]
+    available = ", ".join(dataset.file_name for dataset in datasets) or "(none)"
+    picked: list[Dataset] = []
+    for name in names:
+        candidates = [dataset for dataset in datasets if dataset.matches(name)]
+        if not candidates:
+            raise DerivationError(
+                f"No structured source matches {name!r}. Available: {available}"
+            )
+        picked.append(candidates[0])
+
+    join_spec = request.get("join")
+    if len(picked) == 1:
+        if join_spec:
+            raise DerivationError(
+                "A 'join' needs two file names in 'source', for example "
+                '"source": ["reviews.csv", "products.csv"]'
+            )
+        return picked[0]
+    if len(picked) != 2:
+        raise DerivationError(
+            "'source' takes one file name, or two to join them"
+        )
+    if not isinstance(join_spec, dict):
+        raise DerivationError(
+            "Two sources need a 'join' saying which key connects them, for "
+            'example "join": {"on": "asin", "how": "inner"}'
+        )
+    return join_datasets(picked[0], picked[1], join_spec)
+
+
+# ----------------------------------------------------------------------
+# Grouped tables: one request, N rows, one evidence entry
+# ----------------------------------------------------------------------
+
+
+def _bucket_edges(buckets: object) -> list[float]:
+    if not isinstance(buckets, (list, tuple)) or len(buckets) < 2:
+        raise DerivationError(
+            "group_by.buckets must list at least two boundaries, for example "
+            "[0, 30, 50, 100, 200, 400]"
+        )
+    edges = [parse_number(bucket) for bucket in buckets]
+    if any(edge is None for edge in edges):
+        raise DerivationError("group_by.buckets must all be numbers")
+    values = [float(edge) for edge in edges]  # type: ignore[arg-type]
+    if any(later <= earlier for earlier, later in zip(values, values[1:])):
+        raise DerivationError("group_by.buckets must increase")
+    return values
+
+
+def _band_label(low: float, high: float | None) -> str:
+    if high is None:
+        return f"{format_number(low)}+"
+    return f"{format_number(low)}–{format_number(high)}"
+
+
+def _bucket_groups(
+    rows: list[dict], column: str, edges: list[float]
+) -> tuple[list[tuple[str, list[dict]]], int]:
+    """Rows in author-chosen bands, plus how many fell outside every band.
+
+    The boundaries are the author's. Where to cut a price axis is an analytical
+    judgement — the bands are the finding, not an input to it — and a tool that
+    guesses them is wrong in a way the reader cannot see.
+    """
+    groups: list[tuple[str, list[dict]]] = [
+        (_band_label(low, high), []) for low, high in zip(edges, edges[1:])
+    ]
+    groups.append((_band_label(edges[-1], None), []))
+    outside = 0
+    for row in rows:
+        value = parse_number(row.get(column))
+        if value is None or value < edges[0]:
+            outside += 1
+            continue
+        index = len(edges) - 1
+        for position, (low, high) in enumerate(zip(edges, edges[1:])):
+            if low <= value < high:
+                index = position
+                break
+        groups[index][1].append(row)
+    return groups, outside
+
+
+def _category_groups(
+    rows: list[dict], column: str, top: int, zh: bool
+) -> tuple[list[tuple[str, list[dict]]], int]:
+    buckets: dict[str, list[dict]] = {}
+    empty = 0
+    for row in rows:
+        key = str(row.get(column, "")).strip()
+        if not key:
+            empty += 1
+            continue
+        buckets.setdefault(key, []).append(row)
+    ordered = sorted(buckets.items(), key=lambda item: (-len(item[1]), item[0]))
+    if len(ordered) <= top:
+        return ordered, empty
+    head = ordered[:top]
+    tail = ordered[top:]
+    spilled = [row for _name, group in tail for row in group]
+    label = (
+        f"其他（{len(tail)} 組）" if zh else f"Other ({len(tail)} groups)"
+    )
+    return head + [(label, spilled)], empty
+
+
+def _measure_label(measure: dict, zh: bool) -> str:
+    label = str(measure.get("label") or "").strip()
+    if label:
+        return label
+    op = str(measure.get("op") or "").strip().lower()
+    column = str(measure.get("column") or "").strip()
+    rows_expression = str(measure.get("rows") or "").strip()
+    if zh:
+        names = {
+            "count": "筆數", "sum": "總和", "mean": "平均", "median": "中位數",
+            "min": "最小值", "max": "最大值", "distinct": "相異值數",
+            "share": "佔比", "hhi": "HHI", "top_share": "前段佔比",
+        }
+        base = f"{column} {names.get(op, op)}" if column else names.get(op, op)
+        return f"{base}（{rows_expression}）" if rows_expression else base
+    base = f"{op} of {column}" if column else op
+    return f"{base} where {rows_expression}" if rows_expression else base
+
+
+#: Operations whose result is continuous, so a cell that lands on a round
+#: number still states two decimals. The content check refuses a claim with
+#: more decimal places than its evidence, so a mean printed as "4" silently
+#: forbids writing "4.0" — the author's arithmetic is right and the sentence is
+#: blocked anyway.
+_CONTINUOUS_OPS = frozenset({"mean", "median", "share"})
+
+
+def _render_cell(value: float | None, unit: str, *, fixed: bool = False) -> str:
+    if value is None:
+        return "—"
+    text = f"{value:,.2f}" if fixed else format_number(value)
+    if unit == "%":
+        return f"{text}%"
+    return f"{text} {unit}" if unit else text
+
+
+def compute_group_table(frame: Dataset, request: dict, zh: bool = False) -> dict:
+    """One grouped table: a row per group, a column per measure.
+
+    The scalar operations answer one question each, so a six-band table with
+    three columns took eighteen registrations to build — and a real run
+    registered 117 of them to produce three tables. The shape of the request
+    was the cost, not the analysis: this returns the whole table from one
+    request, and the ledger records it as one entry.
+    """
+    spec = request.get("group_by")
+    if not isinstance(spec, dict):
+        raise DerivationError(
+            "A grouped derivation needs 'group_by', for example "
+            '{"column": "price", "buckets": [0, 30, 50, 100, 200, 400]}'
+        )
+    column = str(spec.get("column") or "").strip()
+    if not column:
+        raise DerivationError("group_by needs a 'column'")
+    if column not in frame.columns:
+        raise DerivationError(
+            f"group_by column {column!r} is not in {frame.display_name}. Its "
+            f"columns are: {', '.join(frame.columns[:12])}"
+        )
+    measures = request.get("measures")
+    if not isinstance(measures, list) or not measures:
+        raise DerivationError(
+            "A grouped derivation needs 'measures', a list of operations — one "
+            'per output column, for example [{"op": "count"}, '
+            '{"op": "mean", "column": "rating"}]'
+        )
+    measures = [measure for measure in measures if isinstance(measure, dict)]
+    if not measures:
+        raise DerivationError("'measures' entries must be objects")
+
+    rows_expression = str(request.get("rows") or "")
+    scoped = select_rows(frame, rows_expression)
+
+    buckets = spec.get("buckets")
+    if buckets is not None:
+        edges = _bucket_edges(buckets)
+        groups, outside = _bucket_groups(scoped, column, edges)
+        grouping = "buckets"
+    else:
+        top = int(spec.get("top") or MAX_GROUPS_IN_TABLE)
+        groups, outside = _category_groups(scoped, column, max(1, top), zh)
+        grouping = "categories"
+        edges = []
+    if not groups or all(not members for _label, members in groups):
+        raise DerivationError(
+            f"Grouping {frame.display_name} by {column!r} produced no rows. "
+            f"{outside} of {len(scoped)} selected row(s) hold no usable value there."
+        )
+
+    checked = [(_check_op(frame, measure), measure) for measure in measures]
+    headers = [str(spec.get("label") or column)] + [
+        _measure_label(measure, zh) for _pair, measure in checked
+    ]
+    # The unit of a column is a property of the column, not of the group, so it
+    # is settled once over the whole selection. Deriving it per cell let one
+    # empty band drop the currency from that row alone, and a table where the
+    # same quantity is written two ways reads as two quantities.
+    def _universe(op: str, measure: dict, members: list[dict]) -> list[dict]:
+        """What a share in this cell is a share of.
+
+        A share with no numerator filter can only mean "this group as a
+        fraction of the whole" -- taken against the group it is 100% in every
+        row, which is a column of noise. A share that *does* filter is a rate
+        inside the group: the point of "% under four stars by price band" is
+        that each band is measured against itself.
+        """
+        if op == "share" and not str(measure.get("rows") or "").strip():
+            return scoped
+        return members
+
+    units: list[str] = []
+    for (op, measure_column), measure in checked:
+        try:
+            _value, unit, _detail = _op_value(
+                op,
+                filter_rows(scoped, frame, str(measure.get("rows") or "")),
+                scoped,
+                frame,
+                measure_column,
+                measure,
+            )
+        except DerivationError:
+            unit = ""
+        units.append(unit)
+
+    def measured(members: list[dict]) -> list[str]:
+        cells: list[str] = []
+        for index, ((op, measure_column), measure) in enumerate(checked):
+            selected = filter_rows(members, frame, str(measure.get("rows") or ""))
+            try:
+                value, _unit, _detail = _op_value(
+                    op, selected, _universe(op, measure, members), frame,
+                    measure_column, measure,
+                )
+            except DerivationError:
+                value = None
+            cells.append(_render_cell(value, units[index], fixed=op in _CONTINUOUS_OPS))
+        return cells
+
+    body = [[label, *measured(members)] for label, members in groups]
+    if request.get("total_row", True):
+        covered = [row for _label, members in groups for row in members]
+        body.append(["合計" if zh else "All", *measured(covered)])
+
+    covered_rows = sum(len(members) for _label, members in groups)
+    derivation = {
+        "method": "group_table",
+        "source_file": frame.display_name,
+        "row_filter": rows_expression or "*",
+        "rows_matched": covered_rows,
+        "rows_total": len(frame.rows),
+        "input_columns": [column]
+        + [str(measure.get("column") or "") for measure in measures if measure.get("column")],
+        "group_by": column,
+        "grouping": grouping,
+        "groups": len(groups),
+        "rows_ungrouped": outside,
+        "measures": [
+            {
+                "op": op,
+                "column": measure_column,
+                "rows": str(measure.get("rows") or "*"),
+                "label": header,
+            }
+            for ((op, measure_column), measure), header in zip(checked, headers[1:])
+        ],
+    }
+    if grouping == "buckets":
+        derivation["buckets"] = edges
+    join_info = getattr(frame, "join_info", None)
+    if join_info:
+        derivation["join"] = join_info
+
+    return {
+        "headers": headers,
+        "rows": body,
+        "derivation": derivation,
+        "groups": len(groups),
+        "rows_ungrouped": outside,
+    }
+
+
+def _group_table_text(frame: Dataset, request: dict, table: dict, zh: bool) -> str:
+    """The table as evidence text, with every cell readable in place.
+
+    Written as a grid rather than a sentence because a gate reads it the same
+    way a person does — looking for the number — and a paragraph that buries
+    eighteen figures in prose is checkable by neither.
+    """
+    derivation = table["derivation"]
+    label = str(request.get("label") or "").strip()
+    grid = [" | ".join(row) for row in [table["headers"], *table["rows"]]]
+    ungrouped = derivation.get("rows_ungrouped", 0)
+    join_info = derivation.get("join") or {}
+    if zh:
+        head = (
+            f"衍生統計(來源:{frame.display_name}):"
+            f"{label or derivation['group_by'] + ' 分組表'}。"
+            f"依 {derivation['group_by']} 分為 {derivation['groups']} 組，"
+            f"涵蓋 {derivation['rows_matched']} 筆資料列"
+            f"（全檔 {derivation['rows_total']} 筆）。"
+        )
+        if ungrouped:
+            head += f"另有 {ungrouped} 筆在該欄無可用值，未列入分組。"
+        if join_info:
+            head += (
+                f"本表由 {join_info['left_file']} 與 {join_info['right_file']} "
+                f"以 {join_info['join_key']} 內接而成，"
+                f"接得 {join_info['joined_rows']} 筆；"
+                f"{join_info['left_file']} 有 {join_info['left_unmatched']} 筆、"
+                f"{join_info['right_file']} 有 {join_info['right_unmatched']} 筆接不上。"
+            )
+    else:
+        head = (
+            f"Derived statistics from {frame.display_name}: "
+            f"{label or derivation['group_by'] + ' breakdown'}. "
+            f"Grouped by {derivation['group_by']} into {derivation['groups']} "
+            f"groups covering {derivation['rows_matched']} of "
+            f"{derivation['rows_total']} rows."
+        )
+        if ungrouped:
+            head += f" A further {ungrouped} row(s) hold no usable value there."
+        if join_info:
+            head += (
+                f" Built by inner-joining {join_info['left_file']} to "
+                f"{join_info['right_file']} on {join_info['join_key']}, giving "
+                f"{join_info['joined_rows']} joined row(s); "
+                f"{join_info['left_unmatched']} row(s) of "
+                f"{join_info['left_file']} and {join_info['right_unmatched']} of "
+                f"{join_info['right_file']} found no partner."
+            )
+    return head + "\n" + "\n".join(grid)
+
+
+# ----------------------------------------------------------------------
 # Evidence units
 # ----------------------------------------------------------------------
 
@@ -372,10 +875,12 @@ def _unit_evidence(
     *,
     evidence_id: str,
     block_id: str,
+    origin: str = "auto",
+    table: dict | None = None,
 ) -> dict:
     digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
     matched = derivation.get("rows_matched", len(dataset.rows))
-    return {
+    unit = {
         "evidence_id": evidence_id,
         "source_id": dataset.source_id,
         "source_file_name": dataset.file_name,
@@ -408,8 +913,21 @@ def _unit_evidence(
         "cross_references": [],
         "created_at": created_at,
         "last_used": None,
+        # Who asked for this. The whole point of the grouped and joined shapes
+        # is that the tool does the aggregating, so "how many of these did the
+        # author have to register by hand" is the measurement that says whether
+        # it worked; without the field it cannot be counted.
+        "origin": origin,
         "derivation": derivation,
     }
+    if table:
+        # A grid a [TABLE:] marker can place in the document, so a table the
+        # pipeline computed reaches the reader as a table rather than as a
+        # paragraph the author retypes -- retyped numbers being backed by
+        # nothing, which is the failure this ledger exists to prevent.
+        unit["table_grid"] = {"headers": table["headers"], "rows": table["rows"]}
+        unit["table_id"] = evidence_id
+    return unit
 
 
 def _shape_text(dataset: Dataset, zh: bool) -> tuple[str, dict]:
@@ -546,7 +1064,10 @@ def dataset_summary_units(
     """
     units: list[dict] = []
     for dataset in structured_datasets(source_registry):
-        entries: list[tuple[str, dict]] = [_shape_text(dataset, zh)]
+        shape_content, shape_derivation = _shape_text(dataset, zh)
+        entries: list[tuple[str, dict, dict | None]] = [
+            (shape_content, shape_derivation, None)
+        ]
         for column in dataset.columns[:MAX_COLUMNS_SUMMARIZED]:
             if _ID_COLUMN_RE.search(str(column)):
                 continue
@@ -557,7 +1078,10 @@ def dataset_summary_units(
             parsed = [parse_number(value) for value in filled]
             numbers = [number for number in parsed if number is not None]
             if len(numbers) >= 2 and len(numbers) / len(filled) >= NUMERIC_COLUMN_THRESHOLD:
-                entries.append(_numeric_text(dataset, column, numbers, zh))
+                numeric_content, numeric_derivation = _numeric_text(
+                    dataset, column, numbers, zh
+                )
+                entries.append((numeric_content, numeric_derivation, None))
                 continue
             counts = _group_counts(dataset.rows, column)
             # A column whose values are nearly all distinct is a title or a
@@ -567,9 +1091,14 @@ def dataset_summary_units(
             if len(counts) > max(2, 0.9 * len(dataset.rows)):
                 continue
             if 2 <= len(counts) <= MAX_CATEGORY_CARDINALITY:
-                entries.append(_category_text(dataset, column, counts, zh))
+                category_content, category_derivation = _category_text(
+                    dataset, column, counts, zh
+                )
+                entries.append((category_content, category_derivation, None))
 
-        for index, (content, derivation) in enumerate(entries):
+        entries.extend(_auto_cross_tables(dataset, zh))
+
+        for index, (content, derivation, table) in enumerate(entries):
             digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
             units.append(
                 _unit_evidence(
@@ -579,9 +1108,104 @@ def dataset_summary_units(
                     created_at,
                     evidence_id=f"E_{dataset.source_id}_{digest[:10]}",
                     block_id=f"summary_{index}",
+                    origin="auto",
+                    table=table,
                 )
             )
     return units
+
+
+def _column_kinds(dataset: Dataset) -> tuple[list[str], list[str]]:
+    """(categorical columns, numeric columns) worth crossing with each other."""
+    categorical: list[tuple[int, int, str]] = []
+    numeric: list[str] = []
+    for column in dataset.columns[:MAX_COLUMNS_SUMMARIZED]:
+        if _ID_COLUMN_RE.search(str(column)):
+            continue
+        values = dataset.column_values(column)
+        filled = [value for value in values if str(value).strip()]
+        if not filled:
+            continue
+        parsed = [parse_number(value) for value in filled]
+        numbers = [number for number in parsed if number is not None]
+        if len(numbers) >= 2 and len(numbers) / len(filled) >= NUMERIC_COLUMN_THRESHOLD:
+            numeric.append(column)
+            continue
+        counts = _group_counts(dataset.rows, column)
+        # A column with a value per row is a title, not a category, and a
+        # 544-row "breakdown" is the file reprinted.
+        if not 2 <= len(counts) <= MAX_CATEGORY_CARDINALITY:
+            continue
+        if len(counts) > max(2, 0.5 * len(dataset.rows)):
+            continue
+        # A column filled in for a handful of rows describes those rows, not
+        # the file. Crossing `seller` — stated on 11 listings out of 544 — puts
+        # a table of eleven ones in front of the author as if it were a market
+        # structure.
+        if len(filled) < 0.05 * len(dataset.rows):
+            continue
+        categorical.append((-len(filled), len(counts), column))
+    return [column for _filled, _groups, column in sorted(categorical)], numeric
+
+
+def _auto_cross_tables(
+    dataset: Dataset, zh: bool
+) -> list[tuple[str, dict, dict]]:
+    """The cross tabulations nobody had to ask for.
+
+    An unassisted write-up of the same three files built thirteen tables by
+    hand, every one of them a group-by; the tool offered single-column
+    statistics and the author had to register a hundred-odd derivations before
+    the first table existed. So the obvious crossings — each category column
+    against the numeric ones — are computed at intake, and the author starts
+    with material instead of with bricks.
+
+    Bins are not guessed. A numeric column is averaged inside a category, never
+    cut into bands the author did not choose.
+    """
+    categorical, numeric = _column_kinds(dataset)
+    if not categorical:
+        return []
+    measures: list[dict] = [
+        {"op": "count", "label": "筆數" if zh else "rows"},
+        {"op": "share", "label": "佔比" if zh else "share of rows"},
+    ]
+    # Mean and median for the first two numeric columns, median alone after
+    # that. A table wide enough to need landscape orientation is not read, and
+    # the median is the figure a market write-up quotes.
+    for position, column in enumerate(numeric[:MAX_AUTO_MEASURE_COLUMNS]):
+        if position < 2:
+            measures.append({
+                "op": "mean",
+                "column": column,
+                "label": f"{column} 平均" if zh else f"mean {column}",
+            })
+        measures.append({
+            "op": "median",
+            "column": column,
+            "label": f"{column} 中位數" if zh else f"median {column}",
+        })
+
+    tables: list[tuple[str, dict, dict]] = []
+    for column in categorical[:MAX_AUTO_CROSS_TABLES]:
+        request = {
+            "group_by": {"column": column},
+            "measures": measures,
+            "label": (
+                f"{column} 分組交叉表" if zh else f"{column} breakdown"
+            ),
+        }
+        try:
+            table = compute_group_table(dataset, request, zh=zh)
+        except DerivationError:
+            continue
+        table["derivation"]["origin"] = "auto"
+        tables.append((
+            _group_table_text(dataset, request, table, zh),
+            table["derivation"],
+            table,
+        ))
+    return tables
 
 
 # ----------------------------------------------------------------------
@@ -613,7 +1237,7 @@ def _request_text(request: dict, dataset: Dataset, result: dict, zh: bool) -> st
         scope = "全部資料列" if rows_expression == "*" else rows_expression
         name = label or f"{column or '資料列'} 的 {op}"
         text = (
-            f"衍生統計(來源:{dataset.file_name}):{name}為 {rendered}。"
+            f"衍生統計(來源:{dataset.display_name}):{name}為 {rendered}。"
             f"計算方式:對 {scope} 共 {result['rows_used']} 筆"
             f"（全檔 {len(dataset.rows)} 筆）"
             f"{'的 ' + column + ' 欄' if column else ''}施以 {op} 運算。"
@@ -624,7 +1248,7 @@ def _request_text(request: dict, dataset: Dataset, result: dict, zh: bool) -> st
     scope = "all rows" if rows_expression == "*" else rows_expression
     name = label or f"{op} of {column or 'rows'}"
     text = (
-        f"Derived statistics from {dataset.file_name}: {name} is {rendered}. "
+        f"Derived statistics from {dataset.display_name}: {name} is {rendered}. "
         f"Method: {op} applied to "
         f"{'the ' + column + ' column of ' if column else ''}"
         f"{result['rows_used']} rows selected by {scope}, out of "
@@ -658,18 +1282,36 @@ def build_requested_units(
         if not request_id:
             problems.append({"id": "", "error": "Derivation is missing 'id'"})
             continue
-        wanted = str(request.get("source") or "")
-        candidates = [dataset for dataset in datasets if dataset.matches(wanted)]
-        if not candidates:
-            problems.append({
-                "id": request_id,
-                "error": (
-                    f"No structured source matches {wanted!r}. Available: "
-                    + (", ".join(dataset.file_name for dataset in datasets) or "(none)")
-                ),
-            })
+        try:
+            dataset = resolve_frame(request, datasets)
+        except DerivationError as error:
+            problems.append({"id": request_id, "error": str(error)})
             continue
-        dataset = candidates[0]
+
+        if request.get("group_by") is not None or request.get("measures") is not None:
+            try:
+                table = compute_group_table(dataset, request, zh=zh)
+            except DerivationError as error:
+                problems.append({"id": request_id, "error": str(error)})
+                continue
+            units.append(
+                _unit_evidence(
+                    dataset,
+                    _group_table_text(dataset, request, table, zh),
+                    {
+                        **table["derivation"],
+                        "request_id": request_id,
+                        "origin": "requested",
+                    },
+                    created_at,
+                    evidence_id=request_evidence_id(request_id),
+                    block_id=f"derived_request_{request_id}",
+                    origin="requested",
+                    table=table,
+                )
+            )
+            continue
+
         try:
             result = compute(dataset, request)
         except DerivationError as error:
@@ -693,10 +1335,15 @@ def build_requested_units(
             _unit_evidence(
                 dataset,
                 _request_text(request, dataset, result, zh),
-                {**result["derivation"], "request_id": request_id},
+                {
+                    **result["derivation"],
+                    "request_id": request_id,
+                    "origin": "requested",
+                },
                 created_at,
                 evidence_id=request_evidence_id(request_id),
                 block_id=f"derived_request_{request_id}",
+                origin="requested",
             )
         )
     return units, problems

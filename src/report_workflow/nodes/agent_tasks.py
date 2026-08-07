@@ -55,7 +55,13 @@ def _source_labels(entries: list[dict]) -> dict[str, str]:
     return labels
 
 
-def _read_jsonl_compact_summary(path: str | None, limit: int = 20) -> str:
+#: How many ledger rows the brief samples. The derived statistics are listed
+#: separately and in full, because they are appended and would otherwise
+#: always fall outside this window.
+EVIDENCE_SUMMARY_LIMIT = 20
+
+
+def _read_jsonl_compact_summary(path: str | None, limit: int = EVIDENCE_SUMMARY_LIMIT) -> str:
     """Build a compact evidence summary for task briefs.
 
     Returns a concise table-like string instead of full JSON,
@@ -617,33 +623,163 @@ def _structure_guidance(report_profile: str) -> str:
     return f"## Structure Discipline (from published writing standards)\n\n{body}\n\n"
 
 
-def _derived_stats_guidance(evidence_path: str) -> str:
-    """List pre-computed derived statistics so the analysis can cite them."""
+def _derived_units(evidence_path: str | None) -> list[dict]:
     if not evidence_path or not Path(evidence_path).exists():
-        return ""
-    lines: list[str] = []
+        return []
+    units: list[dict] = []
     try:
-        with open(evidence_path, encoding="utf-8") as f:
-            for raw in f:
+        with open(evidence_path, encoding="utf-8") as handle:
+            for raw in handle:
+                if not raw.strip():
+                    continue
                 try:
                     unit = json.loads(raw)
                 except json.JSONDecodeError:
                     continue
                 if isinstance(unit, dict) and unit.get("derivation"):
-                    lines.append(f"- `{unit.get('evidence_id', '')}` — {unit.get('content', '')}")
+                    units.append(unit)
     except OSError:
+        return []
+    return units
+
+
+def _derived_stats_guidance(evidence_path: str) -> str:
+    """Every derived statistic, in full, split by who asked for it.
+
+    These rows are appended to the ledger, so they land past the end of the
+    twenty-row sample the evidence summary shows — every one of them, always,
+    because appending is what registering does. An author reading only that
+    table sees a world in which the only citable thing is one product row, and
+    the report that comes out of it says "most" where a figure belonged. So
+    they are listed here on their own and uncapped: this is the material the
+    analysis is made of, not a sample of the ledger's shape.
+    """
+    units = _derived_units(evidence_path)
+    if not units:
         return ""
-    if not lines:
-        return ""
-    return (
-        "## Derived Statistics (citable)\n\n"
-        "The pipeline pre-computed these from the measurement data; they are\n"
-        "regular evidence entries. Use them to make the analysis quantitative —\n"
-        "slope versus theory, fit quality, error range — instead of leaving the\n"
-        "discussion qualitative. Cite them like any other evidence id.\n\n"
-        + "\n".join(lines)
-        + "\n\n"
-    )
+
+    def rendered(unit: dict) -> str:
+        derivation = unit.get("derivation") or {}
+        evidence_id = unit.get("evidence_id", "")
+        head = f"### `{evidence_id}`"
+        if unit.get("table_grid"):
+            marker = unit.get("table_id") or evidence_id
+            head += (
+                f"\nPlace this table with `[TABLE:{marker} <caption>]`; the"
+                " renderer rebuilds it as a real Word table with its provenance"
+                " underneath. Cite a number you discuss in the prose with"
+                f" `[CITE:{evidence_id}]`."
+            )
+        else:
+            head += f" — cite with `[CITE:{evidence_id}]`."
+        join = derivation.get("join")
+        if join:
+            head += (
+                f"\nBuilt by joining {join.get('left_file')} to "
+                f"{join.get('right_file')} on {join.get('join_key')}."
+            )
+        return f"{head}\n\n```\n{unit.get('content', '')}\n```"
+
+    auto = [unit for unit in units if unit.get("origin", "auto") != "requested"]
+    requested = [unit for unit in units if unit.get("origin") == "requested"]
+    parts = [
+        "## Derived Statistics (citable, computed from the source rows)",
+        "",
+        "These are ordinary evidence entries whose values the pipeline computed",
+        "from the rows, so citing one puts a checked figure in the document.",
+        "They are listed here in full because they sit at the end of the ledger,",
+        "past the sample the Evidence Summary shows.",
+        "",
+        f"Computed automatically at intake ({len(auto)}):",
+        "",
+    ]
+    parts.extend(rendered(unit) for unit in auto)
+    parts.extend([
+        "",
+        (
+            f"Registered by request ({len(requested)}):"
+            if requested
+            else "Registered by request: none yet — see the registration guide below."
+        ),
+        "",
+    ])
+    parts.extend(rendered(unit) for unit in requested)
+    return "\n".join(parts) + "\n\n"
+
+
+#: How to ask for a statistic the intake summaries do not already state. Shown
+#: in the claim brief as well as the drafting brief: the decision that a figure
+#: cannot be cited is made while the claims are being written, and by the time
+#: the drafting brief is read the author has already stopped reaching for it.
+REGISTER_DERIVED_EVIDENCE_GUIDE = """### Asking for a statistic that is not there yet
+
+`register_derived_evidence` computes it from the rows and returns the
+`evidence_id` to cite. **One request can return a whole table**: give it
+`group_by` and a list of `measures` and it produces one row per group and one
+column per measure, registered as a single evidence entry.
+
+```
+register_derived_evidence(job_id="<job_id>", derivations=[
+
+  # A grouped table. `buckets` are yours to choose - the tool never guesses
+  # where to cut a numeric axis, because where the bands fall is the finding.
+  {"id": "price_band_reliability",
+   "source": "products.csv",
+   "label": "Price band against rating and complaint rate",
+   "group_by": {"column": "price", "buckets": [0, 30, 50, 100, 200, 400],
+                "label": "Price band"},
+   "measures": [{"op": "count",  "label": "Listings"},
+                {"op": "share",  "label": "Share of catalogue"},
+                {"op": "mean",   "column": "rating", "label": "Mean rating"},
+                {"op": "share",  "rows": "rating < 4", "label": "Under 4 stars"}]},
+
+  # Grouping a categorical column needs no buckets.
+  {"id": "category_mix", "source": "products.csv",
+   "group_by": {"column": "category"},
+   "measures": [{"op": "count"}, {"op": "median", "column": "price"}]},
+
+  # Two files, joined on one key. Rows that find no partner are counted and
+  # reported in the evidence text - that number is usually worth stating.
+  {"id": "band_review_rating",
+   "source": ["reviews.csv", "products.csv"],
+   "join": {"on": "asin", "how": "inner"},
+   "group_by": {"column": "price", "buckets": [0, 30, 50, 100, 200, 400]},
+   "measures": [{"op": "count"}, {"op": "mean", "column": "review_rating"}]},
+
+  # A single number, when that is all you need.
+  {"id": "hhi_brand", "source": "products.csv", "op": "hhi", "column": "brand"},
+])
+```
+
+`measures` entries take `op`, `column`, an optional `rows` filter applied
+inside each group, and a `label` that becomes the column header. A `share`
+with no `rows` filter is the group's share of the whole selection; a `share`
+*with* one is that rate inside the group.
+
+Ops: `count`, `sum`, `mean`, `median`, `min`, `max`, `distinct`, `share`,
+`hhi`, `top_share` (CR-k, with `k`). Filters: `col=value`, `col!=value`,
+`col>=n`, `col~text`, joined with `&`; omit for every row.
+
+Joins: `inner` on a single key; `on` when both files name it the same way,
+`left_on`/`right_on` when they do not. A column present in both files is
+renamed `<column>__<other_file>` on the right-hand side rather than
+overwritten, and the renaming is recorded in the evidence.
+
+The value is computed from the rows - you do not supply it. `expect` is
+optional, and is compared against the computed value rather than trusted, so a
+statistic you worked out yourself can be registered and checked.
+
+**Register what the argument needs before you start drafting.** Registering
+appends to the evidence ledger; artifacts already accepted at an earlier stage
+are re-stamped against the new ledger automatically, so this no longer strands
+a run - but a claim can only cite an id that already exists, so a figure
+discovered mid-draft still costs a round trip. Listing the tables the argument
+needs is the cheapest part of this job.
+
+Do not decide in advance that a number cannot be cited. That decision is
+invisible in the finished report: nothing is blocked, the sentence is simply
+never written, and the reader gets "most" where a figure belonged.
+"""
 
 
 def _source_table_catalog(evidence_path: str | None, limit: int = 12) -> str:
@@ -706,6 +842,8 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
     results_mode_section = _results_mode_section(state.spec.get("report_profile", ""))
     results_mode_rule = _results_mode_rule(state.spec.get("report_profile", ""))
     derived_stats_guidance = _derived_stats_guidance(evidence_path)
+    register_derived_evidence_guide = REGISTER_DERIVED_EVIDENCE_GUIDE
+    evidence_summary_limit = EVIDENCE_SUMMARY_LIMIT
     source_table_catalog = _source_table_catalog(evidence_path)
     task_intent = state.spec.get("task_intent", "new_draft")
     contract = make_artifact_contract(state)
@@ -812,8 +950,15 @@ For `new_draft`, the editable artifacts are `claim_matrix.json`, `outline.json`,
   medium-grade evidence even when that evidence is quantitative).
 {claim_role_rule}
 
+{derived_stats_guidance}## Making a statistic citable
+
+{register_derived_evidence_guide}
+
 ## Evidence Summary
-(Full ledger at `{evidence_path}`; read individual entries as needed)
+(Full ledger at `{evidence_path}`; read individual entries as needed.
+This is the first {evidence_summary_limit} rows only, as a sample of the ledger's
+shape. Every derived statistic is listed above in full — they sit at the end of
+the ledger and never appear in this window.)
 ```
 {evidence_summary}
 ```
@@ -1007,37 +1152,12 @@ query_evidence(job_id="<job_id>", offset=20, limit=20)  # page 2
 
 A ledger of one row per record cannot answer the questions a report is
 written to answer — how many rows there are, what the median is, how the
-categories split, how concentrated the top names are. Two places to look
-before deciding a figure is unciteable and writing "most" instead:
+categories split by price band, how concentrated the top names are. Every
+grouped table listed under **Derived Statistics** above is already computed
+and already citable; place it with its `[TABLE:]` marker and discuss the cells
+that carry the argument.
 
-1. **Already there.** Every structured source has summary evidence: row and
-   per-column value counts, min/quartile/median/mean/max of each numeric
-   column, group counts and shares for each categorical one. Find them with
-   `query_evidence(job_id="<job_id>", query="衍生統計")` or
-   `query="Derived statistics"`.
-2. **Ask for the rest.** `register_derived_evidence` computes a statistic
-   from the rows and returns the `evidence_id` to cite:
-
-```
-register_derived_evidence(job_id="<job_id>", derivations=[
-  {{"id": "photo_count", "source": "products.csv",
-    "rows": "category=攝影", "op": "count"}},
-  {{"id": "hhi_brand", "source": "products.csv", "op": "hhi", "column": "brand"}},
-  {{"id": "median_price", "source": "products.csv", "op": "median", "column": "price"}},
-])
-```
-
-Ops: `count`, `sum`, `mean`, `median`, `min`, `max`, `distinct`, `share`,
-`hhi`, `top_share` (CR-k, with `k`). Filters: `col=value`, `col!=value`,
-`col>=n`, `col~text`, joined with `&`; omit for every row.
-
-The value is computed from the rows — you do not supply it. `expect` is
-optional, and is compared against the computed value rather than trusted, so
-a statistic you worked out yourself can be registered and checked.
-
-Do not decide in advance that a number cannot be cited. That decision is
-invisible in the finished report: nothing is blocked, the sentence is simply
-never written, and the reader gets "most" where a figure belonged.
+{register_derived_evidence_guide}
 
 ## Facts Freeze (Optional)
 
@@ -1107,6 +1227,19 @@ For every figure you keep from that map, put its ID in the named outline
 first body paragraph that discusses the listed evidence. If a recommended
 figure does not fit the narrative, remove it from `figure_plan.json` rather
 than leaving an unused planned chart.
+
+**A planned figure that no section places does not render.** The contract has
+three parts and all three are required, or the render comes back
+`expected N Word table(s), found 0`:
+
+1. the entry exists in `section_drafts/figure_plan.json`;
+2. its `figure_id` appears in that section's `figure_ids` in `outline.json`;
+3. the literal marker `[FIGURE:<figure_id>]` sits in the section's Markdown, on
+   its own line, in the paragraph that discusses it.
+
+Figure ids are the plan's own ids — `[FIGURE:1]` for `"figure_id": "1"`. Tables
+are placed the same way with their own marker, `[TABLE:<table_id> <caption>]`;
+a `[TABLE:]` marker needs no `figure_plan.json` entry and no `figure_ids`.
 
 {source_table_catalog}
 Not every table wants to be a chart. A rate card, a specification list, or a

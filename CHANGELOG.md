@@ -1,5 +1,109 @@
 # Changelog
 
+## 4.34.0 - 2026-08-07
+
+### Added — one request now returns a whole table, and two files can be joined first
+
+Every derivation operation returned a single number, so a six-band price table
+with three columns cost eighteen registrations. A real run spent 117 of them to
+produce three tables; an unassisted write-up of the same three CSVs built
+thirteen tables by hand and put 703 numbers in the body against the tool's 238.
+The shape of the request was the cost, not the analysis.
+
+`register_derived_evidence` now takes `group_by` and `measures` and returns a
+grid — one row per group, one column per measure — registered as a single
+evidence entry:
+
+```json
+{"id": "price_band_reliability", "source": "products.csv",
+ "group_by": {"column": "price", "buckets": [0, 30, 50, 100, 200, 400]},
+ "measures": [{"op": "count"},
+              {"op": "mean", "column": "rating"},
+              {"op": "share", "rows": "rating < 4"}]}
+```
+
+Bucket edges stay the author's. Where a price axis is cut is an analytical
+judgement and a tool that guesses it is wrong in a way the reader cannot see.
+
+`source` also accepts two files with a `join`, which is the only route to a
+finding neither file states alone. Joining 473 reviews back to the product
+catalogue on `asin` shows the $100–200 band averaging 4.09 stars — the worst of
+six — from buyers' own words rather than from listing metadata. Rows that find
+no partner are counted and reported in the evidence text; a column name present
+on both sides is renamed rather than silently overwritten.
+
+### Added — the crossings nobody had to ask for
+
+Each categorical column is now crossed with the numeric ones at intake: counts,
+share, mean and median per group. Numeric axes are never auto-binned, for the
+reason above. Every derived entry records `origin` (`auto` or `requested`), so
+how much aggregation the author still had to register by hand is measurable
+rather than anecdotal.
+
+A grouped table carries its grid, so `[TABLE:<id>]` places it in the document
+as a real Word table with its provenance underneath, instead of the author
+retyping numbers that would then be backed by nothing.
+
+### Fixed — the brief described a world with no derived evidence in it
+
+Derived rows are appended to the ledger, so they land past the twenty-row
+sample the brief shows — every one of them, always. An author reading only
+that table saw a ledger in which the sole citable thing was one product row.
+They are now listed in full, in their own section, split by `origin`, in the
+claim brief as well as the drafting brief, each with the exact `[CITE:]` and
+`[TABLE:]` markers to use; and both briefs now state that
+`register_derived_evidence` exists, with a worked `group_by` and `join` example.
+
+### Fixed — registering evidence no longer strands the run that registered it
+
+Registering appends to the ledger, which moves the ledger hash, which made
+every already-accepted artifact stale — and the stage that owns those files was
+behind the current one, so the only advice on offer was to restore the stale
+content. A run died there and had to be restarted. Accepted artifacts stamped
+with this same job are now re-stamped against the current ledger and the
+harness is told the re-stamped file is the accepted one.
+
+The message for that case also prescribed
+`remap-evidence --from-job <old>`, which is advice for a different situation:
+there is no old job when the evidence was added minutes ago by the same run.
+A stamp naming a genuinely different job still gets the remap advice.
+
+### Fixed — the drafting brief omitted the figure placement contract
+
+A planned figure that no section places does not render, and the run came back
+`expected 3 Word table(s), found 0`. The three-part contract — plan entry,
+`figure_ids` in the outline, literal `[FIGURE:<id>]` marker in the Markdown —
+is now stated in `03_section_draft.md`, where it was documented only in
+`reference/figures.md`.
+
+### Fixed — a Chinese word is not a quantity
+
+A lone 一/兩/三 with no unit after it was read as a number, so 「兩者」,
+「三欄」 and 「一致」 became claim values 2, 3 and 1 that no evidence stated,
+and correct sentences were blocked. The same character in front of a unit —
+三筆, 兩年 — still counts. On the adversarial corpus one block loses its
+spurious numeric reason and keeps its real one; recall and false-positive rate
+are unchanged.
+
+### Fixed — the starter figure plan was the ledger reprinted as a picture
+
+The default plan proposed charts titled `title and 10 other measures by asin`
+whose series were Amazon tracking URLs and thumbnail links. Identifier and link
+columns are now dropped from chart candidates — but only when at least two
+columns survive, so a reading indexed by sample id or a single column of
+observations is still charted — and the derived cross tables are offered ahead
+of raw per-record rows.
+
+### Added — the fixtures the comparison runs on
+
+`benchmarks/fixtures/drone_market/` holds the three CSVs the hand-written and
+tool-written arms were both measured on: 544 products, 544 classified rows, 473
+reviews. The measurement was unrepeatable while they lived in a scratch
+directory.
+
+The ledger-determinism repair shipped in 4.33.0 now has a test: the same
+requests applied twice must leave the ledger's bytes identical.
+
 ## 4.33.0 - 2026-08-07
 
 ### Fixed — the timestamp moved, so the ledger hash moved, so nothing could publish

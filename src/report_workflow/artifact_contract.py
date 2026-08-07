@@ -217,6 +217,21 @@ def validate_artifact_contract(state: ReportState, path: str | Path, *, allow_mi
     ]
     if mismatches:
         details = ", ".join(f"{key}: artifact={contract.get(key)!r}, current={expected.get(key)!r}" for key in mismatches)
+        # Two different situations used to get the same prescription, and for
+        # one of them it was the wrong prescription. When the job id matches,
+        # the artifact is this run's own and the ledger moved underneath it —
+        # which is what registering a derived statistic does. There is no "old
+        # job" to remap from, and an author following that advice looks for one.
+        if contract.get("job_id") == expected.get("job_id"):
+            raise QAHardBlockError(
+                f"{Path(path).name} was stamped against an earlier state of this "
+                f"run's evidence ledger ({details}). The ledger changed after the "
+                "artifact was accepted — registering a derived statistic does "
+                "this, because it appends rows. Call register_derived_evidence "
+                "again with the same derivations: it re-stamps the accepted "
+                "artifacts against the current ledger. Do not run remap-evidence; "
+                "there is no previous job here."
+            )
         raise QAHardBlockError(
             f"{Path(path).name} appears to belong to another workflow run or stale evidence ledger ({details}). "
             "Run report-workflow remap-evidence --from-job <old> --to-job "

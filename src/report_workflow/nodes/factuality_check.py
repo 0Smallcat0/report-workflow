@@ -531,6 +531,14 @@ def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
         if value is None:
             continue
         suffix = _unit_after(normalized, m.end(1))
+        # A lone 一/兩/三 with no unit after it is almost always a word, not a
+        # count: 兩者, 三欄, 一致, 一般, 十分. Read as quantities they became
+        # claim numbers 2, 3 and 1 that no evidence states, and the gate blocked
+        # sentences whose arithmetic was never in question. The same character
+        # in front of a unit — 三筆, 兩年 — still counts, because that is where
+        # the notation actually appears.
+        if len(m.group(1)) == 1 and not suffix:
+            continue
         results.append((
             f"{value:g}",
             _combined_unit(normalized, m.start(1), suffix),
