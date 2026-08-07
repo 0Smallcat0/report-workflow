@@ -14,11 +14,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 
 from report_axes import (  # noqa: E402
+    ARGUMENT_DIMENSIONS,
     LAYOUT_DIMENSIONS,
+    aggregate_argument_votes,
     heading_informativeness,
     paragraph_length_fitness,
     score_layout,
     table_lead_in_ratio,
+    validate_votes,
 )
 
 TABLE = "| a | b |\n| --- | --- |\n| 1 | 2 |"
@@ -100,6 +103,58 @@ class ScoreLayoutTests(unittest.TestCase):
 
     def test_an_empty_document_scores_zero_on_every_dimension(self):
         self.assertEqual(set(score_layout("").values()), {0.0})
+
+
+def _vote(number: int, **scores) -> dict:
+    vote = {"arm": "hand", "vote": number}
+    for dimension in ARGUMENT_DIMENSIONS:
+        vote[dimension] = {
+            "score": scores.get(dimension, 2),
+            "evidence": "第四節指名中位數與絕對值描述兩種結構",
+        }
+    return vote
+
+
+class ArgumentVoteTests(unittest.TestCase):
+    """The votes are a file, and a file nothing checks can be edited into any result."""
+
+    def test_three_well_formed_votes_aggregate_to_their_median(self):
+        votes = [
+            _vote(1, claim_strength=4),
+            _vote(2, claim_strength=2),
+            _vote(3, claim_strength=3),
+        ]
+        self.assertEqual(aggregate_argument_votes(votes)["claim_strength"], 3)
+
+    def test_one_outlier_does_not_carry_a_dimension(self):
+        votes = [
+            _vote(1, evidence_depth=0),
+            _vote(2, evidence_depth=3),
+            _vote(3, evidence_depth=3),
+        ]
+        self.assertEqual(aggregate_argument_votes(votes)["evidence_depth"], 3)
+
+    def test_two_votes_are_not_enough_for_a_median(self):
+        self.assertIn("expected 3 votes", "; ".join(validate_votes([_vote(1), _vote(2)])))
+
+    def test_votes_from_different_arms_are_refused(self):
+        votes = [_vote(1), _vote(2), _vote(3)]
+        votes[2]["arm"] = "tool"
+        self.assertIn("mix arms", "; ".join(validate_votes(votes)))
+
+    def test_a_score_outside_the_rubric_is_refused(self):
+        votes = [_vote(1), _vote(2), _vote(3)]
+        votes[0]["claim_strength"]["score"] = 7
+        self.assertIn("is not an integer 0-4", "; ".join(validate_votes(votes)))
+
+    def test_a_score_with_no_passage_behind_it_is_refused(self):
+        votes = [_vote(1), _vote(2), _vote(3)]
+        votes[1]["counter_specificity"]["evidence"] = ""
+        self.assertIn("cites no passage", "; ".join(validate_votes(votes)))
+
+    def test_aggregating_unusable_votes_raises_rather_than_guessing(self):
+        with self.assertRaises(ValueError):
+            aggregate_argument_votes([_vote(1)])
 
 
 if __name__ == "__main__":

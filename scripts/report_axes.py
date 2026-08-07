@@ -159,3 +159,84 @@ def score_layout(text: str) -> dict:
         "table_lead_in_ratio": table_lead_in_ratio(text),
         "paragraph_length_fitness": paragraph_length_fitness(text),
     }
+
+
+# ----------------------------------------------------------------------
+# The argument axis: judged, not computed.
+# ----------------------------------------------------------------------
+
+#: Scored 0-4 against `benchmarks/rubrics/argument_rubric.md` by an LLM judge,
+#: three independent votes per document, median recorded. Not computed here on
+#: purpose — see the rubric's "Why a judge and not a rule".
+ARGUMENT_DIMENSIONS = (
+    "claim_strength",
+    "evidence_depth",
+    "counter_specificity",
+)
+
+#: Three votes, so a median exists and one outlier cannot carry a dimension.
+REQUIRED_VOTES = 3
+MAX_ARGUMENT_SCORE = 4
+
+#: A score with no passage behind it is an opinion. Requiring the passage is
+#: what makes a vote something a third party can argue with rather than merely
+#: disbelieve.
+MIN_VOTE_EVIDENCE_CHARS = 10
+
+
+def validate_votes(votes: list[dict]) -> list[str]:
+    """Everything wrong with a set of votes, or an empty list.
+
+    Checked rather than trusted, for the same reason the pipeline recomputes a
+    registered derivation: the votes are a file, and a file that nothing checks
+    is a file that can be edited into any result.
+    """
+    problems: list[str] = []
+    if len(votes) != REQUIRED_VOTES:
+        problems.append(f"expected {REQUIRED_VOTES} votes, found {len(votes)}")
+    arms = {str(vote.get("arm", "")) for vote in votes}
+    if len(arms) > 1:
+        problems.append(f"votes mix arms: {', '.join(sorted(arms))}")
+    numbers = sorted(vote.get("vote") for vote in votes)
+    if numbers != list(range(1, len(votes) + 1)):
+        problems.append(f"votes are not numbered 1..{len(votes)}: {numbers}")
+    for vote in votes:
+        for dimension in ARGUMENT_DIMENSIONS:
+            entry = vote.get(dimension)
+            if not isinstance(entry, dict):
+                problems.append(f"vote {vote.get('vote')} is missing {dimension}")
+                continue
+            score = entry.get("score")
+            if not isinstance(score, int) or not 0 <= score <= MAX_ARGUMENT_SCORE:
+                problems.append(
+                    f"vote {vote.get('vote')} {dimension} score {score!r} is not an "
+                    f"integer 0-{MAX_ARGUMENT_SCORE}"
+                )
+            if len(str(entry.get("evidence") or "").strip()) < MIN_VOTE_EVIDENCE_CHARS:
+                problems.append(
+                    f"vote {vote.get('vote')} {dimension} cites no passage; a score "
+                    "without one cannot be argued with"
+                )
+    return problems
+
+
+def aggregate_argument_votes(votes: list[dict]) -> dict:
+    """The median score per dimension, from three votes.
+
+    Median rather than mean: with three votes the median is the majority
+    position whenever one exists, and a single outlier moves nothing.
+    """
+    problems = validate_votes(votes)
+    if problems:
+        raise ValueError("argument votes are not usable: " + "; ".join(problems))
+    scored = {}
+    for dimension in ARGUMENT_DIMENSIONS:
+        ordered = sorted(vote[dimension]["score"] for vote in votes)
+        scored[dimension] = ordered[len(ordered) // 2]
+    return scored
+
+
+AXES = {
+    "layout": LAYOUT_DIMENSIONS,
+    "argument": ARGUMENT_DIMENSIONS,
+}
