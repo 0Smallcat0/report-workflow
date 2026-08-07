@@ -95,8 +95,9 @@ needs direct Markdown control or when repairing generated canonical drafts.
 
 ## What the Outline Must Account For
 
-`OUTLINE_PLAN` refuses the outline until three things are settled. The outline
-brief lists all of them, filled in with this run's ids, before you write it.
+`OUTLINE_PLAN` refuses the outline until the built tables are accounted for. The
+outline brief lists them, filled in with this run's ids, before you write it; the
+other two headings below are written into the prose, not gated.
 
 **Every cross tabulation the pipeline built.** They are computed at intake and
 listed in the brief. Each is either placed — a claim cites its id, or a figure
@@ -108,8 +109,10 @@ draws on it — or waived by name:
 }
 ```
 
-A reason is at least 20 characters, and one reason may not cover two tables.
-Waiving is a real decision and costs a sentence; leaving a built table
+Any reason will do as long as there is one. A minimum length and a
+no-duplicate-reasons rule were tried and removed — the delivered document was
+byte-identical with and without them, so they were measuring compliance. What
+remains is that dropping a table is a decision someone made in words; leaving one
 unmentioned is not available.
 
 **What would weaken the report.** A blueprint section may set
