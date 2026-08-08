@@ -29,29 +29,29 @@
         "paragraph_length_fitness": 0.5172
       },
       "argument": {
-        "claim_strength": 3,
-        "evidence_depth": 3,
+        "claim_strength": 4,
+        "evidence_depth": 4,
         "counter_specificity": 4
       }
     },
     "tool": {
       "numeric": {
-        "external_sources": 6,
-        "verifiable_numbers": 89,
-        "verifiable_number_ratio": 0.5115,
+        "external_sources": 12,
+        "verifiable_numbers": 90,
+        "verifiable_number_ratio": 0.4945,
         "tables": 9,
         "figures": 0,
-        "counter_evidence_paragraphs": 6,
+        "counter_evidence_paragraphs": 5,
         "disclosed_derivations": 0,
         "structured_paragraph_ratio": 0.6875
       },
       "layout": {
         "heading_informativeness": 0.6667,
         "table_lead_in_ratio": 1.0,
-        "paragraph_length_fitness": 0.541
+        "paragraph_length_fitness": 0.5156
       },
       "argument": {
-        "claim_strength": 4,
+        "claim_strength": 3,
         "evidence_depth": 3,
         "counter_specificity": 4
       }
@@ -74,7 +74,7 @@
       },
       "argument": {
         "claim_strength": 4,
-        "evidence_depth": 3,
+        "evidence_depth": 4,
         "counter_specificity": 4
       }
     }
@@ -84,21 +84,21 @@
       "axis": "numeric",
       "dimension": "external_sources",
       "hand": 0,
-      "tool": 6,
+      "tool": 12,
       "llm_direct": 0
     },
     {
       "axis": "numeric",
       "dimension": "verifiable_numbers",
       "hand": 121,
-      "tool": 89,
+      "tool": 90,
       "llm_direct": 72
     },
     {
       "axis": "numeric",
       "dimension": "verifiable_number_ratio",
       "hand": 0.7035,
-      "tool": 0.5115,
+      "tool": 0.4945,
       "llm_direct": 0.5714
     },
     {
@@ -119,7 +119,7 @@
       "axis": "numeric",
       "dimension": "counter_evidence_paragraphs",
       "hand": 0,
-      "tool": 6,
+      "tool": 5,
       "llm_direct": 0
     },
     {
@@ -154,22 +154,22 @@
       "axis": "layout",
       "dimension": "paragraph_length_fitness",
       "hand": 0.5172,
-      "tool": 0.541,
+      "tool": 0.5156,
       "llm_direct": 0.8
     },
     {
       "axis": "argument",
       "dimension": "claim_strength",
-      "hand": 3,
-      "tool": 4,
+      "hand": 4,
+      "tool": 3,
       "llm_direct": 4
     },
     {
       "axis": "argument",
       "dimension": "evidence_depth",
-      "hand": 3,
+      "hand": 4,
       "tool": 3,
-      "llm_direct": 3
+      "llm_direct": 4
     },
     {
       "axis": "argument",
@@ -200,26 +200,26 @@
           "won": true
         },
         "vs_hand": {
-          "wins": 3,
-          "losses": 0,
+          "wins": 2,
+          "losses": 1,
           "won": true
         }
       },
       "argument": {
         "vs_llm_direct": {
           "wins": 0,
-          "losses": 0,
+          "losses": 2,
           "won": false
         },
         "vs_hand": {
-          "wins": 1,
-          "losses": 0,
-          "won": true
+          "wins": 0,
+          "losses": 2,
+          "won": false
         }
       }
     },
     "beats_llm_direct_on_every_axis": false,
-    "axes_lost_to_hand": 1,
+    "axes_lost_to_hand": 2,
     "stop_condition_met": false
   }
 }

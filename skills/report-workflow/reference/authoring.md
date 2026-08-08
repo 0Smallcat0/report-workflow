@@ -138,6 +138,13 @@ id mapping to fill in: an earlier version required `answers` by index and
   `[CITE:E001] [CITE:E002]`. Legacy `[CITE:E001,E002]` is accepted by validation,
   but newly generated drafts should emit separate markers.
 - Use hedged wording for medium-grade or qualitative evidence.
+- A direction asserted over a computed group table has to be the direction the
+  whole table has. Quoting two rows of a fifteen-row table and writing 「愈高
+  的組別，價格中位數也愈高」 is blocked by FT when the column's ordered group
+  pairs and its two ends both disagree; the block prints the real ordering, so
+  the repair is to state the relation the table does have, name the subset the
+  claim is about, or drop the direction. Every number in such a sentence can be
+  real and the sentence still wrong — that is the case this gate exists for.
 - Do not cite internal workflow files, evidence ledgers, claim matrices,
   traceability appendices, generated task briefs, or workflow metadata.
 - Use `query_evidence(job_id=..., query="...")` for relevance-ranked browsing when

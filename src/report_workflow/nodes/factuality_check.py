@@ -8,6 +8,7 @@ IMPORTANT data source note:
 When debugging FE failures: edit claim_matrix.json and evidence_ledger.jsonl directly.
 Checkpoint files are NOT read by this node.
 """
+import itertools
 import json
 import re
 import unicodedata
@@ -1765,6 +1766,303 @@ def run_factuality_check_fs(
     return results
 
 
+#: Words by which a sentence tells the reader that one quantity moves with
+#: another, rather than merely reporting two values.
+#:
+#: Deliberately a list of assertions of *direction*. "最高" and "最多" are not
+#: here: naming an extreme is a statement about one row, which FE already
+#: checks against the evidence. What FT is for is the sentence that generalises
+#: from rows to a relation.
+_TREND_RE = re.compile(
+    # 「X 愈高，Y 也愈高」 puts a clause break between the two halves, so the
+    # comma has to be inside the span rather than a boundary for it.
+    r"愈[^。；\n]{0,16}愈|越[^。；\n]{0,16}越"
+    r"|隨著|隨[^。；\n]{0,8}(?:上升|下降|增加|減少|提高|降低|走高|走低)"
+    r"|遞增|遞減|遞升|遞降|正相關|負相關|反向關係|正向關係|同向|反向|單調|单调"
+    r"|rises with|falls with|increases with|decreases with"
+    r"|the higher|the lower|monotonic|correlat",
+    re.IGNORECASE,
+)
+
+#: The leading magnitude of a category label — "500+ bought in past month",
+#: "1K+ bought in past month", "10K+ ...". Categories are otherwise unordered,
+#: and a trend over an unordered axis is not a thing this checker can recompute.
+_GROUP_MAGNITUDE_RE = re.compile(r"^\s*([0-9][0-9,]*(?:\.[0-9]+)?)\s*([KkMm萬万])?\s*\+?")
+_GROUP_MAGNITUDE_SUFFIX = {"k": 1e3, "m": 1e6, "萬": 1e4, "万": 1e4}
+
+_PLAIN_NUMBER_RE = re.compile(r"[0-9][0-9,]*(?:\.[0-9]+)?")
+
+#: Below this a table has no shape to disagree with: two groups are the pair
+#: itself, and the check would be comparing the claim against nothing else.
+_MIN_GROUPS_FOR_TREND = 3
+
+
+def _group_magnitude(label: str) -> float | None:
+    match = _GROUP_MAGNITUDE_RE.match(label or "")
+    if not match:
+        return None
+    suffix = (match.group(2) or "").lower()
+    return float(match.group(1).replace(",", "")) * _GROUP_MAGNITUDE_SUFFIX.get(suffix, 1)
+
+
+def _category_token(label: str) -> str:
+    """The part of a category label a sentence is likely to write.
+
+    The table calls a group "500+ bought in past month"; the prose calls it
+    "500+". Matching on the full label would find the first mention and miss
+    the second, which is the mention that makes it a pair.
+
+    Band labels are left whole by the caller. Cutting "0–30" down to its
+    leading magnitude would leave the token "0", which occurs in most numbers
+    on the page and would name a group the sentence never mentioned.
+    """
+    match = _GROUP_MAGNITUDE_RE.match(label or "")
+    if match and match.end():
+        return label[: match.end()].strip()
+    return (label or "").strip()
+
+
+def _cell_number(cell: str) -> float | None:
+    """The figure in a rendered cell: "139.99 USD" -> 139.99, "—" -> None."""
+    stripped = re.sub(r"[^0-9.\-]", "", str(cell or "").replace(",", ""))
+    try:
+        return float(stripped)
+    except ValueError:
+        return None
+
+
+def _ordered_groups(evidence: dict) -> list[tuple[float, str, list]] | None:
+    """The table's group rows with their position on the axis, and their name.
+
+    Buckets are already in band order and the derivation says how many of them
+    there are, so the total row at the bottom is excluded by count rather than
+    by matching its label. Categories carry no order at all unless every label
+    starts with a magnitude; where one does not, this returns None and the
+    checker stands down — an unorderable axis is not a trend the tool can
+    recompute, and refusing the sentence anyway would be blocking honest work
+    over a limitation of the checker.
+    """
+    grid = evidence.get("table_grid") or {}
+    rows = [row for row in (grid.get("rows") or []) if isinstance(row, list) and len(row) > 1]
+    derivation = evidence.get("derivation") or {}
+    try:
+        group_count = int(derivation.get("groups") or 0)
+    except (TypeError, ValueError):
+        group_count = 0
+    # Without a group count the total row cannot be told from a band, and a
+    # bucket table read one row too long has "All" for its top end — which is
+    # the value the ends test turns on. A table that does not say how many of
+    # its rows are groups is one this checker declines to reorder.
+    if group_count <= 0:
+        return None
+    body = rows[:group_count]
+    if len(body) < _MIN_GROUPS_FOR_TREND:
+        return None
+    if derivation.get("grouping") == "buckets":
+        return [(float(index), str(row[0]).strip(), row) for index, row in enumerate(body)]
+    magnitudes = [_group_magnitude(row[0]) for row in body]
+    if any(magnitude is None for magnitude in magnitudes):
+        return None
+    return [(magnitude, _category_token(row[0]), row)
+            for magnitude, row in zip(magnitudes, body)]
+
+
+def _stated_numbers(text: str) -> list[float]:
+    values = []
+    for token in _PLAIN_NUMBER_RE.findall(text or ""):
+        try:
+            values.append(float(token.replace(",", "")))
+        except ValueError:
+            continue
+    return values
+
+
+def _quoted_pair(named: list[tuple[float, str, list]], column: int,
+                 stated: list[float]) -> list[tuple[float, float]]:
+    """The cells of one column the claim actually wrote down.
+
+    A pair, not a single value: one number matching one cell is a coincidence
+    an integer count will produce often enough. Two cells of the same column,
+    for two groups the sentence names, is the author reading that column.
+    """
+    quoted = []
+    for magnitude, _token, row in named:
+        value = _cell_number(row[column])
+        if value is None:
+            continue
+        if any(abs(value - number) <= abs(value) * 1e-9 for number in stated):
+            quoted.append((magnitude, value))
+    return quoted
+
+
+def _concordance(series: list[tuple[float, float]], rising: bool) -> tuple[int, int]:
+    """Group pairs that agree with the asserted direction, and that do not."""
+    agree = against = 0
+    for (left_key, left), (right_key, right) in itertools.combinations(series, 2):
+        if left_key == right_key or left == right:
+            continue
+        if ((right_key > left_key) == (right > left)) == rising:
+            agree += 1
+        else:
+            against += 1
+    return agree, against
+
+
+def _trend_findings(claim: dict, evidence: dict, text: str) -> tuple[int, list[str]]:
+    """(columns actually recomputed, reasons they failed).
+
+    The count is not bookkeeping. A claim whose table has no order, or whose
+    prose names one group rather than a pair, has not been checked — and a
+    checker that files "verified" against a claim it stood down on is the
+    thing FE's own comment in this file calls worse than no gate at all.
+    """
+    groups = _ordered_groups(evidence)
+    if not groups:
+        return 0, []
+    # Which groups, and which numbers, come from the claim itself — never from
+    # the surrounding prose. `text` reaches the neighbours: paragraphs are
+    # matched by citation, so a claim sharing an evidence id with another one
+    # picks up its sentences. Run against five independent acceptance reports,
+    # a version that took the pair from `text` hard-blocked a correct one: the
+    # direction came from a neighbouring paragraph, and 63 and 64 matched two
+    # cells of a column the claim never discussed -- one a review-count median,
+    # the other a listing count. The claim matrix is where a claim writes down
+    # what it is reading, and that is what is read here.
+    claim_text = claim.get("claim_text", "")
+    named = [entry for entry in groups if entry[1] and entry[1] in claim_text]
+    if len(named) < 2:
+        return 0, []
+
+    stated = _stated_numbers(claim_text)
+    headers = (evidence.get("table_grid") or {}).get("headers") or []
+    examined = 0
+    reasons: list[str] = []
+    for column in range(1, len(headers)):
+        quoted = sorted(_quoted_pair(named, column, stated))
+        if len(quoted) < 2 or quoted[0][1] == quoted[-1][1]:
+            continue
+        rising = quoted[-1][1] > quoted[0][1]
+
+        series = sorted(
+            (magnitude, _cell_number(row[column]))
+            for magnitude, _token, row in groups
+            if _cell_number(row[column]) is not None
+        )
+        if len(series) < _MIN_GROUPS_FOR_TREND:
+            continue
+        examined += 1
+        agree, against = _concordance(series, rising)
+        ends_flat = series[0][1] == series[-1][1]
+        ends_agree = ends_flat or ((series[-1][1] > series[0][1]) == rising)
+        if against <= agree or ends_agree:
+            continue
+
+        ordering = " | ".join(
+            f"{token} {_cell_number(row[column]):g}"
+            for _magnitude, token, row in sorted(groups, key=lambda entry: entry[0])
+            if _cell_number(row[column]) is not None
+        )
+        direction = "rises" if rising else "falls"
+        reasons.append(
+            f"Claim reads {headers[column]!r} as something that {direction} with "
+            f"{evidence.get('evidence_id')}'s groups, quoting 2 of {len(series)} of them. "
+            f"Over all {len(series)}: {ordering}. "
+            f"{against} of the {agree + against} ordered group pairs go the other way, "
+            f"and so do the two ends. Either state the relation the table has, "
+            f"name the subset the claim is about, or drop the direction."
+        )
+    return examined, reasons
+
+
+def run_factuality_check_ft(
+    merged_text: str,
+    claim_matrix: dict,
+    evidence_ledger: list[dict],
+) -> list[dict]:
+    """FT: a trend read out of a group table must be in the whole table.
+
+    FA, FB, FE, FS and FD all compare *text* with *text* — the claim's numbers
+    against the evidence's numbers, the prose against the claim. Every one of
+    them passes a sentence whose figures are real and whose reading of them is
+    not. A blind judge found exactly that in a delivered report: 「銷量級距愈
+    高的組別，價格中位數也愈高」, citing a table whose fifteen sales tiers put
+    the three highest-volume groups at the three lowest prices. Both quoted
+    numbers were in the evidence. Every gate passed it.
+
+    So this one does not read the evidence text. It reads the grid the pipeline
+    computed, orders the groups, and recomputes the relation the sentence
+    asserts. A finding needs all of:
+
+    1. the claim cites evidence carrying a computed group table;
+    2. its prose asserts a direction, not just two values;
+    3. it names at least two of that table's groups;
+    4. the groups have an order the tool can recompute — bucket bands, or
+       category labels that all start with a magnitude;
+    5. the claim quotes a *pair* of cells from one column, fixing which column
+       and which direction it is reading;
+    6. that column, over every group, disagrees on the balance of ordered pairs
+       **and** at its two ends.
+
+    Both parts of (6) are required. A majority alone fires on tables that are
+    merely noisy, which in a trial over one authored report meant six honest
+    claims blocked for columns their prose never generalised about. Demanding
+    the ends as well left one finding: the defect this was built for.
+
+    Arithmetic over rows the tool already owns, in the same shape as ``expect``
+    — no semantic layer, no reading of what the sentence means. It is the next
+    rung of the rule that one data row cannot ground a claim about a dataset:
+    two rows cannot ground a trend.
+    """
+    by_id = {
+        str(entry.get("evidence_id")): entry
+        for entry in evidence_ledger
+        if isinstance(entry, dict) and entry.get("table_grid")
+    }
+    if not by_id:
+        return []
+
+    results: list[dict] = []
+    for claim in claim_matrix.get("claims", []):
+        if str(claim.get("status", "supported")).lower() in BLOCKING_CLAIM_STATUSES:
+            continue
+        evidence_ids = {str(eid) for eid in claim.get("evidence_ids", []) if eid}
+        cited = [by_id[eid] for eid in sorted(evidence_ids) if eid in by_id]
+        if not cited:
+            continue
+
+        text = " ".join(
+            [claim.get("claim_text", "")] + _claim_sentences(merged_text, evidence_ids)
+        )
+        if not _TREND_RE.search(text):
+            continue
+
+        examined = 0
+        reasons: list[str] = []
+        for evidence in cited:
+            columns, failures = _trend_findings(claim, evidence, text)
+            examined += columns
+            reasons.extend(failures)
+        if not examined:
+            continue
+
+        claim_id = _claim_id(claim)
+        if reasons:
+            results.append({
+                "claim_id": claim_id,
+                "status": "blocked",
+                "checker": "FT",
+                "reason": " ".join(reasons),
+            })
+        else:
+            results.append({
+                "claim_id": claim_id,
+                "status": "verified",
+                "checker": "FT",
+                "reason": "Trend asserted over a computed table holds across all its groups",
+            })
+    return results
+
+
 def run_factuality_check(state: ReportState) -> ReportState:
     """T13: FACTUALITY_CHECK - verify claims vs evidence."""
     run_dir = WORKFLOW_RUNS_DIR / state.job_id
@@ -1818,6 +2116,15 @@ def run_factuality_check(state: ReportState) -> ReportState:
         )
         checkers_run.append("FS")
 
+        # FT: a direction read out of a computed table must be in the table.
+        # Runs on the same path as FS and for the same reason — the sentence
+        # the reader ends up with is the thing being checked, and the reading
+        # it puts on the numbers is not something any text comparison sees.
+        ft_results = run_factuality_check_ft(merged_text, claim_matrix, evidence_ledger)
+        if ft_results:
+            all_results.extend(ft_results)
+            checkers_run.append("FT")
+
     # F2: wording strength vs evidence grade (FD)
     results_fd = run_factuality_check_fd(sentence_map, claim_matrix, evidence_ledger)
     if revision_sidecar_mode and not deep_audit:
@@ -1845,6 +2152,7 @@ def run_factuality_check(state: ReportState) -> ReportState:
             "FB": "a statistical claim cites quantitative evidence",
             "FE": "the claim's numbers, quotes and terms appear in the evidence it cites",
             "FS": "the drafted prose states every figure its claim asserts",
+            "FT": "a trend asserted over a computed group table holds across all its groups",
             "FD": "wording strength is allowed by the weakest cited evidence grade",
         },
         "verified_means": (

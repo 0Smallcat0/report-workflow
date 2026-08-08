@@ -51,6 +51,7 @@ from .nodes.factuality_check import (
     run_factuality_check_fb,
     run_factuality_check_fd,
     run_factuality_check_fe,
+    run_factuality_check_ft,
 )
 from .profiles import PROFILE_REGISTRY
 
@@ -95,6 +96,12 @@ def verify_claims_payload(
     results = run_factuality_check_fb(results, matrix, evidence)
     if deep_audit:
         results = run_factuality_check_fe(results, matrix, evidence)
+    # FT runs unconditionally: it only has anything to say when the caller
+    # supplied a computed group table, and a caller who did supply one is
+    # exactly the caller who can read a direction out of two of its rows.
+    # There is no merged draft on this surface, so the claim text is the
+    # whole of what it reads.
+    results.extend(run_factuality_check_ft("", matrix, evidence))
     wording_flags = run_factuality_check_fd(sentence_map, matrix, evidence)
 
     blocked = [row for row in results if row["status"] == "blocked"]

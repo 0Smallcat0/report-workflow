@@ -295,6 +295,14 @@ report-workflow invalidate-cache --job-id <id> --sources --drafts
   message, which this repo treats as a defect.
 - A single data row cannot ground a claim about the dataset. A digit that
   matches in an unrelated column is a coincidence; cite the derived statistic.
+- Two rows cannot ground a trend. Where a claim quotes a pair of cells from a
+  computed group table and its prose asserts a direction, FT reorders the whole
+  table and recomputes: a column whose ordered group pairs *and* whose two ends
+  both go the other way is blocked, with the real ordering printed. Same
+  arithmetic as `expect`, over rows the tool already owns — not a semantic
+  layer. It closes the gap a blind judge found: every figure in the sentence
+  real and present in the cited evidence, and the relation drawn from them
+  false.
 - A cross tabulation the pipeline built is placed or waived by name with a
   reason. Leaving it unmentioned is the loss-by-omission this gate exists for:
   three runs of one task placed four of seven, then three, then two, and the
