@@ -67,8 +67,6 @@ PROMPTS = {
 QA_SNAPSHOT_FILES = [
     "qa_summary.json",
     "factuality_report.json",
-    "scholarly_quality_report.json",
-    "scholarly_quality_report.md",
     "engineering_audit_report.json",
     "figure_visual_quality_report.json",
     "figure_plan_audit_report.json",
@@ -86,7 +84,6 @@ PUBLISHED_QA_FILES = [
     "template_style_map.json",
     "template_style_map.md",
     "figure_visual_quality_report.json",
-    "scholarly_quality_report.json",
 ]
 
 
@@ -744,50 +741,6 @@ def _qa_digest(run_dir: Path) -> dict[str, Any]:
     if qa_summary:
         digest["qa_decision"] = qa_summary.get("qa_decision")
         digest["hard_fail_reasons"] = qa_summary.get("hard_fail_reasons", [])
-    scholarly = _read_json(run_dir / "scholarly_quality_report.json")
-    if scholarly:
-        digest["scholarly_quality"] = {
-            "status": scholarly.get("status"),
-            "issue_count": scholarly.get("issue_count"),
-            "hard_issue_count": scholarly.get("hard_issue_count"),
-            "issues": [issue.get("type") for issue in scholarly.get("issues", [])[:10] if isinstance(issue, dict)],
-        }
-    figure = _read_json(run_dir / "figure_visual_quality_report.json")
-    if figure:
-        digest["figure_visual_quality"] = {
-            "status": figure.get("status"),
-            "issue_count": figure.get("issue_count"),
-        }
-    final_qa = _read_json(run_dir / "published" / "qa" / "final_qa_summary.json")
-    if final_qa:
-        digest["final_qa_summary_status"] = final_qa.get("status") or final_qa.get("qa_decision")
-    recommendations = _read_json(run_dir / "figure_recommendations.json")
-    if recommendations:
-        recs = recommendations.get("recommendations", [])
-        digest["figure_recommendations"] = {
-            "status": recommendations.get("status"),
-            "recommendation_count": recommendations.get("recommendation_count", 0),
-            "recommended_types": [
-                rec.get("recommended_figure_type")
-                for rec in recs
-                if isinstance(rec, dict) and rec.get("recommended_figure_type")
-            ],
-        }
-    plan_audit = _read_json(run_dir / "figure_plan_audit_report.json")
-    if plan_audit:
-        figure_plan = _read_json(run_dir / "section_drafts" / "figure_plan.json")
-        planned_types = [
-            str(figure.get("figure_type") or "").strip().lower()
-            for figure in figure_plan.get("figures", [])
-            if isinstance(figure, dict) and str(figure.get("figure_type") or "").strip()
-        ]
-        digest["figure_plan_audit"] = {
-            "status": plan_audit.get("status"),
-            "figure_count": plan_audit.get("figure_count", 0),
-            "planned_types": planned_types,
-            "hard_issue_count": len(plan_audit.get("hard_issues", []) or []),
-        }
-    return digest
 
 
 def run_profile(profile: str, evidence_root: Path = EVIDENCE_ROOT) -> dict[str, Any]:
@@ -888,11 +841,6 @@ def write_summary(
         digest_bits = []
         if digest.get("qa_decision"):
             digest_bits.append(f"qa={digest['qa_decision']}")
-        scholarly = digest.get("scholarly_quality")
-        if scholarly:
-            digest_bits.append(
-                f"scholarly={scholarly.get('status')} ({scholarly.get('issue_count')} issues)"
-            )
         figure_recs = digest.get("figure_recommendations")
         if figure_recs:
             recommended_types = sorted(set(figure_recs.get("recommended_types") or []))

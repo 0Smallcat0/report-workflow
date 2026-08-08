@@ -578,8 +578,6 @@ def submit_and_publish_report(
             "post_render_layout_manifest_path": state.output.get("post_render_layout_manifest_path", ""),
             "final_qa_summary_path": state.output.get("final_qa_summary_path", ""),
             "final_qa_summary_md_path": state.output.get("final_qa_summary_md_path", ""),
-            "scholarly_quality_report_path": state.output.get("scholarly_quality_report_path", ""),
-            "scholarly_quality_report_md_path": state.output.get("scholarly_quality_report_md_path", ""),
             "figure_visual_quality_report_path": state.output.get("figure_visual_quality_report_path", ""),
             "template_style_map_path": state.output.get("template_style_map_path", ""),
             "template_style_map_md_path": state.output.get("template_style_map_md_path", ""),

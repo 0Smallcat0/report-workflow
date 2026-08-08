@@ -11,6 +11,20 @@ from ..state import ReportState, WORKFLOW_RUNS_DIR
 from .style_pass import _is_structural_markdown_block, _split_markdown_blocks
 
 
+#: Workflow identifiers that must never appear in a delivered report. These
+#: lived in SCHOLARLY_QUALITY, which ran 672 lines to produce an advisory report
+#: nothing gated on plus this one hard check, and applied it to two profiles out
+#: of seven. A workflow identifier in the body is a defect in any report, so the
+#: check moved here — where the same class of leak was already hard-blocked —
+#: and the special case went with the file.
+FORBIDDEN_WORKFLOW_IDENTIFIERS = (
+    "query_evidence",
+    "claim_matrix",
+    "evidence_ledger",
+    "sentence_map",
+    "section_drafts",
+)
+
 FORBIDDEN_PUBLICATION_PHRASES = (
     "retained outside the main report",
     "outside the main report",
@@ -88,6 +102,18 @@ def run_publication_naturalness_pass(state: ReportState) -> ReportState:
         raise QAHardBlockError(
             "PUBLICATION_NATURALNESS_PASS: forbidden workflow-defense phrase(s) remain: "
             + ", ".join(remaining)
+        )
+
+    identifiers = [
+        term for term in FORBIDDEN_WORKFLOW_IDENTIFIERS
+        if re.search(rf"(?<![A-Za-z0-9_]){re.escape(term)}(?![A-Za-z0-9_])", cleaned, re.I)
+    ]
+    if identifiers:
+        raise QAHardBlockError(
+            "PUBLICATION_NATURALNESS_PASS: workflow identifier(s) in the publication "
+            "body: " + ", ".join(identifiers)
+            + ". Those name this pipeline's own files; a reader of the report has no "
+            "use for them."
         )
 
     run_dir = WORKFLOW_RUNS_DIR / state.job_id
