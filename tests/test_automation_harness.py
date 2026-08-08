@@ -548,5 +548,44 @@ class FailureRoutingTests(unittest.TestCase):
         self.assertEqual("claim_matrix", routed)
 
 
+class OptionalConnectorDecisionTests(unittest.TestCase):
+    """What silence about an optional connector means.
+
+    The gate exists so a feature cannot turn itself on without the user having
+    said so. It used to also refuse to start when the user had said nothing
+    about a connector that was switched off — which made the first command of a
+    session fail over an integration unrelated to writing a report.
+    """
+
+    class _Cfg:
+        def __init__(self, research=False, notebook=False):
+            self.enable_research = research
+            self.enable_notebook_sync = notebook
+
+    ASK = [{"feature_id": "web_research"}, {"feature_id": "notebook_sync"}]
+
+    def _issues(self, feature_decisions, cfg):
+        from report_workflow.preflight_decisions import validate_preflight_decisions
+
+        return validate_preflight_decisions(
+            {"confirmed_by_user": True, "install_decisions": {},
+             "feature_decisions": feature_decisions},
+            [], self.ASK, cfg=cfg, allow_degraded_render=False,
+        )
+
+    def test_no_decision_for_a_disabled_connector_is_not_a_blocker(self):
+        self.assertEqual(self._issues({}, self._Cfg()), [])
+
+    def test_an_enabled_feature_still_needs_the_decision_recorded(self):
+        issues = self._issues({}, self._Cfg(notebook=True))
+        self.assertEqual(len(issues), 1, issues)
+        self.assertIn("notebook_sync", issues[0])
+
+    def test_declining_a_feature_that_is_switched_on_is_still_refused(self):
+        issues = self._issues({"notebook_sync": "skip"}, self._Cfg(notebook=True))
+        self.assertEqual(len(issues), 1, issues)
+        self.assertIn("declined by the user", issues[0])
+
+
 if __name__ == "__main__":
     unittest.main()

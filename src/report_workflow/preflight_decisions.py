@@ -178,18 +178,30 @@ def validate_preflight_decisions(
         if not feature_id:
             continue
         decision = str(feature_decisions.get(feature_id, "")).strip().lower()
-        if not decision:
-            issues.append(f"missing feature decision for {feature_id!r}")
-            continue
-        if decision not in FEATURE_DECISIONS:
-            issues.append(f"invalid feature decision for {feature_id!r}: {decision!r}")
-            continue
-
         enabled = bool(
             cfg.enable_research if feature_id == "web_research"
             else cfg.enable_notebook_sync if feature_id == "notebook_sync"
             else False
         )
+        if not decision:
+            # Silence about an optional connector whose flag is off is not an
+            # undecided question — the feature is not going to run. What this
+            # gate is for is a feature turning itself on without the user
+            # having said so, and it still refuses that, below and here.
+            # Demanding the word "skip" for something nobody asked for made
+            # the first command of a session fail on a connector that has
+            # nothing to do with writing the report.
+            if not enabled:
+                continue
+            issues.append(
+                f"feature {feature_id!r} is enabled but the user's decision was "
+                "not recorded; call check_environment and record it"
+            )
+            continue
+        if decision not in FEATURE_DECISIONS:
+            issues.append(f"invalid feature decision for {feature_id!r}: {decision!r}")
+            continue
+
         if decision in {"enable", "enabled"} and not enabled:
             issues.append(
                 f"feature {feature_id!r} was approved by the user, but the matching "

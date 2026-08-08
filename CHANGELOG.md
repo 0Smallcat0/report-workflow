@@ -1,5 +1,76 @@
 # Changelog
 
+## Unreleased
+
+### Added — FT, the sixth factuality checker
+
+A blind judge, given the three benchmark documents relabelled and the rubric and
+nothing else, capped the delivered report's `claim_strength` on one sentence:
+「銷量級距愈高的組別，價格中位數也愈高」, citing a fifteen-tier sales table and
+quoting two of its rows. Over all fifteen tiers the relation is not there — the
+three highest-volume groups carry three of the lowest prices. Both quoted
+numbers were real and present in the cited evidence, so FA, FB, FE, FS and FD
+all passed it. They compare text with text; none of them had ever read the grid.
+
+FT reads the grid. When a claim quotes a *pair* of cells from one column of a
+computed group table and its prose asserts a direction, it orders the groups —
+band order for buckets, the leading magnitude for category labels like
+`10K+ bought in past month` — and recomputes. A column is blocked when its
+ordered group pairs and its two ends both go the other way, and the block prints
+the real ordering so the repair is visible rather than guessed at.
+
+Both halves of that test are load-bearing. A discordant majority on its own,
+tried against one authored report, took out six honest claims over columns their
+prose never generalised about; the tables were merely noisy. Requiring the ends
+to disagree as well left exactly one finding: the defect it was built for.
+
+It does not read what a sentence means. Ordering rows and counting concordant
+pairs is the same arithmetic as `expect`, over rows the pipeline already owns —
+the "no semantic layer" boundary in AGENTS.md still holds. Where the group axis
+has no order the tool can recompute (brands, categories), FT stands down and
+files nothing, rather than refusing a sentence it cannot check.
+
+The guarantee moves accordingly: from "no fabricated numbers" to "no fabricated
+numbers, and a direction drawn from a computed table is the direction it has".
+
+### Changed — the argument axis is no longer self-graded
+
+Every argument vote in the archive is now cast by a separate judge given the
+three documents relabelled and shuffled, the rubric and the CSVs, and told
+nothing about how any arm was produced. Under self-scoring the arms read hand
+3/3/4, tool 4/3/4, AI-direct 4/3/4. Blind, they read **hand 4/4/4, tool 3/3/4,
+AI-direct 4/4/4** — the tool arm inflated, the hand-written control deflated,
+and the verdict on that axis reversed.
+
+So the recorded verdict is now: the tool arm wins layout against both, wins
+numeric against the AI-direct arm and draws it against the hand-written one,
+and **loses the argument axis to both**. `stop_condition_met: false`. That is a
+worse number than the release before it and a truer one.
+
+### Changed
+
+- The tool arm's `f7` is gone. Its replacement — accumulated reviews rise with
+  the sales tier, price does not — passed FT and was still wrong: three blind
+  judges independently found that the top three sales tiers are a pair of
+  binoculars and two memory cards. Every figure real, the relation real, the
+  population wrong. That is a domain judgement no checker should attempt, so it
+  is now limitation `l5`, naming the three rows and retiring the column.
+- `r1` no longer offers 4.66★ and a 4.90% negative rate as two independent
+  corroborations; they are the same 102 reviews measured twice, and it says so.
+- The executive summary states the enter/where verdict instead of leaving it to
+  be inferred from the recommendations.
+- `verify_claims` runs FT too. There is no draft on that surface, so it reads the
+  claim text; a caller who supplies a computed table is exactly the caller who
+  can read a direction out of two of its rows.
+
+### Fixed — the first command of a session
+
+`start_report` refused to begin until the caller recorded a decision for every
+optional connector, including ones whose enable flag was off and which were
+therefore not going to run. Silence about a switched-off connector is now taken
+as what it is. A feature that *is* switched on without a recorded decision is
+still refused, and so is one the user declined while its flag is true.
+
 ## 4.39.0 - 2026-08-08
 
 A release about measurement and subtraction. Nothing here adds a capability; the

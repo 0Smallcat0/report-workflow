@@ -1,151 +1,151 @@
 {
+ "llm_direct": [
+  {
+   "vote": 1,
+   "arm": "llm_direct",
+   "claim_strength": {
+    "score": 3,
+    "evidence": "Every substantive section asserts something falsifiable and the assertions interlock, including two non-obvious readings the data supports but does not state: 在 $50 以下賣東西，做品牌這件事收不到錢 (brand-label-rate table verified exactly: 25.7% / 35.4% / 54.5% / 47.2%) and 中位數說的是關於下限的敘述；絕對值說的是關於上限的敘述. Scored down from 4 for two headline claims that fail against its own evidence. (1) 可競爭的範圍只有 267 件掛牌 is contradicted by its own category table: 544 minus (77+71+63+46+8) = 279, and 243+22+14 = 279. The correct figure is 279 / 51.3%. (2) 累積評論數最高的五件掛牌，沒有一件在 $200 以上: rows 1 and 2 of that table are the Occer binoculars and a Gskyer telescope, classified 非無人機商品, the same 46 rows it removes as 關鍵字污染. 55,574 of the cited 107,169 (51.9%). The rows generalised over are not the population the claim is about."
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "Main assertions carry three or more figures and the document argues their independence explicitly: 243 件掛牌、佔全體 44.7%，累積評論數中位數 225 則，銷量欄位覆蓋率 48.6%，三個數字裡沒有一個是靠另外兩個推出來的 (all three reproduce exactly). Same pattern for 植保 (1.0 / 1.6% / 3.27, verified). It draws the support-versus-non-contradiction line the top anchor asks for: 高價帶沒需求 不是這份資料支持的說法，只是這份資料看不見. The one assertion whose evidence is population-contaminated is charged under claim_strength rather than twice."
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "Eight numbered items, each naming the section it weakens, the figure, and the direction. 銷量欄位的覆蓋率隨價格劇烈變動：$30-50 有 53.8%，$800 以上只有 13.2% (verified). 473 則評論全部來自 63 個 ASIN，中位數 8 則、最多 13 則 (verified exactly). The per-category classification-confidence table reproduces to the decimal. 單則評論的權重約 2 個百分點，第六節那張表的每一個差值都在三則評論就能翻轉的範圍內 (1/49 = 2.04%). And the recommendation lets a limitation change it and says so: 這個選擇是風險偏好的選擇，不是資料的選擇."
+   }
+  },
+  {
+   "vote": 2,
+   "arm": "llm_direct",
+   "claim_strength": {
+    "score": 4,
+    "evidence": "Every substantive section asserts something falsifiable and they interlock. 平均數是中位數的 10.2 倍，代表這不是一個單一市場的價格分布；在 $50 以下賣東西，做品牌這件事收不到錢；高提及率是滿意的訊號，不是抱怨的訊號。The non-obvious readings check out exactly: brand-label rate 25.7% to 35.4% to 54.5% to 47.2% by band; 影像 40.8% in 1-2 star vs ~59% overall; $0-50 has only 49/179 攝影. The headline number itself is wrong: by its own exclusions the residue is 279 not 267. That is a wrong assertion, not a weak one, so it does not lower this dimension."
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "It names the figures and argues their independence: 243 件掛牌、佔全體 44.7%，累積評論數中位數 225 則，銷量欄位覆蓋率 48.6%，三個數字裡沒有一個是靠另外兩個推出來的 (verified). §9 carries the cut point on five distinct measurements (purity 44/66, review-count median 327, linked 4.66, density 66/425, brand rate 54.5%), all verified exactly. It also distinguishes supporting from merely-non-contradicting evidence, and concedes 327 and 321 are the same proxy family rather than counting them as two."
+   },
+   "counter_specificity": {
+    "score": 3,
+    "evidence": "Level 3 fully met: eight limitations, each naming the section it weakens plus figure and direction. Level 4 fails because the one counter supposed to change the recommendation does not survive the CSVs. 爆款集中在低價帶，這是對第一節切點的直接反證，合計 107,169 則、佔全類目 34.0% rests on a top-5 whose rows 1 and 2 (33,535 at $35.99 and 22,039 at $96.99) are the Occer binoculars and a Gskyer telescope, both tagged 非無人機商品 in the same file it used to build its own 46 件關鍵字污染. They are 55,574 of the 107,169 (51.9%). Counter #7 compounds it by asking whether those two are white-label hits; the data does decide, they are a binocular and a telescope."
+   }
+  },
+  {
+   "vote": 3,
+   "arm": "llm_direct",
+   "claim_strength": {
+    "score": 4,
+    "evidence": "每個實質章節都有可被推翻的斷言，且彼此相連。第五節：「從 $0-50 的 25.7% 到 $200-800 的 54.5%，品牌標示率翻了一倍以上」；第四節：「低價帶的擁擠有一半是零件造成的，不是整機競爭造成的」；第六節：「高提及率是滿意的訊號，不是抱怨的訊號」。兩個決策問題都答了。附帶查核：可進入整機範圍應為 279 件而非 267 件，為算術失誤，不改變論證方向。"
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "第三節明說哪三個數字以及為什麼算三個：「243 件掛牌、佔全體 44.7%，累積評論數中位數 225 則，銷量欄位覆蓋率 48.6%——三個數字裡沒有一個是靠另外兩個推出來的」。植保同樣三腳並以分類信心 5.48 作第四道查核。第七節做出支持與僅未反駁的區分。減分處：爆款表前兩名實為望遠鏡，屬其自己剔除的 46 件污染，佔 107,169 則的 51.9%。"
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "第七節八項逐一指名章節、數字與偏誤方向，其中一項改寫建議並照說不誤：「這個選擇是風險偏好的選擇，不是資料的選擇」。第五點把頭條數字往下修為「267 這個數字的合理區間是 243 到 267」。第八點指名到單格：「第六節那張表的每一個差值，都在三則評論就能翻轉的範圍內」。"
+   }
+  }
+ ],
  "hand": [
   {
-   "arm": "hand",
    "vote": 1,
+   "arm": "hand",
    "claim_strength": {
-    "score": 3,
-    "evidence": "3.2 標題「價格帶：分散，量在低價帶，但銷售在中段」本身就是一個可被反駁的斷言，而不是欄位名稱；多數小節都是這個形狀。"
+    "score": 4,
+    "evidence": "Every substantive section carries a checkable assertion, they chain into the entry recommendation, and at least two are non-obvious readings the data supports but never states. 中價帶不是 DJI 在守，是白牌在互相踩 verified: DJI 5.3% of $50-100 and 5.0% of $100-200 versus 27.1% of $400+, with 63% blank brand. 這個通路上的買家主體是新手與送禮者 verified: 135 of 473 (28.5%). The pivot claim is cross-validated on two different populations: 攝影類這一帶 39 筆掛牌、平均評分 4.10、銷量代理值 4,950，比掛牌數更少的 $50-100 帶（27 筆、12,200）低了 59% — the camera-only table reproduces exactly. No claim I checked is contradicted by the table it cites."
    },
    "evidence_depth": {
-    "score": 3,
-    "evidence": "價格帶結論同時引用掛牌數分布、銷量欄位覆蓋率與評論數，三者取自不同欄位，不是同一個數字的換算。"
+    "score": 4,
+    "evidence": "Main assertions rest on three or more figures from different files and the document says why those figures are the right ones: 左欄是大家在談什麼，右欄是談了就代表不滿，兩者不是同一件事. The pain-point claim is carried by the negative multiple, an independent five-star praise table, and literal counts (70 則提到 app = 14.8%; 18 則 advertis* = 3.8%, both verified exactly). It distinguishes supporting from merely-non-contradicting evidence twice. The appendix states every derived-field rule. Sampled figures reproduce exactly across the sales-proxy table, the negative-rate table, the brand concentration figures, sub-250g listings and the parsed dates; all six quoted review snippets exist at the stated price and rating."
    },
    "counter_specificity": {
     "score": 4,
-    "evidence": "反面證據章第一項指名 sales 覆蓋率由 53.8% 掉到 13.2%，並直接說「高價帶沒需求」不是資料支持的說法——指名了結論、數字與偏誤方向。"
+    "evidence": "Seven items, each naming conclusion, figure and direction, and one changes what the report recommends with the report saying so. It supplies the mechanism, not just the caveat: 樣本裡最小的銷量分桶是 50，一件 $1,049 的商品即使月銷 49 件也會被記為無資料. It attacks its own strategy: 這些痛點可能是特定廠商的品質問題，不是市場級的結構空隙 — the Contixo evidence checks out entry by entry. It kills a candidate positioning on a verified zero (法規/註冊/FAA 在 68 則負評裡出現 0 次, confirmed) and duly drops it into 不建議的三條路. Its three required-data items each cross-reference the limitation that generated them."
    }
   },
   {
-   "arm": "hand",
    "vote": 2,
+   "arm": "hand",
    "claim_strength": {
-    "score": 3,
-    "evidence": "3.1 與 3.3 的標題都帶結論（「零配件佔四分之一」「實際上被白牌拆散」），但一、二兩節仍是資料鋪陳，未達每節皆有主張。"
+    "score": 4,
+    "evidence": "Every section asserts something that could be wrong and the assertions chain into the recommendation: $100-200 是品質窪地，也是最好的攻擊點, then 買家不滿的來源不是相機規格，是能不能撐住, then 以 $50-100 為灘頭堡再往 $100-200 攻擊. The non-obvious reading holds: 相機與續航是入場門票，不是差異化來源，提及率最高的兩項負評倍率都只有 0.69 (verified: camera 61.7% overall vs 41.2% of the 68 negatives = 0.67; battery 44.4% to 33.8% = 0.76 exactly). The load-bearing claim survives adversarially: 28.6% of rated listings under 4.0 and 23.4% negative-review rate reproduce exactly, as do the 攝影-internal cut and DJI share 5.0%."
    },
    "evidence_depth": {
-    "score": 2,
-    "evidence": "品牌集中度一節主要靠掛牌數與品牌欄位兩個來源，其中第二個是第一個的子集，獨立性不足。"
+    "score": 4,
+    "evidence": "The quality-trough claim is carried by four measurements from three different sources: listing-level rating distribution, review-level negative rate, category-internal sales proxy, and DJI share, all verified exactly. It says why the split matters (左欄是大家在談什麼，右欄是談了就代表不滿) and labels the derivation so the 倍率 column is not passed off as independent. Its separation of supporting from non-contradicting evidence is the sharpest in the set and self-directed: 飛走/墜機 在全部 473 則裡只有 5 則明確提到，本報告強調的墜機風險主要是靠負評子集內的相對倍率撐起來的 (verified: exactly 5/473)."
    },
    "counter_specificity": {
     "score": 4,
-    "evidence": "七項反面證據逐項對應正文結論，且多數帶具體數字，符合最高錨點對「指名結論加數字加方向」的要求。"
+    "evidence": "Each of the seven counters names conclusion, figure and direction, and three would change a recommendation, and unlike doc_A's they survive the CSVs. #1 不要進 $400 以上 這個建議有抽樣偏差，可能是錯的. #4 kills a plausible pitch with figures on both sides: 供給側 53 筆掛牌主打 sub-250g（11 筆 DJI），需求側 473 則評論裡只有 13 則（2.7%）提到，在 68 則負評裡出現 0 次, all verified exactly. #3 attacks its own headline. #6 catches the contamination doc_A missed: 全樣本第一名是 $35.99 的雙筒望遠鏡. §6 carries #1/#5/#7 forward as three numbered pre-entry data requirements."
    }
   },
   {
-   "arm": "hand",
    "vote": 3,
+   "arm": "hand",
    "claim_strength": {
     "score": 4,
-    "evidence": "4.2「主題頻率 vs 情緒驅動力」提出提及率不等於在意程度，是資料支持但未直接陳述的非顯而易見讀法。"
+    "evidence": "每節都押上可錯的斷言且互相接續。第 3.3 節：「DJI 在 $50-200 的掛牌占比只有 5% 上下，在 $400 以上是 27.1%。中價帶不是 DJI 在守，是白牌在互相踩」，逐格核對相符。第 4.4 節在資料裡指名在位者：「Contixo 出現 5 次，$199.99 那款的商品評分只有 3.1」。兩個決策問題答得最完整，並列出三條不建議的路與升級路徑。"
    },
    "evidence_depth": {
-    "score": 3,
-    "evidence": "痛點結論同時使用主題提及率、星等分布與退貨風險三條線索，且說明了為何選這三條。"
+    "score": 4,
+    "evidence": "灘頭堡建議由四個不同欄位的獨立數字承載並逐條列出：「平均評分最高 4.34、每筆掛牌銷量 218.4、掛牌數 57、DJI 掛牌占比 5.3%」，全部與 CSV 逐格相符。並說明為何選這些數字而非提及率。第五節第 1 項做出支持／未反駁的區分。附錄把衍生欄位規則寫成可覆核的定義。"
    },
    "counter_specificity": {
-    "score": 3,
-    "evidence": "反面證據具體，但正文在指出抽樣偏差後仍維持原建議，未說明該偏差如何改變建議本身。"
+    "score": 4,
+    "evidence": "第五節七項，每項指名結論、數字與方向，其中兩項直接威脅自己的建議。第 1 項標題即「『不要進 $400 以上』這個建議有抽樣偏差，可能是錯的」並給出機制。第 2 項自承灘頭堡「可能只是競爭最少而非最有利」。第 7 項把頭條機會翻成陷阱。第六節把三項待補資料回指到第五節編號。"
    }
   }
  ],
  "tool": [
   {
-   "arm": "tool",
    "vote": 1,
-   "claim_strength": {
-    "score": 4,
-    "evidence": "f7 指出銷量級距愈高、價格中位數也愈高，與「低價才走量」的直覺相反，並明說這是資料支持但沒有任何一張表印出來的一句話；四個子節與摘要、限制、建議之間有明確回指。"
-   },
-   "evidence_depth": {
-    "score": 3,
-    "evidence": "f1 用 243 件掛牌、405 則評論、9.38% 一二星三個獨立欄位並說明為何三者一起；但多數載重主張仍停在兩個。"
-   },
-   "counter_specificity": {
-    "score": 4,
-    "evidence": "l1 指名摘要那條結論背後只有 12 件商品並說它改寫建議強度；r2 據此把建議降級為單機種試水，並指出若第三方銷量顯示低價帶頭部更大，切點應變成 30–100、本報告的建議應被推翻。"
-   }
-  },
-  {
    "arm": "tool",
-   "vote": 2,
    "claim_strength": {
-    "score": 3,
-    "evidence": "f7 確實是非顯而易見的讀法，但摘要與 f5 仍偏結論複述，未達「每一個實質章節都有可被反駁的命題」。"
+    "score": 2,
+    "evidence": "Most sections do carry an interpretation and two are genuinely non-obvious (把提及率當成在意程度會得到相反的結論; 植保 更可能的解釋是這個通路本身不是植保機的購買通路). But the claim the whole recommendation rests on is weaker than stated over its own table, and a second claim is contradicted by its own source line. (1) 供給最密的一帶評論最少，供給稀薄的一帶評論最多，這個反向關係是這份資料裡最強的結構訊號 — its own seven-row table has 50-100 at 63 listings and median 22.00, below the densest band 0-30 (99 listings, 24.00), and 500-800 (13 listings) at 321.00 below 200-500's 327.00 at 53 listings, with 800+ dropping to 65.50. Two rows are presented as a relation over the table. (2) 品類表與價格帶表沒有共同欄位，攝影在這一帶佔多少，這份資料沒有算過 — contradicted by its own table 1 source line, amazon_classified.csv joined to amazon_products.csv on asin. The crosstab is computable and I computed it: of the 53 listings in 200-500, 35 are 攝影. The false premise is why the recommendation cannot name a category."
    },
    "evidence_depth": {
     "score": 3,
-    "evidence": "f4 用掛牌側 99 對 53 與評論側 24.00 對 327.00 兩組相反倍率互相印證；f9 仍以 CR3 與品牌交叉表當兩個證據，實際同屬 brand 欄。"
+    "evidence": "The document names its figures per sentence and reasons about independence more explicitly than the anchor requires at this level: 4.66 來自評論檔，327.00 與 53 件來自掛牌檔，是兩個獨立的量；4.90% 的負評率與 4.66 出自同一批 102 則評論，只是同一個訊號的第二種寫法，不另計為佐證 — it refuses to double-count a derived figure. All four numbers verify. Held at 3 rather than 4 because by its own accounting the central assertion rests on two figures, not three, and two sections rest on a single table each: 品牌集中度 draws everything from one table plus a CR3 line, and 買家痛點 draws everything from one table with no second independent measure and no statement of what the four themes were matched on."
    },
    "counter_specificity": {
-    "score": 4,
-    "evidence": "l2 指名高價帶供給與需求同時被低估並給出偏誤方向，直接寫出「高價帶沒需求不是這份資料支持的說法」。"
+    "score": 3,
+    "evidence": "The limitations name the conclusion and the figure, and one visibly changes the recommendation: 支撐這個切點的口碑證據只有 12 件商品、102 則評論，所以這裡把建議降級：進入 200-500，但先以單一機種試水 (verified). The sales-column item is exact and consequential: 10K+ 那一組唯一的一件是 Occer Compact Binoculars，35.99 USD、33,535 則評論；8K+ 是 GIGASTONE Micro SD Card，本報告的價格帶與品類結論都不使用它 (all three rows confirmed), with a stated overturn condition. Scored down from 4 because one of only four items states a direction of bias the data does not support: 沒有標價的掛牌集中在 B2B 與高價端 — joining those 119 rows to the classification file gives 攝影 64 (53.8%) and 配件/零件 30 (25.2%) against 植保 11 and 多用途 3; the missing prices concentrate in the consumer camera-drone bucket. Two further instrument weaknesses go unqualified: the mention-rate row discloses no matching method, and the band labels 1-3 / 3-5 / 5+ do not describe their rows — the source line states 1-3 = 1 至 2, and the counts confirm it (49 = 37 one-star + 12 two-star), yet the prose keeps saying 1-3 星區間."
    }
   },
   {
+   "vote": 2,
    "arm": "tool",
-   "vote": 3,
    "claim_strength": {
-    "score": 4,
-    "evidence": "限制一節的四條本身就是可被反駁的斷言（分母、覆蓋率、分類信心），而不是套語；加上 f7 與 f11 兩個反直覺讀法，達到最高錨點。"
+    "score": 3,
+    "evidence": "Most substantive sections carry a checkable assertion and the load-bearing one verifies exactly (200-500: 102 reviews / 12 asins / 4.66 / 4.90% and 53 listings / median 327.00). Short of 4 on two counts. The brand section's takeaway is closer to restatement. More seriously, it declines the one connection that would make its own cut point actionable, on a premise its own tables contradict: 本報告也不把切點限定在某個品類：品類表與價格帶表沒有共同欄位. The files share asin, doc_C itself joins on it in 表 4 and 表 7, and the join is computable (200-800 = 66 listings, 44 攝影 = 66.7%). Separately the pain-point rows are mislabelled: 1-3 星區間 49 則評論 actually contains only 1-2 star, and the label is repeated into the recommendation."
    },
    "evidence_depth": {
     "score": 4,
-    "evidence": "l2 明確區分「支持結論的證據」與「僅僅沒有反駁的證據」——高價帶沒需求是看不見而非否定；這是錨點 4 對兩類證據的區分要求。"
-   },
-   "counter_specificity": {
-    "score": 3,
-    "evidence": "建議確實因限制而降級，但降級只作用在強度與節奏，切點本身未改；相較之下最高錨點要求的是改變建議的方向。"
-   }
-  }
- ],
- "llm_direct": [
-  {
-   "arm": "llm_direct",
-   "vote": 1,
-   "claim_strength": {
-    "score": 4,
-    "evidence": "第四節提出中位數與絕對值描述兩種不同市場結構（下限與上限），並指出兩個讀法都成立，是資料支持但未陳述的非顯而易見讀法。"
-   },
-   "evidence_depth": {
-    "score": 3,
-    "evidence": "第一節的三件事分別取自品牌欄位、價格與評論分布、評論主題，彼此不互相導出，且正文說明了為何三者一起才成立。"
+    "evidence": "This is the only document that catches the same-measurement-twice trap explicitly and refuses the credit: 4.66 來自評論檔，327.00 與 53 件來自掛牌檔，是兩個獨立的量；4.90% 的負評率與 4.66 出自同一批 102 則評論，只是同一個訊號的第二種寫法，不另計為佐證. It says why the pairing is the right one, treats a thin adjacent band as a second reading rather than proof, and separates supporting from non-contradicting evidence twice, including 它們的數字沒有一個是錯的，交叉表把它們算對了，而它們不屬於這份報告要判斷的市場，所以銷量欄位不能用來排無人機的需求. All cited figures reproduce exactly, including the 10K+/8K+/6K+ rows being the Occer binoculars and two GIGASTONE cards."
    },
    "counter_specificity": {
     "score": 4,
-    "evidence": "第七節第二點指名爆款反證直接針對第一節的切點，附 107,169 則與 34.0% 的數字，並說明它指向不同的切點。"
+    "evidence": "Four limitations, each naming conclusion, figure and direction, and the strongest demonstrably rewrites the recommendation rather than being noted and bypassed: 摘要那條 200-500 最好 的結論，背後只有 12 件商品，這一條直接改寫了建議的強度, and the recommendation acts on it with 先以單一機種試水而不是鋪產品線. It states the overturn condition rather than a hedge: 如果第三方銷量資料顯示低價帶的頭部規模遠大於此，正確的切點會變成 30-100，那時這份報告的建議應該被推翻而不是被修補. Direction of bias is given for the missing-price counter, and the CR3 counter names the exact way its own headline misleads (53.62% on 207 vs ~20% on 544, both verified)."
    }
   },
   {
-   "arm": "llm_direct",
-   "vote": 2,
-   "claim_strength": {
-    "score": 3,
-    "evidence": "多數章節帶斷言，但第二節「這份資料的形狀」與第八節仍偏描述，未達每一節皆有可被反駁的命題。"
-   },
-   "evidence_depth": {
-    "score": 3,
-    "evidence": "第九節列出五條支撐切點的依據（純度、評論中位數、口碑、競爭密度、品牌標示率），來自四個不同欄位。"
-   },
-   "counter_specificity": {
-    "score": 4,
-    "evidence": "第七節第七點指出評論數前兩名皆無品牌欄位，並說明這會改變第五節的整個結論，指名了結論與數字。"
-   }
-  },
-  {
-   "arm": "llm_direct",
    "vote": 3,
+   "arm": "tool",
    "claim_strength": {
-    "score": 4,
-    "evidence": "第九節明說「這個選擇是風險偏好的選擇，不是資料的選擇」，把自己的建議降格為條件性判斷，這是一個可被反駁且非套語的主張。"
+    "score": 3,
+    "evidence": "多數實質章節確有可查核的斷言：「供給最密的地方不是需求最厚的地方」、「把提及率當成在意程度會得到相反的結論」、「不建議進入植保」。但斷言多是表格上移一層、彼此少有連動，品牌集中度一節止於分母警告，從未餵進建議。最傷「從哪個切點進入」的是建議節自己放棄了產品面：「本報告也不把切點限定在某個品類：品類表與價格帶表沒有共同欄位」。兩檔皆以 asin 為鍵、該文表 1 與表 7 本身就是聯結表，我實算 $200-800 的 66 件中攝影 44 件（66.7%）——這是可算而未算。"
    },
    "evidence_depth": {
-    "score": 4,
-    "evidence": "第七節第五點以分類信心分數逐品類拆解，區分了支持結論的證據與僅僅未反駁的證據，並據此把 267 收斂為 243 到 267 的區間。"
+    "score": 3,
+    "evidence": "獨立性交代得最乾淨，但主結論明白地只站在兩個量上：「4.66 來自評論檔，327.00 與 53 件來自掛牌檔，是兩個獨立的量；4.90% 的負評率與 4.66 出自同一批 102 則評論，只是同一個訊號的第二種寫法，不另計為佐證」。它甚至把可能的第三腳整欄除役：「銷量欄位不能用來排無人機的需求」，並指名 Occer 望遠鏡與兩張 GIGASTONE 記憶卡撐起最高級距——核對屬實。品類斷言確有三個數字，但承載決策的切點主張依其自述為二。"
    },
    "counter_specificity": {
     "score": 4,
-    "evidence": "反面證據改變了建議本身：第九節因第七節第二點而改口說明兩個切點都有資料支持，選擇原切點的理由是下限而非上限。"
+    "evidence": "限制指名結論、數字，並確實改寫了建議：「摘要那條『200-500 最好』的結論，背後只有 12 件商品，這一條直接改寫了建議的強度」，建議節照做：「先以單一機種試水而不是鋪產品線」。並明寫翻盤條件與方向：「如果第三方銷量資料顯示低價帶的頭部規模遠大於此，正確的切點會變成 30-100，那時這份報告的建議應該被推翻而不是被修補」。缺口是痛點節：建議的連線穩定只由 49 則中的 14 則與 5 則撐起，限制節未談。"
    }
   }
  ]
