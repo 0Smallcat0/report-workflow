@@ -1,5 +1,94 @@
 # Changelog
 
+## 4.39.0 - 2026-08-08
+
+A release about measurement and subtraction. Nothing here adds a capability; the
+package is 1,342 lines smaller and one stage shorter, and for the first time the
+question "is the delivered report any good" has an instrument behind it.
+
+### Added — three reports, three axes, one scorer
+
+`scripts/run_drone_market_benchmark.py` no longer runs the pipeline. It compares
+three recorded documents over the same three CSVs and the same task statement:
+one written by hand with no tooling, one delivered by a real authored run, and
+one written by an AI given the files and asked for the report. That third arm did
+not exist before, which meant "better than AI-generated" was a sentence with
+nothing behind it.
+
+Three axes. **Numeric density** is the existing scorer, imported rather than
+copied so a change cannot improve one arm and not another. **Layout** is rules —
+`scripts/report_axes.py` measures whether a heading states a finding or names a
+topic, whether a table was introduced by a sentence, and whether paragraphs are
+long enough to argue and short enough to read. **Argument** is an LLM judge
+against a rubric fixed before any arm was judged: three votes per arm, median
+recorded, every vote citing the passage it rests on, all archived.
+
+The argument axis is deliberately not a rule. Every deterministic proxy for "is
+this argued well" measures a shape a document can have while arguing nothing, and
+substituting the proxy for the thing is what produced this repository's
+over-design in the first place.
+
+The mechanical author went with the live run. It wrote one lead-in per table and
+made no argument between them, which isolated the harness from the writer and
+guaranteed a zero on the axis the comparison now turns on.
+
+### Removed — the ceremony added in 4.38.0
+
+A minimum length on the reason for waiving a built table, a rule that no two
+tables may be waived for the same reason, `undermines` (claim ids the limitations
+section qualified), and `answers` (a mapping from question index to claim id).
+The last two never reached the page.
+
+The test was empirical: the same author input was re-run with the gates gone and
+the delivered DOCX was byte-identical. Three gates whose removal changes nothing
+about the output were three gates measuring compliance.
+
+What is kept is what changes the document: a built table is placed or waived by
+name with a reason, and a counter-evidence section carries two claims rather than
+one.
+
+### Removed — SCHOLARLY_QUALITY, and the one check inside it that was real
+
+672 lines produced an advisory report that QA_GATE read, FINAL_QA summarized and
+ARTIFACTS packaged, and that no gate acted on except through one issue type: five
+identifiers of this pipeline's own files appearing in the delivered report. That
+check now lives in `PUBLICATION_NATURALNESS_PASS`, which already hard-blocked the
+same class of leak, and it applies to every profile rather than to two of seven.
+
+Hard blocks went from 197 to 198 across `src/`, which is the honest direction:
+the gate used to be invisible in that count because it fired through a report
+file, and it is now one explicit raise.
+
+### Changed — the drafting brief teaches four things it never said
+
+Each was added because the argument judge or the numeric scorer showed the tool
+arm losing on it, and none is a gate:
+
+- a load-bearing claim carries two *independent* evidence ids, not one figure at
+  two cuts;
+- the figure goes in the sentence, not only in the table;
+- plan one claim the data supports but does not state;
+- if a limitation would change the recommendation, change the recommendation.
+
+Measured over two authored re-recordings: stated figures 52 to 89, past the
+AI-direct arm's 72; counter-evidence paragraphs 3 to 6; the argument axis from
+losing two dimensions to level.
+
+### What this release does not claim
+
+The stop condition set for this work is not met. The tool arm wins the layout
+axis and the numeric axis against the AI-direct arm and ties the argument axis,
+and a tie is not a win. No score was adjusted to make it one.
+
+The argument scores are not impartial and the summary says so: the same agent
+wrote the rubric, then the brief rule, then the paragraph satisfying it, then the
+vote awarding the point. Each step is defensible and the chain is not. The votes
+are archived so an independent judge can re-read the three documents and disagree
+with a specific score.
+
+The delivered report has one author and one sample. Five independent acceptance
+runs, by someone who did not write this code, remain the outstanding evidence.
+
 ## 4.38.0 - 2026-08-07
 
 Three acceptance runs of one task, same code, same data, ten minutes apart:
