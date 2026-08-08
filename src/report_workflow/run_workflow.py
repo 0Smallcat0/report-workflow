@@ -45,7 +45,6 @@ from .nodes.research_execute import run_research_execute
 from .nodes.claim_verify_execute import run_claim_verify_execute
 from .nodes.base_document_parse import run_base_document_parse
 from .nodes.qa_gate import run_qa_gate
-from .nodes.scholarly_quality import run_scholarly_quality
 from .nodes.style_pass import run_style_pass
 from .nodes.publication_naturalness_pass import run_publication_naturalness_pass
 from .nodes.admissions_monograph_polish import run_admissions_monograph_polish
@@ -219,7 +218,6 @@ def validate_stages() -> list[WorkflowStage]:
         _stage(
             "FINAL_QA",
             _step("FIGURE_QUALITY", run_figure_quality),
-            _step("SCHOLARLY_QUALITY", run_scholarly_quality),
             _step("QA_GATE", run_qa_gate),
         ),
     ]

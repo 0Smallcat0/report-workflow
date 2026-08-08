@@ -433,35 +433,6 @@ def _artifact_hard_fail_reasons(state: ReportState) -> list[str]:
     return reasons
 
 
-def _scholarly_quality_reasons(state: ReportState) -> list[str]:
-    """Return hard scholarly-quality contract reasons, if the report exists."""
-    report_path = state.qa.get("scholarly_quality_report_path")
-    if not report_path or not Path(report_path).exists():
-        return []
-    try:
-        report = json.loads(Path(report_path).read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError) as exc:
-        return [f"scholarly quality report is unreadable: {exc}"]
-
-    hard_count = int(report.get("hard_issue_count", 0) or 0)
-    if hard_count <= 0:
-        return []
-
-    hard_issues = [
-        issue for issue in report.get("issues", [])
-        if isinstance(issue, dict) and issue.get("severity") == "hard"
-    ]
-    samples = []
-    for issue in hard_issues[:3]:
-        issue_type = str(issue.get("type", "unknown"))
-        detail = str(issue.get("detail", "")).strip()
-        samples.append(f"{issue_type}: {detail}" if detail else issue_type)
-    suffix = "; ".join(samples)
-    if suffix:
-        return [f"scholarly quality hard issues: {hard_count} ({suffix})"]
-    return [f"scholarly quality hard issues: {hard_count}"]
-
-
 def _is_revise_existing(state: ReportState) -> bool:
     return state.spec.get("task_intent") == "revise_existing"
 
@@ -618,7 +589,6 @@ def run_qa_gate(state: ReportState) -> ReportState:
         state.qa["style_lint_warnings"] = banned_phrase_warnings
     hard_fail_reasons.extend(_source_diversity_reasons(state))
     hard_fail_reasons.extend(_results_section_reasons(state))
-    hard_fail_reasons.extend(_scholarly_quality_reasons(state))
 
     # Load facts_freeze.json if present and store it for the pre-render gate.
     facts_freeze_path = WORKFLOW_RUNS_DIR / state.job_id / "facts_freeze.json"

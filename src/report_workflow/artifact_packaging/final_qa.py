@@ -40,7 +40,6 @@ def _build_final_qa_summary_md(summary: dict) -> str:
     factuality = summary["factuality"]
     lint = summary["artifact_lint"]
     engineering = summary["engineering_audit"]
-    scholarly = summary["scholarly_quality"]
     template_style = summary["template_style"]
     template_fields = summary["template_field_fill"]
     figure_visual = summary["figure_visual_quality"]
@@ -76,10 +75,6 @@ def _build_final_qa_summary_md(summary: dict) -> str:
         (
             f"- Engineering audit: {engineering['status']} "
             f"({engineering['warning_count']} warnings, {engineering['table_evidence_count']} table evidence units)"
-        ),
-        (
-            f"- Scholarly quality: {scholarly['status']} "
-            f"({scholarly['issue_count']} issues, {scholarly['hard_issue_count']} hard)"
         ),
         (
             f"- Template style: {template_style['status']} "
@@ -147,11 +142,6 @@ def build_final_qa_summary(state: ReportState, run_dir: Path) -> dict[str, str]:
         or state.output.get("figure_visual_quality_report_path")
     )
     figure_visual = load_json(figure_visual_path)
-    scholarly_path = (
-        state.qa.get("scholarly_quality_report_path")
-        or state.output.get("scholarly_quality_report_path")
-    )
-    scholarly = load_json(scholarly_path)
 
     hard_fail_reasons = state.qa.get("hard_fail_reasons", [])
     citation_audit = state.citations.get("citation_audit", [])
@@ -185,15 +175,12 @@ def build_final_qa_summary(state: ReportState, run_dir: Path) -> dict[str, str]:
     template_style_warning_count = len(template_style_map.get("warnings", [])) if template_style_map else 0
     template_field_warning_count = len(template_field_fill.get("warnings", [])) if template_field_fill else 0
     figure_visual_issue_count = int(figure_visual.get("issue_count", 0) or 0)
-    scholarly_issue_count = int(scholarly.get("issue_count", 0) or 0)
-    scholarly_hard_issue_count = int(scholarly.get("hard_issue_count", 0) or 0)
 
     failed = (
         state.qa.get("qa_decision") not in ("pass", None, "")
         or bool(hard_fail_reasons)
         or factuality_blocked > 0
         or lint_error_count > 0
-        or scholarly_hard_issue_count > 0
         or render_status == "failed"
     )
     needs_review = (
@@ -203,7 +190,6 @@ def build_final_qa_summary(state: ReportState, run_dir: Path) -> dict[str, str]:
         or template_style_warning_count > 0
         or template_field_warning_count > 0
         or figure_visual_issue_count > 0
-        or scholarly_issue_count > 0
         or render_status == "review"
     )
     overall_status = "failed" if failed else ("review" if needs_review else "pass")
@@ -258,13 +244,6 @@ def build_final_qa_summary(state: ReportState, run_dir: Path) -> dict[str, str]:
             "calculation_count": int(engineering.get("calculation_count", 0) or 0),
             "path": existing_path(state.qa.get("engineering_audit_report_path")),
         },
-        "scholarly_quality": {
-            "status": _check_status(scholarly, scholarly_issue_count),
-            "issue_count": scholarly_issue_count,
-            "hard_issue_count": scholarly_hard_issue_count,
-            "review_issue_count": int(scholarly.get("review_issue_count", 0) or 0),
-            "path": existing_path(scholarly_path),
-        },
         "template_style": {
             "status": _check_status(template_style_map, template_style_warning_count),
             "warning_count": template_style_warning_count,
@@ -310,8 +289,6 @@ def build_final_qa_summary(state: ReportState, run_dir: Path) -> dict[str, str]:
             "factuality_report": existing_path(state.qa.get("factuality_report_path")),
             "artifact_lint_report": existing_path(artifact_lint_path_str),
             "engineering_audit_report": existing_path(state.qa.get("engineering_audit_report_path")),
-            "scholarly_quality_report": existing_path(scholarly_path),
-            "scholarly_quality_report_md": existing_path(state.qa.get("scholarly_quality_report_md_path")),
             "template_style_map": existing_path(state.output.get("template_style_map_path")),
             "template_field_fill_report": existing_path(state.output.get("template_field_fill_report_path")),
             "figure_visual_quality_report": existing_path(figure_visual_path),

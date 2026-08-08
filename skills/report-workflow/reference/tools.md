@@ -86,7 +86,7 @@ Parameters:
 
 ## `publish_report`
 
-Run full validation pipeline and render the final DOCX. Can be called after steps 2-4, or directly after step 1 if all artifacts were created in one shot (legacy 2-step mode). On success, returns post_render_layout_manifest_path for render structure audit evidence plus final_qa_summary_path and final_qa_summary_md_path for delivery readiness review. Also returns scholarly_quality_report_path/scholarly_quality_report_md_path for article-structure and methods/figure/reference scholarly review, figure_visual_quality_report_path for chart readability review, plus template_style_map_path/template_style_map_md_path and template_field_fill_report_path/template_field_fill_report_md_path when published packaging runs.
+Run full validation pipeline and render the final DOCX. Can be called after steps 2-4, or directly after step 1 if all artifacts were created in one shot (legacy 2-step mode). On success, returns post_render_layout_manifest_path for render structure audit evidence plus final_qa_summary_path and final_qa_summary_md_path for delivery readiness review. Also returns figure_visual_quality_report_path for chart readability review, plus template_style_map_path/template_style_map_md_path and template_field_fill_report_path/template_field_fill_report_md_path when published packaging runs.
 
 Parameters:
 

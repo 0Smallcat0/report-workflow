@@ -165,7 +165,7 @@ summary, table previews, front-matter preview, related render QA reports, and
 issues). `ARTIFACTS` packages QA files under `published/qa/`, including
 `final_qa_summary.json`/`.md` (the delivery-level QA entry point combining QA
 gate, factuality, artifact lint, engineering audit, chart visual-quality review,
-and scholarly-quality review, and render-layout evidence),
+and render-layout evidence),
 `template_style_map.json`/`.md` (reference-DOCX mode, renderer, applied-reference
 status, key styles, rendered style usage, template-fidelity warnings), and
 `template_field_fill_report.json`/`.md` (which structured fields were rendered
@@ -251,13 +251,13 @@ validate/render path; `audit_engineering_report` (for `engineering_lab_report`) 
 write `engineering_audit_report.json` with measurement extraction, unit-support
 warnings, table-value support checks, and simple calculation checks.
 
-For `academic_paper` and `engineering_lab_report`, validation writes
-`scholarly_quality_report.json`/`.md` with review-grade checks for article spine,
-introduction flow, methods reproducibility, role separation, figure/table
-scholarly expectations, and reference metadata quality. When summarizing delivery
-readiness, inspect `published/qa/final_qa_summary.json` first, then the
-scholarly-quality, figure-visual-quality, template-style-map, and
-template-field-fill reports as the user's question requires. Operator-facing
+When summarizing delivery readiness, inspect
+`published/qa/final_qa_summary.json` first, then the figure-visual-quality,
+template-style-map, and template-field-fill reports as the user's question
+requires. `SCHOLARLY_QUALITY` used to write a review-grade report alongside
+these; 672 lines produced an advisory nobody gated on plus one hard check, which
+now lives in `PUBLICATION_NATURALNESS_PASS` where the same class of leak was
+already blocked. Operator-facing
 inspection order and the engineering publish checklist live in
 `skills/report-workflow/reference/engineering-lab.md`.
 
