@@ -19,7 +19,7 @@ Every figure in here is cited to a ledger row the pipeline computed; nine tables
 carry their own provenance; three of the seven cross tabulations the pipeline
 built at intake were waived by name in the outline with a reason each.
 
-Measured when recorded: 13,285 characters, 71 traceable figures, 9 tables.
+Measured when recorded: 13,569 characters, 89 traceable figures, 9 tables.
 -->
 
 ## 目錄
@@ -117,13 +117,38 @@ drone brushless motor 這個關鍵字回收 102 件、佔 18.75%，價格中位�
 
 100–200 這一帶 77 則評論、11 件商品，平均星等 4.09、一二星佔比 18.18%，是聯結表最差的一格；而掛牌側該帶有 64 件、佔 11.76%，平均星等 4.16，供給並不稀薄。[S3] [S4]18.18% 對上一帶的 4.90%，負評率差了將近四倍，而兩格的價差只有一個級距。掛牌側 64 件、11.76% 說明這不是樣本稀少造成的雜訊，供給密度與 200–500 的 53 件相當。最合理的解釋是期待落差：買家付了不算便宜的價格，拿到的是規格妥協過的機器。
 
-## 品牌集中度：一個 DJI，和 337 件沒有名字的貨
+## 品牌集中度：走量的不是最便宜的那一段
 
-在有品牌標示的掛牌上 CR3 為 53.62%，而品牌交叉表顯示這 207 筆只佔全檔 544 筆的一部分，另有 337 筆在 brand 欄無可用值。[S6] [S7]53.62% 的分母是 207 筆有品牌標示的掛牌，不是 544 筆全檔；另外 337 筆的 brand 欄是空的。在品牌側這個分母下集中度相當高，與「白牌遍地」的直覺相反；換成全檔分母則會掉到兩成上下。同一個現象在兩個分母下給出相反的印象，這是本節最容易被誤讀的地方。
+帶銷量欄位的掛牌裡，500+ bought in past month 這一組 16 件的 price 中位數 139.99 USD、累積評論中位數 806.00，而 100+ 那一組 46 件的 price 中位數 89.99 USD、累積評論中位數只有 198.00。[S6] [S4]銷量級距愈高的組別，價格中位數也愈高——這與「低價帶才走量」的直覺相反，而兩個欄位是各自獨立蒐集的。把它與價格帶那張表放在一起看，真正賣不動的不是貴的東西，是 0–30 那 99 件裡沒有人認得的白牌。這是這份資料支持、但沒有任何一張表直接印出來的一句話。
+
+下表用銷量欄位的級距交叉價格與評論，讀它的時候要看價格中位數怎麼隨級距移動。
+
+表 5. 銷量級距與價格、累積評論的對應關係
+
+| sales | 筆數 | 佔比 | price 平均 | price 中位數 | rating 平均 | rating 中位數 | review_count 中位數 |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| 100+ bought in past month | 46 | 8.46% | 362.10 USD | 89.99 USD | 4.22 | 4.35 | 198.00 |
+| 50+ bought in past month | 34 | 6.25% | 101.56 USD | 57.99 USD | 4.24 | 4.20 | 121.00 |
+| 200+ bought in past month | 22 | 4.04% | 122.09 USD | 119.98 USD | 4.28 | 4.25 | 794.00 |
+| 500+ bought in past month | 16 | 2.94% | 245.15 USD | 139.99 USD | 4.37 | 4.40 | 806.00 |
+| 400+ bought in past month | 12 | 2.21% | 201.17 USD | 47.99 USD | 4.38 | 4.35 | 413.00 |
+| 1K+ bought in past month | 11 | 2.02% | 68.58 USD | 41.36 USD | 4.42 | 4.50 | 776.50 |
+| 300+ bought in past month | 11 | 2.02% | 500.32 USD | 236.00 USD | 4.40 | 4.40 | 327.00 |
+| 2K+ bought in past month | 5 | 0.92% | 323.89 USD | 59.97 USD | 4.32 | 4.40 | 1,166.00 |
+| 3K+ bought in past month | 2 | 0.37% | 214.49 USD | 214.49 USD | 4.35 | 4.35 | 1,796.50 |
+| 10K+ bought in past month | 1 | 0.18% | 35.99 USD | 35.99 USD | 4.40 | 4.40 | 33,535.00 |
+| 4K+ bought in past month | 1 | 0.18% | 299.00 USD | 299.00 USD | 4.50 | 4.50 | 3,965.00 |
+| 5K+ bought in past month | 1 | 0.18% | 29.58 USD | 29.58 USD | 4.00 | 4.00 | — |
+| 600+ bought in past month | 1 | 0.18% | 49.98 USD | 49.98 USD | 3.90 | 3.90 | 131.00 |
+| 6K+ bought in past month | 1 | 0.18% | 49.99 USD | 49.99 USD | 4.60 | 4.60 | 8,639.00 |
+| 8K+ bought in past month | 1 | 0.18% | 64.98 USD | 64.98 USD | 4.60 | 4.60 | 8,830.00 |
+| 合計 | 165 | 30.33% | 227.31 USD | 69.99 USD | 4.29 | 4.30 | 328.00 |
+
+來源：amazon_products.csv amazon_products.csv (165 rows)
 
 下表列出有品牌標示的掛牌，用來判斷這個貨架上誰真的建立了位置。
 
-表 5. 品牌側的掛牌數、價格與評論分布
+表 6. 品牌側的掛牌數、價格與評論分布
 
 | brand | 筆數 | 佔比 | price 平均 | price 中位數 | rating 平均 | rating 中位數 | review_count 中位數 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -147,34 +172,9 @@ drone brushless motor 這個關鍵字回收 102 件、佔 18.75%，價格中位�
 
 來源：amazon_products.csv amazon_products.csv (207 rows)
 
-下表用銷量欄位的級距交叉價格與評論，用來檢查評論數是否可以當需求的代理。
+DJI 有 92 件掛牌、佔 16.91%，價格中位數 247.50 USD；第二名 Holy Stone 只有 10 件、佔 1.84%。[S7] [S8]第一名與第二名之間差了將近一個數量級，而第二名之後迅速衰減。這不是一個多強權競爭的品類，是一家獨大加上一群規模相近的小玩家。
 
-表 6. 銷量級距與累積評論的對應關係
-
-| sales | 筆數 | 佔比 | price 平均 | price 中位數 | rating 平均 | rating 中位數 | review_count 中位數 |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| 100+ bought in past month | 46 | 8.46% | 362.10 USD | 89.99 USD | 4.22 | 4.35 | 198.00 |
-| 50+ bought in past month | 34 | 6.25% | 101.56 USD | 57.99 USD | 4.24 | 4.20 | 121.00 |
-| 200+ bought in past month | 22 | 4.04% | 122.09 USD | 119.98 USD | 4.28 | 4.25 | 794.00 |
-| 500+ bought in past month | 16 | 2.94% | 245.15 USD | 139.99 USD | 4.37 | 4.40 | 806.00 |
-| 400+ bought in past month | 12 | 2.21% | 201.17 USD | 47.99 USD | 4.38 | 4.35 | 413.00 |
-| 1K+ bought in past month | 11 | 2.02% | 68.58 USD | 41.36 USD | 4.42 | 4.50 | 776.50 |
-| 300+ bought in past month | 11 | 2.02% | 500.32 USD | 236.00 USD | 4.40 | 4.40 | 327.00 |
-| 2K+ bought in past month | 5 | 0.92% | 323.89 USD | 59.97 USD | 4.32 | 4.40 | 1,166.00 |
-| 3K+ bought in past month | 2 | 0.37% | 214.49 USD | 214.49 USD | 4.35 | 4.35 | 1,796.50 |
-| 10K+ bought in past month | 1 | 0.18% | 35.99 USD | 35.99 USD | 4.40 | 4.40 | 33,535.00 |
-| 4K+ bought in past month | 1 | 0.18% | 299.00 USD | 299.00 USD | 4.50 | 4.50 | 3,965.00 |
-| 5K+ bought in past month | 1 | 0.18% | 29.58 USD | 29.58 USD | 4.00 | 4.00 | — |
-| 600+ bought in past month | 1 | 0.18% | 49.98 USD | 49.98 USD | 3.90 | 3.90 | 131.00 |
-| 6K+ bought in past month | 1 | 0.18% | 49.99 USD | 49.99 USD | 4.60 | 4.60 | 8,639.00 |
-| 8K+ bought in past month | 1 | 0.18% | 64.98 USD | 64.98 USD | 4.60 | 4.60 | 8,830.00 |
-| 合計 | 165 | 30.33% | 227.31 USD | 69.99 USD | 4.29 | 4.30 | 328.00 |
-
-來源：amazon_products.csv amazon_products.csv (165 rows)
-
-DJI 有 92 件掛牌、佔 16.91%，價格中位數 247.50 USD；第二名 Holy Stone 只有 10 件、佔 1.84%。[S8] [S7]第一名與第二名之間差了將近一個數量級，而第二名之後迅速衰減。這不是一個多強權競爭的品類，是一家獨大加上一群規模相近的小玩家。
-
-帶銷量欄位的 165 件掛牌中，200+ bought in past month 這一組 22 件的累積評論中位數 794.00，遠高於 100+ 那一組 46 件的 198.00。[S9]銷量級距愈高的組別，累積評論中位數也愈高，兩個欄位互相印證。這讓評論數可以在銷量欄位缺漏時當成需求的代理指標，但代理仍然是代理。
+在 brand 欄有值的掛牌上 CR3 為 53.62%，而品牌交叉表顯示這 207 筆之外，另有 337 筆在 brand 欄無可用值。[S9] [S8]53.62% 的分母是 207 筆，不是 544 筆；換成全檔分母則會掉到兩成上下。同一個現象在兩個分母下給出相反的印象，這是本節最容易被誤讀的地方。
 
 ## 買家痛點：低分不是因為拍得差，是連不上與壞掉
 
@@ -214,9 +214,9 @@ DJI 有 92 件掛牌、佔 16.91%，價格中位數 247.50 USD；第二名 Holy 
 
 # 3. 資料限制與反面證據
 
-口碑聯結表只涵蓋 373 則評論、50 件商品，其中 500+ 那一格只有 21 則評論、2 件商品。[S3]摘要那個「兩百到五百美元最好」的結論，背後只有十幾件商品；最高價那一格更少。任何以這張表為基礎的價格帶排序，都必須被理解為五十件商品的排序，而不是全部掛牌的排序。
+口碑聯結表只涵蓋 373 則評論、50 件商品，其中 500+ 那一格只有 21 則評論、2 件商品。[S3]摘要那條「200–500 最好」的結論，背後只有 12 件商品。任何以這張表為基礎的價格帶排序，都必須被理解為五十件商品的排序，而不是全部掛牌的排序；這一條直接改寫了建議的強度，理由寫在建議一節。
 
-價格分組只涵蓋 425 筆，另有 119 筆在 price 欄無可用值未列入分組。[S4]缺漏不是隨機的：沒有標價的掛牌集中在 B2B 與高價端。這代表價格帶分布低估了高價端的供給，而高價端的需求同樣被銷量欄位的缺漏低估。
+價格分組只涵蓋 425 筆，另有 119 筆在 price 欄無可用值未列入分組。[S4]缺漏不是隨機的：沒有標價的掛牌集中在 B2B 與高價端。這代表價格帶分布低估了高價端的供給，而高價端的需求同樣被銷量欄位的缺漏低估——「高價帶沒需求」不是這份資料支持的說法，只是這份資料看不見。
 
 下表列出每個品類的分類信心分數，用來判斷哪些品類的結論站得住。
 
@@ -238,11 +238,13 @@ DJI 有 92 件掛牌、佔 16.91%，價格中位數 247.50 USD；第二名 Holy 
 
 分類信心分數在配件/零件 71 件是 0.00，在非無人機商品 46 件是 0.00。[S11]低信心集中在殘餘品類，代表攝影與植保這兩個承載主要結論的分類相對可靠。但它同時意味著配件與零件那個掛牌數不能拿來當成零件市場規模的估計。
 
-CR3 的 53.62% 是以 brand 欄有值的掛牌為分母計算的。[S6]換一個分母，這個數字會完全改變：以全部掛牌為分母時，前三名只佔兩成上下。報告採用有品牌標示的掛牌為分母，因此品牌集中度的結論只適用於品牌側，不適用於整個貨架。
+CR3 的 53.62% 是以 brand 欄有值的掛牌為分母計算的。[S9]換一個分母，這個數字會完全改變：以全部掛牌為分母時，前三名只佔兩成上下。報告採用有品牌標示的掛牌為分母，因此品牌集中度的結論只適用於品牌側，不適用於整個貨架。
 
 # 4. 建議事項
 
-200–500 平均星等 4.66、一二星 4.90%、聯結到 12 件商品 102 則評論，而該價格帶掛牌只有 53 件、佔 9.74%，累積評論中位數 327.00。[S3] [S4]建議的切點是 200–500 美元的攝影類整機：口碑側 4.66 星與 4.90% 負評率最好，掛牌側 53 件、9.74% 最稀薄。兩個數字來自不同檔案，這是它比單一指標更可靠的原因。這是一個關於下限的選擇——它的典型掛牌能活，而不是它的頭部最大。
+200–500 平均星等 4.66、一二星 4.90%、聯結到 12 件商品 102 則評論，而該價格帶掛牌只有 53 件、佔 9.74%，累積評論中位數 327.00。[S3] [S4]建議的切點是 200–500 美元的攝影類整機：口碑側 4.66 星與 4.90% 負評率最好，掛牌側 53 件、9.74% 最稀薄。兩個數字來自不同檔案，這是它比單一指標更可靠的原因。
+
+支撐這個切點的口碑證據只有 12 件商品、102 則評論，而 500+ 那一格只有 2 件商品、21 則評論。[S3]資料限制一節指出這張表薄到什麼程度，所以這裡把建議降級：進入 200–500，但先以單一機種試水而不是鋪產品線，並在自有銷售資料累積到 50 件同帶商品之前，不要把這個價格帶的口碑優勢寫進投資假設。如果先取得的第三方銷量資料顯示低價帶的頭部規模遠大於此，正確的切點會變成 30–100，那時這份報告的建議應該被推翻而不是被修補。
 
 1–3 星區間提及連線 28.57%、提及說明 6.12%、提及故障 10.20%。[S10]產品主張應該放在連線穩定與開箱即用，而不是影像規格。低分評論裡連線的提及率是說明的數倍，而影像在低分區反而比高分區更少被提到。
 
@@ -260,13 +262,13 @@ CR3 的 53.62% 是以 brand 欄有值的掛牌為分母計算的。[S6]換一個
 
 [S5] amazon_reviews.csv amazon_reviews.csv (473 rows) — “衍生統計(來源:amazon_reviews.csv ⋈ amazon_classified.csv):口碑依品類（評論×分類）。依 category 分為 5 組，涵蓋 473 筆資料列（全檔 473 筆）。本表由 amazon_reviews.csv 與 amazon_cla” — amazon_reviews.csv ⋈ amazon_classified.csv
 
-[S6] amazon_products.csv amazon_products.csv (544 rows) — “衍生統計(來源:amazon_products.csv):品牌 CR3為 53.62%。計算方式:對全部資料列共 544 筆（全檔 544 筆）的 brand 欄施以 top_share 運算。（top DJI, Holy Stone, Contixo）” — amazon_products.csv
+[S6] amazon_products.csv amazon_products.csv (165 rows) — “衍生統計(來源:amazon_products.csv):sales 分組交叉表。依 sales 分為 15 組，涵蓋 165 筆資料列（全檔 544 筆）。另有 379 筆在該欄無可用值，未列入分組。 sales | 筆數 | 佔比 | price 平均 | price 中位數” — amazon_products.csv
 
-[S7] amazon_products.csv amazon_products.csv (207 rows) — “衍生統計(來源:amazon_products.csv):brand 分組交叉表。依 brand 分為 16 組，涵蓋 207 筆資料列（全檔 544 筆）。另有 337 筆在該欄無可用值，未列入分組。 brand | 筆數 | 佔比 | price 平均 | price 中位數” — amazon_products.csv
+[S7] amazon_products.csv amazon_products.csv (92 rows) — “衍生統計(來源:amazon_products.csv):DJI 掛牌佔比為 16.91%。計算方式:對 brand=DJI 共 92 筆（全檔 544 筆）施以 share 運算。（92 of 544）” — amazon_products.csv
 
-[S8] amazon_products.csv amazon_products.csv (92 rows) — “衍生統計(來源:amazon_products.csv):DJI 掛牌佔比為 16.91%。計算方式:對 brand=DJI 共 92 筆（全檔 544 筆）施以 share 運算。（92 of 544）” — amazon_products.csv
+[S8] amazon_products.csv amazon_products.csv (207 rows) — “衍生統計(來源:amazon_products.csv):brand 分組交叉表。依 brand 分為 16 組，涵蓋 207 筆資料列（全檔 544 筆）。另有 337 筆在該欄無可用值，未列入分組。 brand | 筆數 | 佔比 | price 平均 | price 中位數” — amazon_products.csv
 
-[S9] amazon_products.csv amazon_products.csv (165 rows) — “衍生統計(來源:amazon_products.csv):sales 分組交叉表。依 sales 分為 15 組，涵蓋 165 筆資料列（全檔 544 筆）。另有 379 筆在該欄無可用值，未列入分組。 sales | 筆數 | 佔比 | price 平均 | price 中位數” — amazon_products.csv
+[S9] amazon_products.csv amazon_products.csv (544 rows) — “衍生統計(來源:amazon_products.csv):品牌 CR3為 53.62%。計算方式:對全部資料列共 544 筆（全檔 544 筆）的 brand 欄施以 top_share 運算。（top DJI, Holy Stone, Contixo）” — amazon_products.csv
 
 [S10] amazon_reviews.csv amazon_reviews.csv (473 rows) — “衍生統計(來源:amazon_reviews.csv):痛點主題依星等。依 review_rating 分為 3 組，涵蓋 473 筆資料列（全檔 473 筆）。各組實際涵蓋的值：1–3=1 至 2, 3–5=3 至 4, 5+=5 及以上。星等區間 | 評論數 | 提及影像” — amazon_reviews.csv
 

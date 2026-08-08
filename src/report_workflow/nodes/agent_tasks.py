@@ -803,6 +803,12 @@ def _outline_obligations(state, evidence_path: str | None) -> str:
             "under-samples, a rate resting on a handful of rows. Name the conclusion each",
             "one qualifies in the prose, where the reader will see it.",
             "",
+            "**If a limitation would change the recommendation, change the",
+            "recommendation.** A report that lists what would overturn its advice and",
+            "then gives the same advice has not used its own limitations section. Say in",
+            "the conclusion which way the finding points under the other reading, and why",
+            "you are still recommending what you are recommending.",
+            "",
         ])
 
     if questions:
@@ -1085,6 +1091,11 @@ For `new_draft`, the editable artifacts are `claim_matrix.json`, `outline.json`,
 - Mark medium-grade or qualitative source wording as hedged in `sentence_map.jsonl`;
   reserve `measured` wording for high-grade evidence (FD blocks it on
   medium-grade evidence even when that evidence is quantitative).
+- **Plan one claim that the data supports but does not state.** Every table has
+  a reading that is one step past what it prints — a rate that rises where the
+  obvious story says it should fall, two columns that disagree, a figure whose
+  denominator changes what it means. A report made only of restatements is a
+  table of contents for the data.
 - **Give a load-bearing claim two independent evidence ids, not one.** Independent
   means they do not derive from each other: a CR3 and a CR10 over the same column
   are one piece of evidence at two cuts, while a share, a median and a coverage
