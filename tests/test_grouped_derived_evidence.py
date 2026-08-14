@@ -107,25 +107,32 @@ class OneRequestReturnsATableTests(unittest.TestCase):
         cells = _cells(unit)
         # 0-50 holds A1 and A2, 50-100 holds A3 and A4, 100+ holds A5. A6 has
         # no price and is reported as ungrouped rather than dropped in silence.
+        #
+        # Labelled by what each band covers, not by where it was cut: these
+        # prices are whole numbers, so the band cut at [0, 50) holds 0 to 49
+        # and says so. A row label is the string an author copies into prose,
+        # and "0–50" over rows that contain no 50 is a claim about the data.
         self.assertEqual(
             [row[0] for row in unit["table_grid"]["rows"]],
-            ["0–50", "50–100", "100+", "All"],
+            ["0–49", "50–99", "100+", "All"],
         )
-        self.assertEqual(cells["0–50"][0], "2")
-        self.assertEqual(cells["50–100"][0], "2")
+        self.assertEqual(cells["0–49"][0], "2")
+        self.assertEqual(cells["50–99"][0], "2")
         self.assertEqual(cells["100+"][0], "1")
         self.assertEqual(unit["derivation"]["rows_ungrouped"], 1)
+        # The author's cut is still recorded exactly as given.
+        self.assertEqual(unit["derivation"]["buckets"], [0.0, 50.0, 100.0])
 
     def test_each_cell_is_the_arithmetic_over_its_own_group(self):
         cells = _cells(self._band_table())
-        self.assertEqual(cells["0–50"][1], "3.75")    # (4.5 + 3.0) / 2
-        self.assertEqual(cells["50–100"][1], "4.50")  # (4.0 + 5.0) / 2
+        self.assertEqual(cells["0–49"][1], "3.75")    # (4.5 + 3.0) / 2
+        self.assertEqual(cells["50–99"][1], "4.50")   # (4.0 + 5.0) / 2
         self.assertEqual(cells["100+"][1], "3.50")
 
     def test_a_filtered_share_is_a_rate_inside_the_group(self):
         cells = _cells(self._band_table())
-        self.assertEqual(cells["0–50"][2], "50.00%")   # A2 of {A1, A2}
-        self.assertEqual(cells["50–100"][2], "0.00%")
+        self.assertEqual(cells["0–49"][2], "50.00%")   # A2 of {A1, A2}
+        self.assertEqual(cells["50–99"][2], "0.00%")
         self.assertEqual(cells["100+"][2], "100.00%")
 
     def test_an_unfiltered_share_is_the_group_against_the_whole(self):
@@ -133,12 +140,12 @@ class OneRequestReturnsATableTests(unittest.TestCase):
         # column of noise; the only reading that says anything is the group's
         # weight in the selection.
         cells = _cells(self._band_table())
-        self.assertEqual(cells["0–50"][3], "33.33%")   # 2 of 6
+        self.assertEqual(cells["0–49"][3], "33.33%")   # 2 of 6
         self.assertEqual(cells["100+"][3], "16.67%")
 
     def test_the_content_states_every_cell_so_a_gate_can_find_it(self):
         content = self._band_table()["content"]
-        for value in ("3.75", "4.50", "50.00%", "0–50", "100+"):
+        for value in ("3.75", "4.50", "50.00%", "0–49", "100+"):
             self.assertIn(value, content)
 
     def test_a_categorical_column_needs_no_buckets(self):
@@ -215,8 +222,8 @@ class JoinedSourcesTests(unittest.TestCase):
         # Price lives in products, the star rating lives in reviews, and "what
         # do buyers say about each price band" lives in neither.
         cells = _cells(self._joined())
-        self.assertEqual(cells["0–50"][0], "2")
-        self.assertEqual(cells["0–50"][1], "4.00")   # (5.0 + 3.0) / 2
+        self.assertEqual(cells["0–49"][0], "2")
+        self.assertEqual(cells["0–49"][1], "4.00")   # (5.0 + 3.0) / 2
         self.assertEqual(cells["100+"][1], "2.00")
 
     def test_rows_that_find_no_partner_are_counted_not_swallowed(self):
@@ -326,7 +333,7 @@ class DerivedTablesReachTheDocumentTests(unittest.TestCase):
             "Prices split as follows.\n\n[TABLE:band Price bands]\n", units
         )
         self.assertEqual((placed, unresolved), (1, []))
-        self.assertIn("| 0–50 |", markdown)
+        self.assertIn("| 0–49 |", markdown)
         self.assertIn("Table 1. Price bands", markdown)
 
     def test_the_placed_table_carries_where_its_numbers_came_from(self):
@@ -507,8 +514,16 @@ class BandLabelsSayWhatTheyHoldTests(unittest.TestCase):
             unit["derivation"]["band_members"],
             ["1 至 2", "3", "4", "5 及以上"],
         )
+        # The label is the coverage, not the cut. Stating the membership below
+        # the table was not enough on its own: a delivered report still carried
+        # 「1-3 星區間 49 則評論」 over 37 one-star and 12 two-star rows,
+        # because the row label is what an author copies.
+        self.assertEqual(
+            [row[0] for row in unit["table_grid"]["rows"]],
+            ["1–2", "3", "4", "5+", "合計"],
+        )
         # The figure the author will write has to be findable in the text.
-        self.assertIn("1–3=1 至 2", unit["content"])
+        self.assertIn("1–2=1 至 2", unit["content"])
         self.assertIn("2", unit["content"])
 
     def test_a_column_with_fractions_gets_no_membership_claim(self):

@@ -62,7 +62,7 @@ Use only these categories when recording benchmark findings:
    `python scripts/run_report_benchmarks.py` for full controlled coverage.
    Preserve the resulting QA outputs outside ignored runtime folders when they
    are evidence for a durable change.
-4. Compare `final_qa_summary`, `scholarly_quality_report`,
+4. Compare `final_qa_summary`,
    `figure_visual_quality_report`, `template_style_map`, and the final DOCX
    against the packet rubric.
 5. Classify every gap using the fixed categories above.

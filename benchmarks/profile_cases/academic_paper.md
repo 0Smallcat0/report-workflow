@@ -26,7 +26,7 @@ Primary rubric sources:
 - Fixture: `benchmarks/fixtures/controlled_source.md`
 - Prompt: `Write an academic paper evaluating the structured workflow pilot.`
 - Profile: `academic_paper`
-- Required QA to inspect: `scholarly_quality_report.json`,
+- Required QA to inspect:
   `reference_reality_report.json`, `figure_visual_quality_report.json`,
   `final_qa_summary.json`, and rendered references/figures.
 

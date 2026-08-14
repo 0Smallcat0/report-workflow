@@ -121,10 +121,18 @@ def _escape(value: object) -> str:
 
 
 def provenance_line(table: dict, language: str) -> str:
-    """Where this table came from, in the document's language."""
-    locator = " ".join(
-        part for part in (table.get("source_file_name"), table.get("source_span")) if part
-    )
+    """Where this table came from, in the document's language.
+
+    ``source_span`` usually already opens with the file name — "amazon.csv
+    (544 rows)" — so joining it to ``source_file_name`` printed the file twice
+    under every table in the delivered document. Prefix only when the span does
+    not already name the file.
+    """
+    file_name = str(table.get("source_file_name") or "").strip()
+    span = str(table.get("source_span") or "").strip()
+    if file_name and span.startswith(file_name):
+        file_name = ""
+    locator = " ".join(part for part in (file_name, span) if part)
     if not locator:
         return ""
     return f"來源：{locator}" if language == "zh" else f"Source: {locator}"

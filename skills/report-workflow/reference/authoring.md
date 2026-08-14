@@ -93,6 +93,14 @@ missing, the pipeline writes `section_drafts/*.md`, inserts `[CITE:]` markers fr
 Use manual `section_drafts/*.md` plus `sentence_map.jsonl` only when the draft
 needs direct Markdown control or when repairing generated canonical drafts.
 
+**Do not open a section draft with its `section_id`.** The file is named
+`section_drafts/<section_id>.md` because the coverage check against
+`section_order` reads that name, but `executive_summary` is a key, not a title.
+Write the real heading — `# 執行摘要`, `# Executive Summary` — or no heading at
+all, since the pipeline renders the blueprint's own title above the section
+either way. A draft opening with `# executive_summary` puts that string into
+the delivered document, between the rendered heading and the first paragraph.
+
 ## What the Outline Must Account For
 
 `OUTLINE_PLAN` refuses the outline until the built tables are accounted for. The

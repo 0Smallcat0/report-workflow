@@ -101,8 +101,9 @@ Details, UTF-8 setup, and decision examples: [reference/setup-and-preflight.md](
 - `preview_revision_diff`
 <!-- report-workflow:tool-surface:end -->
 
-`check_environment` and `start_report` run preparation; the `*_controlled_*` tools
-drive staged authoring; `lint_artifacts`, `audit_engineering_report`, and
+`check_environment` and `start_report` run preparation; `get_next_action` and
+`submit_action` drive staged authoring; `lint_artifacts`,
+`register_derived_evidence`, `audit_engineering_report`, and
 `query_evidence` are read-only helpers; `publish_report` validates and
 renders; `submit_revision_plan` / `preview_revision_diff` support revision.
 
@@ -197,7 +198,7 @@ evidence ledger is non-empty; claims cite valid evidence IDs; no `blocked`,
 workflow metadata; render requires `qa_decision=pass`.
 
 For completed runs, inspect in this order when the paths are returned:
-`final_qa_summary_path` first, then `scholarly_quality_report_path`,
+`final_qa_summary_path` first, then
 `figure_visual_quality_report_path`, `post_render_layout_manifest_path`,
 `template_style_map_path`, and `template_field_fill_report_path`. The same files
 are packaged under `published/qa/`. Failure repair order:

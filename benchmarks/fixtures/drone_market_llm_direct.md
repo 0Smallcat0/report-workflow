@@ -1,6 +1,13 @@
 <!--
 RECORDED SAMPLE — Arm C, "AI writes it directly, no harness".
 
+Body SHA-256: 9d9741702d8ee11ba872cbb040be24c9b679814a2a321ae058109f612763f1b2
+
+Taken over this file with every comment block removed, so this line is not part
+of what it hashes. `run_drone_market_benchmark.py --check` recomputes it. It
+catches an edit that was never followed by a re-record; it does not stop anyone
+who edits the body and writes the new hash in the same commit.
+
 One of four independent write-ups of `benchmarks/fixtures/drone_market/*.csv`
 produced from the same three files and the same task statement with no pipeline
 in the loop: read the CSVs, compute whatever the argument needs, write the

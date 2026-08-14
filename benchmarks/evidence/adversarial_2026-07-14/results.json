@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-07T09:11:51",
+  "generated_at": "2026-08-14T12:05:37",
   "corpus": {
     "total_cases": 69,
     "honest_cases": 25,
@@ -1366,7 +1366,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '12'分鐘 is not stated in the evidence (evidence states: 1984, 3)"
+          "reason": "Claim number '12'分鐘 is not stated in the evidence (evidence states: 3, 1984)"
         },
         {
           "case_id": "fc01",
@@ -1672,7 +1672,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '2.1'minutes is not stated in the evidence (evidence states: 12.4minutes, 7.8minutes)"
+          "reason": "Claim number '2.1'minutes is not stated in the evidence (evidence states: 7.8minutes, 12.4minutes)"
         },
         {
           "case_id": "e03",
@@ -1708,7 +1708,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '0.9'% is not stated in the evidence (evidence states: 12.4分鐘, 7.8分鐘, 3.5%)"
+          "reason": "Claim number '0.9'% is not stated in the evidence (evidence states: 3.5%, 7.8分鐘, 12.4分鐘)"
         },
         {
           "case_id": "e07",
@@ -1717,7 +1717,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '1.2'分鐘 is not stated in the evidence (evidence states: 12.4分鐘, 7.8分鐘, 3.5%)"
+          "reason": "Claim number '1.2'分鐘 is not stated in the evidence (evidence states: 3.5%, 7.8分鐘, 12.4分鐘)"
         },
         {
           "case_id": "f01",
@@ -2097,7 +2097,7 @@
   "expected_mismatches": [],
   "determinism": {
     "runs": 5,
-    "verdict_hash": "d5de48b172a27ba9e4d57956d6aea9bfd8cce28a7e724e748e4867e2617fb96d",
+    "verdict_hash": "d92e6fc8b07eb16e82b8e67a239807ddc86d046e065ec4452d5074cbfbbfdc62",
     "identical": true
   }
 }

@@ -726,6 +726,22 @@ def _derived_stats_guidance(evidence_path: str) -> str:
     return "\n".join(parts) + "\n\n"
 
 
+def _addressed_section(blueprint_sections: dict, section_id: str, language: str) -> str:
+    """Name a section to the author the way the delivered document names it.
+
+    Briefs used to address sections by bare id — "### `executive_summary` -
+    what would weaken the conclusions" — and authors, reasonably, opened the
+    draft with that same string as its heading. The id is still shown, because
+    the draft file is `section_drafts/<section_id>.md` and the author needs to
+    know which file this is about; it is no longer the name the section is
+    called by.
+    """
+    title = localized_section_title(
+        blueprint_sections.get(section_id) or {}, section_id, language
+    )
+    return f"{title}（`{section_id}`）" if language == "zh" else f"{title} (`{section_id}`)"
+
+
 def _outline_obligations(state, evidence_path: str | None) -> str:
     """What OUTLINE_PLAN will refuse the outline for, listed before it is written.
 
@@ -738,6 +754,7 @@ def _outline_obligations(state, evidence_path: str | None) -> str:
     from ..prompt_questions import extract_questions
 
     blueprint_sections = (state.plan.get("blueprint") or {}).get("sections") or {}
+    language = detect_document_language(_evidence_text_for_language(evidence_path))
 
     def flagged(flag: str) -> list[str]:
         return [
@@ -795,7 +812,8 @@ def _outline_obligations(state, evidence_path: str | None) -> str:
     if counter_sections:
         section_id = counter_sections[0]
         parts.extend([
-            f"### `{section_id}` - what would weaken the conclusions",
+            f"### {_addressed_section(blueprint_sections, section_id, language)}"
+            " - what would weaken the conclusions",
             "",
             "This section carries at least two claims of its own. The paragraph it asks",
             "for is the one that says a headline finding may be an artefact - a field",
@@ -819,7 +837,8 @@ def _outline_obligations(state, evidence_path: str | None) -> str:
             "",
             listed,
             "",
-            f"Answer each of them in `{section_id}`, in a sentence, with the claim that",
+            f"Answer each of them in {_addressed_section(blueprint_sections, section_id, language)},"
+            " in a sentence, with the claim that",
             "carries the answer. A report that states four hundred checked figures and",
             "never says which way the decision goes has not been written for the person",
             "who asked.",

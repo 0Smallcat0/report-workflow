@@ -24,7 +24,7 @@ Primary rubric sources:
 - Prompt: `Write an engineering lab report from the synthetic controlled source.`
 - Profile: `engineering_lab_report`
 - Required QA to inspect: `engineering_audit_report.json`,
-  `scholarly_quality_report.json`, `figure_visual_quality_report.json`,
+  `figure_visual_quality_report.json`,
   `final_qa_summary.json`, and the rendered DOCX pages.
 
 ## Expected Output

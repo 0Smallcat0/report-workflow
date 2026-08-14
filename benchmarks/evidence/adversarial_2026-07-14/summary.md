@@ -54,7 +54,7 @@ and feed the limitations section of `docs/DESIGN.md`:
 ## Determinism proof
 
 - 5 consecutive in-process runs produced identical verdicts: `identical = True`.
-- Verdict hash (sha256 over all full-stack verdicts): `d5de48b172a27ba9e4d57956d6aea9bfd8cce28a7e724e748e4867e2617fb96d`.
+- Verdict hash (sha256 over all full-stack verdicts): `d92e6fc8b07eb16e82b8e67a239807ddc86d046e065ec4452d5074cbfbbfdc62`.
 - `python scripts/run_adversarial_benchmark.py --check` recomputes every verdict
   from source and fails if any verdict, metric, or hash drifts from this archive —
   the same command runs in CI on Linux, so the hash is also a cross-platform

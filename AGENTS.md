@@ -386,6 +386,15 @@ delete a dimension the harness loses; the archive records two losses on
 purpose, and one of them is a fact about the metric rather than about the
 pipeline.
 
+The recorded arms carry a `Body SHA-256:` line in their own comment header,
+taken over the file with every comment block removed, and `--check` recomputes
+it. That catches an edit that was never followed by a re-record — the archived
+scores describing a document that no longer exists. It does not settle the
+conflict of interest in an author grading their own arm: anyone who wants the
+number to move can edit the body and write the new hash in the same commit. The
+tool arm carries no hash, because `scripts/record_tool_arm.py` regenerates it
+whenever the pipeline changes what reaches the deliverable.
+
 The same comparison over raw data — three CSVs and a market question, against
 the hand-built control that was ahead of the pipeline — is the drone-market
 benchmark. It shares the other one's scorers by importing them, so a scorer
