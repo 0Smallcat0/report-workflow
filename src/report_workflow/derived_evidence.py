@@ -29,10 +29,12 @@ columns, which operation. A reader who doubts a figure can redo it.
 from __future__ import annotations
 
 import hashlib
+import itertools
 import json
 import re
 import statistics
 import unicodedata
+from collections import Counter
 
 #: Currency marks sitting around a number in a real export. "$71.99" is a
 #: price; a parser that reads it as text and skips the cell makes every price
@@ -82,6 +84,22 @@ SUPPORTED_OPS = (
     "count", "sum", "mean", "median", "min", "max",
     "distinct", "share", "hhi", "top_share",
 )
+
+#: Operations over two figures the tool has already computed, rather than over
+#: rows.
+#:
+#: A ratio and a difference in percentage points are the two shapes an argument
+#: reaches for once it has a table — "the $200–500 band draws 13.6x the reviews
+#: of the $0–30 band", "8.5 points more of it rates under four stars" — and
+#: neither was expressible. The author's options were to write the sentence
+#: with no citation, which FE correctly blocks, or to delete it. Across eight
+#: recorded runs FE blocked 67 claims, 41 of them for a number the evidence
+#: does not state.
+COMPARISON_OPS = ("ratio", "pp_diff")
+
+#: The furthest a declared rounding may go. Past six places the request is
+#: about float representation rather than about the figure.
+MAX_DECLARED_DECIMALS = 6
 
 
 class DerivationError(ValueError):
@@ -282,8 +300,19 @@ def _group_counts(rows: list[dict], column: str) -> list[tuple[str, int]]:
     return sorted(counts.items(), key=lambda item: (-item[1], item[0]))
 
 
-def format_number(value: float) -> str:
-    """Thousands-separated, and no more precise than the value warrants."""
+def format_number(value: float, decimals: int | None = None) -> str:
+    """Thousands-separated, and no more precise than the value warrants.
+
+    ``decimals`` pins the places instead of inferring them, and is the one rule
+    for pinning them: the grouped path's continuous columns pass 2 here rather
+    than formatting themselves. A mean that lands on a round number still has
+    to print "4.00", because the content check refuses a claim carrying more
+    decimal places than its evidence, and a mean printed as "4" silently
+    forbids writing "4.0" — the author's arithmetic right and the sentence
+    blocked anyway.
+    """
+    if decimals is not None:
+        return f"{value:,.{decimals}f}"
     if abs(value - round(value)) < 1e-9 and abs(value) < 1e15:
         return f"{round(value):,}"
     if abs(value) >= 1:
@@ -291,12 +320,49 @@ def format_number(value: float) -> str:
     return f"{value:.4g}"
 
 
+def declared_decimals(request: dict) -> int | None:
+    """How many decimal places the author wants this figure recorded to.
+
+    Rounding at registration is the point. FE refuses a claim that states more
+    places than its evidence, so "3.53%" cited against a row holding
+    3.5341...% was blocked for precision the source never asserted — four of
+    the 67 recorded FE blocks are exactly that. Declaring the places makes the
+    rounded figure the one that exists, which is a different repair from
+    loosening the comparison, and the only one that leaves the gate meaning
+    what it says.
+    """
+    raw = request.get("decimals")
+    if raw is None:
+        return None
+    try:
+        places = int(raw)
+    except (TypeError, ValueError):
+        raise DerivationError(
+            f"'decimals' is {raw!r}; it must be a whole number of decimal places, "
+            f"0 to {MAX_DECLARED_DECIMALS}"
+        )
+    if not 0 <= places <= MAX_DECLARED_DECIMALS:
+        raise DerivationError(
+            f"'decimals' is {places}; it must be between 0 and {MAX_DECLARED_DECIMALS}"
+        )
+    return places
+
+
 def _check_op(dataset: Dataset, request: dict) -> tuple[str, str]:
     """The (op, column) a request names, or the reason it cannot be carried out."""
     op = str(request.get("op") or "").strip().lower()
+    if op in COMPARISON_OPS:
+        raise DerivationError(
+            f"Operation {op!r} compares two figures that are already computed, so it "
+            "is registered on its own rather than as a 'measures' entry. Give it "
+            "either 'numerator' and 'denominator' naming two derivations registered "
+            "earlier, or 'source' naming a grouped table plus 'column', "
+            "'numerator_group' and 'denominator_group'."
+        )
     if op not in SUPPORTED_OPS:
         raise DerivationError(
             f"Operation {op!r} is not supported. Use one of: {', '.join(SUPPORTED_OPS)}"
+            f" — or {', '.join(COMPARISON_OPS)} to compare two figures already computed."
         )
     column = str(request.get("column") or "").strip()
     if op != "count" and op != "share" and not column:
@@ -391,11 +457,17 @@ def compute(dataset: Dataset, request: dict) -> dict:
     caller never supplies the value; that is the point.
     """
     op, column = _check_op(dataset, request)
+    decimals = declared_decimals(request)
     rows_expression = str(request.get("rows") or "")
     rows = select_rows(dataset, rows_expression)
     value, unit, detail = _op_value(
         op, rows, dataset.rows, dataset, column, request
     )
+    if decimals is not None:
+        # Rounded before it is recorded, not on the way out, so the figure in
+        # the evidence text and the figure `expect` is checked against are the
+        # same one the author will write.
+        value = round(value, decimals)
 
     derivation = {
         "method": op,
@@ -409,11 +481,14 @@ def compute(dataset: Dataset, request: dict) -> dict:
         derivation["k"] = max(1, int(request.get("k") or 5))
     if op == "share":
         derivation["denominator_filter"] = str(request.get("of") or "*")
+    if decimals is not None:
+        derivation["decimals"] = decimals
     return {
         "value": value,
         "unit": unit,
         "rows_used": len(rows),
         "detail": detail,
+        "decimals": decimals,
         "derivation": derivation,
     }
 
@@ -551,6 +626,88 @@ def resolve_frame(request: dict, datasets: list[Dataset]) -> Dataset:
     return join_datasets(picked[0], picked[1], join_spec)
 
 
+#: Share of the smaller side's distinct values that must appear on both sides
+#: before a shared column name counts as a key.
+#:
+#: The name alone means nothing — two exports both carry an `id`, both
+#: auto-incrementing, and their value sets never meet. Measured against the
+#: smaller distinct set on purpose: a reviews file naming 200 of 5,000
+#: listings is a perfectly usable join and only a 4% overlap of the larger
+#: side, so measuring against the larger one would hide exactly the case this
+#: exists for.
+MIN_KEY_VALUE_OVERLAP = 0.30
+#: One side has to look like a key: nearly one row per value. A column that
+#: repeats on both sides is a category, and joining two categories multiplies
+#: rows rather than connecting them.
+MIN_KEY_UNIQUENESS = 0.90
+#: How many pairs the brief names before a hint turns into a list nobody reads.
+MAX_JOINABLE_PAIRS_REPORTED = 5
+
+
+def joinable_key_report(source_registry: list[dict]) -> list[dict]:
+    """Columns two structured sources share, whose values actually meet.
+
+    A recorded run wrote that two of its files had no column in common, and
+    used that sentence to explain why it did not cross them. Both key on
+    `asin`; three independent blind judges named the missing analysis as the
+    report's largest gap, and one of them did it by hand from the same files.
+    The join was implemented and, after the previous batch, documented. What
+    was still missing was anybody telling the author — at the moment they
+    decide — that these two files connect and by how much.
+
+    Read-only. It produces a line in the brief, not a gate: "a joinable key
+    exists and was not used" would be the same shape as the rules this repo has
+    already removed for measuring rule-following rather than reports.
+    """
+    datasets = structured_datasets(source_registry)
+    findings: list[dict] = []
+    for left, right in itertools.combinations(datasets, 2):
+        for column in left.columns:
+            if column not in right.columns:
+                continue
+            left_counts = Counter(
+                value for value in left.column_values(column) if value.strip()
+            )
+            right_counts = Counter(
+                value for value in right.column_values(column) if value.strip()
+            )
+            if len(left_counts) < 2 or len(right_counts) < 2:
+                continue
+            shared = set(left_counts) & set(right_counts)
+            if not shared:
+                continue
+            overlap = len(shared) / min(len(left_counts), len(right_counts))
+            uniqueness = max(
+                len(left_counts) / max(1, len(left.rows)),
+                len(right_counts) / max(1, len(right.rows)),
+            )
+            if overlap < MIN_KEY_VALUE_OVERLAP or uniqueness < MIN_KEY_UNIQUENESS:
+                continue
+            findings.append({
+                "left_file": left.file_name,
+                "right_file": right.file_name,
+                "column": column,
+                # The size of the inner join, counted rather than performed:
+                # one key present twice on the left and three times on the
+                # right contributes six rows.
+                "joined_rows": sum(
+                    left_counts[value] * right_counts[value] for value in shared
+                ),
+                "shared_values": len(shared),
+                "left_rows": len(left.rows),
+                "right_rows": len(right.rows),
+            })
+    findings.sort(
+        key=lambda finding: (
+            -finding["joined_rows"],
+            finding["left_file"],
+            finding["right_file"],
+            finding["column"],
+        )
+    )
+    return findings[:MAX_JOINABLE_PAIRS_REPORTED]
+
+
 # ----------------------------------------------------------------------
 # Grouped tables: one request, N rows, one evidence entry
 # ----------------------------------------------------------------------
@@ -674,10 +831,26 @@ _CONTINUOUS_OPS = frozenset({"mean", "median", "share"})
 def _render_cell(value: float | None, unit: str, *, fixed: bool = False) -> str:
     if value is None:
         return "—"
-    text = f"{value:,.2f}" if fixed else format_number(value)
+    text = format_number(value, 2 if fixed else None)
     if unit == "%":
         return f"{text}%"
     return f"{text} {unit}" if unit else text
+
+
+def _cell_number(cell: object, unit: str) -> float | None:
+    """One rendered table cell read back as the number it states.
+
+    The grid holds display strings — "3.75", "50.00%", "71.99 USD" — because
+    that is what a reader and a lexical gate both see. A comparison over two of
+    its rows has to get back to the number, and the unit is the part
+    ``parse_number`` cannot strip on its own.
+    """
+    text = str(cell).strip()
+    if not text or text == "—":
+        return None
+    if unit and unit != "%" and text.endswith(unit):
+        text = text[: -len(unit)].strip()
+    return parse_number(text)
 
 
 def _integer_band_members(edges: list[float], zh: bool) -> list[str]:
@@ -861,10 +1034,264 @@ def compute_group_table(frame: Dataset, request: dict, zh: bool = False) -> dict
     return {
         "headers": headers,
         "rows": body,
+        # Kept beside the grid rather than inside the derivation record: a
+        # later `ratio` over two of these rows has to read the cells back as
+        # numbers, and the unit is the part that cannot be recovered from the
+        # rendered string.
+        "units": units,
         "derivation": derivation,
         "groups": len(groups),
         "rows_ungrouped": outside,
     }
+
+
+# ----------------------------------------------------------------------
+# Comparisons: two figures the tool already computed
+# ----------------------------------------------------------------------
+
+
+_DASH_RE = re.compile(r"[‐-―−]")
+
+
+def _same_label(left: object, right: object) -> str:
+    """Two group labels, compared without arguing about which dash was typed."""
+    return _DASH_RE.sub("-", str(left).strip()) == _DASH_RE.sub("-", str(right).strip())
+
+
+def _registered_figure(
+    computed: dict, name: object, field: str, order: list[str]
+) -> dict:
+    key = str(name or "").strip()
+    if not key:
+        raise DerivationError(
+            f"A comparison needs {field}, naming a derivation registered earlier in "
+            "this call"
+        )
+    entry = computed.get(key)
+    if entry is None:
+        known = ", ".join(order) or "(none yet)"
+        raise DerivationError(
+            f"{field} names {key!r}, which is not a derivation computed earlier in "
+            f"this call. Registered so far: {known}. Order matters — a comparison "
+            "reads figures the tool has already produced, so the two it compares "
+            "must appear before it in the list."
+        )
+    return entry
+
+
+def _table_row_figure(
+    entry: dict, request: dict, group_field: str
+) -> tuple[float, str, str]:
+    """One cell of an already-computed grouped table, by column and row label."""
+    table = entry["table"]
+    headers = list(table["headers"])
+    units = list(table.get("units") or [])
+    column = str(request.get("column") or "").strip()
+    if not column:
+        raise DerivationError(
+            "Comparing two rows of a grouped table needs 'column', naming which "
+            f"measure to read. That table's measure columns are: "
+            f"{', '.join(headers[1:]) or '(none)'}"
+        )
+    if column == headers[0]:
+        raise DerivationError(
+            f"Column {column!r} is the group column, not a measure. Name one of: "
+            f"{', '.join(headers[1:]) or '(none)'}"
+        )
+    if column not in headers:
+        raise DerivationError(
+            f"Column {column!r} is not a column of {entry['request_id']!r}. Its "
+            f"measure columns are: {', '.join(headers[1:]) or '(none)'}"
+        )
+    index = headers.index(column)
+    label = str(request.get(group_field) or "").strip()
+    if not label:
+        raise DerivationError(
+            f"Comparing two rows of a grouped table needs {group_field!r}. That "
+            f"table's rows are: {', '.join(str(row[0]) for row in table['rows'])}"
+        )
+    # Band labels are written with an en dash, and an author typing the row
+    # name back reaches for the hyphen on the keyboard. Refusing "200-500"
+    # against a row called "200–500" would be the tool insisting on its own
+    # typography.
+    matches = [row for row in table["rows"] if _same_label(row[0], label)]
+    if not matches:
+        raise DerivationError(
+            f"{group_field} names {label!r}, which is not a row of "
+            f"{entry['request_id']!r}. Its rows are: "
+            f"{', '.join(str(row[0]) for row in table['rows'])}"
+        )
+    unit = units[index - 1] if 0 < index <= len(units) else ""
+    value = _cell_number(matches[0][index], unit)
+    if value is None:
+        raise DerivationError(
+            f"The {column!r} cell of row {label!r} in {entry['request_id']!r} states "
+            "no number, so there is nothing to compare"
+        )
+    # The row's own label, not the author's spelling of it, so the evidence
+    # text and the table it was read from name the same row.
+    return value, unit, str(matches[0][0]).strip()
+
+
+def compare_figures(request: dict, computed: dict, order: list[str]) -> dict:
+    """A ratio or a percentage-point difference between two computed figures.
+
+    Two input forms, and supporting only the first would have replaced one kind
+    of friction with another. Naming two registered derivations is what a
+    cross-file comparison needs. But the commonest sentence of this shape —
+    "the $200–500 band draws 13.6x the reviews of the $0–30 band" — compares
+    two rows of a table the tool has already built, and making the author
+    register those two cells again as scalars first would cost three
+    registrations for one sentence.
+    """
+    op = str(request.get("op") or "").strip().lower()
+    decimals = declared_decimals(request)
+
+    from_table = (
+        request.get("numerator_group") is not None
+        or request.get("denominator_group") is not None
+    )
+    if from_table:
+        entry = _registered_figure(computed, request.get("source"), "'source'", order)
+        if entry.get("kind") != "table":
+            raise DerivationError(
+                f"'source' names {entry['request_id']!r}, which is a single figure "
+                "rather than a grouped table. Comparing two single figures uses "
+                "'numerator' and 'denominator' instead."
+            )
+        numerator, numerator_unit, top_label = _table_row_figure(
+            entry, request, "numerator_group"
+        )
+        denominator, denominator_unit, bottom_label = _table_row_figure(
+            entry, request, "denominator_group"
+        )
+        dataset = entry["dataset"]
+        rows_used = entry["rows_matched"]
+        column = str(request.get("column") or "")
+        basis = {
+            "form": "grouped_table_rows",
+            "table": entry["evidence_id"],
+            "column": column,
+            "numerator_group": top_label,
+            "denominator_group": bottom_label,
+        }
+        numerator_name = f"{top_label} {column}"
+        denominator_name = f"{bottom_label} {column}"
+    else:
+        top = _registered_figure(computed, request.get("numerator"), "'numerator'", order)
+        bottom = _registered_figure(
+            computed, request.get("denominator"), "'denominator'", order
+        )
+        for entry, field in ((top, "numerator"), (bottom, "denominator")):
+            if entry.get("kind") != "scalar":
+                raise DerivationError(
+                    f"'{field}' names {entry['request_id']!r}, which is a grouped "
+                    "table rather than a single figure. Reading one cell out of a "
+                    "table takes the other form: 'source' naming the table, plus "
+                    "'column', 'numerator_group' and 'denominator_group'."
+                )
+        numerator, numerator_unit = top["value"], top["unit"]
+        denominator, denominator_unit = bottom["value"], bottom["unit"]
+        dataset = top["dataset"]
+        rows_used = top["rows_matched"]
+        basis = {
+            "form": "registered_derivations",
+            "numerator": top["evidence_id"],
+            "denominator": bottom["evidence_id"],
+        }
+        numerator_name = top["request_id"]
+        denominator_name = bottom["request_id"]
+
+    if op == "pp_diff":
+        if numerator_unit != "%" or denominator_unit != "%":
+            raise DerivationError(
+                "pp_diff is a difference in percentage points, so both figures have "
+                f"to be percentages; these are "
+                f"{numerator_unit or 'unitless'} and {denominator_unit or 'unitless'}. "
+                "Compute a 'share' for each side first, or use 'ratio' for the "
+                "relative size of two plain quantities."
+            )
+        value = numerator - denominator
+        unit = "%"
+    else:
+        if denominator == 0:
+            raise DerivationError(
+                f"ratio has a denominator of 0 ({denominator_name}), and nothing is "
+                "a multiple of nothing"
+            )
+        value = numerator / denominator
+        # Deliberately unitless. A ratio of two figures in the same unit is a
+        # multiple; a ratio across units is a rate whose name only the author
+        # knows, and inventing one here would put a unit in the evidence that
+        # nobody chose.
+        unit = ""
+    if decimals is not None:
+        value = round(value, decimals)
+
+    detail = (
+        f"{numerator_name} = {format_number(numerator)}"
+        f"{numerator_unit or ''}, "
+        f"{denominator_name} = {format_number(denominator)}"
+        f"{denominator_unit or ''}"
+    )
+    derivation = {
+        "method": op,
+        "source_file": dataset.display_name,
+        "row_filter": "*",
+        "rows_matched": rows_used,
+        "rows_total": len(dataset.rows),
+        "input_columns": [],
+        "compares": basis,
+        "operands": {
+            "numerator": {"value": numerator, "unit": numerator_unit},
+            "denominator": {"value": denominator, "unit": denominator_unit},
+        },
+    }
+    if decimals is not None:
+        derivation["decimals"] = decimals
+    return {
+        "value": value,
+        "unit": unit,
+        "rows_used": rows_used,
+        "detail": detail,
+        "decimals": decimals,
+        "dataset": dataset,
+        "derivation": derivation,
+    }
+
+
+def _comparison_text(request: dict, dataset: Dataset, result: dict, zh: bool) -> str:
+    """The comparison as evidence text, with both operands stated in place.
+
+    Both sides are written out because the gate reads this the way a person
+    does. A row saying only "13.6" grounds the multiple and nothing the
+    sentence around it will say.
+    """
+    op = str(request.get("op") or "").lower()
+    label = str(request.get("label") or "").strip()
+    decimals = result.get("decimals")
+    # "50.0% percentage points" says the unit twice. The unit of a
+    # percentage-point difference is carried by the words around it.
+    rendered = format_number(result["value"], decimals)
+    if zh:
+        name = label or ("百分點差" if op == "pp_diff" else "比值")
+        relation = (
+            f"相差 {rendered} 個百分點" if op == "pp_diff" else f"為 {rendered} 倍"
+        )
+        return (
+            f"衍生統計(來源:{dataset.display_name}):{name}{relation}。"
+            f"計算方式:以 {op} 比較兩個已計算的數值 —— {result['detail']}。"
+        )
+    name = label or ("percentage-point difference" if op == "pp_diff" else "ratio")
+    relation = (
+        f"is {rendered} percentage points"
+        if op == "pp_diff"
+        else f"is {rendered}x"
+    )
+    return (
+        f"Derived statistics from {dataset.display_name}: {name} {relation}. "
+        f"Method: {op} over two already-computed figures — {result['detail']}."
+    )
 
 
 def _group_table_text(frame: Dataset, request: dict, table: dict, zh: bool) -> str:
@@ -1331,7 +1758,7 @@ def _request_text(request: dict, dataset: Dataset, result: dict, zh: bool) -> st
     op = str(request.get("op")).lower()
     column = str(request.get("column") or "")
     rows_expression = result["derivation"]["row_filter"]
-    value = format_number(result["value"])
+    value = format_number(result["value"], result.get("decimals"))
     unit = result["unit"]
     rendered = f"{value}%" if unit == "%" else (f"{value} {unit}".strip() if unit else value)
     if zh:
@@ -1467,6 +1894,29 @@ def brick_laying_problems(requests: list[dict]) -> dict[str, str]:
     return problems
 
 
+def _expect_problem(request: dict, request_id: str, result: dict) -> dict | None:
+    """The author's stated figure against the one the rows produce.
+
+    `expect` is checked, never trusted; the same rule for every shape, so a
+    comparison cannot be the one place a number is taken on the author's word.
+    """
+    expect = request.get("expect")
+    if expect is None:
+        return None
+    expected = parse_number(expect)
+    tolerance = abs(result["value"]) * 0.005 + 1e-9
+    if expected is not None and abs(expected - result["value"]) <= tolerance:
+        return None
+    return {
+        "id": request_id,
+        "error": (
+            f"Registered derivation expects {expect}, but applying "
+            f"{request.get('op')} to those rows gives "
+            f"{format_number(result['value'], result.get('decimals'))}"
+        ),
+    }
+
+
 def build_requested_units(
     requests: list[dict],
     source_registry: list[dict],
@@ -1483,6 +1933,17 @@ def build_requested_units(
     units: list[dict] = []
     problems: list[dict] = []
     bricks = brick_laying_problems(requests)
+    #: Every figure produced so far, reachable by its request id and by the
+    #: evidence id an author would cite, so a later `ratio` or `pp_diff` can
+    #: name either one.
+    computed: dict[str, dict] = {}
+    order: list[str] = []
+
+    def remember(entry: dict) -> None:
+        computed[entry["request_id"]] = entry
+        computed[entry["evidence_id"]] = entry
+        order.append(entry["request_id"])
+
     for request in requests or []:
         if not isinstance(request, dict):
             problems.append({"id": "", "error": "Derivation entry is not an object"})
@@ -1494,6 +1955,48 @@ def build_requested_units(
         if request_id in bricks:
             problems.append({"id": request_id, "error": bricks[request_id]})
             continue
+
+        if str(request.get("op") or "").strip().lower() in COMPARISON_OPS:
+            # Resolved against figures already computed rather than against a
+            # file, so this runs before `resolve_frame`: its 'source' names a
+            # grouped table, not a source name that path could match.
+            try:
+                result = compare_figures(request, computed, order)
+            except DerivationError as error:
+                problems.append({"id": request_id, "error": str(error)})
+                continue
+            dataset = result.pop("dataset")
+            expect_problem = _expect_problem(request, request_id, result)
+            if expect_problem:
+                problems.append(expect_problem)
+                continue
+            evidence_id = request_evidence_id(request_id)
+            units.append(
+                _unit_evidence(
+                    dataset,
+                    _comparison_text(request, dataset, result, zh),
+                    {
+                        **result["derivation"],
+                        "request_id": request_id,
+                        "origin": "requested",
+                    },
+                    created_at,
+                    evidence_id=evidence_id,
+                    block_id=f"derived_request_{request_id}",
+                    origin="requested",
+                )
+            )
+            remember({
+                "kind": "scalar",
+                "request_id": request_id,
+                "evidence_id": evidence_id,
+                "value": result["value"],
+                "unit": result["unit"],
+                "dataset": dataset,
+                "rows_matched": result["rows_used"],
+            })
+            continue
+
         try:
             dataset = resolve_frame(request, datasets)
         except DerivationError as error:
@@ -1506,6 +2009,7 @@ def build_requested_units(
             except DerivationError as error:
                 problems.append({"id": request_id, "error": str(error)})
                 continue
+            evidence_id = request_evidence_id(request_id)
             units.append(
                 _unit_evidence(
                     dataset,
@@ -1516,12 +2020,20 @@ def build_requested_units(
                         "origin": "requested",
                     },
                     created_at,
-                    evidence_id=request_evidence_id(request_id),
+                    evidence_id=evidence_id,
                     block_id=f"derived_request_{request_id}",
                     origin="requested",
                     table=table,
                 )
             )
+            remember({
+                "kind": "table",
+                "request_id": request_id,
+                "evidence_id": evidence_id,
+                "table": table,
+                "dataset": dataset,
+                "rows_matched": table["derivation"]["rows_matched"],
+            })
             continue
 
         try:
@@ -1529,20 +2041,11 @@ def build_requested_units(
         except DerivationError as error:
             problems.append({"id": request_id, "error": str(error)})
             continue
-        expect = request.get("expect")
-        if expect is not None:
-            expected = parse_number(expect)
-            tolerance = abs(result["value"]) * 0.005 + 1e-9
-            if expected is None or abs(expected - result["value"]) > tolerance:
-                problems.append({
-                    "id": request_id,
-                    "error": (
-                        f"Registered derivation expects {expect}, but applying "
-                        f"{request.get('op')} to those rows gives "
-                        f"{format_number(result['value'])}"
-                    ),
-                })
-                continue
+        expect_problem = _expect_problem(request, request_id, result)
+        if expect_problem:
+            problems.append(expect_problem)
+            continue
+        evidence_id = request_evidence_id(request_id)
         units.append(
             _unit_evidence(
                 dataset,
@@ -1553,9 +2056,18 @@ def build_requested_units(
                     "origin": "requested",
                 },
                 created_at,
-                evidence_id=request_evidence_id(request_id),
+                evidence_id=evidence_id,
                 block_id=f"derived_request_{request_id}",
                 origin="requested",
             )
         )
+        remember({
+            "kind": "scalar",
+            "request_id": request_id,
+            "evidence_id": evidence_id,
+            "value": result["value"],
+            "unit": result["unit"],
+            "dataset": dataset,
+            "rows_matched": result["rows_used"],
+        })
     return units, problems

@@ -281,9 +281,25 @@ tools:
       that find no partner are counted and reported in the evidence text, and
       a column name present on both sides is renamed rather than overwritten;
       check two tables for a shared key before writing that they cannot be
-      crossed. The value is computed from the rows here rather than supplied
-      by the caller, and "expect" is checked against it instead of trusted.
-      Returns the evidence_id to cite.
+      crossed, and the task brief lists the pairs that share one. Two further
+      ops, "ratio" and "pp_diff", compare figures already computed, so an
+      argument can state a multiple or a gap in percentage points and cite it.
+      Either read two rows of a table registered earlier - {"id":
+      "premium_vs_budget", "op": "ratio", "source": "price_band_reliability",
+      "column": "Listings", "numerator_group": "200-500",
+      "denominator_group": "0-30", "decimals": 1} - or name two registered
+      derivations, which is what a comparison across files needs: {"id":
+      "photo_share", "op": "ratio", "numerator": "photo_count",
+      "denominator": "listing_count"}. "pp_diff" is numerator minus
+      denominator and takes two percentages; "ratio" is numerator over
+      denominator and carries no unit; both read figures produced earlier in
+      the same call, so order matters. "decimals" pins how many places a
+      figure is rounded to before it is recorded, and the evidence then states
+      exactly that many - use it when a claim needs "3.53%", since the content
+      check refuses a claim carrying more places than its evidence. The value
+      is computed from the rows here rather than supplied by the caller, and
+      "expect" is checked against it instead of trusted. Returns the
+      evidence_id to cite.
     parameters:
       - name: job_id
         type: string

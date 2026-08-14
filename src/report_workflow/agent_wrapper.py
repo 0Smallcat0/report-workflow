@@ -781,6 +781,37 @@ def register_derived_evidence(
     Rows that find no partner are counted and reported in the evidence text,
     and a column name present on both sides is renamed rather than overwritten.
 
+    ``ratio`` and ``pp_diff`` compare two figures already computed, so an
+    argument can state a multiple or a gap in percentage points and cite it.
+    Two input forms. Reading two rows out of a table registered earlier — the
+    commonest shape, and the one that costs nothing extra::
+
+        {"id": "premium_vs_budget_reviews",
+         "op": "ratio",
+         "source": "price_band_reliability",   # id, or E_D_<id>, of the table
+         "column": "Listings",                 # which measure column to read
+         "numerator_group": "200-500",         # row labels from that table
+         "denominator_group": "0-30",
+         "decimals": 1}
+
+    Or naming two registered derivations, which is what a comparison across
+    files or across statistics needs::
+
+        {"id": "photo_share_of_catalogue",
+         "op": "ratio",
+         "numerator": "photo_count",
+         "denominator": "listing_count"}
+
+    ``pp_diff`` is ``numerator - denominator`` and takes two percentages;
+    ``ratio`` is ``numerator / denominator`` and is recorded without a unit.
+    Both read figures produced *earlier in the same call*, so order matters.
+
+    ``decimals`` pins how many decimal places the figure is rounded to before
+    it is recorded, and the evidence then states exactly that many. Use it when
+    a claim needs "3.53%": the content check refuses a claim carrying more
+    places than its evidence, and declaring the places is how the rounded
+    figure becomes the one that exists.
+
     ``expect`` does not set the value. It is compared against what the rows
     actually produce, and a disagreement is reported rather than published.
     """

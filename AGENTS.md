@@ -229,6 +229,31 @@ listed against it in the outline brief — extracted by
 Neither is an id-mapping exercise any more; `undermines` and `answers` were both
 bookkeeping the reader never saw.
 
+Three recorded runs declined a block of work by making a false statement about
+the tool or the data, and no gate reads a sentence like that:
+
+- "the two tables share no common column", written to explain skipping the
+  cross tabulation. Both key on `asin`; a blind judge did the analysis by hand
+  from the same files and got 44 of 66 listings in the $200–800 band, and all
+  three judges named its absence as the report's largest gap.
+- a sales-figure ranking whose top three were a telescope and two memory cards,
+  retired into the adversarial corpus as limitation `l5` — every figure real,
+  the population wrong.
+- `figure_recommendations.json` returned 10 recommendations — scatter 5,
+  table 4, histogram 1 — and `figure_plan.json` recorded
+  `generated_figure_count: 0`. The stated reason was that the recommendations
+  "flag on every one of them" that the units differ and a shared Y axis would
+  mislead. That warning is on the 4 `table` entries only; the other 6 recommend
+  charts and carry no such note. A reason true of 4 of 10 declined 10 of 10.
+
+The repair for all three is the same shape and is not a gate: compute the thing
+and put it in front of the author where the decision is made. Joinable pairs
+are listed in the brief; the recommendation summary states the distribution by
+type beside the count. Whether an author who can see them writes differently is
+not yet measured — that is what the next recorded run is for. A rule of the
+form "N were offered and 0 were used, so name each refusal" is the shape this
+repo has already removed twice for measuring rule-following.
+
 Statistics over structured sources are evidence. `EVIDENCE_BUILD` writes
 summary units for every table — row and per-column value counts, numeric
 column quartiles, categorical group counts and shares — each carrying a
