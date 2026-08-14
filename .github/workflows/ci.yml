@@ -55,6 +55,63 @@ jobs:
       - name: Unit tests
         run: python -m unittest discover -s tests -v
 
+  # The tool arm is the one benchmark document the pipeline generates, and it
+  # is checked in. If the code that reaches the deliverable changes and nobody
+  # re-records, every score in the drone-market archive describes a document
+  # the current code would no longer produce — and `--check` cannot see that,
+  # because it re-scores the checked-in file rather than regenerating it.
+  #
+  # So: re-record and diff. Not "the script's file hash changed" — a comment
+  # or a reformat would turn that red, and what it would be measuring is
+  # byte-identity of a source file rather than whether the fixture moved.
+  #
+  # Path-triggered, because a full re-record runs prepare, validate and render.
+  # An ordinary pull request should not pay for it.
+  rerecord:
+    name: Tool arm still re-records to the checked-in fixture
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: What changed
+        id: changed
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            deliverable:
+              - 'src/report_workflow/nodes/**'
+              - 'src/report_workflow/derived_evidence.py'
+              - 'src/report_workflow/blueprints/**'
+              - 'scripts/record_tool_arm.py'
+              - 'scripts/report_axes.py'
+
+      - uses: actions/setup-python@v5
+        if: steps.changed.outputs.deliverable == 'true'
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install package
+        if: steps.changed.outputs.deliverable == 'true'
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e .[mcp,render]
+
+      - name: Re-record the tool arm
+        if: steps.changed.outputs.deliverable == 'true'
+        run: python scripts/record_tool_arm.py
+
+      - name: The re-recording must match the checked-in fixture
+        if: steps.changed.outputs.deliverable == 'true'
+        run: |
+          if ! git diff --exit-code -- benchmarks/fixtures/drone_market_tool_arm.md; then
+            echo "::error::The pipeline no longer produces the recorded tool arm."
+            echo "Run 'python scripts/record_tool_arm.py', review the diff, and"
+            echo "re-run the blind judging if the argument changed — the archived"
+            echo "scores describe the fixture, not the code."
+            exit 1
+          fi
+
   # The version lives in four files here and a fifth on PyPI, and they drift
   # independently: eleven tags once shipped while the repository advertised a
   # version from the month before, and a later release was tagged and never

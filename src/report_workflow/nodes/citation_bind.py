@@ -402,7 +402,14 @@ def _format_source_trace_entry(evidence: dict, number: int) -> str:
     # evidence id is an internal handle — the same rule that keeps `[CITE:E…]`
     # out of the body keeps it out of the delivered source list; it stays in
     # `internal_source_appendix.md`, which is where the audit trail lives.
-    locator = " ".join(part for part in (file_name, span) if part)
+    # The span usually opens with the file name already — "products.csv (544
+    # rows)" — so joining the two printed it twice on every line of the source
+    # list. Same defect as the table provenance line repaired in 0e0a40f, one
+    # renderer over; the regression test there covered the table line only.
+    locator = " ".join(
+        part for part in (("" if span.startswith(file_name) else file_name), span)
+        if part
+    ) or file_name
     parts = [f"[S{number}] {locator}"]
     if quote:
         parts.append(f"“{quote}”")

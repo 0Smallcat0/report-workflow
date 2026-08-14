@@ -1,0 +1,296 @@
+{
+ "llm_direct": [
+  {
+   "arm": "llm_direct",
+   "vote": 1,
+   "judge": {
+    "model": "claude-opus-5",
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false,
+    "label_seen": "document_A",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "note": "asked to check checkable claims against the CSVs"
+   },
+   "claim_strength": {
+    "score": 4,
+    "evidence": "「值得進入，但可競爭的範圍只有 267 件掛牌，不是 544 件；切點是 $200–800 的攝影類整機，賣點是可靠度與可用性，不是影像規格。」每個實質章節都下了可被反駁的判斷，彼此扣連（污染→分母→價格帶純度→品牌門檻→痛點→切點），而品牌標示率轉折點（$0–50 25.7% → $200–800 54.5%）是資料支持但未明說的非顯然讀法。這個 4 分是就「敢主張」而言；其中最醒目的那個數字經查是錯的，扣分落在另外兩個維度。"
+   },
+   "evidence_depth": {
+    "score": 3,
+    "evidence": "形式上具備 4 級語言：「它有 243 件掛牌、佔全體 44.7%，累積評論數中位數 225 則，銷量欄位覆蓋率 48.6%——三個數字裡沒有一個是靠另外兩個推出來的」。但主要主張之一所倚的證據被污染：第四節「累積評論數最高的五件掛牌」第 1 名（33,535 則、$35.99）是 Occer 雙筒望遠鏡、第 2 名（22,039 則、$96.99）是 Gskyer 天文望遠鏡，分類皆為「非無人機商品」，兩件合計 55,574 則、佔該表引用 107,169 則的 51.9%；而本報告自己在第三節說這 46 件是關鍵字污染應剔除。"
+   },
+   "counter_specificity": {
+    "score": 3,
+    "evidence": "第七節八項的形式是滿分等級的：「$30–50 有 53.8% 的掛牌帶銷量資料，$800 以上只有 13.2%…『高價帶沒需求』不是這份資料支持的說法」。扣分在於最吃重的那一項本身是錯的：第七項寫「累積評論數第一名與第二名…是白牌爆款，還是欄位漏填的知名品牌，這份資料不能決定」——這份資料完全能決定，兩件是望遠鏡與天文望遠鏡。撐起「建議可能該翻轉」的反證，其資料基礎不成立。"
+   }
+  },
+  {
+   "arm": "llm_direct",
+   "vote": 2,
+   "judge": {
+    "model": "claude-opus-5",
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false,
+    "label_seen": "document_A",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "note": "asked additionally whether a stated relation holds across the whole table it cites, not only between the two rows it names"
+   },
+   "claim_strength": {
+    "score": 4,
+    "evidence": "每一個實質章節都下了可被反駁的斷言，而且彼此串得起來：「從 $0–50 的 25.7% 到 $200–800 的 54.5%，品牌標示率翻了一倍以上……在 $50 以下賣東西，做品牌這件事收不到錢。」「高提及率是滿意的訊號，不是抱怨的訊號。」「低價帶的擁擠有一半是零件造成的，不是整機競爭造成的。」品牌標示率隨價格上升這一條是資料支持但沒有直接寫在任何一欄裡的非顯然讀法（我用 CSV 重算 25.7/35.4/54.5/47.2% 完全吻合），且它直接餵進第九節的切點選擇。"
+   },
+   "evidence_depth": {
+    "score": 3,
+    "evidence": "多數主張確實由三個互不衍生的量撐住，而且文件自己點名獨立性——這是 3 的滿分寫法。扣在 4 的原因是一組承重證據取自錯誤母體：第四節「累積評論數最高的五件掛牌…這五件加起來 107,169 則評論，佔全類目 34.0%。它們全部落在 $100 以下」。比對 CSV：排名 1 是 Occer 雙筒望遠鏡、排名 2 是 Gskyer 天文望遠鏡，兩件都被分類為「非無人機商品」——正是本文件第三節自己認定為關鍵字污染的那 46 件，佔該 107,169 則的 51.9%。且表中排名 4 自己標「（無價格）」，卻仍寫成「它們全部落在 $100 以下」。"
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "第七節八項逐條指名「它影響哪一節」、附數字與偏誤方向，且其中一項真的改寫了建議而文件明說了：「這個選擇是風險偏好的選擇，不是資料的選擇。」另有把自己工具的脆弱度量化的一條：「第六節那張表的每一個差值，都在三則評論就能翻轉的範圍內。」以及方向明確的偏誤陳述（$30–50 銷量覆蓋 53.8%、$800 以上 13.2%，已核對無誤）。唯一瑕疵是最被強調的反證建立在上述錯誤母體上。"
+   }
+  },
+  {
+   "arm": "llm_direct",
+   "vote": 3,
+   "judge": {
+    "model": "claude-opus-5",
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false,
+    "label_seen": "document_A",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "note": "asked additionally to be sceptical of length in both directions"
+   },
+   "claim_strength": {
+    "score": 4,
+    "evidence": "「從 $0–50 的 25.7% 到 $200–800 的 54.5%，品牌標示率翻了一倍以上，$200–800 是唯一過半的一段。……在 $50 以下賣東西，做品牌這件事收不到錢。」另有「$200–500 是風險較低的位置，$30–100 是回報較高但贏家全拿的位置」。每一節都提出可被推翻的主張，且彼此相扣（品類純度→價格帶→品牌標示率→痛點→切點）；把「品牌標示率隨價格上升」讀成「低價帶的品牌投資收不回來」是資料支持但從未寫出的非顯然讀法。"
+   },
+   "evidence_depth": {
+    "score": 3,
+    "evidence": "支撐面：「243 件掛牌、佔全體 44.7%，累積評論數中位數 225 則，銷量欄位覆蓋率 48.6%——三個數字裡沒有一個是靠另外兩個推出來的」，我逐一核對無誤。但扣分處在同一份文件的另一個主張：「這五件加起來 107,169 則評論…它們全部落在 $100 以下」。核對 CSV：第 1、2 名是 Occer 12x25 Compact Binoculars 與 Gskyer Telescope，在本文件自己引用的分類檔裡都是「非無人機商品」，合計占該 107,169 的 51.9%；只算無人機時前五名合計 76,134 則、24.2%，且其中兩件根本沒有價格欄，所以「全部落在 $100 以下」連文件自己表中「（無價格）」那一列都對不上。"
+   },
+   "counter_specificity": {
+    "score": 3,
+    "evidence": "多數限制確實同時點名結論與數字，第八項尤其漂亮：「第六節那張表的每一個差值，都在三則評論就能翻轉的範圍內」。但它被指定為「會改變建議」的那一條是第二項：「爆款集中在低價帶，這是對第一節切點的直接反證」——其中 51.9% 不是無人機。第七項更直接錯：「累積評論數第一名與第二名…這份資料不能決定」——這份資料決定得了。level 3 的「多數限制點名結論與數字」完全達到；level 4 的「至少一條強到改變建議」則由一條母體錯置的證據撐著。"
+   }
+  }
+ ],
+ "tool": [
+  {
+   "arm": "tool",
+   "vote": 1,
+   "judge": {
+    "model": "claude-opus-5",
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false,
+    "label_seen": "document_B",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "note": "asked to check checkable claims against the CSVs"
+   },
+   "claim_strength": {
+    "score": 3,
+    "evidence": "多數實質章節有可錯的主張，且相當克制：「本報告不把它寫成一條跨全表的規律，因為同一張表上有兩處反例：0–30 的 99 件對 50–100 的 63 件，累積評論中位數是 24.00 對 22.00」，以及「而『高價帶沒需求』這個讀法，在 800+ 這一段其實是『這一段有 32.08% 是另一個通路的商品』」。未達 4 的原因有二：品牌一節只把表格往上抬一階，沒對 61.9% 空白品牌做任何切分；且痛點一節內文三次寫「1–3 星區間 49 則評論」，但表 7 中 n=49 的那一列是「1–2」（1–3 星應為 68 則）。多數段落是「數字＋一句詮釋」的形狀，論證密度低於 A 與 C。"
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "「三個獨立的量支撐它，各自來自不同的檔案：4.66 星來自評論檔；327.00 則累積評論中位數與 53 件、9.74% 來自掛牌檔；66.04% 的攝影佔比來自分類檔與掛牌檔以 asin 內聯結後的交叉表。4.90% 的負評率與 4.66 出自同一批 102 則評論，只是同一個訊號的第二種寫法，不另計為佐證。」這正是鑑準第二維要求的「不互相推導」判準，而且是主動拒絕把衍生量當第二個證據。它也整條棄用一個證據流：「所以銷量欄位不能用來排無人機的需求」。我逐格複算了表 1–10，全部與 CSV 相符。"
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "「口碑聯結表只涵蓋 373 則評論、50 件商品，其中 500+ 那一格只有 21 則評論、2 件商品…這一條直接改寫了建議的強度」，而建議一節真的照做：「這裡把建議降級：進入 200–500，但先以單一機種試水而不是鋪產品線…如果先取得的第三方銷量資料顯示低價帶的頭部規模遠大於此，正確的切點會變成 30–100，那時這份報告的建議應該被推翻而不是被修補。」另外它是唯一在資料限制中點名「10K+ 那一組唯一的一件是 Occer Compact Binoculars」等三件非無人機商品並因此棄用整個銷量欄位的文件——這正是 A 掉進去的坑。"
+   }
+  },
+  {
+   "arm": "tool",
+   "vote": 2,
+   "judge": {
+    "model": "claude-opus-5",
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false,
+    "label_seen": "document_B",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "note": "asked additionally whether a stated relation holds across the whole table it cites, not only between the two rows it names"
+   },
+   "claim_strength": {
+    "score": 4,
+    "evidence": "每節都有可錯的斷言，且最強的一條是別人沒看見的讀法：「它回答的是價格帶表單獨回答不了的問題：這條價格軸上的每一段賣的是不是同一類東西。答案是不是。……而『高價帶沒需求』這個讀法，在 800+ 這一段其實是『這一段有 32.08% 是另一個通路的商品』。」我用 asin 內聯結重算表 5，七列的攝影／植保佔比逐格吻合。另一條同級的是拒絕過度概推：「本報告不把它寫成一條跨全表的規律，因為同一張表上有兩處反例……」兩個反例我都驗證為真。"
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "唯一一份公開做「獨立性記帳」的文件：「三個獨立的量支撐它，各自來自不同的檔案……4.90% 的負評率與 4.66 出自同一批 102 則評論，只是同一個訊號的第二種寫法，不另計為佐證。」它還明白區分「支持」與「僅不牴觸」。我重算了它引用的每一個衍生量（1.87 倍、13.6 倍、53.92pp、5.71 倍、22.65pp、13.28pp）全部正確，連銷量級距最高三格是 Occer 望遠鏡與兩張 GIGASTONE 記憶卡也正確。"
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "限制點名結論、數字、方向，並且真的降級了建議：「摘要那條『200–500 最好』的結論，背後只有 12 件商品……這一條直接改寫了建議的強度」，建議節接著執行降級並預先登記推翻條件：「如果先取得的第三方銷量資料顯示低價帶的頭部規模遠大於此，正確的切點會變成 30–100，那時這份報告的建議應該被推翻而不是被修補。」另有一條是「限制改變了報告用什麼資料」：「所以銷量欄位不能用來排無人機的需求，本報告的價格帶與品類結論都不使用它」。"
+   }
+  },
+  {
+   "arm": "tool",
+   "vote": 3,
+   "judge": {
+    "model": "claude-opus-5",
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false,
+    "label_seen": "document_B",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "note": "asked additionally to be sceptical of length in both directions"
+   },
+   "claim_strength": {
+    "score": 3,
+    "evidence": "最強的一段是自我節制的主張：「本報告不把它寫成一條跨全表的規律，因為同一張表上有兩處反例：0–30 的 99 件對 50–100 的 63 件，累積評論中位數是 24.00 對 22.00，掛牌少的一帶評論也少；200–500 的 53 件對 500–800 的 13 件，327.00 對 321.00，同樣同向。」另有非顯然讀法「『高價帶沒需求』這個讀法，在 800+ 這一段其實是『這一段有 32.08% 是另一個通路的商品』」。但不是每一節都到這個水準：品牌一節「這不是一個多強權競爭的品類，是一家獨大加上一群規模相近的小玩家」基本上就是表格往上一層的複述，而表 6、表 9、表 10 與 [S1]–[S21] 來源清單占了很大篇幅卻幾乎不承載論證。"
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "「三個獨立的量支撐它，各自來自不同的檔案……4.90% 的負評率與 4.66 出自同一批 102 則評論，只是同一個訊號的第二種寫法，不另計為佐證。」——三個獨立量、說明各自出處、並主動把一個不獨立的數字排除在佐證之外，這是三份文件裡對「獨立」最嚴格的一次操作。再加上「所以銷量欄位不能用來排無人機的需求，本報告的價格帶與品類結論都不使用它」——它辨識出污染源並整欄隔離，正是 A 沒做到的那件事。十張表我逐格核對，數字全部正確。"
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "「支撐這個切點的口碑證據只有 12 件商品、102 則評論，而 500+ 那一格只有 2 件商品、21 則評論。……所以這裡把建議降級：進入 200–500，但先以單一機種試水…如果先取得的第三方銷量資料顯示低價帶的頭部規模遠大於此，正確的切點會變成 30–100，那時這份報告的建議應該被推翻而不是被修補。」點名結論、給出數字、明確降級建議，並預先登記推翻條件；銷量污染那一條也同樣把後果寫死（整欄不用）。"
+   }
+  }
+ ],
+ "hand": [
+  {
+   "arm": "hand",
+   "vote": 1,
+   "judge": {
+    "model": "claude-opus-5",
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false,
+    "label_seen": "document_C",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "note": "asked to check checkable claims against the CSVs"
+   },
+   "claim_strength": {
+    "score": 4,
+    "evidence": "「$100–200 是品質窪地，也是最好的攻擊點」「中價帶不是 DJI 在守，是白牌在互相踩」，以及兩個資料支持但未明說的讀法：「這個通路上的買家主體是新手與送禮者」（473 則中 135 則提到 beginner）與「法規是廠商在講的故事，不是買家在煩的事」（供給側 53 筆掛牌主打 sub-250g，需求側只有 2.7% 提到、68 則負評中出現 0 次）。後者是把供給側敘事與需求側證據對打，三份檔案都用上。"
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "「$100–200 這一帶有 28.6% 的商品評分低於 4.0（全樣本最高），對應評論的負評率 23.4%（全價格帶最高）」再加上每筆掛牌銷量 100.8、攝影類內部同帶平均評分 4.10、DJI 掛牌占比 5.0%——五個來自三個檔案、互不推導的量指向同一格。附錄公開了每個衍生欄位的規則，我照著重算，n=383 價格帶表、CR1/3/5/10/20 與 HHI=2,097、sub-250g 的 53 筆／11 筆 DJI／中位數 $257.995 全部逐格相符。"
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "「一件 $1,049 的商品即使月銷 49 件（營收約 $51,401）也會被記為無資料，而一件 $39.98 賣 500 件（營收約 $19,990）卻會被計入。本報告用的『每筆掛牌銷量』指標因此對高價帶不公平」——指名結論、數字、偏誤方向，還算出偏誤的量級，然後重新裁定自己的建議哪一半還活著。第 7 項更狠：「如果 $100–200 的品質窪地是物料成本的物理限制而非在位者的疏忽，那它就不是機會，是陷阱。本資料集無法區分這兩者。」"
+   }
+  },
+  {
+   "arm": "hand",
+   "vote": 2,
+   "judge": {
+    "model": "claude-opus-5",
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false,
+    "label_seen": "document_C",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "note": "asked additionally whether a stated relation holds across the whole table it cites, not only between the two rows it names"
+   },
+   "claim_strength": {
+    "score": 4,
+    "evidence": "每節都下可錯的斷言，且有多個非顯然讀法。最強的是把供給側與需求側對接後推翻一個常見賣點：「供給側有 53 筆掛牌在標題主打 sub-250g……但需求側：473 則評論裡只有 17 則（3.6%）提到 FAA／remote ID／註冊……法規是廠商在講的故事，不是買家在煩的事。」（我驗證 sub-250g 掛牌 53 筆、DJI 11 筆、價格中位數 $257.995、平均評分 4.39、銷量代理 17,450，逐項吻合）。另一條是「中價帶不是 DJI 在守，是白牌在互相踩。」——DJI 在 $50–100／$100–200 的掛牌佔比 5.3%／5.0%、在 $400+ 是 27.1%，我全數重算吻合。"
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "主張由三個以上互相獨立的量撐住，並說明為何是這些量：「$100–200 在兩個切法下都是谷底：攝影類這一帶 39 筆掛牌、平均評分 4.10（全帶最低）、銷量代理值 4,950——比掛牌數更少的 $50–100 帶（27 筆、12,200）低了 59%」——同一結論用全子集與攝影類內部兩次獨立切法複驗，再加上評論聯結側的負評率 23.4%。並自陳哪一項只是「不牴觸」而非「支持」。附錄的衍生欄位規則讓我能逐格重算，價格帶表六列的每一欄全部完全吻合。"
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "限制直接指名自己的建議、給數字、給偏誤方向，並指出機制：「『不要進 $400 以上』這個建議有抽樣偏差，可能是錯的……一件 $1,049 的商品即使月銷 49 件也會被記為無資料」（我驗證 sales 欄最小值確為 50）。它接著分辨哪一半結論還活著：「在位者在高價帶做得很好，這是『不要進』的正當理由；但『高價帶沒需求』不是資料支持的說法。」第 2 點更直接動搖自己的頭號建議，第 7 點把「機會或陷阱」的判別條件講死：「本資料集無法區分這兩者。」"
+   }
+  },
+  {
+   "arm": "hand",
+   "vote": 3,
+   "judge": {
+    "model": "claude-opus-5",
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false,
+    "label_seen": "document_C",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "note": "asked additionally to be sceptical of length in both directions"
+   },
+   "claim_strength": {
+    "score": 4,
+    "evidence": "「供給側有 53 筆掛牌在標題主打 sub-250g（其中 11 筆 DJI），這批商品價格中位數 $257.995、平均評分 4.39、銷量代理值加總 17,450——賣得不錯。但需求側：473 則評論裡只有 17 則（3.6%）提到 FAA／remote ID／註冊……而且『法規/註冊/FAA』在 68 則負評裡出現 0 次。法規是廠商在講的故事，不是買家在煩的事。」加上「中價帶不是 DJI 在守，是白牌在互相踩。」每一節都有可被推翻的主張，彼此相扣，而供給端與需求端的錯位是資料完全支持卻沒有任何一張表說出來的非顯然讀法。"
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "「$100–200 在兩個切法下都是谷底：攝影類這一帶 39 筆掛牌、平均評分 4.10（全帶最低）、銷量代理值 4,950——比掛牌數更少的 $50–100 帶（27 筆、12,200）低了 59%。」這個核心主張由四個互不衍生的量撐住，文件並且逐帶交代分母——「（評分比例的分母為該帶有評分的掛牌數：56／69／44／49／34／36。）」——我重算得到完全相同的數字。它也說明為什麼用這些量（「在兩個切法下都是谷底」＝跨切法穩健性）。"
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "「一件 $1,049 的商品即使月銷 49 件（營收約 $51,401）也會被記為無資料，而一件 $39.98 賣 500 件（營收約 $19,990）卻會被計入。……在位者在高價帶做得很好，這是『不要進』的正當理由；但『高價帶沒需求』不是資料支持的說法。」——點名結論、給出數字、指出偏誤方向，並把同一個建議的正當理由與不正當理由分開。第三、七項更直接打向建議本身。這是三份裡唯一有多條反證直接指向自己主建議可能是錯的。"
+   }
+  }
+ ]
+}

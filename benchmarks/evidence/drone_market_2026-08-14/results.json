@@ -1,0 +1,255 @@
+{
+  "prompt": "根據 Amazon US 無人機類商品資料撰寫一份市場研究報告，涵蓋品類結構、價格帶分布、品牌集中度、買家痛點四個面向，結論必須能支撐「這個市場值不值得進入、從哪個切點進入」的判斷。",
+  "source": [
+    "benchmarks/fixtures/drone_market/amazon_classified.csv",
+    "benchmarks/fixtures/drone_market/amazon_products.csv",
+    "benchmarks/fixtures/drone_market/amazon_reviews.csv"
+  ],
+  "arms": {
+    "hand": "benchmarks/fixtures/drone_market_unassisted.md",
+    "tool": "benchmarks/fixtures/drone_market_tool_arm.md",
+    "llm_direct": "benchmarks/fixtures/drone_market_llm_direct.md"
+  },
+  "rubric": "benchmarks/rubrics/argument_rubric.md",
+  "scores": {
+    "hand": {
+      "numeric": {
+        "external_sources": 0,
+        "verifiable_numbers": 121,
+        "verifiable_number_ratio": 0.7035,
+        "tables": 13,
+        "figures": 0,
+        "counter_evidence_paragraphs": 0,
+        "disclosed_derivations": 0,
+        "structured_paragraph_ratio": 0.3784
+      },
+      "layout": {
+        "heading_informativeness": 0.3571,
+        "table_lead_in_ratio": 0.9231,
+        "paragraph_length_fitness": 0.5172,
+        "table_caption_ratio": 0.0,
+        "table_provenance_ratio": 0.0,
+        "table_size_fitness": 1.0
+      },
+      "argument": {
+        "claim_strength": 4,
+        "evidence_depth": 4,
+        "counter_specificity": 4
+      }
+    },
+    "tool": {
+      "numeric": {
+        "external_sources": 12,
+        "verifiable_numbers": 137,
+        "verifiable_number_ratio": 0.5269,
+        "tables": 10,
+        "figures": 0,
+        "counter_evidence_paragraphs": 4,
+        "disclosed_derivations": 0,
+        "structured_paragraph_ratio": 0.6765
+      },
+      "layout": {
+        "heading_informativeness": 0.8,
+        "table_lead_in_ratio": 1.0,
+        "paragraph_length_fitness": 0.5333,
+        "table_caption_ratio": 1.0,
+        "table_provenance_ratio": 1.0,
+        "table_size_fitness": 0.8
+      },
+      "argument": {
+        "claim_strength": 3,
+        "evidence_depth": 4,
+        "counter_specificity": 4
+      }
+    },
+    "llm_direct": {
+      "numeric": {
+        "external_sources": 0,
+        "verifiable_numbers": 72,
+        "verifiable_number_ratio": 0.5714,
+        "tables": 11,
+        "figures": 0,
+        "counter_evidence_paragraphs": 0,
+        "disclosed_derivations": 0,
+        "structured_paragraph_ratio": 0.3548
+      },
+      "layout": {
+        "heading_informativeness": 0.3333,
+        "table_lead_in_ratio": 0.8182,
+        "paragraph_length_fitness": 0.8,
+        "table_caption_ratio": 0.0,
+        "table_provenance_ratio": 0.0,
+        "table_size_fitness": 1.0
+      },
+      "argument": {
+        "claim_strength": 4,
+        "evidence_depth": 3,
+        "counter_specificity": 3
+      }
+    }
+  },
+  "comparison": [
+    {
+      "axis": "numeric",
+      "dimension": "external_sources",
+      "hand": 0,
+      "tool": 12,
+      "llm_direct": 0
+    },
+    {
+      "axis": "numeric",
+      "dimension": "verifiable_numbers",
+      "hand": 121,
+      "tool": 137,
+      "llm_direct": 72
+    },
+    {
+      "axis": "numeric",
+      "dimension": "verifiable_number_ratio",
+      "hand": 0.7035,
+      "tool": 0.5269,
+      "llm_direct": 0.5714
+    },
+    {
+      "axis": "numeric",
+      "dimension": "tables",
+      "hand": 13,
+      "tool": 10,
+      "llm_direct": 11
+    },
+    {
+      "axis": "numeric",
+      "dimension": "figures",
+      "hand": 0,
+      "tool": 0,
+      "llm_direct": 0
+    },
+    {
+      "axis": "numeric",
+      "dimension": "counter_evidence_paragraphs",
+      "hand": 0,
+      "tool": 4,
+      "llm_direct": 0
+    },
+    {
+      "axis": "numeric",
+      "dimension": "disclosed_derivations",
+      "hand": 0,
+      "tool": 0,
+      "llm_direct": 0
+    },
+    {
+      "axis": "numeric",
+      "dimension": "structured_paragraph_ratio",
+      "hand": 0.3784,
+      "tool": 0.6765,
+      "llm_direct": 0.3548
+    },
+    {
+      "axis": "layout",
+      "dimension": "heading_informativeness",
+      "hand": 0.3571,
+      "tool": 0.8,
+      "llm_direct": 0.3333
+    },
+    {
+      "axis": "layout",
+      "dimension": "table_lead_in_ratio",
+      "hand": 0.9231,
+      "tool": 1.0,
+      "llm_direct": 0.8182
+    },
+    {
+      "axis": "layout",
+      "dimension": "paragraph_length_fitness",
+      "hand": 0.5172,
+      "tool": 0.5333,
+      "llm_direct": 0.8
+    },
+    {
+      "axis": "layout",
+      "dimension": "table_caption_ratio",
+      "hand": 0.0,
+      "tool": 1.0,
+      "llm_direct": 0.0
+    },
+    {
+      "axis": "layout",
+      "dimension": "table_provenance_ratio",
+      "hand": 0.0,
+      "tool": 1.0,
+      "llm_direct": 0.0
+    },
+    {
+      "axis": "layout",
+      "dimension": "table_size_fitness",
+      "hand": 1.0,
+      "tool": 0.8,
+      "llm_direct": 1.0
+    },
+    {
+      "axis": "argument",
+      "dimension": "claim_strength",
+      "hand": 4,
+      "tool": 3,
+      "llm_direct": 4
+    },
+    {
+      "axis": "argument",
+      "dimension": "evidence_depth",
+      "hand": 4,
+      "tool": 4,
+      "llm_direct": 3
+    },
+    {
+      "axis": "argument",
+      "dimension": "counter_specificity",
+      "hand": 4,
+      "tool": 4,
+      "llm_direct": 3
+    }
+  ],
+  "verdict": {
+    "axes": {
+      "numeric": {
+        "vs_llm_direct": {
+          "wins": 4,
+          "losses": 2,
+          "won": true
+        },
+        "vs_hand": {
+          "wins": 4,
+          "losses": 2,
+          "won": true
+        }
+      },
+      "layout": {
+        "vs_llm_direct": {
+          "wins": 4,
+          "losses": 2,
+          "won": true
+        },
+        "vs_hand": {
+          "wins": 5,
+          "losses": 1,
+          "won": true
+        }
+      },
+      "argument": {
+        "vs_llm_direct": {
+          "wins": 2,
+          "losses": 1,
+          "won": true
+        },
+        "vs_hand": {
+          "wins": 0,
+          "losses": 1,
+          "won": false
+        }
+      }
+    },
+    "beats_llm_direct_on_every_axis": true,
+    "axes_lost_to_hand": 1,
+    "stop_condition_met": true
+  }
+}

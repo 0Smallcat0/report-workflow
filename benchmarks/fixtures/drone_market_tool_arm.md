@@ -19,7 +19,8 @@ Every figure in here is cited to a ledger row the pipeline computed; nine tables
 carry their own provenance; three of the seven cross tabulations the pipeline
 built at intake were waived by name in the outline with a reason each.
 
-Measured when recorded: 16,562 characters, 90 traceable figures, 9 tables.
+Measured when recorded: 19,226 characters, 137 traceable figures, 10 tables.
+Body SHA-256: 4681955b15c9bda73fca8d55cd2766fc360528a888806629a15b47385a7735de
 -->
 
 ## 目錄
@@ -28,17 +29,15 @@ Measured when recorded: 16,562 characters, 90 traceable figures, 9 tables.
 
 # 1. 執行摘要
 
-## executive_summary
-
 544 件掛牌中攝影 243 件佔 44.67%、植保 63 件累積評論中位數 1.00、配件/零件 71 件；而四個關鍵字裡 drone brushless motor 一個就回收 102 件、佔 18.75%，可競爭的整機範圍遠小於掛牌總數。[S1] [S2]兩個欄位各自獨立地指向同一件事：分類把 148 件歸為零件與馬達，關鍵字則顯示 102 件來自一個只搜馬達的字串。以 544 為分母估算市場規模，等於把零件貨架與一個累積評論中位數 1.00 的品類算進可競爭範圍；進入決策要用的分母是攝影那 243 件，不是搜尋結果的總數。
 
-200–500 這一帶 102 則評論、12 件商品，平均星等 4.66、一二星佔比 4.90%，是聯結表最好的一格；同一帶在掛牌側只有 53 件、佔 9.74%，而累積評論中位數 327.00 是全表最高。[S3] [S4]口碑側的 4.66 星與掛牌側的 327.00 則評論中位數來自兩個不同的檔案，卻指向同一個價格帶。供給側只有 53 件、9.74%，代表這不是一個被塞滿的位置。結論是值得進入，切點是 200–500 美元這一帶，但以單一機種試水而不是鋪產品線。它的樣本很薄——12 件商品、102 則評論——資料限制一節會說明那如何限制這個結論，以及在什麼情況下這個切點應該被推翻。
+200–500 這一帶 102 則評論、12 件商品，平均星等 4.66、一二星佔比 4.90%，是聯結表最好的一格；同一帶在掛牌側只有 53 件、佔 9.74%，累積評論中位數 327.00 是全表最高，而該帶的 53 件掛牌裡攝影佔 66.04%、植保佔 9.43%。[S3] [S4] [S5]三個來自不同檔案的量指向同一個價格帶：4.66 星來自評論檔，327.00 與 53 件來自掛牌檔，66.04% 的攝影佔比來自分類檔與掛牌檔以 asin 內聯結後的交叉表。供給側只有 53 件、9.74%，代表這不是一個被塞滿的位置。結論是值得進入，而切點不只是一個價格帶：是 200–500 美元帶裡的攝影機種。這一帶 66.04% 是攝影，植保只佔 9.43%，兩者不是同一批買家，所以「進入這一帶」與「進入這一帶的攝影」在執行上是兩件事。以單一機種試水而不是鋪產品線。它的樣本很薄——12 件商品、102 則評論——資料限制一節會說明那如何限制這個結論，以及在什麼情況下這個切點應該被推翻。
 
 # 2. 主要發現
 
 ## 品類結構：一個關鍵字貨架，四個不相干的市場
 
-攝影 243 件、佔 44.67%、累積評論中位數 225.00，且在評論側佔 405 則、平均星等 4.46、一二星 9.38%，是八個品類中規模與需求訊號同時最高的一個。[S1] [S5]規模與需求訊號通常不會同時出現在同一個品類——掛牌多的地方往往是供給過剩，評論多的地方往往是少數爆款。攝影的 243 件掛牌與 405 則評論是兩個獨立來源，而 9.38% 的一二星佔比說明那些評論多數是滿意的。三個數字一起，代表這裡的需求足以支撐多家供應商，而不是一兩件商品的長尾。
+攝影 243 件、佔 44.67%、累積評論中位數 225.00，且在評論側佔 405 則、平均星等 4.46、一二星 9.38%，是八個品類中規模與需求訊號同時最高的一個。[S1] [S6]規模與需求訊號通常不會同時出現在同一個品類——掛牌多的地方往往是供給過剩，評論多的地方往往是少數爆款。攝影的 243 件掛牌與 405 則評論是兩個獨立來源，而 9.38% 的一二星佔比說明那些評論多數是滿意的。三個數字一起，代表這裡的需求足以支撐多家供應商，而不是一兩件商品的長尾。
 
 下表把八個品類的掛牌數、價格中位數與累積評論中位數並排，用來判斷哪一塊有真實需求。
 
@@ -56,7 +55,7 @@ Measured when recorded: 16,562 characters, 90 traceable figures, 9 tables.
 | 消防投彈 | 8 | 1.47% | 39.99 USD | 3.95 | 12.00 |
 | 合計 | 544 | 100.00% | 71.99 USD | 4.26 | 70.00 |
 
-來源：amazon_classified.csv amazon_classified.csv (544 rows)
+來源：amazon_classified.csv (544 rows)
 
 下表顯示四個關鍵字回收的商品在價格與評論上的差距，用來判斷它們是不是同一個市場。
 
@@ -70,15 +69,15 @@ Measured when recorded: 16,562 characters, 90 traceable figures, 9 tables.
 | thermal imaging drone | 52 | 9.56% | 298.69 USD | 124.99 USD | 4.25 | 4.40 | 92.00 |
 | 合計 | 544 | 100.00% | 735.50 USD | 71.99 USD | 4.26 | 4.30 | 70.00 |
 
-來源：amazon_products.csv amazon_products.csv (544 rows)
+來源：amazon_products.csv (544 rows)
 
 植保 63 件、佔 11.58%、累積評論中位數 1.00、平均星等 3.27，是八類中星等最低的一類。[S1]63 件掛牌配上這樣的評論中位數，意思是這些商品被上架但沒有被買。把它讀成「競爭尚未形成的藍海」是危險的：更可能的解釋是這個通路本身不是植保機的購買通路。
 
 drone brushless motor 這個關鍵字回收 102 件、佔 18.75%，價格中位數 33.61 USD，與 drone 的 99.97 USD 不在同一個價格層。[S2]同一次抓取裡出現兩個相差三倍的價格層，代表關鍵字回收的不是一個品類而是一個貨架。任何把這些掛牌當成同一個市場的平均價、平均星等，描述的都是一個不存在的商品。
 
-## 價格帶：供給最密的地方不是需求最厚的地方
+## 價格帶：三段價格，三個貨架
 
-0–30 有 99 件掛牌、佔 18.20%，累積評論中位數只有 24.00；200–500 只有 53 件、佔 9.74%，累積評論中位數 327.00，且該帶聯結後的平均星等 4.66 與一二星 4.90% 都是最好的一格。[S4] [S3]供給最密的一帶評論最少，供給稀薄的一帶評論最多，這個反向關係是這份資料裡最強的結構訊號。掛牌側 99 件對 53 件，評論側 24.00 對 327.00，兩個方向相反的倍率互相印證。它的意思不是低價賣不動，而是低價帶的競爭者多到單件商品分不到注意力。
+0–30 有 99 件掛牌、佔 18.20%，累積評論中位數只有 24.00；200–500 只有 53 件、佔 9.74%，累積評論中位數 327.00，且該帶聯結後的平均星等 4.66 與一二星 4.90% 都是最好的一格。兩帶之間掛牌數是 1.87 倍，累積評論中位數是 13.6 倍。[S4] [S3] [S7] [S8]這兩帶之間，供給密度與需求厚度確實倒過來，而且倍率極不對稱：掛牌 1.87 倍，累積評論中位數 13.6 倍。本報告不把它寫成一條跨全表的規律，因為同一張表上有兩處反例：0–30 的 99 件對 50–100 的 63 件，累積評論中位數是 24.00 對 22.00，掛牌少的一帶評論也少；200–500 的 53 件對 500–800 的 13 件，327.00 對 321.00，同樣同向。能站住的是這兩個端點之間的對比，而它的意思不是低價賣不動，而是低價帶的競爭者多到單件商品分不到注意力。
 
 下表把每個價格帶的掛牌數與累積評論中位數放在一起，看供給與需求是否落在同一帶。
 
@@ -95,7 +94,7 @@ drone brushless motor 這個關鍵字回收 102 件、佔 18.75%，價格中位�
 | 800+ | 53 | 9.74% | 4.45 | 65.50 |
 | 合計 | 425 | 78.12% | 4.26 | 51.50 |
 
-來源：amazon_products.csv amazon_products.csv (425 rows)
+來源：amazon_products.csv (425 rows)
 
 下表是把評論聯結回掛牌價格之後的結果，用來檢查上一張表的需求訊號是否對應到滿意度。
 
@@ -111,19 +110,38 @@ drone brushless motor 這個關鍵字回收 102 件、佔 18.75%，價格中位�
 | 500+ | 21 | 2 | 4.52 | 9.52% |
 | 合計 | 373 | 50 | 4.36 | 10.99% |
 
-來源：amazon_reviews.csv amazon_reviews.csv (373 rows)
+來源：amazon_reviews.csv (373 rows)
+
+下表把品類佔比拆進每一個價格帶，用來回答價格帶表單獨回答不了的問題：這條價格軸的每一段賣的是不是同一類東西。
+
+表 5. 品類佔比依價格帶（分類檔與掛牌檔以 asin 聯結）
+
+| 價格帶 (USD) | 掛牌數 | 攝影佔比 | 植保佔比 | 累積評論中位數 |
+| --- | --- | --- | --- | --- |
+| 0–30 | 99 | 12.12% | 15.15% | 24.00 |
+| 30–50 | 80 | 46.25% | 1.25% | 106.00 |
+| 50–100 | 63 | 42.86% | 7.94% | 22.00 |
+| 100–200 | 64 | 60.94% | 10.94% | 63.00 |
+| 200–500 | 53 | 66.04% | 9.43% | 327.00 |
+| 500–800 | 13 | 69.23% | 15.38% | 321.00 |
+| 800+ | 53 | 37.74% | 32.08% | 65.50 |
+| 合計 | 425 | 42.12% | 12.24% | 51.50 |
+
+來源：amazon_classified.csv (425 rows)
+
+品類佔比依價格帶的交叉表顯示：200–500 帶的 53 件掛牌中攝影佔 66.04%、500–800 帶的 13 件中佔 69.23%，是全表最高的兩格；0–30 帶的 99 件中攝影只佔 12.12%，而 800+ 帶的 53 件中攝影降到 37.74%、植保升到 32.08%。200–500 帶與 0–30 帶的攝影佔比相差 53.92 個百分點，500–800 帶是 0–30 帶的 5.71 倍，800+ 帶的植保佔比比 200–500 帶高 22.65 個百分點。[S5] [S9] [S10] [S11]這張表由分類檔與掛牌檔以 asin 內聯結而成，涵蓋 425 筆有標價的掛牌。它回答的是價格帶表單獨回答不了的問題：這條價格軸上的每一段賣的是不是同一類東西。答案是不是。0–30 帶的 12.12% 與 200–500 帶的 66.04% 相差 53.92 個百分點，低價段主要不是攝影機種；800+ 帶又是第三種東西，攝影只剩 37.74%，植保比 200–500 帶高出 22.65 個百分點，而植保這一類的累積評論中位數是 1.00。所以把整條價格軸當成一個市場來比較平均價或平均星等，比較的是三個不同的貨架；而「高價帶沒需求」這個讀法，在 800+ 這一段其實是「這一段有 32.08% 是另一個通路的商品」。
 
 500–800 只有 13 件掛牌、佔 2.39%，平均星等 4.50、累積評論中位數 321.00。[S4]這麼少的掛牌撐不起一個結論，但它與上一帶的方向一致，可以當成同一個判斷的第二個獨立佐證。把兩帶合看，兩百美元以上就是供給稀薄而需求存在的區間。
 
-100–200 這一帶 77 則評論、11 件商品，平均星等 4.09、一二星佔比 18.18%，是聯結表最差的一格；而掛牌側該帶有 64 件、佔 11.76%，平均星等 4.16，供給並不稀薄。[S3] [S4]18.18% 對上一帶的 4.90%，負評率差了將近四倍，而兩格的價差只有一個級距。掛牌側 64 件、11.76% 說明這不是樣本稀少造成的雜訊，供給密度與 200–500 的 53 件相當。最合理的解釋是期待落差：買家付了不算便宜的價格，拿到的是規格妥協過的機器。
+100–200 這一帶 77 則評論、11 件商品，平均星等 4.09、一二星佔比 18.18%，是聯結表最差的一格；而掛牌側該帶有 64 件、佔 11.76%，平均星等 4.16，供給並不稀薄。它與 200–500 帶的一二星佔比相差 13.28 個百分點。[S3] [S4] [S12]18.18% 對上一帶的 4.90%，相差 13.28 個百分點，而兩格的價差只有一個級距。掛牌側 64 件、11.76% 說明這不是樣本稀少造成的雜訊，供給密度與 200–500 的 53 件相當。最合理的解釋是期待落差：買家付了不算便宜的價格，拿到的是規格妥協過的機器。
 
 ## 品牌集中度：一家獨大，其餘規模相近
 
-DJI 有 92 件掛牌、佔 16.91%，價格中位數 247.50 USD；第二名 Holy Stone 只有 10 件、佔 1.84%。[S6] [S7]第一名與第二名之間差了將近一個數量級，而第二名之後迅速衰減。這不是一個多強權競爭的品類，是一家獨大加上一群規模相近的小玩家。
+DJI 有 92 件掛牌、佔 16.91%，價格中位數 247.50 USD；第二名 Holy Stone 只有 10 件、佔 1.84%。[S13] [S14]第一名與第二名之間差了將近一個數量級，而第二名之後迅速衰減。這不是一個多強權競爭的品類，是一家獨大加上一群規模相近的小玩家。
 
 下表列出有品牌標示的掛牌，用來判斷這個貨架上誰真的建立了位置。
 
-表 5. 品牌側的掛牌數、價格與評論分布
+表 6. 品牌側的掛牌數、價格與評論分布
 
 | brand | 筆數 | 佔比 | price 平均 | price 中位數 | rating 平均 | rating 中位數 | review_count 中位數 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -145,30 +163,30 @@ DJI 有 92 件掛牌、佔 16.91%，價格中位數 247.50 USD；第二名 Holy 
 | 其他（39 組） | 45 | 8.27% | 470.16 USD | 59.99 USD | 4.30 | 4.30 | 82.00 |
 | 合計 | 207 | 38.05% | 714.22 USD | 119.99 USD | 4.29 | 4.40 | 140.00 |
 
-來源：amazon_products.csv amazon_products.csv (207 rows)
+來源：amazon_products.csv (207 rows)
 
-在 brand 欄有值的掛牌上 CR3 為 53.62%，而品牌交叉表顯示這 207 筆之外，另有 337 筆在 brand 欄無可用值。[S8] [S7]53.62% 的分母是 207 筆，不是 544 筆；換成全檔分母則會掉到兩成上下。同一個現象在兩個分母下給出相反的印象，這是本節最容易被誤讀的地方。
+在 brand 欄有值的掛牌上 CR3 為 53.62%，而品牌交叉表顯示這 207 筆之外，另有 337 筆在 brand 欄無可用值。[S15] [S14]53.62% 的分母是 207 筆，不是 544 筆；換成全檔分母則會掉到兩成上下。同一個現象在兩個分母下給出相反的印象，這是本節最容易被誤讀的地方。
 
 ## 買家痛點：低分不是因為拍得差，是連不上與壞掉
 
-1–3 星區間 49 則評論中提及連線的佔 28.57%、提及故障的佔 10.20%，而 5 星以上 349 則的對應比例是 14.04% 與 3.44%。[S9]同一個主題在低分區的比例是高分區的兩倍以上，代表它是被抱怨而不是被稱讚。連線與故障是這份評論資料裡唯二具備這個性質的主題。
+1–3 星區間 49 則評論中提及連線的佔 28.57%、提及故障的佔 10.20%，而 5 星以上 349 則的對應比例是 14.04% 與 3.44%。[S16]同一個主題在低分區的比例是高分區的兩倍以上，代表它是被抱怨而不是被稱讚。連線與故障是這份評論資料裡唯二具備這個性質的主題。
 
 下表把四個主題的提及率依星等區間拆開，差異方向比絕對值更有訊息。
 
-表 6. 痛點主題在不同星等區間的提及率
+表 7. 痛點主題在不同星等區間的提及率
 
 | 星等區間 | 評論數 | 提及影像 | 提及連線 | 提及說明 | 提及故障 |
 | --- | --- | --- | --- | --- | --- |
-| 1–3 | 49 | 22.45% | 28.57% | 6.12% | 10.20% |
-| 3–5 | 75 | 30.67% | 13.33% | 8.00% | 4.00% |
+| 1–2 | 49 | 22.45% | 28.57% | 6.12% | 10.20% |
+| 3–4 | 75 | 30.67% | 13.33% | 8.00% | 4.00% |
 | 5+ | 349 | 36.96% | 14.04% | 5.16% | 3.44% |
 | 合計 | 473 | 34.46% | 15.43% | 5.71% | 4.23% |
 
-來源：amazon_reviews.csv amazon_reviews.csv (473 rows)
+來源：amazon_reviews.csv (473 rows)
 
 下表把評論聯結回品類，用來看滿意度是否隨用途而變。
 
-表 7. 口碑依品類（評論檔與分類檔以 asin 聯結）
+表 8. 口碑依品類（評論檔與分類檔以 asin 聯結）
 
 | 品類 | 評論數 | 平均星等 | 一二星佔比 |
 | --- | --- | --- | --- |
@@ -179,11 +197,11 @@ DJI 有 92 件掛牌、佔 16.91%，價格中位數 247.50 USD；第二名 Holy 
 | 消費級/其他 | 8 | 3.12 | 37.50% |
 | 合計 | 473 | 4.41 | 10.36% |
 
-來源：amazon_reviews.csv amazon_reviews.csv (473 rows)
+來源：amazon_reviews.csv (473 rows)
 
-提及影像的比例在 1–3 星是 22.45%，在 5 星以上是 36.96%，方向與連線和故障相反。[S9]影像在高分區被提得更多，代表提到它的人多半是滿意的。把提及率當成在意程度會得到相反的結論——這是同一張表裡最容易被誤讀的一列。
+提及影像的比例在 1–3 星是 22.45%，在 5 星以上是 36.96%，方向與連線和故障相反。[S16]影像在高分區被提得更多，代表提到它的人多半是滿意的。把提及率當成在意程度會得到相反的結論——這是同一張表裡最容易被誤讀的一列。
 
-攝影類 405 則評論平均星等 4.46、一二星 9.38%；消費級/其他 8 則平均 3.12、一二星 37.50%。[S5]兩個品類的星等差距超過一顆星，而樣本量差了數十倍。後者的評論數太少，不足以下結論，列在這裡是為了說明主流用途以外的滿意度沒有被這份資料涵蓋。
+攝影類 405 則評論平均星等 4.46、一二星 9.38%；消費級/其他 8 則平均 3.12、一二星 37.50%。[S6]兩個品類的星等差距超過一顆星，而樣本量差了數十倍。後者的評論數太少，不足以下結論，列在這裡是為了說明主流用途以外的滿意度沒有被這份資料涵蓋。
 
 # 3. 資料限制與反面證據
 
@@ -193,7 +211,7 @@ DJI 有 92 件掛牌、佔 16.91%，價格中位數 247.50 USD；第二名 Holy 
 
 下表列出每個品類的分類信心分數，用來判斷哪些品類的結論站得住。
 
-表 8. 分類信心分數依品類
+表 9. 分類信心分數依品類
 
 | category | 筆數 | 佔比 | price 平均 | price 中位數 | review_count 平均 | review_count 中位數 | score 中位數 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -207,11 +225,11 @@ DJI 有 92 件掛牌、佔 16.91%，價格中位數 247.50 USD；第二名 Holy 
 | 消防投彈 | 8 | 1.47% | 359.08 USD | 39.99 USD | 30.17 | 12.00 | 2.00 |
 | 合計 | 544 | 100.00% | 735.50 USD | 71.99 USD | 945.92 | 70.00 | 2.00 |
 
-來源：amazon_classified.csv amazon_classified.csv (544 rows)
+來源：amazon_classified.csv (544 rows)
 
 下表列出銷量欄位的級距，讀它之前要先看最高的三個級距是哪三件商品。
 
-表 9. 銷量級距與價格、累積評論的對應關係
+表 10. 銷量級距與價格、累積評論的對應關係
 
 | sales | 筆數 | 佔比 | price 平均 | price 中位數 | rating 平均 | rating 中位數 | review_count 中位數 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -232,50 +250,64 @@ DJI 有 92 件掛牌、佔 16.91%，價格中位數 247.50 USD；第二名 Holy 
 | 8K+ bought in past month | 1 | 0.18% | 64.98 USD | 64.98 USD | 4.60 | 4.60 | 8,830.00 |
 | 合計 | 165 | 30.33% | 227.31 USD | 69.99 USD | 4.29 | 4.30 | 328.00 |
 
-來源：amazon_products.csv amazon_products.csv (165 rows)
+來源：amazon_products.csv (165 rows)
 
-分類信心分數在配件/零件 71 件是 0.00，在非無人機商品 46 件是 0.00。[S10]低信心集中在殘餘品類，代表攝影與植保這兩個承載主要結論的分類相對可靠。但它同時意味著配件與零件那個掛牌數不能拿來當成零件市場規模的估計。
+分類信心分數在配件/零件 71 件是 0.00，在非無人機商品 46 件是 0.00。[S17]低信心集中在殘餘品類，代表攝影與植保這兩個承載主要結論的分類相對可靠。但它同時意味著配件與零件那個掛牌數不能拿來當成零件市場規模的估計。
 
-CR3 的 53.62% 是以 brand 欄有值的掛牌為分母計算的。[S8]換一個分母，這個數字會完全改變：以全部掛牌為分母時，前三名只佔兩成上下。報告採用有品牌標示的掛牌為分母，因此品牌集中度的結論只適用於品牌側，不適用於整個貨架。
+CR3 的 53.62% 是以 brand 欄有值的掛牌為分母計算的。[S15]換一個分母，這個數字會完全改變：以全部掛牌為分母時，前三名只佔兩成上下。報告採用有品牌標示的掛牌為分母，因此品牌集中度的結論只適用於品牌側，不適用於整個貨架。
 
-銷量欄位最高的三個級距不是無人機：10K+ 那一組唯一的一件是 Occer Compact Binoculars，35.99 USD、33,535 則評論；8K+ 是 GIGASTONE Micro SD Card，64.98 USD、8,830 則評論；6K+ 也是 GIGASTONE Micro SD Card，49.99 USD、8,639 則評論。帶銷量欄位的掛牌共 165 件、佔 30.33%。[S11] [S12] [S13] [S14]任何以銷量級距排序的需求結論，最高的一端都是這三件商品在撐。它們的數字沒有一個是錯的——交叉表把它們算對了，而它們不屬於這份報告要判斷的市場。所以銷量欄位不能用來排無人機的需求，本報告的價格帶與品類結論都不使用它；這也表示「哪一段真的走量」這個問題，這份資料回答不了，必須以第三方銷量資料補上，而那份資料若顯示低價帶的頭部規模夠大，建議一節的切點就要改。
+銷量欄位最高的三個級距不是無人機：10K+ 那一組唯一的一件是 Occer Compact Binoculars，35.99 USD、33,535 則評論；8K+ 是 GIGASTONE Micro SD Card，64.98 USD、8,830 則評論；6K+ 也是 GIGASTONE Micro SD Card，49.99 USD、8,639 則評論。帶銷量欄位的掛牌共 165 件、佔 30.33%。[S18] [S19] [S20] [S21]任何以銷量級距排序的需求結論，最高的一端都是這三件商品在撐。它們的數字沒有一個是錯的——交叉表把它們算對了，而它們不屬於這份報告要判斷的市場。所以銷量欄位不能用來排無人機的需求，本報告的價格帶與品類結論都不使用它；這也表示「哪一段真的走量」這個問題，這份資料回答不了，必須以第三方銷量資料補上，而那份資料若顯示低價帶的頭部規模夠大，建議一節的切點就要改。
 
 # 4. 建議事項
 
-200–500 平均星等 4.66、一二星 4.90%、聯結到 12 件商品 102 則評論，而該價格帶掛牌只有 53 件、佔 9.74%，累積評論中位數 327.00。[S3] [S4]建議的切點是 200–500 這一帶：口碑側平均星等 4.66，掛牌側累積評論中位數 327.00 是全表最高，而該帶掛牌只有 53 件、佔 9.74%。4.66 來自評論檔，327.00 與 53 件來自掛牌檔，是兩個獨立的量；4.90% 的負評率與 4.66 出自同一批 102 則評論，只是同一個訊號的第二種寫法，不另計為佐證。本報告也不把切點限定在某個品類：品類表與價格帶表沒有共同欄位，攝影在這一帶佔多少，這份資料沒有算過。
+200–500 平均星等 4.66、一二星 4.90%、聯結到 12 件商品 102 則評論，而該價格帶掛牌只有 53 件、佔 9.74%，累積評論中位數 327.00，其中攝影佔 66.04%。[S3] [S4] [S5]建議的切點是 200–500 美元帶的攝影機種。三個獨立的量支撐它，各自來自不同的檔案：4.66 星來自評論檔；327.00 則累積評論中位數與 53 件、9.74% 來自掛牌檔；66.04% 的攝影佔比來自分類檔與掛牌檔以 asin 內聯結後的交叉表。4.90% 的負評率與 4.66 出自同一批 102 則評論，只是同一個訊號的第二種寫法，不另計為佐證。把品類這一腳加進來會改變執行方式：這一帶 66.04% 的掛牌是攝影，而 0–30 帶的攝影只有 12.12%，兩段賣的不是同一類商品，所以「進入 200–500」要做的是進入這一帶的攝影機種，不是在這個價位上放任何一台無人機。
 
 支撐這個切點的口碑證據只有 12 件商品、102 則評論，而 500+ 那一格只有 2 件商品、21 則評論。[S3]資料限制一節指出這張表薄到什麼程度，所以這裡把建議降級：進入 200–500，但先以單一機種試水而不是鋪產品線，並在自有銷售資料累積到 50 件同帶商品之前，不要把這個價格帶的口碑優勢寫進投資假設。如果先取得的第三方銷量資料顯示低價帶的頭部規模遠大於此，正確的切點會變成 30–100，那時這份報告的建議應該被推翻而不是被修補。
 
-1–3 星區間提及連線 28.57%、提及說明 6.12%、提及故障 10.20%。[S9]產品主張應該放在連線穩定與開箱即用，而不是影像規格。低分評論裡連線的提及率是說明的數倍，而影像在低分區反而比高分區更少被提到。
+1–3 星區間提及連線 28.57%、提及說明 6.12%、提及故障 10.20%。[S16]產品主張應該放在連線穩定與開箱即用，而不是影像規格。低分評論裡連線的提及率是說明的數倍，而影像在低分區反而比高分區更少被提到。
 
 植保 63 件掛牌的累積評論中位數是 1.00，平均星等 3.27。[S1]不建議進入植保。掛牌數配上這樣的評論中位數與平均星等，三個數字都指向這個通路上沒有交易在發生，而不是競爭者還沒到。
 
 # 資料來源
 
-[S1] amazon_classified.csv amazon_classified.csv (544 rows) — “衍生統計(來源:amazon_classified.csv ⋈ amazon_products.csv):品類結構（分類×掛牌）。依 category 分為 8 組，涵蓋 544 筆資料列（全檔 544 筆）。本表由 amazon_classified.csv 與 amazon_” — amazon_classified.csv ⋈ amazon_products.csv
+[S1] amazon_classified.csv (544 rows) — “衍生統計(來源:amazon_classified.csv ⋈ amazon_products.csv):品類結構（分類×掛牌）。依 category 分為 8 組，涵蓋 544 筆資料列（全檔 544 筆）。本表由 amazon_classified.csv 與 amazon_” — amazon_classified.csv ⋈ amazon_products.csv
 
-[S2] amazon_products.csv amazon_products.csv (544 rows) — “衍生統計(來源:amazon_products.csv):keyword 分組交叉表。依 keyword 分為 4 組，涵蓋 544 筆資料列（全檔 544 筆）。 keyword | 筆數 | 佔比 | price 平均 | price 中位數 | rating 平均 | ra” — amazon_products.csv
+[S2] amazon_products.csv (544 rows) — “衍生統計(來源:amazon_products.csv):keyword 分組交叉表。依 keyword 分為 4 組，涵蓋 544 筆資料列（全檔 544 筆）。 keyword | 筆數 | 佔比 | price 平均 | price 中位數 | rating 平均 | ra” — amazon_products.csv
 
-[S3] amazon_reviews.csv amazon_reviews.csv (373 rows) — “衍生統計(來源:amazon_reviews.csv ⋈ amazon_products.csv):口碑依價格帶（評論×掛牌）。依 price 分為 6 組，涵蓋 373 筆資料列（全檔 473 筆）。另有 100 筆在該欄無可用值，未列入分組。本表由 amazon_review” — amazon_reviews.csv ⋈ amazon_products.csv
+[S3] amazon_reviews.csv (373 rows) — “衍生統計(來源:amazon_reviews.csv ⋈ amazon_products.csv):口碑依價格帶（評論×掛牌）。依 price 分為 6 組，涵蓋 373 筆資料列（全檔 473 筆）。另有 100 筆在該欄無可用值，未列入分組。本表由 amazon_review” — amazon_reviews.csv ⋈ amazon_products.csv
 
-[S4] amazon_products.csv amazon_products.csv (425 rows) — “衍生統計(來源:amazon_products.csv):價格帶供給與需求訊號。依 price 分為 7 組，涵蓋 425 筆資料列（全檔 544 筆）。另有 119 筆在該欄無可用值，未列入分組。價格帶 (USD) | 掛牌數 | 佔比 | 平均星等 | 累積評論中位數 0–” — amazon_products.csv
+[S4] amazon_products.csv (425 rows) — “衍生統計(來源:amazon_products.csv):價格帶供給與需求訊號。依 price 分為 7 組，涵蓋 425 筆資料列（全檔 544 筆）。另有 119 筆在該欄無可用值，未列入分組。價格帶 (USD) | 掛牌數 | 佔比 | 平均星等 | 累積評論中位數 0–” — amazon_products.csv
 
-[S5] amazon_reviews.csv amazon_reviews.csv (473 rows) — “衍生統計(來源:amazon_reviews.csv ⋈ amazon_classified.csv):口碑依品類（評論×分類）。依 category 分為 5 組，涵蓋 473 筆資料列（全檔 473 筆）。本表由 amazon_reviews.csv 與 amazon_cla” — amazon_reviews.csv ⋈ amazon_classified.csv
+[S5] amazon_classified.csv (425 rows) — “衍生統計(來源:amazon_classified.csv ⋈ amazon_products.csv):品類佔比依價格帶（分類×掛牌，以 asin 聯結）。依 price 分為 7 組，涵蓋 425 筆資料列（全檔 544 筆）。另有 119 筆在該欄無可用值，未列入分組。本表” — amazon_classified.csv ⋈ amazon_products.csv
 
-[S6] amazon_products.csv amazon_products.csv (92 rows) — “衍生統計(來源:amazon_products.csv):DJI 掛牌佔比為 16.91%。計算方式:對 brand=DJI 共 92 筆（全檔 544 筆）施以 share 運算。（92 of 544）” — amazon_products.csv
+[S6] amazon_reviews.csv (473 rows) — “衍生統計(來源:amazon_reviews.csv ⋈ amazon_classified.csv):口碑依品類（評論×分類）。依 category 分為 5 組，涵蓋 473 筆資料列（全檔 473 筆）。本表由 amazon_reviews.csv 與 amazon_cla” — amazon_reviews.csv ⋈ amazon_classified.csv
 
-[S7] amazon_products.csv amazon_products.csv (207 rows) — “衍生統計(來源:amazon_products.csv):brand 分組交叉表。依 brand 分為 16 組，涵蓋 207 筆資料列（全檔 544 筆）。另有 337 筆在該欄無可用值，未列入分組。 brand | 筆數 | 佔比 | price 平均 | price 中位數” — amazon_products.csv
+[S7] amazon_products.csv (425 rows) — “衍生統計(來源:amazon_products.csv):掛牌數：0–30 帶對 200–500 帶為 1.87 倍。計算方式:以 ratio 比較兩個已計算的數值 —— 0–30 掛牌數 = 99, 200–500 掛牌數 = 53。” — amazon_products.csv
 
-[S8] amazon_products.csv amazon_products.csv (544 rows) — “衍生統計(來源:amazon_products.csv):品牌 CR3為 53.62%。計算方式:對全部資料列共 544 筆（全檔 544 筆）的 brand 欄施以 top_share 運算。（top DJI, Holy Stone, Contixo）” — amazon_products.csv
+[S8] amazon_products.csv (425 rows) — “衍生統計(來源:amazon_products.csv):累積評論中位數：200–500 帶對 0–30 帶為 13.6 倍。計算方式:以 ratio 比較兩個已計算的數值 —— 200–500 累積評論中位數 = 327, 0–30 累積評論中位數 = 24。” — amazon_products.csv
 
-[S9] amazon_reviews.csv amazon_reviews.csv (473 rows) — “衍生統計(來源:amazon_reviews.csv):痛點主題依星等。依 review_rating 分為 3 組，涵蓋 473 筆資料列（全檔 473 筆）。各組實際涵蓋的值：1–3=1 至 2, 3–5=3 至 4, 5+=5 及以上。星等區間 | 評論數 | 提及影像” — amazon_reviews.csv
+[S9] amazon_classified.csv (425 rows) — “衍生統計(來源:amazon_classified.csv ⋈ amazon_products.csv):攝影佔比：200–500 帶減 0–30 帶相差 53.92 個百分點。計算方式:以 pp_diff 比較兩個已計算的數值 —— 200–500 攝影佔比 = 66.04%,” — amazon_classified.csv ⋈ amazon_products.csv
 
-[S10] amazon_classified.csv amazon_classified.csv (544 rows) — “衍生統計(來源:amazon_classified.csv):category 分組交叉表。依 category 分為 8 組，涵蓋 544 筆資料列（全檔 544 筆）。 category | 筆數 | 佔比 | price 平均 | price 中位數 | review_co” — amazon_classified.csv
+[S10] amazon_classified.csv (425 rows) — “衍生統計(來源:amazon_classified.csv ⋈ amazon_products.csv):攝影佔比：500–800 帶對 0–30 帶為 5.71 倍。計算方式:以 ratio 比較兩個已計算的數值 —— 500–800 攝影佔比 = 69.23%, 0–30 攝” — amazon_classified.csv ⋈ amazon_products.csv
 
-[S11] amazon_products.csv amazon_products.csv (165 rows) — “衍生統計(來源:amazon_products.csv):sales 分組交叉表。依 sales 分為 15 組，涵蓋 165 筆資料列（全檔 544 筆）。另有 379 筆在該欄無可用值，未列入分組。 sales | 筆數 | 佔比 | price 平均 | price 中位數” — amazon_products.csv
+[S11] amazon_classified.csv (425 rows) — “衍生統計(來源:amazon_classified.csv ⋈ amazon_products.csv):植保佔比：800+ 帶減 200–500 帶相差 22.65 個百分點。計算方式:以 pp_diff 比較兩個已計算的數值 —— 800+ 植保佔比 = 32.08%, 20” — amazon_classified.csv ⋈ amazon_products.csv
 
-[S12] amazon_products.csv — “{“asin”: “B0756BXDTX”, “title”: “Occer 12x25 Compact Binoculars for Adults and Kids | High Powered, Easy Focus, Large Eyepiece for Bird Watc” — https://www.amazon.com/sspa/click?ie=UTF8&spc=MTo1NTE3NTU1MzU2NTAxODQ3OjE3ODU4MzM1ODI6c3BfYXRmX25leHQ6MjAwMDgxMjYyODgxNzExOjowOjo&url=%2FBinoculars-Waterproof-Binocular-Traveling-Sightseeing%2Fdp%2FB0756BXDTX%2Fref%3Dsr_1_50_sspa%3Fdib%3DeyJ2IjoiMSJ9.qTTIMxTfffYl5WCagiODk2F8Xm3-IwL8Zz_q5jFMwfezcwVVoBHiuu6CQxgRHktm8UeIpN8LTs9J70vev7RCvw.l02xUO_HqX1H5tD242f18O-vJtTzSNR7ZnKNtwp7-H8%26dib_tag%3Dse%26keywords%3Ddrone%26qid%3D1785833582%26sr%3D8-50-spons%26xpid%3DfI2lm0uQBk0DG%26sp_csd%3Dd2lkZ2V0TmFtZT1zcF9hdGZfbmV4dA%26psc%3D1”, https://m.media-amazon.com/images/I/71ni6tWpQ0L._AC_UL320_.jpg”
+[S12] amazon_reviews.csv (373 rows) — “衍生統計(來源:amazon_reviews.csv ⋈ amazon_products.csv):一二星佔比：100–200 帶減 200–500 帶相差 13.28 個百分點。計算方式:以 pp_diff 比較兩個已計算的數值 —— 100–200 一二星佔比 = 18.18” — amazon_reviews.csv ⋈ amazon_products.csv
 
-[S13] amazon_products.csv — “{“asin”: “B07XG2X54Z”, “title”: “GIGASTONE 128GB Micro SD Card 2-Pack, A1 V30 4K Video Recording, Compatible with Security Camera, Dash cam,” — https://www.amazon.com/sspa/click?ie=UTF8&spc=MTo1NTE3NTU1MzU2NTAxODQ3OjE3ODU4MzM1ODI6c3BfbXRmOjMwMDc5Njk3ODMwOTYwMjo6MDo6&url=%2FGIGASTONE-Compatible-Security-MicroSDXC-Adapter%2Fdp%2FB07XG2X54Z%2Fref%3Dsr_1_69_sspa%3Fdib%3DeyJ2IjoiMSJ9.sZorxPVVNeNfF-Y0VEPJljIBHCjdqHX1MexPhWHLCg6hU5TT1nAxU83jXreVfJb_Oknfp41VMYyfjqLIjsXEsoiApvssEfC2REqzRml6NHIniE9qBO2Mwkya3jGB2XeOFkVGz8lgE-MvZSDACLSTjGBcVzOusNCxsffpBLev29QCJJ0oB8j7VeBfZC2kky_bQRZelui3RCC4TwCDHphxBxWRBzqtjuD6K9sbh4eArfM3kAsxR5envhtSvIQI9noefkZ9Ahxzwc524nTO569Cjk-byc8NY77WXJCN9BA5HhA.UrL8zU8Af3fJK6MRKCkE0chC2j5-23QckhGnJbp1wjg%26dib_tag%3Dse%26keywords%3Ddrone%26qid%3D1785833582%26sr%3D8-69-spons%26xpid%3DfI2lm0uQBk0DG%26sp_csd%3Dd2lkZ2V0TmFtZT1zcF9tdGY%26psc%3D1”, https://m.media-amazon.com/images/I/6135X0P2cML._AC_UL320_.jpg”
+[S13] amazon_products.csv (92 rows) — “衍生統計(來源:amazon_products.csv):DJI 掛牌佔比為 16.91%。計算方式:對 brand=DJI 共 92 筆（全檔 544 筆）施以 share 運算。（92 of 544）” — amazon_products.csv
 
-[S14] amazon_products.csv — “{“asin”: “B07LBSBX5L”, “title”: “【5-Years Data Recovery】 GIGASTONE 128GB Micro SD Card, 4K Video Recording for GoPro, Action Camera, DJI, Dr” — https://www.amazon.com/sspa/click?ie=UTF8&spc=MTo2MDE1ODU0MTkxNzY2MDczOjE3ODU4MzM0MDc6c3BfbXRmOjMwMDc5Njg1MDkyNTIwMjo6MDo6&url=%2FRecovery%25E3%2580%2591-GIGASTONE-Recording-Nintendo-Switch-MicroSDXC%2Fdp%2FB07LBSBX5L%2Fref%3Dsr_1_14_sspa%3Fdib%3DeyJ2IjoiMSJ9.KWlsY3AlJ2mYXPtUnXTL5GoAu6U6QLukCrtv21z3-K7Pv-rw-XnJswMKWSnt6O5rqoVvfD7lrdw37tDTQe2wG8fHQbDMaByitQHAsMNsD-8d-xXlia0D_6vvlQsusoz41bkaAFFH4mAN_JAfm1GSL73CydYp4qCxjR3t_xZSueMSRaI2QxeRYNYZMGwgvDlmIuOyfMqonf5IayNb84Ht70x1sUTJDbnaEDGv0DGE1Uq4HFYSbGA7VzDbP5yjcneNO4MmAhCLx2xnA3E6bwH95-JclHDPglALE4pHeeed04.7fR43qGeXT7MOavwLcKkeB_y6tcfBdCvYP7PNtgQMQE%26dib_tag%3Dse%26keywords%3Ddrone%26qid%3D1785833407%26sr%3D8-14-spons%26sp_csd%3Dd2lkZ2V0TmFtZT1zcF9tdGY%26psc%3D1”, https://m.media-amazon.com/images/I/71+nKH03X0S._AC_UL320.jpg”
+[S14] amazon_products.csv (207 rows) — “衍生統計(來源:amazon_products.csv):brand 分組交叉表。依 brand 分為 16 組，涵蓋 207 筆資料列（全檔 544 筆）。另有 337 筆在該欄無可用值，未列入分組。 brand | 筆數 | 佔比 | price 平均 | price 中位數” — amazon_products.csv
+
+[S15] amazon_products.csv (544 rows) — “衍生統計(來源:amazon_products.csv):品牌 CR3為 53.62%。計算方式:對全部資料列共 544 筆（全檔 544 筆）的 brand 欄施以 top_share 運算。（top DJI, Holy Stone, Contixo）” — amazon_products.csv
+
+[S16] amazon_reviews.csv (473 rows) — “衍生統計(來源:amazon_reviews.csv):痛點主題依星等。依 review_rating 分為 3 組，涵蓋 473 筆資料列（全檔 473 筆）。各組實際涵蓋的值：1–2=1 至 2, 3–4=3 至 4, 5+=5 及以上。星等區間 | 評論數 | 提及影像” — amazon_reviews.csv
+
+[S17] amazon_classified.csv (544 rows) — “衍生統計(來源:amazon_classified.csv):category 分組交叉表。依 category 分為 8 組，涵蓋 544 筆資料列（全檔 544 筆）。 category | 筆數 | 佔比 | price 平均 | price 中位數 | review_co” — amazon_classified.csv
+
+[S18] amazon_products.csv (165 rows) — “衍生統計(來源:amazon_products.csv):sales 分組交叉表。依 sales 分為 15 組，涵蓋 165 筆資料列（全檔 544 筆）。另有 379 筆在該欄無可用值，未列入分組。 sales | 筆數 | 佔比 | price 平均 | price 中位數” — amazon_products.csv
+
+[S19] amazon_products.csv — “{“asin”: “B0756BXDTX”, “title”: “Occer 12x25 Compact Binoculars for Adults and Kids | High Powered, Easy Focus, Large Eyepiece for Bird Watc” — https://www.amazon.com/sspa/click?ie=UTF8&spc=MTo1NTE3NTU1MzU2NTAxODQ3OjE3ODU4MzM1ODI6c3BfYXRmX25leHQ6MjAwMDgxMjYyODgxNzExOjowOjo&url=%2FBinoculars-Waterproof-Binocular-Traveling-Sightseeing%2Fdp%2FB0756BXDTX%2Fref%3Dsr_1_50_sspa%3Fdib%3DeyJ2IjoiMSJ9.qTTIMxTfffYl5WCagiODk2F8Xm3-IwL8Zz_q5jFMwfezcwVVoBHiuu6CQxgRHktm8UeIpN8LTs9J70vev7RCvw.l02xUO_HqX1H5tD242f18O-vJtTzSNR7ZnKNtwp7-H8%26dib_tag%3Dse%26keywords%3Ddrone%26qid%3D1785833582%26sr%3D8-50-spons%26xpid%3DfI2lm0uQBk0DG%26sp_csd%3Dd2lkZ2V0TmFtZT1zcF9hdGZfbmV4dA%26psc%3D1”, https://m.media-amazon.com/images/I/71ni6tWpQ0L._AC_UL320_.jpg”
+
+[S20] amazon_products.csv — “{“asin”: “B07XG2X54Z”, “title”: “GIGASTONE 128GB Micro SD Card 2-Pack, A1 V30 4K Video Recording, Compatible with Security Camera, Dash cam,” — https://www.amazon.com/sspa/click?ie=UTF8&spc=MTo1NTE3NTU1MzU2NTAxODQ3OjE3ODU4MzM1ODI6c3BfbXRmOjMwMDc5Njk3ODMwOTYwMjo6MDo6&url=%2FGIGASTONE-Compatible-Security-MicroSDXC-Adapter%2Fdp%2FB07XG2X54Z%2Fref%3Dsr_1_69_sspa%3Fdib%3DeyJ2IjoiMSJ9.sZorxPVVNeNfF-Y0VEPJljIBHCjdqHX1MexPhWHLCg6hU5TT1nAxU83jXreVfJb_Oknfp41VMYyfjqLIjsXEsoiApvssEfC2REqzRml6NHIniE9qBO2Mwkya3jGB2XeOFkVGz8lgE-MvZSDACLSTjGBcVzOusNCxsffpBLev29QCJJ0oB8j7VeBfZC2kky_bQRZelui3RCC4TwCDHphxBxWRBzqtjuD6K9sbh4eArfM3kAsxR5envhtSvIQI9noefkZ9Ahxzwc524nTO569Cjk-byc8NY77WXJCN9BA5HhA.UrL8zU8Af3fJK6MRKCkE0chC2j5-23QckhGnJbp1wjg%26dib_tag%3Dse%26keywords%3Ddrone%26qid%3D1785833582%26sr%3D8-69-spons%26xpid%3DfI2lm0uQBk0DG%26sp_csd%3Dd2lkZ2V0TmFtZT1zcF9tdGY%26psc%3D1”, https://m.media-amazon.com/images/I/6135X0P2cML._AC_UL320_.jpg”
+
+[S21] amazon_products.csv — “{“asin”: “B07LBSBX5L”, “title”: “【5-Years Data Recovery】 GIGASTONE 128GB Micro SD Card, 4K Video Recording for GoPro, Action Camera, DJI, Dr” — https://www.amazon.com/sspa/click?ie=UTF8&spc=MTo2MDE1ODU0MTkxNzY2MDczOjE3ODU4MzM0MDc6c3BfbXRmOjMwMDc5Njg1MDkyNTIwMjo6MDo6&url=%2FRecovery%25E3%2580%2591-GIGASTONE-Recording-Nintendo-Switch-MicroSDXC%2Fdp%2FB07LBSBX5L%2Fref%3Dsr_1_14_sspa%3Fdib%3DeyJ2IjoiMSJ9.KWlsY3AlJ2mYXPtUnXTL5GoAu6U6QLukCrtv21z3-K7Pv-rw-XnJswMKWSnt6O5rqoVvfD7lrdw37tDTQe2wG8fHQbDMaByitQHAsMNsD-8d-xXlia0D_6vvlQsusoz41bkaAFFH4mAN_JAfm1GSL73CydYp4qCxjR3t_xZSueMSRaI2QxeRYNYZMGwgvDlmIuOyfMqonf5IayNb84Ht70x1sUTJDbnaEDGv0DGE1Uq4HFYSbGA7VzDbP5yjcneNO4MmAhCLx2xnA3E6bwH95-JclHDPglALE4pHeeed04.7fR43qGeXT7MOavwLcKkeB_y6tcfBdCvYP7PNtgQMQE%26dib_tag%3Dse%26keywords%3Ddrone%26qid%3D1785833407%26sr%3D8-14-spons%26sp_csd%3Dd2lkZ2V0TmFtZT1zcF9tdGY%26psc%3D1”, https://m.media-amazon.com/images/I/71+nKH03X0S._AC_UL320.jpg”
