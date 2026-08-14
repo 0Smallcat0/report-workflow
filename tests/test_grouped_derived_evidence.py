@@ -548,5 +548,216 @@ class BandLabelsSayWhatTheyHoldTests(unittest.TestCase):
         self.assertIn("1 to 2", self._unit([1, 3, 4, 5], zh=False)["content"])
 
 
+class ComparingTwoComputedFiguresTests(unittest.TestCase):
+    """A multiple and a percentage-point gap, as figures that can be cited.
+
+    Neither was expressible. An author wanting "the premium band draws 13.6x
+    the reviews of the budget band" could write it with no citation, which FE
+    correctly blocks, or delete it — and across eight recorded runs FE blocked
+    41 claims for a number the evidence does not state.
+    """
+
+    BAND = {
+        "id": "band", "source": "products.csv",
+        "group_by": {"column": "price", "buckets": [0, 50, 100], "label": "Band"},
+        "measures": [
+            {"op": "count", "label": "Listings"},
+            {"op": "share", "rows": "category=camera", "label": "Camera share"},
+        ],
+    }
+
+    def _build(self, *requests: dict, zh: bool = False):
+        return build_requested_units(
+            [self.BAND, *requests], REGISTRY, CREATED_AT, zh=zh
+        )
+
+    def test_two_rows_of_a_table_already_built_need_no_second_registration(self):
+        units, problems = self._build({
+            "id": "cheap_vs_premium", "op": "ratio", "source": "band",
+            "column": "Listings", "numerator_group": "0–49",
+            "denominator_group": "100+",
+        })
+        self.assertEqual(problems, [])
+        # Two listings under 50 ($20, $25); one at 100 or above ($150).
+        self.assertIn("is 2x", _only(units, "E_D_cheap_vs_premium")["content"])
+
+    def test_the_table_can_be_named_by_its_evidence_id(self):
+        _units, problems = self._build({
+            "id": "by_evidence_id", "op": "ratio", "source": "E_D_band",
+            "column": "Listings", "numerator_group": "0–49",
+            "denominator_group": "50–99",
+        })
+        self.assertEqual(problems, [])
+
+    def test_a_hyphen_typed_for_an_en_dash_still_finds_the_row(self):
+        """Refusing "0-49" against a row called "0–49" is the tool insisting on
+        its own typography."""
+        _units, problems = self._build({
+            "id": "dashes", "op": "ratio", "source": "band", "column": "Listings",
+            "numerator_group": "0-49", "denominator_group": "50-99",
+        })
+        self.assertEqual(problems, [])
+
+    def test_two_registered_derivations_compare_across_statistics(self):
+        units, problems = self._build(
+            {"id": "cameras", "source": "products.csv", "rows": "category=camera",
+             "op": "count"},
+            {"id": "listings", "source": "products.csv", "op": "count"},
+            {"id": "camera_share", "op": "ratio", "numerator": "cameras",
+             "denominator": "listings", "decimals": 2},
+        )
+        self.assertEqual(problems, [])
+        # 3 of 6, rounded to the two places the request asked for.
+        self.assertIn("is 0.50x", _only(units, "E_D_camera_share")["content"])
+
+    def test_both_operands_are_stated_in_the_evidence_text(self):
+        """A row saying only "2" grounds the multiple and nothing the sentence
+        around it will say."""
+        units, _problems = self._build({
+            "id": "stated", "op": "ratio", "source": "band", "column": "Listings",
+            "numerator_group": "0–49", "denominator_group": "100+",
+        })
+        content = _only(units, "E_D_stated")["content"]
+        self.assertIn("0–49 Listings = 2", content)
+        self.assertIn("100+ Listings = 1", content)
+
+    def test_expect_is_checked_against_the_comparison_too(self):
+        _units, problems = self._build({
+            "id": "wrong", "op": "ratio", "source": "band", "column": "Listings",
+            "numerator_group": "0–49", "denominator_group": "50–99", "expect": 9,
+        })
+        self.assertEqual([problem["id"] for problem in problems], ["wrong"])
+        self.assertIn("expects 9", problems[0]["error"])
+
+    def test_pp_diff_refuses_two_quantities_that_are_not_percentages(self):
+        """"8.5 percentage points" between two counts is a unit the figures do
+        not have."""
+        _units, problems = self._build({
+            "id": "not_pct", "op": "pp_diff", "source": "band",
+            "column": "Listings", "numerator_group": "0–49",
+            "denominator_group": "50–99",
+        })
+        self.assertEqual([problem["id"] for problem in problems], ["not_pct"])
+        self.assertIn("percentage points", problems[0]["error"])
+
+    def test_pp_diff_over_two_shares_states_the_gap_once(self):
+        units, problems = self._build({
+            "id": "camera_gap", "op": "pp_diff", "source": "band",
+            "column": "Camera share", "numerator_group": "0–49",
+            "denominator_group": "50–99", "decimals": 1,
+        })
+        self.assertEqual(problems, [])
+        content = _only(units, "E_D_camera_gap")["content"]
+        # Both listings under $50 are cameras; one of the two from $50 to $99.
+        self.assertIn("is 50.0 percentage points", content)
+        # Not "50.0% percentage points" — the unit is carried by the words.
+        self.assertNotIn("% percentage points", content)
+
+    def test_a_comparison_naming_a_figure_computed_later_is_refused(self):
+        """The refusal says so rather than producing a number from nothing."""
+        _units, problems = self._build(
+            {"id": "early", "op": "ratio", "numerator": "late", "denominator": "late"},
+            {"id": "late", "source": "products.csv", "op": "count"},
+        )
+        self.assertEqual([problem["id"] for problem in problems], ["early"])
+        self.assertIn("computed earlier in this call", problems[0]["error"])
+
+    def test_a_comparison_op_is_refused_as_a_grouped_measure(self):
+        """It compares two computed figures, so it cannot be a per-row measure.
+
+        Left in SUPPORTED_OPS it would have fallen through to the final branch
+        of the value switch and been silently computed as top_share.
+        """
+        _units, problems = build_requested_units(
+            [{"id": "as_measure", "source": "products.csv",
+              "group_by": {"column": "category"},
+              "measures": [{"op": "ratio"}]}],
+            REGISTRY, CREATED_AT,
+        )
+        self.assertEqual([problem["id"] for problem in problems], ["as_measure"])
+        self.assertIn("registered on its own", problems[0]["error"])
+
+    def test_a_wrong_row_name_prints_the_rows_that_exist(self):
+        _units, problems = self._build({
+            "id": "typo", "op": "ratio", "source": "band", "column": "Listings",
+            "numerator_group": "0–49", "denominator_group": "cheap",
+        })
+        self.assertIn("Its rows are: 0–49, 50–99, 100+, All", problems[0]["error"])
+
+
+class DeclaredPrecisionTests(unittest.TestCase):
+    """The places the author needs, made true of the evidence.
+
+    FE refuses a claim carrying more decimal places than its evidence — four of
+    the 67 recorded blocks are exactly that. Declaring the places rounds the
+    figure before it is recorded, which repairs the mismatch without loosening
+    the comparison.
+    """
+
+    def test_the_recorded_figure_states_the_places_that_were_asked_for(self):
+        units, problems = build_requested_units(
+            [{"id": "mean_price", "source": "products.csv", "op": "mean",
+              "column": "price", "decimals": 1}],
+            REGISTRY, CREATED_AT,
+        )
+        self.assertEqual(problems, [])
+        unit = _only(units, "E_D_mean_price")
+        self.assertIn("67.0 USD", unit["content"])
+        self.assertEqual(unit["derivation"]["decimals"], 1)
+
+    def test_expect_is_compared_against_the_rounded_figure(self):
+        _units, problems = build_requested_units(
+            [{"id": "rounded", "source": "products.csv", "op": "mean",
+              "column": "price", "decimals": 0, "expect": 67}],
+            REGISTRY, CREATED_AT,
+        )
+        self.assertEqual(problems, [])
+
+    def test_a_places_count_outside_the_range_is_refused_by_name(self):
+        _units, problems = build_requested_units(
+            [{"id": "silly", "source": "products.csv", "op": "mean",
+              "column": "price", "decimals": 12}],
+            REGISTRY, CREATED_AT,
+        )
+        self.assertIn("between 0 and 6", problems[0]["error"])
+
+
+class JoinableKeysAreReportedTests(unittest.TestCase):
+    """Which files connect, computed instead of left to be noticed.
+
+    A recorded run wrote that two of its files shared no column, to explain why
+    it skipped the cross tabulation. Both key on `asin`.
+    """
+
+    def test_a_shared_key_is_found_with_the_size_of_the_join(self):
+        from report_workflow.derived_evidence import joinable_key_report
+
+        findings = joinable_key_report(REGISTRY)
+        self.assertEqual(len(findings), 1)
+        finding = findings[0]
+        self.assertEqual(finding["column"], "asin")
+        self.assertEqual({finding["left_file"], finding["right_file"]},
+                         {"products.csv", "reviews.csv"})
+        # A1 twice on the right, A5 once; R4 names a listing that is not there.
+        self.assertEqual(finding["joined_rows"], 3)
+        self.assertEqual(finding["shared_values"], 2)
+
+    def test_two_unrelated_id_columns_are_not_reported_as_a_key(self):
+        """Same name, disjoint values: two exports that both number their rows."""
+        from report_workflow.derived_evidence import joinable_key_report
+
+        left = _source("a", "left.csv", [{"id": str(n)} for n in range(1, 6)])
+        right = _source("b", "right.csv", [{"id": str(n)} for n in range(90, 95)])
+        self.assertEqual(joinable_key_report([left, right]), [])
+
+    def test_a_low_cardinality_column_shared_by_both_is_not_a_key(self):
+        """Joining two categories multiplies rows rather than connecting them."""
+        from report_workflow.derived_evidence import joinable_key_report
+
+        left = _source("a", "left.csv", [{"kind": k} for k in "aabbaabb"])
+        right = _source("b", "right.csv", [{"kind": k} for k in "abababab"])
+        self.assertEqual(joinable_key_report([left, right]), [])
+
+
 if __name__ == "__main__":
     unittest.main()

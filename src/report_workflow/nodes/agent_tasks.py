@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from collections import Counter
 from pathlib import Path
 
 from ..state import ReportState
@@ -164,10 +165,48 @@ def _read_figure_recommendation_summary(path: str | None, limit: int = 8) -> str
                 reason=(rec.get("reason", "") or "")[:120],
             )
         )
-    header = f"Total figure recommendations: {len(recommendations)} (showing first {min(len(recommendations), limit)})\n"
+    header = (
+        f"Total figure recommendations: {len(recommendations)} "
+        f"({_recommendation_distribution(recommendations)}) "
+        f"(showing first {min(len(recommendations), limit)})\n"
+    )
     header += "  recommendation_id | recommended_type | candidates | acceptable_types | confidence | transform | evidence_ids | warnings | reason\n"
     header += "  " + "-" * 100 + "\n"
     return header + "\n".join(rows)
+
+
+def _recommendation_distribution(recommendations: list) -> str:
+    """What was recommended, by type, in one line.
+
+    The run that produced the recorded tool arm got 10 recommendations —
+    scatter 5, table 4, histogram 1 — and drew none of them. Its stated reason
+    was that "the recommendations themselves flag on every one of them" that
+    the units differ and a shared Y axis would mislead. That warning appears on
+    the 4 `table` entries only; the other 6 recommend charts and carry no such
+    note. A reason true of 4 of 10 was used to decline 10 of 10.
+
+    Listing the first eight in a wide table is what an impression is formed
+    from. The distribution is what a decision to skip all of them should be
+    made against, so it goes where the count already was.
+    """
+    types = Counter(
+        str(rec.get("recommended_figure_type") or "?")
+        for rec in recommendations
+        if isinstance(rec, dict)
+    )
+    confidence = Counter(
+        str(rec.get("confidence") or "?")
+        for rec in recommendations
+        if isinstance(rec, dict)
+    )
+    by_type = ", ".join(
+        f"{name} {count}" for name, count in sorted(types.items(), key=lambda item: (-item[1], item[0]))
+    )
+    by_confidence = ", ".join(
+        f"{name} {count}"
+        for name, count in sorted(confidence.items(), key=lambda item: (-item[1], item[0]))
+    )
+    return f"by type: {by_type}; confidence: {by_confidence}"
 
 
 def _figure_plan_is_valid(plan: object) -> bool:
@@ -889,8 +928,34 @@ register_derived_evidence(job_id="<job_id>", derivations=[
 
   # A single number, when that is all you need.
   {"id": "hhi_brand", "source": "products.csv", "op": "hhi", "column": "brand"},
+
+  # A multiple, read straight off two rows of a table you already registered.
+  # This is how "the $200-500 band draws 13.6x the reviews of the $0-30 band"
+  # becomes a sentence with an evidence id instead of one you delete.
+  {"id": "premium_vs_budget_reviews", "op": "ratio",
+   "source": "price_band_reliability", "column": "Listings",
+   "numerator_group": "200-400", "denominator_group": "0-30", "decimals": 1},
+
+  # A gap in percentage points, between two percentages. `pp_diff` is
+  # numerator minus denominator; `ratio` is numerator over denominator.
+  {"id": "complaint_gap", "op": "pp_diff",
+   "source": "price_band_reliability", "column": "Under 4 stars",
+   "numerator_group": "0-30", "denominator_group": "200-400"},
+
+  # Comparing across files or across statistics names two registered ids.
+  {"id": "photo_share_of_catalogue", "op": "ratio",
+   "numerator": "photo_count", "denominator": "listing_count"},
 ])
 ```
+
+`ratio` and `pp_diff` read figures produced **earlier in the same call**, so
+the two they compare have to appear before them in the list.
+
+`decimals` pins how many decimal places a figure is rounded to before it is
+recorded, and the evidence then states exactly that many. Use it when the
+claim needs `3.53%`: the content check refuses a claim carrying more places
+than its evidence, and this is how the rounded figure becomes the one that
+exists.
 
 **Check the tables listed above first.** Several cross tabulations are already
 built and citable; registering scalars that reproduce their cells is wasted
@@ -969,6 +1034,63 @@ def _source_table_catalog(evidence_path: str | None, limit: int = 12) -> str:
     return "\n".join(lines)
 
 
+def _joinable_sources_note(state) -> str:
+    """Which supplied files connect, computed rather than left to be noticed.
+
+    A recorded run wrote "the category table and the price-band table share no
+    column" to explain why it skipped the cross tabulation. Both key on `asin`,
+    a blind judge did the analysis by hand from the same files, and all three
+    judges named its absence as the report's largest gap. Nothing was blocked;
+    the tool had the join and the author had no reason to look for it.
+
+    A hint, not a gate. "A joinable key exists and was not used" would be the
+    same shape as the outline rules this repo removed for measuring
+    rule-following instead of reports, and nobody has yet measured whether an
+    author who can see this changes what they write.
+    """
+    from ..derived_evidence import joinable_key_report
+
+    findings = joinable_key_report(state.sources.get("source_registry") or [])
+    if not findings:
+        return ""
+    lines = [
+        "### Sources that can be crossed",
+        "",
+        "These files share a column whose values actually meet, so a statistic",
+        "neither file states on its own is available. Register it with",
+        "`register_derived_evidence` using `join`:",
+        "",
+    ]
+    for finding in findings:
+        lines.append(
+            f"- `{finding['left_file']}` ({finding['left_rows']} rows) and "
+            f"`{finding['right_file']}` ({finding['right_rows']} rows) share "
+            f"`{finding['column']}`: {finding['shared_values']} value(s) in common, "
+            f"{finding['joined_rows']} row(s) after an inner join."
+        )
+    example = findings[0]
+    lines.extend([
+        "",
+        "For example:",
+        "",
+        "```json",
+        json.dumps({
+            "id": "crossed",
+            "source": [example["left_file"], example["right_file"]],
+            "join": {"on": example["column"], "how": "inner"},
+            "group_by": {"column": "<a column of the first file>"},
+            "measures": [{"op": "count"}],
+        }, ensure_ascii=False, indent=2),
+        "```",
+        "",
+        "Check this list before writing that two files cannot be crossed. Saying",
+        "so when they share a key is a false statement about the data, and it",
+        "reads to a reader as a finding.",
+        "",
+    ])
+    return "\n".join(lines)
+
+
 def write_agent_task_briefs(state: ReportState) -> ReportState:
     """Write all task briefs required for the external agent authoring phase.
 
@@ -1005,6 +1127,7 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
         else ""
     )
     register_derived_evidence_guide = REGISTER_DERIVED_EVIDENCE_GUIDE
+    joinable_sources = _joinable_sources_note(state)
     evidence_summary_limit = EVIDENCE_SUMMARY_LIMIT
     source_table_catalog = _source_table_catalog(evidence_path)
     task_intent = state.spec.get("task_intent", "new_draft")
@@ -1125,6 +1248,8 @@ For `new_draft`, the editable artifacts are `claim_matrix.json`, `outline.json`,
 {derived_stats_guidance}## Making a statistic citable
 
 {register_derived_evidence_guide}
+
+{joinable_sources}
 
 ## Evidence Summary
 (Full ledger at `{evidence_path}`; read individual entries as needed.
@@ -1339,6 +1464,8 @@ and already citable; place it with its `[TABLE:]` marker and discuss the cells
 that carry the argument.
 
 {register_derived_evidence_guide}
+
+{joinable_sources}
 
 ## Facts Freeze (Optional)
 

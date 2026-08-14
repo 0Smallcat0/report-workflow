@@ -345,7 +345,25 @@ def build_server():
         column name present on both sides is renamed rather than overwritten.
         Check two tables for a shared key before writing that they cannot be
         crossed: saying so when they share one is a false statement about the
-        data.
+        data. The task brief lists the pairs that share one.
+
+        `ratio` and `pp_diff` compare two figures already computed, so an
+        argument can state a multiple or a gap in percentage points and cite
+        it. Two input forms. Reading two rows of a table registered earlier:
+        `{"id": "premium_vs_budget", "op": "ratio",
+        "source": "price_band_reliability", "column": "Listings",
+        "numerator_group": "200-500", "denominator_group": "0-30",
+        "decimals": 1}`. Or naming two registered derivations, which is what a
+        comparison across files needs: `{"id": "photo_share", "op": "ratio",
+        "numerator": "photo_count", "denominator": "listing_count"}`.
+        `pp_diff` is numerator minus denominator and takes two percentages;
+        `ratio` is numerator over denominator and carries no unit. Both read
+        figures produced earlier in the same call, so order matters.
+
+        `decimals` pins how many places the figure is rounded to before it is
+        recorded, and the evidence then states exactly that many — use it when
+        a claim needs "3.53%", since the content check refuses a claim carrying
+        more places than its evidence.
         """
         return agent_wrapper.register_derived_evidence(
             job_id, derivations, workspace_root

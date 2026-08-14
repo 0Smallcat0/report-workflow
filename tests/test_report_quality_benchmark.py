@@ -6,6 +6,8 @@ behind it, so the archive is asserted here the way the adversarial one is.
 """
 import importlib.util
 import json
+import shutil
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -138,6 +140,72 @@ class ArchiveTests(unittest.TestCase):
             ["structured_paragraph_ratio", "verifiable_number_ratio"],
             "the recorded losses changed; update the summary's explanation of them",
         )
+
+
+class FrozenBodyHashTests(unittest.TestCase):
+    """The gate that says a recorded arm still holds the body it claims.
+
+    It was added without a test, which makes it a gate nobody would notice
+    breaking — and a benchmark guard that silently stops guarding is worse than
+    none, because the archive keeps citing it.
+
+    Every case runs on a copy in a temporary directory. A test that writes to
+    `benchmarks/fixtures/` to prove those fixtures are protected would be the
+    thing it is testing against.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.module = _load_module()
+        cls.original = cls.module.BASELINE_PATH.read_text(encoding="utf-8")
+
+    def _copy(self, text: str) -> Path:
+        directory = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, directory, True)
+        path = Path(directory) / "unassisted_baseline.md"
+        path.write_text(text, encoding="utf-8")
+        return path
+
+    def test_an_untouched_copy_reports_nothing(self):
+        self.assertEqual(self.module.check_frozen_body(self._copy(self.original)), [])
+
+    def test_one_changed_character_in_the_body_is_reported(self):
+        edited = self.original.rstrip("\n") + "0\n"
+        issues = self.module.check_frozen_body(self._copy(edited))
+        self.assertEqual(len(issues), 1)
+        self.assertIn("edited without being re-recorded", issues[0])
+
+    def test_a_missing_hash_line_is_reported(self):
+        stripped = "\n".join(
+            line for line in self.original.splitlines()
+            if not line.startswith("Body SHA-256:")
+        )
+        issues = self.module.check_frozen_body(self._copy(stripped))
+        self.assertEqual(len(issues), 1)
+        self.assertIn("carries no `Body SHA-256:` line", issues[0])
+
+    def test_editing_only_the_comment_header_leaves_the_digest_alone(self):
+        """The hash covers the file with comment blocks removed, so the note
+        explaining the hash is not part of what it hashes."""
+        annotated = self.original.replace(
+            "RECORDED SAMPLE", "RECORDED SAMPLE (see the archive)", 1
+        )
+        self.assertNotEqual(annotated, self.original)
+        self.assertEqual(
+            self.module.body_digest(annotated), self.module.body_digest(self.original)
+        )
+        self.assertEqual(self.module.check_frozen_body(self._copy(annotated)), [])
+
+    def test_the_title_above_the_comment_block_is_covered(self):
+        """Two of the three frozen arms write `# title` before their header, so
+        hashing "everything below the header" would leave those unprotected."""
+        first_line = self.original.splitlines()[0]
+        self.assertTrue(first_line.startswith("# "), first_line)
+        retitled = self.original.replace(first_line, first_line + "（修訂）", 1)
+        self.assertNotEqual(retitled, self.original)
+        issues = self.module.check_frozen_body(self._copy(retitled))
+        self.assertEqual(len(issues), 1)
+        self.assertIn("edited without being re-recorded", issues[0])
 
 
 if __name__ == "__main__":
