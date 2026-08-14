@@ -20,7 +20,10 @@ from report_axes import (  # noqa: E402
     heading_informativeness,
     paragraph_length_fitness,
     score_layout,
+    table_caption_ratio,
     table_lead_in_ratio,
+    table_provenance_ratio,
+    table_size_fitness,
     validate_votes,
 )
 
@@ -105,8 +108,57 @@ class ScoreLayoutTests(unittest.TestCase):
         self.assertEqual(set(score_layout("").values()), {0.0})
 
 
+class TableFurnitureTests(unittest.TestCase):
+    """What a delivered document puts around a table.
+
+    The first three layout rules read prose only, and the deliverable is a
+    DOCX. Nothing was looking at the furniture a reader uses to place a table:
+    a numbered caption above it, an attribution under it, a shape that fits.
+    """
+
+    WIDE = (
+        "| " + " | ".join("c" for _ in range(9)) + " |\n"
+        + "|" + "|".join(" --- " for _ in range(9)) + "|\n"
+        + "\n".join("| " + " | ".join("1" for _ in range(9)) + " |" for _ in range(20))
+    )
+
+    def test_a_captioned_table_counts_and_a_bare_one_does_not(self):
+        self.assertEqual(table_caption_ratio(f"表 3. 品類佔比\n\n{TABLE}"), 1.0)
+        self.assertEqual(table_caption_ratio(f"Table 3. Category mix\n\n{TABLE}"), 1.0)
+        self.assertEqual(table_caption_ratio(f"下表列出品類佔比。\n\n{TABLE}"), 0.0)
+
+    def test_an_attributed_table_counts_and_an_unsourced_one_does_not(self):
+        self.assertEqual(
+            table_provenance_ratio(f"{TABLE}\n\n來源：products.csv (544 rows)"), 1.0
+        )
+        self.assertEqual(
+            table_provenance_ratio(f"{TABLE}\n\nSource: products.csv (544 rows)"), 1.0
+        )
+        self.assertEqual(table_provenance_ratio(f"{TABLE}\n\n這一帶供給稀薄。"), 0.0)
+
+    def test_a_table_too_large_to_read_at_a_glance_fails_the_fit(self):
+        self.assertEqual(table_size_fitness(TABLE), 1.0)
+        self.assertEqual(table_size_fitness(self.WIDE), 0.0)
+        self.assertEqual(table_size_fitness(f"{TABLE}\n\n{self.WIDE}"), 0.5)
+
+    def test_a_document_with_no_tables_scores_zero_rather_than_full_marks(self):
+        for scorer in (table_caption_ratio, table_provenance_ratio, table_size_fitness):
+            with self.subTest(scorer=scorer.__name__):
+                self.assertEqual(scorer("## 標題\n\n" + "字" * 100), 0.0)
+
+
+def _judge() -> dict:
+    return {
+        "model": "claude-opus-5",
+        "same_context_as_author": False,
+        "saw_pipeline_code": False,
+        "saw_task_prompt": False,
+        "inputs": ["documents/", "argument_rubric.md", "data/"],
+    }
+
+
 def _vote(number: int, **scores) -> dict:
-    vote = {"arm": "hand", "vote": number}
+    vote = {"arm": "hand", "vote": number, "judge": _judge()}
     for dimension in ARGUMENT_DIMENSIONS:
         vote[dimension] = {
             "score": scores.get(dimension, 2),
@@ -151,6 +203,30 @@ class ArgumentVoteTests(unittest.TestCase):
         votes = [_vote(1), _vote(2), _vote(3)]
         votes[1]["counter_specificity"]["evidence"] = ""
         self.assertIn("cites no passage", "; ".join(validate_votes(votes)))
+
+    def test_a_vote_that_says_nothing_about_its_judge_is_refused(self):
+        """Without an identity record, "re-run the votes yourself" is a claim
+        a reader has no way to act on."""
+        votes = [_vote(1), _vote(2), _vote(3)]
+        del votes[0]["judge"]
+        self.assertIn("records no 'judge' block", "; ".join(validate_votes(votes)))
+
+    def test_a_vote_cast_from_the_authors_own_context_is_refused(self):
+        """The chain bf4dea1 recorded: write the rules, write to the rules,
+        then score what you wrote. Relabelling does not undo it."""
+        votes = [_vote(1), _vote(2), _vote(3)]
+        votes[1]["judge"]["same_context_as_author"] = True
+        self.assertIn(
+            "same_context_as_author=True", "; ".join(validate_votes(votes))
+        )
+
+    def test_a_judge_that_names_no_model_or_no_inputs_is_refused(self):
+        votes = [_vote(1), _vote(2), _vote(3)]
+        votes[0]["judge"]["model"] = ""
+        votes[2]["judge"]["inputs"] = []
+        problems = "; ".join(validate_votes(votes))
+        self.assertIn("names no model", problems)
+        self.assertIn("lists no inputs", problems)
 
     def test_aggregating_unusable_votes_raises_rather_than_guessing(self):
         with self.assertRaises(ValueError):

@@ -22,6 +22,9 @@ LAYOUT_DIMENSIONS = (
     "heading_informativeness",
     "table_lead_in_ratio",
     "paragraph_length_fitness",
+    "table_caption_ratio",
+    "table_provenance_ratio",
+    "table_size_fitness",
 )
 
 #: A markdown heading. The reconstructed DOCX text re-emits these from paragraph
@@ -153,11 +156,126 @@ def paragraph_length_fitness(text: str) -> float:
     return round(fit / len(paragraphs), 4)
 
 
+# ----------------------------------------------------------------------
+# What the delivered document does around its tables.
+#
+# The first three rules read prose. The deliverable is a DOCX, and nothing was
+# looking at the furniture a reader uses to place a table: a numbered caption
+# above it, an attribution under it, and a shape that fits on the page.
+#
+# Declared, because the same author whose arm is being measured added these
+# after seeing all three documents: caption and attribution are properties the
+# pipeline produces by construction and neither hand-written arm produces at
+# all, so those two are close to "does the renderer run". `table_size_fitness`
+# is the one of the three the pipeline can lose, and does.
+# ----------------------------------------------------------------------
+
+#: A numbered table caption in either language, as the renderer emits it and as
+#: an author would type it.
+_TABLE_CAPTION_RE = re.compile(
+    r"^(?:表|圖|图)\s*\d+|^(?:Table|Figure)\s+\d+", re.IGNORECASE
+)
+
+#: The attribution line under a table: which file, which rows.
+_TABLE_SOURCE_RE = re.compile(
+    r"^(?:來源|来源|資料來源|资料来源|Source|Data source)\s*[：:]", re.IGNORECASE
+)
+
+#: A table a reader takes in without scrolling or turning it sideways. Both
+#: bounds are the point at which the table stops being read and starts being
+#: searched.
+_TABLE_MAX_BODY_ROWS = 12
+_TABLE_MAX_COLUMNS = 8
+
+
+def _tables(text: str) -> list[dict]:
+    """Every markdown table in the document, with what surrounds it."""
+    lines = _strip_comments(text).split("\n")
+    tables: list[dict] = []
+    index = 0
+    while index < len(lines) - 1:
+        if not (_TABLE_ROW_RE.match(lines[index])
+                and _TABLE_RULE_RE.match(lines[index + 1])):
+            index += 1
+            continue
+        columns = len(lines[index].strip().strip("|").split("|"))
+        end = index + 2
+        body = 0
+        while end < len(lines) and _TABLE_ROW_RE.match(lines[end]):
+            body += 1
+            end += 1
+        above = index - 1
+        while above >= 0 and not lines[above].strip():
+            above -= 1
+        below = end
+        while below < len(lines) and not lines[below].strip():
+            below += 1
+        tables.append({
+            "columns": columns,
+            "body_rows": body,
+            "above": lines[above].strip() if above >= 0 else "",
+            "below": lines[below].strip() if below < len(lines) else "",
+        })
+        index = end
+    return tables
+
+
+def table_caption_ratio(text: str) -> float:
+    """Share of tables carrying a numbered caption directly above them.
+
+    "表 3. 品類佔比依價格帶" tells a reader what they are about to look at and
+    gives the prose something to refer back to. An uncaptioned grid has to be
+    identified from the columns.
+    """
+    tables = _tables(text)
+    if not tables:
+        return 0.0
+    captioned = sum(1 for table in tables if _TABLE_CAPTION_RE.match(table["above"]))
+    return round(captioned / len(tables), 4)
+
+
+def table_provenance_ratio(text: str) -> float:
+    """Share of tables followed by the file and row span they came from.
+
+    A table whose numbers the reader cannot trace is the same problem as an
+    uncited sentence. This is the one delivery-layer property this repository
+    exists to produce, and until now no axis could see whether it was there.
+    """
+    tables = _tables(text)
+    if not tables:
+        return 0.0
+    attributed = sum(1 for table in tables if _TABLE_SOURCE_RE.match(table["below"]))
+    return round(attributed / len(tables), 4)
+
+
+def table_size_fitness(text: str) -> float:
+    """Share of tables small enough to be read rather than searched.
+
+    A grouped table the tool builds can run to seventeen rows across eight
+    columns because that is what the grouping produced; an author laying out a
+    page splits it. Deliberately kept in the axis even though the pipeline is
+    the arm that loses it: an instrument whose new dimensions all favour one
+    arm is not an instrument.
+    """
+    tables = _tables(text)
+    if not tables:
+        return 0.0
+    fit = sum(
+        1 for table in tables
+        if table["body_rows"] <= _TABLE_MAX_BODY_ROWS
+        and table["columns"] <= _TABLE_MAX_COLUMNS
+    )
+    return round(fit / len(tables), 4)
+
+
 def score_layout(text: str) -> dict:
     return {
         "heading_informativeness": heading_informativeness(text),
         "table_lead_in_ratio": table_lead_in_ratio(text),
         "paragraph_length_fitness": paragraph_length_fitness(text),
+        "table_caption_ratio": table_caption_ratio(text),
+        "table_provenance_ratio": table_provenance_ratio(text),
+        "table_size_fitness": table_size_fitness(text),
     }
 
 
@@ -183,6 +301,21 @@ MAX_ARGUMENT_SCORE = 4
 #: disbelieve.
 MIN_VOTE_EVIDENCE_CHARS = 10
 
+#: What each vote has to say about who cast it.
+#:
+#: Until now a vote recorded the arm, the number, three scores and their
+#: passages — and nothing at all about the voter. The rubric tells a reader
+#: that anyone wanting an independent judgement can re-run the votes; without
+#: an identity record there is no way to tell whether the archived ones were
+#: independent, so that sentence could not be cashed.
+#:
+#: The three flags must all be false. One agent once wrote the rubric, then the
+#: brief rules, then paragraphs satisfying those rules, then cast the vote that
+#: scored them; each step defensible, the chain not. An arm's author scoring
+#: their own arm is that chain reconnected, and relabelling the documents does
+#: not undo it — a writer recognises their own sentences.
+JUDGE_FLAGS = ("same_context_as_author", "saw_pipeline_code", "saw_task_prompt")
+
 
 def validate_votes(votes: list[dict]) -> list[str]:
     """Everything wrong with a set of votes, or an empty list.
@@ -201,6 +334,26 @@ def validate_votes(votes: list[dict]) -> list[str]:
     if numbers != list(range(1, len(votes) + 1)):
         problems.append(f"votes are not numbered 1..{len(votes)}: {numbers}")
     for vote in votes:
+        judge = vote.get("judge")
+        if not isinstance(judge, dict):
+            problems.append(
+                f"vote {vote.get('vote')} records no 'judge' block, so a reader "
+                "cannot tell whether these votes were independent"
+            )
+        else:
+            if not str(judge.get("model") or "").strip():
+                problems.append(f"vote {vote.get('vote')} judge names no model")
+            if not (judge.get("inputs") or []):
+                problems.append(
+                    f"vote {vote.get('vote')} judge lists no inputs, so what it was "
+                    "shown cannot be reproduced"
+                )
+            for flag in JUDGE_FLAGS:
+                if judge.get(flag) is not False:
+                    problems.append(
+                        f"vote {vote.get('vote')} judge has {flag}={judge.get(flag)!r}; "
+                        "a vote cast with that access is not an independent judgement"
+                    )
         for dimension in ARGUMENT_DIMENSIONS:
             entry = vote.get(dimension)
             if not isinstance(entry, dict):

@@ -1737,6 +1737,34 @@ class DeliveredHeadingAndProvenanceTests(unittest.TestCase):
                 )
                 self.assertIn("(544 rows)", line)
 
+    def test_the_source_list_names_its_file_once_too(self):
+        """The same duplication, one renderer over.
+
+        The table line was repaired and the source list was not, so every
+        `[S<n>]` entry in the delivered document still read
+        "amazon_classified.csv amazon_classified.csv (544 rows)".
+        """
+        from report_workflow.nodes.citation_bind import _format_source_trace_entry
+
+        line = _format_source_trace_entry(
+            {
+                "source_file_name": "amazon_classified.csv",
+                "source_span": "amazon_classified.csv (544 rows)",
+                "quote": "544 listings",
+            },
+            1,
+        )
+        self.assertEqual(line.count("amazon_classified.csv"), 1, line)
+        self.assertIn("(544 rows)", line)
+
+    def test_the_source_list_still_names_the_file_when_the_span_omits_it(self):
+        from report_workflow.nodes.citation_bind import _format_source_trace_entry
+
+        line = _format_source_trace_entry(
+            {"source_file_name": "notes.md", "source_span": "lines 4-9"}, 2
+        )
+        self.assertEqual(line, "[S2] notes.md lines 4-9")
+
     def test_table_provenance_still_prefixes_a_span_without_the_file_name(self):
         """The prefix is dropped only when the span already carries the name."""
         from report_workflow.nodes.source_tables import provenance_line

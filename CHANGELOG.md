@@ -2,6 +2,68 @@
 
 ## Unreleased
 
+### Measured — the drone-market benchmark, re-recorded and re-judged
+
+The tool arm was rewritten and all three axes were re-run.
+`benchmarks/evidence/drone_market_2026-08-14/` is the new archive; the previous
+one is left as recorded, because the document it scored no longer exists.
+
+The three deductions three blind judges converged on last round are gone. The
+sentence claiming the category table and the price-band table shared no column
+was false — both key on `asin`, and the same script had already joined them
+twice. That cross tabulation is now computed and carries the argument: the
+$200–500 band is 66.04% camera against 12.12% in $0–30, a gap of 53.92 points,
+and the $800+ band is a third thing again, 32.08% agricultural. The claim that
+denser supply meant thinner demand "across the whole table" was true of two
+bands and false of two others; it now says so, names both counterexamples, and
+claims only what the two ends support. And the executive summary's cut point
+rests on three quantities from three files instead of two.
+
+Scores, measured on the **unchanged** instrument before the layout axis was
+extended: `verifiable_numbers` 90 → 137 (the hand-written control has 121),
+`tables` 9 → 10, `heading_informativeness` 0.6667 → 0.8,
+`paragraph_length_fitness` 0.5156 → 0.5333. Two went down and stay down:
+`counter_evidence_paragraphs` 5 → 4, because the rewritten paragraph names two
+counterexamples to its own generalisation using a word the keyword list does
+not carry, and `structured_paragraph_ratio` 0.6875 → 0.6765.
+
+Blind argument scores: tool 3/3/4 → **3/4/4**, hand 4/4/4 → 4/4/4, AI-direct
+4/4/4 → **4/3/3**. The stop condition is met — and it is met because of that
+last line, on a document whose bytes did not change. Three fresh judges found
+an arithmetic error in the AI-direct arm's headline figure and a contaminated
+population under its strongest counter-evidence; the defects are real and were
+equally present last round, when the previous panel did not find them. What
+that measures is the panel's variance, and this round's winning margin is one
+point. Read the archive's opening section before its table.
+
+### Added — three delivery-layer dimensions on the layout axis
+
+`table_caption_ratio`, `table_provenance_ratio`, `table_size_fitness`. The
+first three layout rules read prose; the deliverable is a DOCX and nothing was
+looking at the furniture around a table. Declared in the archive because the
+author of the arm being measured chose them after reading all three documents:
+two run 1.0 against 0.0 and are closer to "did the renderer run" than to "is
+this better laid out", and the third is the one the pipeline loses.
+
+### Added — a re-record check, and a body hash on the arm that moves
+
+CI now re-records the tool arm and diffs it against the checked-in fixture,
+triggered only when the diff touches a path that reaches the deliverable. Not
+"the script's file hash changed": a comment would turn that red, and what it
+would measure is byte-identity of a source file rather than whether the fixture
+moved.
+
+The tool arm now carries a `Body SHA-256:` line like the other two. It is not
+frozen — `record_tool_arm.py` rewrites it — so the constant is named
+`HASHED_ARMS`, and what the hash catches there is an edit made by hand instead
+of by a re-recording.
+
+Every argument vote now records who cast it: model, the inputs it was shown,
+and three flags that must all be false — same context as the author, saw the
+pipeline code, saw the task prompt. The rubric tells a reader they can re-run
+the votes themselves; without an identity record that sentence could not be
+cashed. The check refuses votes that omit it.
+
 ### Added — FT, the sixth factuality checker
 
 A blind judge, given the three benchmark documents relabelled and the rubric and
