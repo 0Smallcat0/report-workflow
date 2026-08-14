@@ -571,14 +571,29 @@ def _bucket_edges(buckets: object) -> list[float]:
     return values
 
 
-def _band_label(low: float, high: float | None) -> str:
+def _band_label(low: float, high: float | None, *, integral: bool = False) -> str:
+    """The name of one half-open band, as a statement about what it holds.
+
+    A band cut at [1, 3) over star ratings and labelled "1–3" describes rows
+    that are all 1s and 2s: the label names a value the group does not contain,
+    and an author copying the row label into prose writes 「1-3 星區間 49 則
+    評論」 about 37 one-star and 12 two-star reviews. On an integral column the
+    coverage follows from the edges alone, so the label states it.
+
+    Only for integral columns. A price band [0, 30) named by coverage would
+    have to read "0–29.99", which is a function of the data rather than of the
+    author's cut: one new row and the column header moves.
+    """
     if high is None:
         return f"{format_number(low)}+"
+    if integral:
+        first, last = int(low), int(high) - 1
+        return f"{first}" if last <= first else f"{first}–{last}"
     return f"{format_number(low)}–{format_number(high)}"
 
 
 def _bucket_groups(
-    rows: list[dict], column: str, edges: list[float]
+    rows: list[dict], column: str, edges: list[float], *, integral: bool = False
 ) -> tuple[list[tuple[str, list[dict]]], int]:
     """Rows in author-chosen bands, plus how many fell outside every band.
 
@@ -587,9 +602,10 @@ def _bucket_groups(
     guesses them is wrong in a way the reader cannot see.
     """
     groups: list[tuple[str, list[dict]]] = [
-        (_band_label(low, high), []) for low, high in zip(edges, edges[1:])
+        (_band_label(low, high, integral=integral), [])
+        for low, high in zip(edges, edges[1:])
     ]
-    groups.append((_band_label(edges[-1], None), []))
+    groups.append((_band_label(edges[-1], None, integral=integral), []))
     outside = 0
     for row in rows:
         value = parse_number(row.get(column))
@@ -739,9 +755,11 @@ def compute_group_table(frame: Dataset, request: dict, zh: bool = False) -> dict
     scoped = select_rows(frame, rows_expression)
 
     buckets = spec.get("buckets")
+    integral = False
     if buckets is not None:
         edges = _bucket_edges(buckets)
-        groups, outside = _bucket_groups(scoped, column, edges)
+        integral = _column_is_integral(frame, column)
+        groups, outside = _bucket_groups(scoped, column, edges, integral=integral)
         grouping = "buckets"
     else:
         top = int(spec.get("top") or MAX_GROUPS_IN_TABLE)
@@ -834,7 +852,7 @@ def compute_group_table(frame: Dataset, request: dict, zh: bool = False) -> dict
     }
     if grouping == "buckets":
         derivation["buckets"] = edges
-        if _column_is_integral(frame, column):
+        if integral:
             derivation["band_members"] = _integer_band_members(edges, zh)
     join_info = getattr(frame, "join_info", None)
     if join_info:

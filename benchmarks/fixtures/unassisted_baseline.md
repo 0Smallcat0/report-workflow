@@ -3,6 +3,14 @@
 <!--
 RECORDED SAMPLE — do not edit to make the benchmark look better.
 
+Body SHA-256: 4d4ac0ef2d3f0bd0da6fa49c1958044dc0eeec88b57f3b76f7b26c889af4c869
+
+Taken over this file with every comment block removed, so the title above is
+covered and this line is not part of what it hashes.
+`run_report_quality_benchmark.py --check` recomputes it. It catches an edit
+that was never followed by a re-record; it does not stop anyone who edits the
+body and writes the new hash in the same commit.
+
 This is one write-up of `recycling_market_report.md`, produced from the same
 source and the same brief with no harness in the loop. It is checked in so the
 comparison is reproducible; regenerating it would move the numbers for reasons

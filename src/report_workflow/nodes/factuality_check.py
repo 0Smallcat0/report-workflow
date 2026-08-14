@@ -286,11 +286,19 @@ def run_factuality_check_fe(
         ]
 
         if all_reasons:
+            # Three reasons is enough to act on; the rest are counted rather
+            # than dropped, because a message that silently stops listing reads
+            # as a complete list of what is wrong.
+            shown = all_reasons[:3]
+            remaining = len(all_reasons) - len(shown)
+            reason = "; ".join(shown)
+            if remaining:
+                reason += f"; and {remaining} further check(s) failed on this claim"
             results.append({
                 "claim_id": checked["claim_id"],
                 "status": "blocked",
                 "checker": "FE",
-                "reason": "; ".join(all_reasons[:3]),  # cap at 3 reasons
+                "reason": reason,
             })
         else:
             results.append(checked)
@@ -1222,6 +1230,53 @@ def _check_content_overlap(claim: dict, evidence: dict) -> list[str]:
     return [reason for _key, reason in _content_overlap_findings(claim, evidence)]
 
 
+#: How many candidate figures a blocked-claim message prints before it stops
+#: and says how many are left.
+#:
+#: Listing every number in the cited evidence is not thoroughness. One recorded
+#: FS failure printed over a hundred figures and put the one the author needed
+#: last in the line, which hands back the search the checker had already done.
+#: Across the eight recorded runs the median failure message was 1,647
+#: characters and the longest 7,209.
+_MESSAGE_CANDIDATE_LIMIT = 6
+
+
+def _candidate_summary(
+    target: float | None,
+    candidates: list[tuple[str, str]],
+    limit: int = _MESSAGE_CANDIDATE_LIMIT,
+) -> str:
+    """The figures a reader should look at first, and a count of the rest.
+
+    Ordered by distance from the number the claim asserts, because the value
+    that explains the failure is nearly always the near miss — a unit apart, a
+    decimal place apart, the neighbouring row — and never the hundredth entry
+    in source order.
+    """
+    def distance(pair: tuple[str, str]) -> float:
+        if target is None:
+            return 0.0
+        try:
+            return abs(_normalize_number_str(pair[0]) - target)
+        except (ValueError, TypeError):
+            return float("inf")
+
+    seen: set[str] = set()
+    rendered: list[str] = []
+    for number, unit in sorted(candidates, key=distance):
+        text = f"{number}{unit}"
+        if text in seen:
+            continue
+        seen.add(text)
+        rendered.append(text)
+    if not rendered:
+        return "(none)"
+    shown = rendered[:limit]
+    remaining = len(rendered) - len(shown)
+    joined = ", ".join(shown)
+    return f"{joined}, and {remaining} more" if remaining else joined
+
+
 def _content_overlap_findings(
     claim: dict,
     evidence: dict,
@@ -1410,9 +1465,9 @@ def _content_overlap_findings(
                     for ev_num, ev_unit, _column in evidence_numbers
                     if _same_value(claim_val, ev_num) and not _units_match(unit, ev_unit)
                 })
-                ev_nums_str = ", ".join(
-                    f"{n}{u}" for n, u, _column in evidence_numbers
-                ) or "(none)"
+                ev_nums_str = _candidate_summary(
+                    claim_val, [(n, u) for n, u, _column in evidence_numbers]
+                )
                 if unit_conflicts:
                     reasons.append((number_key, (
                         f"Claim number {num_str!r}{unit} states a unit the evidence "
@@ -1700,6 +1755,7 @@ def run_factuality_check_fs(
     claim_matrix: dict,
     state=None,
     outline: dict | None = None,
+    sentence_map: list[dict] | None = None,
 ) -> list[dict]:
     """FS: does the drafted prose actually state what its claim asserts?
 
@@ -1720,6 +1776,16 @@ def run_factuality_check_fs(
     that each sentence repeat every figure would recreate the "copy the source
     or be blocked" failure FE was just repaired for.
     """
+    # Which sentences carry each claim, so a blocked claim can name the lines
+    # to edit instead of leaving the author to grep the merged draft for them.
+    sentences_by_claim: dict[str, list[str]] = {}
+    for entry in sentence_map or []:
+        sentence_id = str(entry.get("sentence_id") or entry.get("sent_id") or "")
+        if not sentence_id:
+            continue
+        for cid in entry.get("claim_ids", []) or []:
+            sentences_by_claim.setdefault(str(cid), []).append(sentence_id)
+
     results: list[dict] = []
     for claim in claim_matrix.get("claims", []):
         claim_id = _claim_id(claim)
@@ -1752,15 +1818,22 @@ def run_factuality_check_fs(
             continue
 
         rendered = ", ".join(f"{number}{unit}" for number, unit in missing)
-        stated = ", ".join(f"{number}{unit}" for number, unit in available) or "(none)"
+        try:
+            target = _normalize_number_str(missing[0][0])
+        except (ValueError, IndexError):
+            target = None
+        stated = _candidate_summary(target, available)
+        located = sentences_by_claim.get(claim_id, [])
+        where = f" Carried by {', '.join(located[:5])}." if located else ""
         results.append({
             "claim_id": claim_id,
             "status": "blocked",
             "checker": "FS",
             "reason": (
                 f"Claim asserts {rendered}, which the drafted sentences do not state "
-                f"(they state: {stated}). Either write the figure into the prose, put it "
-                f"in a figure or table the section carries, or narrow the claim."
+                f"(nearest stated: {stated}).{where} Either write the figure into the "
+                f"prose, put it in a figure or table the section carries, or narrow "
+                f"the claim."
             ),
         })
     return results
@@ -2112,7 +2185,9 @@ def run_factuality_check(state: ReportState) -> ReportState:
         merged_text = Path(merged_path).read_text(encoding="utf-8")
     if merged_text and not revision_sidecar_mode:
         all_results.extend(
-            run_factuality_check_fs(merged_text, claim_matrix, state, outline)
+            run_factuality_check_fs(
+                merged_text, claim_matrix, state, outline, sentence_map
+            )
         )
         checkers_run.append("FS")
 

@@ -24,6 +24,7 @@ drift, `--write` to regenerate the archive.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
 import shutil
@@ -49,6 +50,53 @@ BASELINE_PATH = FIXTURES / "unassisted_baseline.md"
 EVIDENCE_ROOT = REPO_ROOT / "benchmarks" / "evidence" / "report_quality_2026-08-06"
 
 PROMPT = "分析電池、塑膠、紡織、紙張四個品類的回收經濟性，比較單位成本與價格驅動因子"
+
+
+# ----------------------------------------------------------------------
+# Frozen arms.
+# ----------------------------------------------------------------------
+
+_COMMENT_BLOCK_RE = re.compile(r"<!--.*?-->", re.DOTALL)
+_BODY_HASH_RE = re.compile(r"^Body SHA-256:\s*([0-9a-f]{64})\s*$", re.MULTILINE)
+
+
+def body_digest(text: str) -> str:
+    """SHA-256 of the document with every comment block removed.
+
+    Not "everything below the header": two of the frozen fixtures put their
+    `# title` line *before* their comment block, and hashing from the header
+    down would leave those titles unprotected. Removing comments instead also
+    makes the digest independent of the `Body SHA-256:` line itself, which
+    lives inside one of them.
+    """
+    stripped = _COMMENT_BLOCK_RE.sub("", text)
+    return hashlib.sha256(stripped.encode("utf-8")).hexdigest()
+
+
+def check_frozen_body(path: Path) -> list[str]:
+    """The recorded arm still holds the body its own header claims.
+
+    AGENTS.md forbids editing these files; until now nothing checked. What
+    this catches is silent drift — an edit made during debugging, or a
+    hand-tuned sentence, that was never followed by a re-record, so the
+    archived scores describe a document that no longer exists.
+
+    It does not settle the conflict of interest in an author grading their own
+    arm. Anyone who wants the number to move can edit the file and write the
+    new hash in one commit, and this will pass. What it removes is the case
+    where nobody meant to move it.
+    """
+    text = path.read_text(encoding="utf-8")
+    match = _BODY_HASH_RE.search(text)
+    if not match:
+        return [f"{path.name} carries no `Body SHA-256:` line in its header"]
+    actual = body_digest(text)
+    if match.group(1) != actual:
+        return [
+            f"{path.name} was edited without being re-recorded: header says "
+            f"{match.group(1)}, body hashes to {actual}"
+        ]
+    return []
 
 
 # ----------------------------------------------------------------------
@@ -556,15 +604,17 @@ def check_archive() -> list[str]:
     numbers. Regenerating the tool arm needs the full environment, and that is
     what `--write` is for.
     """
-    issues: list[str] = []
+    issues: list[str] = check_frozen_body(BASELINE_PATH)
     archived_path = EVIDENCE_ROOT / "results.json"
     if not archived_path.exists():
-        return ["no archived report-quality results; run with --write"]
+        return issues + ["no archived report-quality results; run with --write"]
     archived = json.loads(archived_path.read_text(encoding="utf-8"))
 
     tool_document = archived.get("tool_document")
     if not tool_document:
-        return ["the archive predates recording the tool arm's document; run with --write"]
+        return issues + [
+            "the archive predates recording the tool arm's document; run with --write"
+        ]
 
     source_text = SOURCE_PATH.read_text(encoding="utf-8")
     fresh = {

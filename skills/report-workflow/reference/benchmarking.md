@@ -24,7 +24,7 @@ repo-local benchmark contract before changing the skill or Python pipeline:
    `python scripts/run_report_benchmarks.py --check` to validate archived
    benchmark evidence without rerunning the workflow.
 5. Inspect the relevant QA artifacts for the profile: `final_qa_summary`,
-   `scholarly_quality_report`, `figure_visual_quality_report`, `template_style_map`,
+   `figure_visual_quality_report`, `template_style_map`,
    and profile-specific reports such as `engineering_audit_report`,
    `admissions_tone_report`, or `reference_relevance_report`.
 6. Classify every finding with exactly one benchmark category from

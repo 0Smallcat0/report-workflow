@@ -194,10 +194,19 @@ def _section_title_forms(
     blueprint_section: dict | None,
     section_title: str,
 ) -> set[str]:
-    """Every spelling of a section's own title that a draft may repeat."""
+    """Every spelling of a section's own title that a draft may repeat.
+
+    The raw ``section_id`` is one of them. Briefs address sections by id, so an
+    author opens the draft with "# executive_summary" — and the two derived
+    forms here ("Executive Summary", "executive summary") both drop the
+    underscore, so the id matched nothing and stood in the delivered document
+    as a visible heading between "# 1. 執行摘要" and the prose. Single-word ids
+    were never affected: for them ``replace("_", " ")`` is the identity.
+    """
     forms = {
         _canonical_section_title(section_id),
         section_id.replace("_", " "),
+        section_id,
         section_title,
     }
     section = blueprint_section or {}

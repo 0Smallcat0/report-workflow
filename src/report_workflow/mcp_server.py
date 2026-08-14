@@ -319,6 +319,33 @@ def build_server():
         median, min, max, distinct, share, hhi, top_share. The value is
         computed from the rows here rather than supplied by you; `expect` is
         checked against it, never trusted. Cite the returned evidence_id.
+
+        Two shapes beyond that scalar, and a report that never reaches for
+        them is the poorer for it:
+
+        `group_by` plus `measures` returns a whole table — one row per group,
+        one column per measure — registered as a single evidence entry a
+        `[TABLE:<id>]` marker can place:
+        `{"id": "price_band_reliability", "source": "products.csv",
+        "group_by": {"column": "price", "buckets": [0, 30, 50, 100],
+        "label": "Price band"}, "measures": [{"op": "count"},
+        {"op": "mean", "column": "rating"},
+        {"op": "share", "rows": "rating < 4"}]}`. Omit `buckets` for a
+        categorical column. Bucket edges are never guessed: where a numeric
+        axis is cut is the finding, not an input to it.
+
+        `source` also takes two files with a `join`, which is the only way to
+        reach a finding neither file states alone:
+        `{"id": "band_review_rating",
+        "source": ["reviews.csv", "products.csv"],
+        "join": {"on": "asin", "how": "inner"},
+        "group_by": {"column": "price", "buckets": [0, 30, 50, 100]},
+        "measures": [{"op": "mean", "column": "review_rating"}]}`. Rows that
+        find no partner are counted and reported in the evidence text, and a
+        column name present on both sides is renamed rather than overwritten.
+        Check two tables for a shared key before writing that they cannot be
+        crossed: saying so when they share one is a false statement about the
+        data.
         """
         return agent_wrapper.register_derived_evidence(
             job_id, derivations, workspace_root

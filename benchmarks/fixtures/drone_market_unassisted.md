@@ -3,6 +3,14 @@
 <!--
 RECORDED SAMPLE — do not edit to make the benchmark look better.
 
+Body SHA-256: 96e9fd650c8987b4ea3dd8e6d5eb53129eb2bc2ac20c29d041f56c39e7b792d6
+
+Taken over this file with every comment block removed, so the title above is
+covered and this line is not part of what it hashes.
+`run_drone_market_benchmark.py --check` recomputes it. It catches an edit that
+was never followed by a re-record; it does not stop anyone who edits the body
+and writes the new hash in the same commit.
+
 One write-up of `benchmarks/fixtures/drone_market/*.csv`, produced from the same
 three files and the same task statement with no harness in the loop. Checked in
 so the comparison reproduces; regenerating it each run would move the baseline

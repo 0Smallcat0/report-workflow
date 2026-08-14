@@ -1675,5 +1675,78 @@ class QualityGateContractTests(unittest.TestCase):
         self.assertIn("bibliography is not publication-bearing", str(raised.exception))
 
 
+class DeliveredHeadingAndProvenanceTests(unittest.TestCase):
+    """Two things the reader sees that named the tool instead of the subject."""
+
+    @staticmethod
+    def _blueprint_section_ids() -> set[str]:
+        import yaml
+
+        from report_workflow import blueprints
+
+        section_ids: set[str] = set()
+        for path in Path(blueprints.__file__).parent.glob("*.yaml"):
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+            section_ids |= set((data.get("sections") or {}).keys())
+        return section_ids
+
+    def test_no_blueprint_section_id_survives_as_a_visible_heading(self):
+        """A draft that opens with its own id must not ship that id as a heading.
+
+        `## executive_summary` reached a delivered document because the strip
+        compared against "Executive Summary" and "executive summary" and never
+        against the id itself. Every multi-word id in every blueprint was
+        exposed; single-word ids were not, which is why it took a real run to
+        find.
+        """
+        from report_workflow.nodes.merge_draft import _strip_duplicate_title_heading
+
+        section_ids = self._blueprint_section_ids()
+        self.assertTrue(section_ids, "no blueprint sections found to check")
+        for section_id in sorted(section_ids):
+            with self.subTest(section_id=section_id):
+                content = f"# {section_id}\n\nBody text.\n"
+                stripped = _strip_duplicate_title_heading(
+                    content, section_id, {}, section_id.replace("_", " ").title()
+                )
+                self.assertNotIn(
+                    section_id,
+                    stripped,
+                    f"{section_id!r} survives into the merged draft as a heading",
+                )
+
+    def test_table_provenance_names_its_file_once(self):
+        """One table, one attribution — not "amazon.csv amazon.csv (544 rows)".
+
+        The span the ledger records already opens with the file name, so
+        prefixing it printed the file twice under every table in the document.
+        """
+        from report_workflow.nodes.source_tables import provenance_line
+
+        table = {
+            "source_file_name": "amazon_classified.csv",
+            "source_span": "amazon_classified.csv (544 rows)",
+        }
+        for language in ("zh", "en"):
+            with self.subTest(language=language):
+                line = provenance_line(table, language)
+                self.assertEqual(
+                    line.count("amazon_classified.csv"),
+                    1,
+                    f"provenance line repeats the file name: {line!r}",
+                )
+                self.assertIn("(544 rows)", line)
+
+    def test_table_provenance_still_prefixes_a_span_without_the_file_name(self):
+        """The prefix is dropped only when the span already carries the name."""
+        from report_workflow.nodes.source_tables import provenance_line
+
+        line = provenance_line(
+            {"source_file_name": "amazon_classified.csv", "source_span": "rows 1-544"},
+            "en",
+        )
+        self.assertEqual(line, "Source: amazon_classified.csv rows 1-544")
+
+
 if __name__ == "__main__":
     unittest.main()

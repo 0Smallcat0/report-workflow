@@ -166,5 +166,5 @@ Treat these as hard gates before delivery:
 - Template fields such as course, student ID, instructor, lab section, date, and
   department are supplied when the school/company template expects them.
 - Before delivery, inspect `final_qa_summary_path`, then
-  `scholarly_quality_report_path`, `template_field_fill_report_path`,
+  `template_field_fill_report_path`,
   `template_style_map_path`, and `post_render_layout_manifest_path` when returned.

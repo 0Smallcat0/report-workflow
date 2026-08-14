@@ -21,7 +21,7 @@ Primary rubric sources:
 - Fixture: `benchmarks/fixtures/controlled_source.md`
 - Prompt: `Write an admissions-facing scholarly report about the structured workflow project.`
 - Profile: `admissions_report`
-- Required QA to inspect: `scholarly_quality_report.json`,
+- Required QA to inspect:
   `admissions_tone_report.json`, `final_qa_summary.json`, and tone/fit in the
   final DOCX.
 
