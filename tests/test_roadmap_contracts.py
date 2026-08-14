@@ -1583,6 +1583,94 @@ class DocumentationContractTests(unittest.TestCase):
                 self.assertIn(f"({caught}/{hallucinated})", text)
                 self.assertIn(f"({false_positives}/{honest})", text)
 
+    #: The three-arm archive both READMEs quote. Pinned, not globbed for the
+    #: newest date.
+    #:
+    #: A test that picks up whatever archive is latest would silently change
+    #: what it compares against the moment a new round is recorded, and the
+    #: stale README would turn red on some unrelated commit afterwards. Pinned,
+    #: swapping archives is a deliberate edit to this line, which forces both
+    #: READMEs to move in the same commit — which is the whole point of the
+    #: guard.
+    DRONE_ARCHIVE = Path("benchmarks/evidence/drone_market_2026-08-14")
+
+    def test_both_readmes_quote_the_archived_three_arm_result(self):
+        """The landing page has to carry the harsher benchmark, not the kinder one.
+
+        README showed the two-arm report-quality result — harness wins 6 of 8,
+        loses 2, both reported — and said nothing at all about the three-arm
+        comparison, which is the one that answers "better than a person,
+        better than an AI writing it directly" and whose answer is "one axis
+        still lost to a person, and the round was decided by a two-point move
+        in a document that did not change". Showing only the kinder number is
+        the same defect this repository has shipped several releases to fix in
+        its error messages, with the reader in the author's place.
+
+        Only recomputable assertions are pinned: the per-axis win-loss records,
+        the stop-condition boolean, and the argument medians. Not the prose — a
+        guard that reddens on a reworded sentence measures sameness of text
+        rather than correctness of claim.
+        """
+        results = json.loads(
+            (self.DRONE_ARCHIVE / "results.json").read_text(encoding="utf-8")
+        )
+        verdict = results["verdict"]
+        scores = results["scores"]
+
+        expected = []
+        for axis, record in verdict["axes"].items():
+            for side, opponent in (("vs_hand", "the hand-written control"),
+                                   ("vs_llm_direct", "the AI-direct arm")):
+                entry = record[side]
+                expected.append((
+                    f"{entry['wins']}–{entry['losses']} "
+                    f"{'won' if entry['won'] else 'lost'}",
+                    f"the {axis} axis against {opponent}",
+                ))
+        for arm in ("hand", "tool", "llm_direct"):
+            argument = scores[arm]["argument"]
+            expected.append((
+                "/".join(str(argument[dimension]) for dimension in
+                         ("claim_strength", "evidence_depth", "counter_specificity")),
+                f"the {arm} arm's argument medians",
+            ))
+        # The boolean, in the one short stem each language states it with.
+        stop_met = verdict["stop_condition_met"]
+        stems = {
+            "README.md": ("The stop condition is met"
+                          if stop_met else "The stop condition is not met"),
+            "README.zh-TW.md": "停止條件達成" if stop_met else "停止條件未達成",
+        }
+
+        # `assertIn` prints the haystack, and the haystack here is an entire
+        # README. A failure message that dumps the page is the flooding this
+        # repository files as a defect in its own error messages.
+        def require(text: str, token: str, message: str) -> None:
+            if token not in text:
+                self.fail(message)
+
+        for doc, stem in stems.items():
+            text = Path(doc).read_text(encoding="utf-8")
+            with self.subTest(doc=doc):
+                require(
+                    text, self.DRONE_ARCHIVE.name,
+                    f"{doc} does not say which archive its three-arm numbers come "
+                    f"from; the archive is {self.DRONE_ARCHIVE.name}",
+                )
+                require(
+                    text, stem,
+                    f"{doc} does not state the stop condition the way the archive "
+                    f"records it: archive says stop_condition_met="
+                    f"{str(stop_met).lower()}, so the page must say {stem!r}",
+                )
+                for token, what in expected:
+                    require(
+                        text, token,
+                        f"{doc} does not carry {token!r} for {what}; that is what "
+                        f"{self.DRONE_ARCHIVE.name}/results.json computes. Either "
+                        f"the page is stale or it is quoting a different round.",
+                    )
+
     def test_evidence_page_quotes_the_archived_external_benchmark(self):
         """The neighbour of the round that pinned the adversarial numbers.
 

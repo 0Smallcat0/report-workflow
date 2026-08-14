@@ -2,6 +2,54 @@
 
 ## Unreleased
 
+### Changed — the landing page carries the harsher benchmark too
+
+README showed the two-arm report-quality comparison — harness wins 6 of 8,
+loses 2, both reported rather than tuned away — and said nothing at all about
+the three-arm one. That is the comparison that answers "better than a person,
+better than an AI writing the report directly", and its answer is less
+flattering: one axis still lost to the hand-written control, and the round was
+decided by a two-point move in a document whose bytes did not change.
+
+Showing only the kinder number is the same defect this repository has shipped
+several releases to fix in its error messages, with the reader standing where
+the author usually stands. Both READMEs now carry, at the same prominence as
+the table and above it, what
+`benchmarks/evidence/drone_market_2026-08-14/summary.md` already recorded: the
+stop condition is met; it is met because a frozen arm scored 4/3/3 with this
+panel and 4/4/4 with the previous one, so panel-to-panel variation is at least
+a point per dimension against a winning margin of one point; the tool arm was
+written a second time against the same task, the same rubric and the same
+itemised deductions, so these are this task's ceiling; and the archive has no
+held-out task, because building one means commissioning a second hand-written
+control and a second AI-direct arm.
+
+Both pages name the dated archive the numbers come from. The two-arm section is
+unchanged — this adds a benchmark rather than replacing one.
+
+`README.zh-TW.md` gained the same section with the same four qualifications;
+the two pages were diffed assertion by assertion rather than read side by side.
+Its stale "69 hand-designed cases" is now 73, matching the corpus after
+`e401849`.
+
+### Added — a contract test pinning both READMEs to the three-arm archive
+
+The guard that keeps `docs/EVIDENCE.md` and `docs/DESIGN.md` honest about the
+adversarial corpus now has a sibling for the three-arm result. It recomputes
+the per-axis win-loss records, the stop-condition boolean and the argument
+medians from `results.json` and requires both READMEs to carry them.
+
+The archive path is a pinned constant, not the newest matching directory: a
+glob would silently change what the test compares the moment a new round is
+recorded, and the stale README would then redden on some later, unrelated
+commit. Pinned, swapping archives is a deliberate edit that forces both pages
+to move in the same commit.
+
+It compares recomputable values, not prose, so rewording a sentence cannot turn
+it red. Its failure messages name both sides — what the page carries and what
+the archive computes — and it was watched failing in both languages, on a wrong
+axis record and on a flipped stop-condition, before landing.
+
 ### Added — FL and FT2, the seventh and eighth factuality checkers
 
 The first two hard blocks added in four batches. The previous three added
