@@ -328,6 +328,20 @@ report-workflow invalidate-cache --job-id <id> --sources --drafts
   layer. It closes the gap a blind judge found: every figure in the sentence
   real and present in the cited evidence, and the relation drawn from them
   false.
+- A band the prose names is a band the cited table has. A delivered report
+  called a row labelled `1–2` 「1–3 星區間 49 則評論」 three times; the row and
+  the 49 are right, 1–3 stars is 68 reviews, and FE — which compares numbers —
+  found nothing. Three independent blind judges caught it and six checkers
+  passed it. FL blocks only when the band appears in no cited table, by label
+  or by the membership line they already print, *and* shares an endpoint with
+  one that does: 「6–8 個工作天」 beside a price-band table is not a mislabel,
+  and the author who gets both ends wrong is a miss this accepts.
+- A relation asserted between *two* columns of a computed table is the relation
+  those columns have. FT reads one column, which is structural: the pair of
+  cells is what fixes which column and which direction. FT2 is the same
+  arithmetic one dimension over, under the same two-part rule — ordered pairs
+  and both ends must disagree — and additionally requires the claim to name
+  both columns, because two columns is a larger coincidence space than one.
 - A cross tabulation the pipeline built is placed or waived by name with a
   reason. Leaving it unmentioned is the loss-by-omission this gate exists for:
   three runs of one task placed four of seven, then three, then two, and the

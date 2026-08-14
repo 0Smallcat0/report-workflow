@@ -11,7 +11,7 @@ mcp-name: io.github.0Smallcat0/report-workflow
 
 [![CI](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-1059%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1070%20passing-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **繁體中文說明 → [README.zh-TW.md](README.zh-TW.md)**
@@ -109,7 +109,7 @@ history; the evidence they worked is checked in:
 | | Before | After |
 | --- | ---: | ---: |
 | Correct Chinese claims blocked by the FE gate | 3 of 3 | 0 of 3 |
-| Hallucination catch rate (69 adversarial cases) | 86.4% | **88.6%** |
+| Hallucination catch rate (73 adversarial cases) | 86.4% | **89.1%** |
 | Honest claims wrongly blocked | 0% | 0% |
 | Source tables reaching the delivered document | 0 of 4 | **4 of 4** |
 | Sources the document cites, reaching the bibliography | 0 of 6 | **6 of 6** |

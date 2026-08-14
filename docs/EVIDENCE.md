@@ -31,7 +31,7 @@ with:
 ## Red-team: the catch rate is measured, not asserted
 
 A gate that only sees honest drafts proves nothing. The adversarial benchmark
-runs **69 hand-audited cases** — 25 honest controls and 44 hallucinated claims
+runs **73 hand-audited cases** — 27 honest controls and 46 hallucinated claims
 across 14 attack families (fabricated citations, invented statistics, unit
 swaps, fabricated quotes, precision inflation, cross-language laundering,
 off-topic citations, status laundering, Chinese-text fabrication,
@@ -42,7 +42,7 @@ the same corpus:
 | --- | --- | --- | --- |
 | No gate (publish everything) | 0.0% | 0.0% | — |
 | Citation-presence check (shallow RAG-style) | 9.1% (4/44) | 0.0% | 100% |
-| **Full deterministic gate stack** | **88.6%** (39/44) | **0.0%** (0/25) | **100%** |
+| **Full deterministic gate stack** | **89.1%** (41/46) | **0.0%** (0/27) | **100%** |
 
 All 15 targeted attack families are caught at 100%, with zero honest claims
 wrongly blocked. The 2026-07-14 gate hardening closed three formerly documented
@@ -113,7 +113,7 @@ Archived results ([`benchmarks/evidence/full_benchmark_2026-05-13/summary.md`](.
 | Claims verified against evidence | **42** (6 per profile), **0 blocked** |
 | Unresolved citation-audit entries | **0** |
 | Delivery QA decision | `pass` on every profile |
-| Unit tests at the time of the archived run | **351 passing** (1059 today) |
+| Unit tests at the time of the archived run | **351 passing** (1070 today) |
 
 Each report is packaged with its QA pack (`final_qa_summary`, factuality,
 scholarly-quality, figure-visual, template-style, and render-layout reports) so

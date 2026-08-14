@@ -1,11 +1,13 @@
 {
-  "generated_at": "2026-08-14T12:05:37",
+  "generated_at": "2026-08-14T17:16:04",
   "corpus": {
-    "total_cases": 69,
-    "honest_cases": 25,
-    "hallucinated_cases": 44,
+    "total_cases": 73,
+    "honest_cases": 27,
+    "hallucinated_cases": 46,
     "attack_families": [
+      "band_label_drift",
       "cjk_fabrication",
+      "cross_column_direction",
       "cross_language_mismatch",
       "dangling_claim",
       "fabricated_citation",
@@ -22,8 +24,8 @@
       "wording_grade_violation"
     ],
     "documented_evasions": 5,
-    "evidence_rows": 16,
-    "corpus_hash": "ca71fc6a6180e3d2d5fa9517bb288ae1ad17df75465191187bc90c9f90390193"
+    "evidence_rows": 18,
+    "corpus_hash": "55cfd5e41f1651ffa15f73768fd06489f9fd370074e2b5ad54570727193109ed"
   },
   "checkers": {
     "no_gate": {
@@ -614,6 +616,42 @@
           "reason": ""
         },
         {
+          "case_id": "bl01",
+          "family": "band_label_drift",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "bl02",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "tc01",
+          "family": "cross_column_direction",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "tc02",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
           "case_id": "x01",
           "family": "invented_quantity",
           "is_hallucination": true,
@@ -652,9 +690,9 @@
       ],
       "metrics": {
         "true_positives": 0,
-        "false_negatives": 44,
+        "false_negatives": 46,
         "false_positives": 0,
-        "true_negatives": 25,
+        "true_negatives": 27,
         "recall": 0.0,
         "false_positive_rate": 0.0,
         "precision": 0.0
@@ -1248,6 +1286,42 @@
           "reason": ""
         },
         {
+          "case_id": "bl01",
+          "family": "band_label_drift",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "bl02",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "tc01",
+          "family": "cross_column_direction",
+          "is_hallucination": true,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "tc02",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": null,
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
           "case_id": "x01",
           "family": "invented_quantity",
           "is_hallucination": true,
@@ -1286,10 +1360,10 @@
       ],
       "metrics": {
         "true_positives": 4,
-        "false_negatives": 40,
+        "false_negatives": 42,
         "false_positives": 0,
-        "true_negatives": 25,
-        "recall": 0.0909,
+        "true_negatives": 27,
+        "recall": 0.087,
         "false_positive_rate": 0.0,
         "precision": 1.0
       }
@@ -1882,6 +1956,42 @@
           "reason": "Wording strength 'weak' is not allowed for evidence_grade='low' (allowed: hedged)"
         },
         {
+          "case_id": "bl01",
+          "family": "band_label_drift",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FL",
+          "reason": "Claim names the band '1-3', which is not a row of the table(s) it cites. Their rows are: 1–2, 3–4, 5+. It shares the endpoint 1, 3 with one of them, so this reads as the wrong spelling of a real band rather than a different quantity — and the figures beside it belong to the row that does exist. Write the row's own label, or, if the claim really is about '1-3', register that band and restate the figures from it."
+        },
+        {
+          "case_id": "bl02",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
+          "case_id": "tc01",
+          "family": "cross_column_direction",
+          "is_hallucination": true,
+          "expected_verdict": "blocked",
+          "verdict": "blocked",
+          "blocked_by": "FT2",
+          "reason": "Claim reads '掛牌數' as something that moves against '累積評論中位數' across ev_price_bands's groups, anchoring on 2 of 5. Over all 5 (掛牌數/累積評論中位數): 0–30 100/400 | 30–50 80/320 | 50–100 60/240 | 100–200 40/160 | 200–500 20/300. 8 of the 10 ordered group pairs go the other way, and so do the two ends. Either state the relation the table has, name the subset the claim is about, or drop the direction."
+        },
+        {
+          "case_id": "tc02",
+          "family": "honest",
+          "is_hallucination": false,
+          "expected_verdict": "published",
+          "verdict": "published",
+          "blocked_by": null,
+          "reason": ""
+        },
+        {
           "case_id": "x01",
           "family": "invented_quantity",
           "is_hallucination": true,
@@ -1919,21 +2029,39 @@
         }
       ],
       "metrics": {
-        "true_positives": 39,
+        "true_positives": 41,
         "false_negatives": 5,
         "false_positives": 0,
-        "true_negatives": 25,
-        "recall": 0.8864,
+        "true_negatives": 27,
+        "recall": 0.8913,
         "false_positive_rate": 0.0,
         "precision": 1.0
       },
       "family_breakdown": [
+        {
+          "family": "band_label_drift",
+          "cases": 1,
+          "caught": 1,
+          "gates": [
+            "FL"
+          ],
+          "catch_rate": 1.0
+        },
         {
           "family": "cjk_fabrication",
           "cases": 2,
           "caught": 2,
           "gates": [
             "FE"
+          ],
+          "catch_rate": 1.0
+        },
+        {
+          "family": "cross_column_direction",
+          "cases": 1,
+          "caught": 1,
+          "gates": [
+            "FT2"
           ],
           "catch_rate": 1.0
         },
@@ -2097,7 +2225,7 @@
   "expected_mismatches": [],
   "determinism": {
     "runs": 5,
-    "verdict_hash": "d92e6fc8b07eb16e82b8e67a239807ddc86d046e065ec4452d5074cbfbbfdc62",
+    "verdict_hash": "1faa32b90bd32defe4e529a930cfb317bd79dc0427fa72ea9c06b848d5901a0f",
     "identical": true
   }
 }

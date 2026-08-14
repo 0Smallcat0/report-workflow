@@ -46,6 +46,8 @@ from report_workflow.nodes.factuality_check import (
     run_factuality_check_fb,
     run_factuality_check_fd,
     run_factuality_check_fe,
+    run_factuality_check_fl,
+    run_factuality_check_ft2,
 )
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -195,7 +197,8 @@ LEDGER: list[dict[str, Any]] = [
     },
 ]
 
-LEDGER_IDS = {row["evidence_id"] for row in LEDGER}
+# Defined after the grid rows are appended below, so the citation-presence
+# baseline recognises them too.
 
 
 def _case(
@@ -241,6 +244,92 @@ def _case(
 # short fabricated quotes (quote scanner minimum 10 -> 4 chars, now in
 # fabricated_quote), and cross_language_mismatch (English-claim-on-CJK-evidence
 # falls back to the English term check instead of a free pass).
+#: Two computed group tables, carried in the ledger the way the pipeline
+#: carries them — the rendered grid plus the derivation that produced it.
+#:
+#: Every other row here is prose. These two exist because FL and FT2 read the
+#: grid rather than the text, and a checker with no case in this corpus is a
+#: checker nobody can say anything about a round later. Both of their
+#: motivating defects are about to leave the repository: the FT2 sentence was
+#: rewritten by its author in e496f93, and the FL instances live in a fixture
+#: that the next re-recording overwrites.
+_STAR_BAND_GRID = {
+    "headers": ["星等區間", "評論數", "提及連線", "提及故障"],
+    "rows": [
+        ["1–2", "49", "28.57%", "10.20%"],
+        ["3–4", "75", "18.67%", "5.33%"],
+        ["5+", "349", "14.04%", "3.44%"],
+        ["合計", "473", "16.70%", "4.65%"],
+    ],
+}
+
+_PRICE_BAND_GRID = {
+    "headers": ["價格帶 (USD)", "掛牌數", "累積評論中位數"],
+    "rows": [
+        ["0–30", "100", "400"],
+        ["30–50", "80", "320"],
+        ["50–100", "60", "240"],
+        ["100–200", "40", "160"],
+        ["200–500", "20", "300"],
+        ["合計", "300", "280"],
+    ],
+}
+
+LEDGER.extend([
+    {
+        "evidence_id": "ev_star_bands",
+        "content": (
+            "衍生統計(來源:reviews.csv):痛點主題依星等。依 review_rating 分為 3 組，"
+            "涵蓋 473 筆資料列。各組實際涵蓋的值：1–2=1 至 2, 3–4=3 至 4, 5+=5 及以上。\n"
+            "星等區間 | 評論數 | 提及連線 | 提及故障\n"
+            "1–2 星 | 49 | 28.57% | 10.20%\n"
+            "3–4 星 | 75 | 18.67% | 5.33%\n"
+            "5+ 星 | 349 | 14.04% | 3.44%\n"
+            "合計 | 473 | 16.70% | 4.65%"
+        ),
+        "evidence_type": "quantitative",
+        "source_role": "source_data",
+        "evidence_grade": "high",
+        "block_type": "derived_statistic",
+        "table_grid": _STAR_BAND_GRID,
+        "derivation": {
+            "method": "group_table",
+            "grouping": "buckets",
+            "groups": 3,
+            "buckets": [1, 3, 5],
+            "band_members": ["1 至 2", "3 至 4", "5 及以上"],
+        },
+    },
+    {
+        "evidence_id": "ev_price_bands",
+        "content": (
+            "衍生統計(來源:products.csv):價格帶的供給密度與需求厚度。依 price 分為 5 組，"
+            "涵蓋 300 筆資料列。\n"
+            "價格帶 (USD) | 掛牌數 | 累積評論中位數\n"
+            "0–30 | 100 | 400\n"
+            "30–50 | 80 | 320\n"
+            "50–100 | 60 | 240\n"
+            "100–200 | 40 | 160\n"
+            "200–500 | 20 | 300\n"
+            "合計 | 300 | 280"
+        ),
+        "evidence_type": "quantitative",
+        "source_role": "source_data",
+        "evidence_grade": "high",
+        "block_type": "derived_statistic",
+        "table_grid": _PRICE_BAND_GRID,
+        "derivation": {
+            "method": "group_table",
+            "grouping": "buckets",
+            "groups": 5,
+            "buckets": [0, 30, 50, 100, 200, 500],
+        },
+    },
+])
+
+LEDGER_IDS = {row["evidence_id"] for row in LEDGER}
+
+
 CASES: list[dict[str, Any]] = [
     # A question is not an answer. Interview transcripts, FAQs and minutes all
     # put questions in the ledger, and citing one used to ground the claim it
@@ -510,6 +599,43 @@ CASES: list[dict[str, Any]] = [
           ["ev_low"], hallucination=True, expected="blocked", wording="weak",
           note="low-grade evidence permits hedged wording only"),
 
+    # A band the prose names that the cited table does not have. The row is
+    # `1–2` and holds 49 reviews; 1–3 stars is 68. Every figure quoted is real
+    # and belongs to the row that exists, so FE — which compares numbers — has
+    # nothing to say, and the reader is handed the wrong interval. Three
+    # independent blind judges found this in a delivered report that six
+    # checkers had passed.
+    _case("bl01", "band_label_drift",
+          "1–3 星區間 49 則評論中提及連線的佔 28.57%、提及故障的佔 10.20%。",
+          ["ev_star_bands"], hallucination=True, expected="blocked",
+          note="table row is 1–2; 1–3 stars is 68 reviews, not 49"),
+    _case("bl02", "honest",
+          "1–2 星區間 49 則評論中提及連線的佔 28.57%、提及故障的佔 10.20%。",
+          ["ev_star_bands"], hallucination=False, expected="published",
+          note="the same sentence naming the band the table actually has"),
+    # A direction asserted between two columns rather than along one. FT's
+    # pair-of-cells-from-one-column condition is structural, so it stands down
+    # on this shape and files nothing.
+    #
+    # Constructed rather than recorded, and that is worth knowing: the sentence
+    # that motivated FT2 does not fail this arithmetic. Over the seven bands of
+    # the table it cited, 14 of 20 ordered pairs agree with the inverse
+    # relation and both ends agree — what was wrong with it was calling that
+    # relation "the strongest structural signal in this data", which is a claim
+    # about strength and not about direction. This case is the shape FT2 can
+    # actually decide: a table where supply and demand fall together across
+    # eight of ten pairs and at both ends, described as moving against.
+    _case("tc01", "cross_column_direction",
+          "100–200 帶有 40 件掛牌、累積評論中位數 160；200–500 帶只有 20 件掛牌，"
+          "累積評論中位數卻是 300。掛牌數愈少，累積評論中位數愈高。",
+          ["ev_price_bands"], hallucination=True, expected="blocked",
+          note="8 of 10 ordered pairs and both ends have the two columns moving together"),
+    _case("tc02", "honest",
+          "0–30 帶有 100 件掛牌、累積評論中位數 400；100–200 帶有 40 件掛牌，"
+          "累積評論中位數 160。掛牌數愈少，累積評論中位數也愈低。",
+          ["ev_price_bands"], hallucination=False, expected="published",
+          note="the direction the table has, quoted from two of its bands"),
+
     # Documented evasions: hallucinations that currently slip through.
     # These are kept on purpose — they are the measured residual-risk boundary
     # and the honest input to the limitations section of docs/DESIGN.md.
@@ -547,15 +673,26 @@ def _sentence_for(case: dict[str, Any]) -> dict[str, Any]:
 
 
 def evaluate_full_gate_stack(case: dict[str, Any]) -> dict[str, Any]:
-    """Run FA -> FB -> FE (deep audit) -> FD, the strictest pipeline order."""
+    """Run FA -> FB -> FE (deep audit) -> FL -> FT2 -> FD, pipeline order."""
     matrix = {"claims": [case["claim"]]}
     sentences = [_sentence_for(case)]
     results = run_factuality_check_fa(sentences, matrix, LEDGER)
     results = run_factuality_check_fb(results, matrix, LEDGER)
     results = run_factuality_check_fe(results, matrix, LEDGER)
     fd_rows = run_factuality_check_fd(sentences, matrix, LEDGER)
+    # FL and FT2 read the computed grid rather than the evidence text, so they
+    # see nothing on the prose rows and only decide the two grid-backed
+    # families. The claim text stands in for the merged draft: with no [CITE:]
+    # markers, FT2 reads the claim alone, which is where it takes its pair
+    # from anyway.
+    grid_rows = run_factuality_check_fl(matrix, LEDGER) + [
+        row for row in run_factuality_check_ft2(
+            case["claim"]["claim_text"], matrix, LEDGER
+        )
+        if row["status"] == "blocked"
+    ]
 
-    blocked_rows = [row for row in results if row["status"] == "blocked"]
+    blocked_rows = [row for row in results if row["status"] == "blocked"] + grid_rows
     if blocked_rows:
         first = blocked_rows[0]
         return {"verdict": "blocked", "blocked_by": first["checker"], "reason": first["reason"]}
