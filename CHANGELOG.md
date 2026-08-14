@@ -2,6 +2,74 @@
 
 ## Unreleased
 
+### Added — FL and FT2, the seventh and eighth factuality checkers
+
+The first two hard blocks added in four batches. The previous three added
+operations and visibility and no gates at all; these two each have a defect a
+blind judge found, and each carries a case in the adversarial corpus so the
+defect outlives the fixture it was found in.
+
+**FL — a band the prose names must be a band the cited table has.** The report
+`e496f93` recorded calls a row labelled `1–2` 「1–3 星區間 49 則評論」 three
+times. The row is right, the 49 is right, and 1–3 stars is 68 reviews; FE
+compares numbers and found nothing, so six checkers passed it and three
+independent blind judges did not. It is the band-label repair of `0e0a40f` one
+layer up — the labels were corrected at the naming end and nothing was reading
+prose that still quoted the old spelling.
+
+Not auto-corrected, because 「1–3 星區間 49 則評論」 is ambiguous: the author may
+mean the row, or may mean 1–3 stars, in which case the 49 is wrong too. Four
+conditions, all required — a cited computed table, a band-shaped string in the
+claim, absent from every cited table by label and by the membership line they
+print, and sharing an endpoint with a band that exists. The endpoint condition
+is what keeps 「6–8 個工作天」 out of a paragraph citing a price table. The cost
+is the author who gets both ends wrong; that miss is accepted, because the hard
+constraint here is no false blocks.
+
+**FT2 — a relation asserted between two columns.** FT's fifth condition is a
+pair of cells from *one* column, which is what fixes the column and the
+direction; a sentence relating supply density to review depth names no single
+column and FT stands down. Same arithmetic one dimension over, under the same
+two-part rule, and additionally requiring the claim to name both columns.
+
+Its motivating sentence does not trip it, and that is worth stating plainly:
+over the seven price bands it cited, 14 of 20 ordered pairs agree with the
+inverse relation it asserted and so do both ends. What was wrong with that
+sentence was calling the relation "the strongest structural signal in this
+data" — a claim about strength, not direction. Arithmetic cannot see that and
+this project's boundary says a checker does not try. FT2 covers the shape FT
+structurally cannot, not the sentence that revealed the shape.
+
+Adversarial corpus: 69 cases to 73, recall 88.6% to 89.1%, false positives
+0.0% to 0.0%. None of the 69 existing verdicts moved — which is the honest
+report of these two checkers' coverage on prose-only evidence: zero. Both new
+families (`band_label_drift`, `cross_column_direction`) need a computed grid in
+the ledger, and the corpus had none until now.
+
+Back-tested before landing: FL finds exactly the three known instances in the
+tool arm and no fourth, and zero findings across sixteen recorded run
+directories. Two false positives in the first version were repaired rather than
+tolerated — 至 and 到 removed from the claim-side range detector, because
+「也只有 1 至 2 件商品」 means one or two products, and categorical tables
+excluded, because "1K+ bought in past month" contributes a bare endpoint 1
+against which every "1-2" in a document shares an end.
+
+### Diagnosed — the term-coverage blocks, and why nothing changed
+
+`Claim terms not in evidence` was reported as 18 instances across the eight
+recorded runs. Counted as distinct (run, claim, term) it is **five**: one
+`HHI`, one `listing`, and three `USD`, appearing 19 times across seven repeated
+failure events. All five are one shape — a Latin technical token in an
+otherwise-Chinese claim, where the cited evidence carries the same idea in
+Chinese (`美元`) or not at all.
+
+Nothing changed, and the reason is that the classification cannot be completed
+from what is recorded. Every archived `claim_matrix.json` holds the *repaired*
+claim, so the blocked text survives only inside the failure message. On five
+instances reconstructed that way, loosening FE's comparison — including a
+currency-notation alias, which is the narrowest available fix — is not a change
+this evidence supports. The threshold was not touched.
+
 ### Measured — the drone-market benchmark, re-recorded and re-judged
 
 The tool arm was rewritten and all three axes were re-run.

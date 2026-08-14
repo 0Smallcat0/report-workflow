@@ -18,7 +18,11 @@ of building it.
 """
 import unittest
 
-from report_workflow.nodes.factuality_check import run_factuality_check_ft
+from report_workflow.nodes.factuality_check import (
+    run_factuality_check_fl,
+    run_factuality_check_ft,
+    run_factuality_check_ft2,
+)
 
 
 #: The sales-tier cross table the pipeline builds from amazon_products.csv,
@@ -298,6 +302,176 @@ class BucketOrderingTests(unittest.TestCase):
         )
         reason = " ".join(row.get("reason", "") for row in results)
         self.assertNotIn("373", reason)
+
+
+#: Star bands as the pipeline computes them: a bucket cut at [1, 3, 5] holds
+#: 1s and 2s in its first group, so the row is called `1–2`.
+STAR_BANDS = {
+    "evidence_id": "E_pain",
+    "table_grid": {
+        "headers": ["星等區間", "評論數", "提及連線"],
+        "rows": [
+            ["1–2", "49", "28.57%"],
+            ["3–4", "75", "18.67%"],
+            ["5+", "349", "14.04%"],
+            ["合計", "473", "16.70%"],
+        ],
+    },
+    "derivation": {
+        "grouping": "buckets", "groups": 3, "buckets": [1, 3, 5],
+        "band_members": ["1 至 2", "3 至 4", "5 及以上"],
+    },
+}
+
+#: A price table whose two columns fall together across almost every pair.
+SUPPLY_AND_DEMAND = {
+    "evidence_id": "E_bands",
+    "table_grid": {
+        "headers": ["價格帶 (USD)", "掛牌數", "累積評論中位數"],
+        "rows": [
+            ["0–30", "100", "400"],
+            ["30–50", "80", "320"],
+            ["50–100", "60", "240"],
+            ["100–200", "40", "160"],
+            ["200–500", "20", "300"],
+            ["合計", "300", "280"],
+        ],
+    },
+    "derivation": {"grouping": "buckets", "groups": 5,
+                   "buckets": [0, 30, 50, 100, 200, 500]},
+}
+
+
+def _matrix(text: str, evidence_ids: list) -> dict:
+    return {"claims": [{
+        "claim_id": "c1", "claim_text": text, "status": "supported",
+        "evidence_ids": evidence_ids,
+    }]}
+
+
+class BandLabelTests(unittest.TestCase):
+    """A band the prose names has to be a band the cited table has.
+
+    A delivered report called the row `1–2` 「1–3 星區間 49 則評論」 three times.
+    The row and the 49 are right, so FE found nothing; 1–3 stars is 68
+    reviews. Three blind judges caught it and six checkers passed it.
+    """
+
+    def test_a_band_the_table_does_not_have_is_blocked_with_the_ones_it_does(self):
+        results = run_factuality_check_fl(
+            _matrix("1–3 星區間 49 則評論中提及連線的佔 28.57%。", ["E_pain"]),
+            [STAR_BANDS],
+        )
+        self.assertEqual(len(results), 1)
+        self.assertEqual(results[0]["checker"], "FL")
+        self.assertIn("'1-3'", results[0]["reason"])
+        self.assertIn("1–2, 3–4, 5+", results[0]["reason"])
+
+    def test_the_band_the_table_does_have_passes(self):
+        self.assertEqual(
+            run_factuality_check_fl(
+                _matrix("1–2 星區間 49 則評論中提及連線的佔 28.57%。", ["E_pain"]),
+                [STAR_BANDS],
+            ),
+            [],
+        )
+
+    def test_a_hyphen_typed_for_an_en_dash_is_not_a_different_band(self):
+        self.assertEqual(
+            run_factuality_check_fl(
+                _matrix("1-2 星區間有 49 則評論。", ["E_pain"]), [STAR_BANDS]
+            ),
+            [],
+        )
+
+    def test_the_membership_line_counts_as_the_table_stating_the_band(self):
+        """The grouped path prints 「各組實際涵蓋的值：1–2=1 至 2」, and an author
+        copying from there is quoting the table."""
+        self.assertEqual(
+            run_factuality_check_fl(
+                _matrix("3-4 星區間有 75 則評論。", ["E_pain"]), [STAR_BANDS]
+            ),
+            [],
+        )
+
+    def test_a_range_sharing_no_endpoint_is_left_alone(self):
+        """「6–8 個工作天」 in a paragraph citing a band table is not a mislabel.
+
+        Without this, ordinary Chinese prose beside any grouped table is a
+        minefield. The cost is the author who gets both ends wrong; that miss
+        is accepted, because the hard constraint here is no false blocks.
+        """
+        self.assertEqual(
+            run_factuality_check_fl(
+                _matrix("補貨週期約 6–8 個工作天，與 1–2 星區間的 49 則評論無關。",
+                        ["E_pain"]),
+                [STAR_BANDS],
+            ),
+            [],
+        )
+
+    def test_a_categorical_table_contributes_no_bands(self):
+        """"1K+ bought in past month" yields the bare endpoint 1, against which
+        every "1-2" in a document shares an end. The first version of this
+        blocked a correct sentence in a recorded run for exactly that."""
+        self.assertEqual(
+            run_factuality_check_fl(
+                _matrix("該級距也只有 1-2 件商品。", ["E_sales"]), [SALES_TABLE]
+            ),
+            [],
+        )
+
+    def test_a_band_present_in_either_cited_table_is_the_claim_s_to_name(self):
+        self.assertEqual(
+            run_factuality_check_fl(
+                _matrix("200–500 帶有 20 件掛牌，而 1–2 星區間有 49 則評論。",
+                        ["E_pain", "E_bands"]),
+                [STAR_BANDS, SUPPLY_AND_DEMAND],
+            ),
+            [],
+        )
+
+
+class CrossColumnDirectionTests(unittest.TestCase):
+    """A direction asserted between two columns, not along one.
+
+    FT's fifth condition is a pair of cells from *one* column, which is what
+    fixes the column and the direction. A sentence relating supply density to
+    review depth names no single column, so FT stands down on it.
+    """
+
+    INVERSE = ("100–200 帶有 40 件掛牌、累積評論中位數 160；200–500 帶只有 20 件掛牌，"
+               "累積評論中位數卻是 300。掛牌數愈少，累積評論中位數愈高。")
+    DIRECT = ("0–30 帶有 100 件掛牌、累積評論中位數 400；100–200 帶有 40 件掛牌，"
+              "累積評論中位數 160。掛牌數愈少，累積評論中位數也愈低。")
+
+    def _run(self, text: str) -> list:
+        return run_factuality_check_ft2(text, _matrix(text, ["E_bands"]),
+                                        [SUPPLY_AND_DEMAND])
+
+    def test_a_relation_the_table_does_not_have_is_blocked(self):
+        results = self._run(self.INVERSE)
+        self.assertEqual([r["status"] for r in results], ["blocked"])
+        self.assertEqual(results[0]["checker"], "FT2")
+        self.assertIn("8 of the 10 ordered group pairs", results[0]["reason"])
+
+    def test_the_relation_the_table_does_have_is_verified(self):
+        results = self._run(self.DIRECT)
+        self.assertEqual([r["status"] for r in results], ["verified"])
+
+    def test_a_claim_naming_only_one_column_is_left_to_ft(self):
+        """Two columns is a larger coincidence space than one, so the claim has
+        to name the pair rather than have it guessed."""
+        self.assertEqual(
+            self._run("掛牌數從 40 件降到 20 件，需求卻愈來愈厚。"), []
+        )
+
+    def test_a_sentence_with_no_direction_word_is_not_a_relation(self):
+        self.assertEqual(
+            self._run("100–200 帶有 40 件掛牌、累積評論中位數 160；"
+                      "200–500 帶有 20 件掛牌、累積評論中位數 300。"),
+            [],
+        )
 
 
 if __name__ == "__main__":

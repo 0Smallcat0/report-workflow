@@ -111,6 +111,123 @@
       "evidence_type": "qualitative",
       "source_role": "reviewer_note",
       "evidence_grade": "low"
+    },
+    {
+      "evidence_id": "ev_star_bands",
+      "content": "衍生統計(來源:reviews.csv):痛點主題依星等。依 review_rating 分為 3 組，涵蓋 473 筆資料列。各組實際涵蓋的值：1–2=1 至 2, 3–4=3 至 4, 5+=5 及以上。\n星等區間 | 評論數 | 提及連線 | 提及故障\n1–2 星 | 49 | 28.57% | 10.20%\n3–4 星 | 75 | 18.67% | 5.33%\n5+ 星 | 349 | 14.04% | 3.44%\n合計 | 473 | 16.70% | 4.65%",
+      "evidence_type": "quantitative",
+      "source_role": "source_data",
+      "evidence_grade": "high",
+      "block_type": "derived_statistic",
+      "table_grid": {
+        "headers": [
+          "星等區間",
+          "評論數",
+          "提及連線",
+          "提及故障"
+        ],
+        "rows": [
+          [
+            "1–2",
+            "49",
+            "28.57%",
+            "10.20%"
+          ],
+          [
+            "3–4",
+            "75",
+            "18.67%",
+            "5.33%"
+          ],
+          [
+            "5+",
+            "349",
+            "14.04%",
+            "3.44%"
+          ],
+          [
+            "合計",
+            "473",
+            "16.70%",
+            "4.65%"
+          ]
+        ]
+      },
+      "derivation": {
+        "method": "group_table",
+        "grouping": "buckets",
+        "groups": 3,
+        "buckets": [
+          1,
+          3,
+          5
+        ],
+        "band_members": [
+          "1 至 2",
+          "3 至 4",
+          "5 及以上"
+        ]
+      }
+    },
+    {
+      "evidence_id": "ev_price_bands",
+      "content": "衍生統計(來源:products.csv):價格帶的供給密度與需求厚度。依 price 分為 5 組，涵蓋 300 筆資料列。\n價格帶 (USD) | 掛牌數 | 累積評論中位數\n0–30 | 100 | 400\n30–50 | 80 | 320\n50–100 | 60 | 240\n100–200 | 40 | 160\n200–500 | 20 | 300\n合計 | 300 | 280",
+      "evidence_type": "quantitative",
+      "source_role": "source_data",
+      "evidence_grade": "high",
+      "block_type": "derived_statistic",
+      "table_grid": {
+        "headers": [
+          "價格帶 (USD)",
+          "掛牌數",
+          "累積評論中位數"
+        ],
+        "rows": [
+          [
+            "0–30",
+            "100",
+            "400"
+          ],
+          [
+            "30–50",
+            "80",
+            "320"
+          ],
+          [
+            "50–100",
+            "60",
+            "240"
+          ],
+          [
+            "100–200",
+            "40",
+            "160"
+          ],
+          [
+            "200–500",
+            "20",
+            "300"
+          ],
+          [
+            "合計",
+            "300",
+            "280"
+          ]
+        ]
+      },
+      "derivation": {
+        "method": "group_table",
+        "grouping": "buckets",
+        "groups": 5,
+        "buckets": [
+          0,
+          30,
+          50,
+          100,
+          200,
+          500
+        ]
+      }
     }
   ],
   "cases": [
@@ -1282,6 +1399,78 @@
       "wording_strength": "weak",
       "dangling": false,
       "note": "low-grade evidence permits hedged wording only"
+    },
+    {
+      "case_id": "bl01",
+      "family": "band_label_drift",
+      "is_hallucination": true,
+      "expected_verdict": "blocked",
+      "claim": {
+        "claim_id": "c_bl01",
+        "claim_text": "1–3 星區間 49 則評論中提及連線的佔 28.57%、提及故障的佔 10.20%。",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_star_bands"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "table row is 1–2; 1–3 stars is 68 reviews, not 49"
+    },
+    {
+      "case_id": "bl02",
+      "family": "honest",
+      "is_hallucination": false,
+      "expected_verdict": "published",
+      "claim": {
+        "claim_id": "c_bl02",
+        "claim_text": "1–2 星區間 49 則評論中提及連線的佔 28.57%、提及故障的佔 10.20%。",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_star_bands"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "the same sentence naming the band the table actually has"
+    },
+    {
+      "case_id": "tc01",
+      "family": "cross_column_direction",
+      "is_hallucination": true,
+      "expected_verdict": "blocked",
+      "claim": {
+        "claim_id": "c_tc01",
+        "claim_text": "100–200 帶有 40 件掛牌、累積評論中位數 160；200–500 帶只有 20 件掛牌，累積評論中位數卻是 300。掛牌數愈少，累積評論中位數愈高。",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_price_bands"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "8 of 10 ordered pairs and both ends have the two columns moving together"
+    },
+    {
+      "case_id": "tc02",
+      "family": "honest",
+      "is_hallucination": false,
+      "expected_verdict": "published",
+      "claim": {
+        "claim_id": "c_tc02",
+        "claim_text": "0–30 帶有 100 件掛牌、累積評論中位數 400；100–200 帶有 40 件掛牌，累積評論中位數 160。掛牌數愈少，累積評論中位數也愈低。",
+        "claim_type": "factual",
+        "status": "supported",
+        "evidence_ids": [
+          "ev_price_bands"
+        ]
+      },
+      "wording_strength": "hedged",
+      "dangling": false,
+      "note": "the direction the table has, quoted from two of its bands"
     },
     {
       "case_id": "x01",

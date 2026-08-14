@@ -121,14 +121,14 @@ every built-in profile from one controlled source, 42 claims verified, QA
 Adversarial evidence
 ([`benchmarks/evidence/adversarial_2026-07-14/summary.md`](../benchmarks/evidence/adversarial_2026-07-14/summary.md),
 reproducible via `python scripts/run_adversarial_benchmark.py --check`):
-69 hand-audited cases — 25 honest controls, 44 hallucinated claims across the
+73 hand-audited cases — 27 honest controls, 46 hallucinated claims across the
 15 attack families above plus 5 documented evasion variants.
 
 | Checker | Recall | False-positive rate | Precision |
 | --- | --- | --- | --- |
 | `no_gate` (publish everything) | 0.0% | 0.0% | — |
 | `citation_presence` (shallow RAG-style check) | 9.1% (4/44) | 0.0% | 100% |
-| **full gate stack (FA/FB/FE/FD)** | **88.6%** (39/44) | **0.0%** (0/25) | **100%** |
+| **full gate stack (FA/FB/FE/FL/FT2/FD)** | **89.1%** (41/46) | **0.0%** (0/27) | **100%** |
 
 Every one of the 15 targeted attack families is caught at 100%. The missing
 11.4% is not noise — it is five *documented evasions*, each kept in the corpus

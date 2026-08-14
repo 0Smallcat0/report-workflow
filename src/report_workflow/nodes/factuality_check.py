@@ -2047,6 +2047,340 @@ def _trend_findings(claim: dict, evidence: dict, text: str) -> tuple[int, list[s
     return examined, reasons
 
 
+# ----------------------------------------------------------------------
+# FL: a band label the prose quotes must be a band the table has
+# ----------------------------------------------------------------------
+
+#: Everything the *table* might put between the two ends of a band. 到 and 至
+#: are here because the membership line the grouped path writes spells its
+#: bands 「1 至 2」, and that line is one of the two ways a band is stated.
+_RANGE_DASH_RE = re.compile(r"[-‐-―−~～]|到|至")
+
+#: A numeric range as a *claim* writes one: "1–3", "0-30", "200 – 500". 到 and
+#: 至 are deliberately absent. They are ordinary Chinese connectives — a
+#: recorded run says 「也只有 1 至 2 件商品」, meaning one or two products, and
+#: reading that as a band label is how a checker blocks honest prose.
+_PROSE_RANGE_RE = re.compile(
+    r"(?<![0-9.])([0-9][0-9,]*(?:\.[0-9]+)?)\s*[-‐-―−~～]\s*"
+    r"([0-9][0-9,]*(?:\.[0-9]+)?)(?![0-9.])"
+)
+
+
+def _normalized_range(text: str) -> str:
+    """A range written any of the usual ways, in one spelling."""
+    return _RANGE_DASH_RE.sub("-", str(text or "")).replace(",", "").replace(" ", "")
+
+
+def _table_band_vocabulary(evidence: dict) -> tuple[set[str], set[str], list[str]]:
+    """(normalized labels, the numbers they are built from, labels as printed).
+
+    The second set is what makes the endpoint test possible: "5+" contributes
+    the endpoint 5 without being a range, and a claim writing "5–8" against a
+    table whose top band is "5+" is quoting a band that does not exist.
+    """
+    grid = evidence.get("table_grid") or {}
+    derivation = evidence.get("derivation") or {}
+    # Bucket tables only. A categorical table has no bands to mis-spell, and
+    # its labels poison the endpoint test: "1K+ bought in past month" yields
+    # the bare endpoint 1, against which every "1-2" in the document shares an
+    # end. That is exactly how the first version of this blocked a correct
+    # sentence in a recorded run.
+    if derivation.get("grouping") != "buckets":
+        return set(), set(), []
+    try:
+        group_count = int(derivation.get("groups") or 0)
+    except (TypeError, ValueError):
+        group_count = 0
+    rows = [row for row in (grid.get("rows") or []) if isinstance(row, list) and row]
+    body = rows[:group_count] if group_count > 0 else rows
+    printed = [str(row[0]).strip() for row in body if str(row[0]).strip()]
+
+    labels = {_normalized_range(label) for label in printed}
+    # The membership line the grouped path already writes — "各組實際涵蓋的值：
+    # 1–2=1 至 2, ..." — states the same bands a second way, and an author who
+    # copied from there is quoting the table.
+    for member in derivation.get("band_members") or []:
+        labels.add(_normalized_range(member))
+    endpoints: set[str] = set()
+    for label in labels:
+        endpoints.update(_PLAIN_NUMBER_RE.findall(label))
+    return labels, endpoints, printed
+
+
+def run_factuality_check_fl(
+    claim_matrix: dict,
+    evidence_ledger: list[dict],
+) -> list[dict]:
+    """FL: a band the prose names must be a band the cited table has.
+
+    A delivered report called a row labelled `1–2` 「1–3 星區間 49 則評論」 three
+    times. The row is right and the 49 is right, so FE — which compares numbers
+    — found nothing; 1–3 stars is 68 reviews, and the reader was handed the
+    wrong interval. Three independent blind judges caught it and six checkers
+    passed it.
+
+    It is the band-label repair one layer up. The labels were corrected at the
+    naming end so a group is called by what it holds; nothing was looking at
+    prose still quoting the old spelling.
+
+    Not auto-corrected, because the sentence is ambiguous: an author writing
+    「1–3 星區間 49 則評論」 may mean the row (and should write 1–2) or may mean
+    1–3 stars (and the 49 is then wrong too). Fix what is unambiguous, block
+    what is not — the same split as the section-id heading strip.
+
+    Four conditions, all required:
+
+    1. the claim cites evidence carrying a computed group table;
+    2. its own text writes something shaped like a numeric band;
+    3. that band appears in none of the cited tables, by label or by the
+       membership line they already print;
+    4. it shares an endpoint with a band that does exist.
+
+    (4) is what keeps ordinary prose out. A Chinese report says 「3–5 個工作
+    天」 and 「1–2 個百分點」 in the same paragraph as a price-band table, and
+    neither is a mislabel. A band written wrong is nearly always wrong at one
+    end; a range matching at neither end is talking about something else. The
+    cost is the author who gets both ends wrong, and that miss is accepted: the
+    hard constraint here is no false blocks, not maximum catch.
+    """
+    by_id = {
+        str(entry.get("evidence_id")): entry
+        for entry in evidence_ledger
+        if isinstance(entry, dict) and entry.get("table_grid")
+    }
+    if not by_id:
+        return []
+
+    results: list[dict] = []
+    for claim in claim_matrix.get("claims", []):
+        if str(claim.get("status", "supported")).lower() in BLOCKING_CLAIM_STATUSES:
+            continue
+        evidence_ids = {str(eid) for eid in claim.get("evidence_ids", []) if eid}
+        cited = [by_id[eid] for eid in sorted(evidence_ids) if eid in by_id]
+        if not cited:
+            continue
+
+        # The union of every table the claim cites, for the same reason FE
+        # takes the union: citing two tables means the claim rests on both, and
+        # a band present in either is a band the claim is entitled to name.
+        labels: set[str] = set()
+        endpoints: set[str] = set()
+        printed: list[str] = []
+        for evidence in cited:
+            table_labels, table_endpoints, table_printed = _table_band_vocabulary(evidence)
+            labels |= table_labels
+            endpoints |= table_endpoints
+            printed.extend(table_printed)
+        if not labels:
+            continue
+
+        claim_text = _normalized_range(claim.get("claim_text", ""))
+        seen: set[str] = set()
+        for match in _PROSE_RANGE_RE.finditer(claim_text):
+            written = match.group(0)
+            if written in labels or written in seen:
+                continue
+            low, high = match.group(1), match.group(2)
+            if low not in endpoints and high not in endpoints:
+                continue
+            seen.add(written)
+            shared = sorted({end for end in (low, high) if end in endpoints})
+            results.append({
+                "claim_id": _claim_id(claim),
+                "status": "blocked",
+                "checker": "FL",
+                "reason": (
+                    f"Claim names the band {written!r}, which is not a row of the "
+                    f"table(s) it cites. Their rows are: {', '.join(printed)}. It "
+                    f"shares the endpoint {', '.join(shared)} with one of them, so "
+                    f"this reads as the wrong spelling of a real band rather than a "
+                    f"different quantity — and the figures beside it belong to the "
+                    f"row that does exist. Write the row's own label, or, if the "
+                    f"claim really is about {written!r}, register that band and "
+                    f"restate the figures from it."
+                ),
+            })
+    return results
+
+
+# ----------------------------------------------------------------------
+# FT2: a direction asserted between two columns of one computed table
+# ----------------------------------------------------------------------
+
+
+def _named_columns(claim_text: str, headers: list) -> list[int]:
+    """Column indices whose header the claim writes down.
+
+    Required, not defensive. FT already hard-blocked one correct claim by
+    inferring which column a pair of numbers came from — 63 and 64 matched a
+    review-count median and a listing count in a table the claim never
+    discussed. Two columns is a larger coincidence space than one, so the claim
+    has to name the pair it is relating rather than have it guessed.
+    """
+    found: list[int] = []
+    for index in range(1, len(headers)):
+        header = str(headers[index] or "").strip()
+        if header and header in claim_text:
+            found.append(index)
+    return found
+
+
+def _covariation_findings(claim: dict, evidence: dict) -> tuple[int, list[str]]:
+    """(column pairs recomputed, reasons they failed)."""
+    groups = _ordered_groups(evidence)
+    if not groups:
+        return 0, []
+    claim_text = claim.get("claim_text", "")
+    named = [entry for entry in groups if entry[1] and entry[1] in claim_text]
+    if len(named) < 2:
+        return 0, []
+
+    headers = (evidence.get("table_grid") or {}).get("headers") or []
+    columns = _named_columns(claim_text, headers)
+    if len(columns) < 2:
+        return 0, []
+
+    stated = _stated_numbers(claim_text)
+
+    def written(value: float | None) -> bool:
+        return value is not None and any(
+            abs(value - number) <= abs(value) * 1e-9 for number in stated
+        )
+
+    examined = 0
+    reasons: list[str] = []
+    for left, right in itertools.combinations(columns, 2):
+        # The groups where the claim wrote down *both* cells. That pair of
+        # pairs fixes the direction it asserts between the two columns;
+        # anything less and the relation is being inferred.
+        anchors = sorted(
+            (magnitude, _cell_number(row[left]), _cell_number(row[right]))
+            for magnitude, _token, row in named
+            if written(_cell_number(row[left])) and written(_cell_number(row[right]))
+        )
+        if len(anchors) < 2:
+            continue
+        first, last = anchors[0], anchors[-1]
+        if first[1] == last[1] or first[2] == last[2]:
+            continue
+        asserted_direct = (last[1] > first[1]) == (last[2] > first[2])
+
+        series = sorted(
+            (magnitude, _cell_number(row[left]), _cell_number(row[right]))
+            for magnitude, _token, row in groups
+            if _cell_number(row[left]) is not None and _cell_number(row[right]) is not None
+        )
+        if len(series) < _MIN_GROUPS_FOR_TREND:
+            continue
+        examined += 1
+
+        agree = against = 0
+        for (_ka, la, lb), (_kb, ra, rb) in itertools.combinations(series, 2):
+            if la == ra or lb == rb:
+                continue
+            if ((ra > la) == (rb > lb)) == asserted_direct:
+                agree += 1
+            else:
+                against += 1
+
+        low_end, high_end = series[0], series[-1]
+        ends_flat = low_end[1] == high_end[1] or low_end[2] == high_end[2]
+        ends_agree = ends_flat or (
+            ((high_end[1] > low_end[1]) == (high_end[2] > low_end[2])) == asserted_direct
+        )
+        if against <= agree or ends_agree:
+            continue
+
+        relation = "moves with" if asserted_direct else "moves against"
+        ordering = " | ".join(
+            f"{token} {_cell_number(row[left]):g}/{_cell_number(row[right]):g}"
+            for _magnitude, token, row in sorted(groups, key=lambda entry: entry[0])
+            if _cell_number(row[left]) is not None and _cell_number(row[right]) is not None
+        )
+        reasons.append(
+            f"Claim reads {headers[left]!r} as something that {relation} "
+            f"{headers[right]!r} across {evidence.get('evidence_id')}'s groups, "
+            f"anchoring on 2 of {len(series)}. Over all {len(series)} "
+            f"({headers[left]}/{headers[right]}): {ordering}. "
+            f"{against} of the {agree + against} ordered group pairs go the other "
+            f"way, and so do the two ends. Either state the relation the table "
+            f"has, name the subset the claim is about, or drop the direction."
+        )
+    return examined, reasons
+
+
+def run_factuality_check_ft2(
+    merged_text: str,
+    claim_matrix: dict,
+    evidence_ledger: list[dict],
+) -> list[dict]:
+    """FT2: a relation asserted *between two columns* of one computed table.
+
+    FT's fifth condition is that the claim quotes a pair of cells from **one
+    column**, which fixes the column and the direction. That is a structural
+    limit, not a policy: a sentence relating two columns — "the band with the
+    densest supply has the fewest reviews, the band with the thinnest supply
+    the most" — names no single column, so FT stands down and files nothing.
+
+    Same arithmetic one dimension over. Order the groups, take the direction
+    from the cells the claim itself wrote down for both columns, then count
+    concordant and discordant group pairs across the whole table and check the
+    two ends. Blocked only when the ordered pairs and the ends both disagree —
+    the single-condition version of FT took out six honest claims on tables
+    that were merely noisy.
+
+    Known coverage limit, measured rather than assumed: the sentence that
+    motivated this checker does not trip it. Over the seven price bands of the
+    table it cited, 14 of 20 ordered pairs agree with the inverse relation and
+    both ends agree; what was wrong with that sentence was calling the relation
+    "the strongest structural signal in this data", which is a claim about
+    strength, not about direction. Arithmetic cannot see that, and this
+    project's boundary says a checker does not try.
+    """
+    by_id = {
+        str(entry.get("evidence_id")): entry
+        for entry in evidence_ledger
+        if isinstance(entry, dict) and entry.get("table_grid")
+    }
+    if not by_id:
+        return []
+
+    results: list[dict] = []
+    for claim in claim_matrix.get("claims", []):
+        if str(claim.get("status", "supported")).lower() in BLOCKING_CLAIM_STATUSES:
+            continue
+        evidence_ids = {str(eid) for eid in claim.get("evidence_ids", []) if eid}
+        cited = [by_id[eid] for eid in sorted(evidence_ids) if eid in by_id]
+        if not cited:
+            continue
+
+        text = " ".join(
+            [claim.get("claim_text", "")] + _claim_sentences(merged_text, evidence_ids)
+        )
+        if not _TREND_RE.search(text):
+            continue
+
+        examined = 0
+        reasons: list[str] = []
+        for evidence in cited:
+            pairs, failures = _covariation_findings(claim, evidence)
+            examined += pairs
+            reasons.extend(failures)
+        if not examined:
+            continue
+
+        results.append({
+            "claim_id": _claim_id(claim),
+            "status": "blocked" if reasons else "verified",
+            "checker": "FT2",
+            "reason": " ".join(reasons) if reasons else (
+                "Relation asserted between two columns of a computed table holds "
+                "across all its groups"
+            ),
+        })
+    return results
+
+
 def run_factuality_check_ft(
     merged_text: str,
     claim_matrix: dict,
@@ -2200,6 +2534,24 @@ def run_factuality_check(state: ReportState) -> ReportState:
             all_results.extend(ft_results)
             checkers_run.append("FT")
 
+        # FT2: the same reading, between two columns rather than along one.
+        # FT's pair-of-cells-from-one-column condition is structural, so a
+        # sentence relating supply density to review depth names no column and
+        # FT files nothing about it.
+        ft2_results = run_factuality_check_ft2(merged_text, claim_matrix, evidence_ledger)
+        if ft2_results:
+            all_results.extend(ft2_results)
+            checkers_run.append("FT2")
+
+    # FL: a band the prose names must be a band the cited table has. Reads the
+    # claim matrix rather than the merged draft, so unlike FS and FT it runs
+    # whether or not a draft exists yet — the mislabel is in the claim before
+    # it is in the page.
+    fl_results = run_factuality_check_fl(claim_matrix, evidence_ledger)
+    if fl_results:
+        all_results.extend(fl_results)
+        checkers_run.append("FL")
+
     # F2: wording strength vs evidence grade (FD)
     results_fd = run_factuality_check_fd(sentence_map, claim_matrix, evidence_ledger)
     if revision_sidecar_mode and not deep_audit:
@@ -2228,6 +2580,14 @@ def run_factuality_check(state: ReportState) -> ReportState:
             "FE": "the claim's numbers, quotes and terms appear in the evidence it cites",
             "FS": "the drafted prose states every figure its claim asserts",
             "FT": "a trend asserted over a computed group table holds across all its groups",
+            "FT2": (
+                "a relation asserted between two columns of a computed group "
+                "table holds across all its groups"
+            ),
+            "FL": (
+                "a band the claim names is a row the cited table has, not a "
+                "neighbouring spelling of one"
+            ),
             "FD": "wording strength is allowed by the weakest cited evidence grade",
         },
         "verified_means": (
