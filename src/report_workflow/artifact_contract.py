@@ -201,6 +201,61 @@ def write_artifact_contract(path: str | Path, contract: dict) -> None:
     )
 
 
+def _artifact_evidence_ids(path: str | Path) -> set[str]:
+    """Every evidence id an authored artifact leans on."""
+    artifact = Path(path)
+    ids: set[str] = set()
+    if not artifact.exists():
+        return ids
+
+    def harvest(payload: Any) -> None:
+        if isinstance(payload, dict):
+            for key in ("evidence_ids", "citation_ids", "source_evidence_ids"):
+                value = payload.get(key)
+                if isinstance(value, list):
+                    ids.update(str(item) for item in value)
+            unused = payload.get("unused_derived_evidence")
+            if isinstance(unused, dict):
+                ids.update(str(key) for key in unused)
+            for value in payload.values():
+                harvest(value)
+        elif isinstance(payload, list):
+            for item in payload:
+                harvest(item)
+
+    if artifact.suffix.lower() == ".jsonl":
+        for line in artifact.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            try:
+                harvest(json.loads(line))
+            except json.JSONDecodeError:
+                continue
+        return ids
+    try:
+        harvest(json.loads(artifact.read_text(encoding="utf-8")))
+    except json.JSONDecodeError:
+        pass
+    return ids
+
+
+def _ledger_evidence_ids(state: ReportState) -> set[str]:
+    raw = state.sources.get("evidence_ledger_path")
+    if not raw or not Path(raw).exists():
+        return set()
+    ids: set[str] = set()
+    for line in Path(raw).read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            payload = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(payload, dict) and payload.get("evidence_id"):
+            ids.add(str(payload["evidence_id"]))
+    return ids
+
+
 def validate_artifact_contract(state: ReportState, path: str | Path, *, allow_missing: bool = True) -> None:
     contract = load_artifact_contract(path)
     if not contract:
@@ -223,6 +278,30 @@ def validate_artifact_contract(state: ReportState, path: str | Path, *, allow_mi
         # which is what registering a derived statistic does. There is no "old
         # job" to remap from, and an author following that advice looks for one.
         if contract.get("job_id") == expected.get("job_id"):
+            # The ledger is append-only within a run, and the pipeline itself
+            # appends to it — the grouped table built during outline planning
+            # is enough to move the hash. An artifact stamped before such an
+            # append is not stale; it is only stale if something it cites is
+            # gone. So check that instead of the hash, and re-stamp when every
+            # id it leans on still resolves.
+            #
+            # Without this a run can deadlock with no way out: publish refuses
+            # on the hash, routing the failure hands back an empty repair
+            # scope, and the prescribed cure (call register_derived_evidence
+            # again) has no derivation to re-register when the author never
+            # registered one — the pipeline made the row.
+            if mismatches == ["evidence_ledger_hash"]:
+                cited = _artifact_evidence_ids(path)
+                missing = cited - _ledger_evidence_ids(state)
+                if not missing:
+                    write_artifact_contract(path, expected)
+                    return
+                raise QAHardBlockError(
+                    f"{Path(path).name} cites evidence that is no longer in this "
+                    f"run's ledger ({', '.join(sorted(missing))}). The ledger "
+                    "changed under the artifact and took those rows with it; "
+                    "rebuild the artifact from the current ledger."
+                )
             raise QAHardBlockError(
                 f"{Path(path).name} was stamped against an earlier state of this "
                 f"run's evidence ledger ({details}). The ledger changed after the "
