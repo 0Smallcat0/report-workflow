@@ -460,6 +460,23 @@ def compute(dataset: Dataset, request: dict) -> dict:
     decimals = declared_decimals(request)
     rows_expression = str(request.get("rows") or "")
     rows = select_rows(dataset, rows_expression)
+    if not rows and rows_expression.strip() not in ("", "*") and not request.get("allow_empty"):
+        # A filter that names nothing used to register anyway, as a statistic
+        # over zero rows: `count` came back 0, and that 0 got an evidence id a
+        # sentence could cite. In an evidence-bounded pipeline that is the one
+        # thing that must not happen — a typo in a filter minting a citable
+        # figure. The commonest typo is joining clauses with a comma, which
+        # parses as one equality against a value no row holds, so say so.
+        hint = ""
+        if "," in rows_expression:
+            hint = (" Clauses join with '&', not ',' — "
+                    f"'{rows_expression.replace(chr(44), chr(38))}'.")
+        raise DerivationError(
+            f"Row filter {rows_expression!r} selects no rows of "
+            f"{dataset.file_name} ({len(dataset.rows)} rows).{hint} A statistic "
+            "over nothing is not evidence; fix the filter, or pass "
+            "\"allow_empty\": true if the emptiness is the finding."
+        )
     value, unit, detail = _op_value(
         op, rows, dataset.rows, dataset, column, request
     )

@@ -599,6 +599,28 @@ def _normalize_for_numbers(text: str) -> str:
     )
 
 
+def _with_sign(text: str, start: int, number: str) -> str:
+    """The number as written, carrying a minus that belongs to it.
+
+    The bare-number pattern cannot take the sign itself: in 2026-08-25 the
+    hyphen belongs to the date, and a pattern that swallowed it would read the
+    month as -8. So the sign is read here, and only when what precedes it is
+    not a digit — which is exactly the case a date is not.
+
+    Without this a claim saying -0.378% and evidence saying -0.378% did not
+    match: the claim side came through as 0.378 and the gate blocked a figure
+    the evidence states. Reading the sign also makes the check stricter in the
+    direction that matters — +0.378% must no longer match -0.378%.
+    """
+    if start == 0:
+        return number
+    sign = text[start - 1]
+    if sign not in "-−–":
+        return number
+    if start >= 2 and text[start - 2].isdigit():
+        return number
+    return "-" + number
+
 def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
     """Return list of (number_str, unit_str) from text."""
     results = []
@@ -611,7 +633,7 @@ def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
         if _is_bounded_claim_number(normalized, m.start(1), m.end(1)):
             continue
         results.append((
-            m.group(1).lstrip("~"),
+            _with_sign(normalized, m.start(1), m.group(1).lstrip("~")),
             unit or _currency_before(normalized, m.start(1)),
         ))
     for m in _CJK_NUMBER_RE.finditer(normalized):
