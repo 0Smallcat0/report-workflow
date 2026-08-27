@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import re
+import shutil
 import uuid
 from datetime import datetime
 from pathlib import Path
@@ -321,7 +322,21 @@ class ReportState(BaseModel):
         )
 
     def checkpoint(self, node_name: str) -> None:
-        """Write current state to checkpoint file."""
+        """Write current state to checkpoint file.
+
+        Serialised straight into the open file rather than through
+        ``json.dumps``. With ``indent`` set, ``dumps`` takes the pure-Python
+        encoder, whose ``encode()`` ends in ``chunks = list(chunks)`` — every
+        fragment of the document alive at once, each its own str object,
+        before a byte reaches the disk. A run over 176,920 rows of block
+        trade data died there with MemoryError while checkpointing an
+        *earlier* failure, so the error reported to the user was the
+        checkpoint's, not the one that stopped the run. ``json.dump`` writes
+        each fragment as it is produced and keeps none of them.
+
+        The second file is copied rather than re-encoded: serialising the
+        same state twice doubled both the cost and the exposure for no gain.
+        """
         run_dir = run_dir_for(self)
         checkpoint_path = run_dir / f"checkpoint_{node_name}.json"
 
@@ -329,16 +344,11 @@ class ReportState(BaseModel):
         state_dict["runtime"]["current_node"] = node_name
         state_dict["updated_at"] = datetime.now().isoformat()
 
-        checkpoint_path.write_text(
-            json.dumps(state_dict, indent=2, ensure_ascii=False, default=str),
-            encoding="utf-8",
-        )
+        with checkpoint_path.open("w", encoding="utf-8") as handle:
+            json.dump(state_dict, handle, indent=2, ensure_ascii=False, default=str)
 
         latest = run_dir / "checkpoint_latest.json"
-        latest.write_text(
-            json.dumps(state_dict, indent=2, ensure_ascii=False, default=str),
-            encoding="utf-8",
-        )
+        shutil.copyfile(checkpoint_path, latest)
 
     @classmethod
     def resume(cls, job_id: str, workspace_root: str | Path | None = None) -> "ReportState":
