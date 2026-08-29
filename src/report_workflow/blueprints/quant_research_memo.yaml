@@ -1,0 +1,102 @@
+name: quant_research_memo
+description: >
+  Internal quantitative research memo: what was tested, what held, what was
+  falsified, and what the sample cannot support. Findings lead; there is no
+  literature review and no thesis to defend.
+
+# A memo circulates inside a team. Nobody needs an affiliation block to read it.
+front_matter:
+  title: ""
+  short_title: ""
+  author_block: ""
+  affiliation_block: ""
+  correspondence: ""
+  keywords: []
+  acknowledgements: ""
+  funding: ""
+  conflict_note: ""
+
+section_order:
+  - summary
+  - question_and_data
+  - method
+  - results
+  - robustness
+  - limitations
+  - appendix
+
+sections:
+  summary:
+    section_id: summary
+    title: Summary
+    title_zh: 結論摘要
+    required: true
+    section_type: exec_summary
+    order: 1
+    # The reader is a colleague deciding whether to act. What held and what did
+    # not belongs in the first paragraph, not after the method.
+    required_subsections:
+      - what was tested
+      - what held
+      - what did not
+      - the main caveat
+    word_count_min: 120
+    word_count_max: 300
+
+  question_and_data:
+    section_id: question_and_data
+    title: Question and Data
+    title_zh: 問題與資料
+    required: true
+    section_type: background
+    order: 2
+    # A memo states its sample and window here rather than in a methods chapter,
+    # because a reader who disagrees with the sample stops reading here.
+
+  method:
+    section_id: method
+    title: Method
+    title_zh: 方法
+    required: true
+    section_type: methods
+    order: 3
+
+  results:
+    section_id: results
+    title: Results
+    title_zh: 結果
+    required: true
+    section_type: results
+    order: 4
+
+  robustness:
+    section_id: robustness
+    title: Robustness
+    title_zh: 穩健性
+    required: true
+    section_type: analysis
+    order: 5
+    # The section a paper does not have and a memo must. A result that holds in
+    # one setting and reverses in the next is not a result, and the only way a
+    # reader can tell is if the other settings are in the document.
+
+  limitations:
+    section_id: limitations
+    title: Limitations
+    title_zh: 局限
+    required: true
+    section_type: limitations
+    order: 6
+
+  appendix:
+    section_id: appendix
+    title: Appendix
+    title_zh: 附錄
+    required: false
+    section_type: appendix
+    order: 7
+
+thesis:
+  required: false
+  # A memo answers a question; it does not argue a position. Requiring a thesis
+  # pushes the author into overclaiming a finding the sample cannot carry.

@@ -262,6 +262,9 @@ class CustomReportPolicy(ReportPolicy):
 _POLICY_REGISTRY: dict[str, type[ReportPolicy]] = {
     "academic_paper": AcademicReportPolicy,
     "business_report": WorkReportPolicy,
+    # A memo circulates inside a team and leads with findings, same contract
+    # shape as a work report; what differs is the blueprint, not the policy.
+    "quant_research_memo": WorkReportPolicy,
     "custom": CustomReportPolicy,
     "proposal": WorkReportPolicy,
     "engineering_lab_report": AcademicReportPolicy,

@@ -67,6 +67,21 @@ PROFILE_REGISTRY: dict[str, ReportProfile] = {
         aliases=("academic report", "research paper", "學術報告", "研究論文"),
         strictness="high",
     ),
+    "quant_research_memo": ReportProfile(
+        profile_id="quant_research_memo",
+        display_name="Quantitative Research Memo",
+        blueprint_file="quant_research_memo.yaml",
+        policy_id="business_report",
+        aliases=("backtest report", "backtest", "research memo", "quant memo",
+                 "trading strategy report", "回測報告", "回测报告", "量化研究",
+                 "研究備忘", "策略報告"),
+        description=(
+            "Internal quantitative research memo: what was tested, what held, "
+            "what was falsified, and what the sample cannot support. Findings "
+            "lead, and a robustness section is required."
+        ),
+        strictness="medium",
+    ),
     "business_report": ReportProfile(
         profile_id="business_report",
         display_name="Business Report",
@@ -190,6 +205,20 @@ def infer_report_profile(user_prompt: str) -> str:
         return "business_report"
     if "hybrid" in text or "custom" in text or "自訂" in text:
         return "custom"
+    # Every profile already declares the words people use for it, and until now
+    # nothing read them: the cascade above was hand-written, so a prompt saying
+    # 回測報告 fell past all of it and became an academic paper — abstract,
+    # introduction, discussion, references, for a table of exit rules. Aliases
+    # are consulted last so the tuned precedence above is untouched, and the
+    # longest alias wins so 商業報告 does not lose to business.
+    matches = [
+        (len(alias), profile.profile_id)
+        for profile in PROFILE_REGISTRY.values()
+        for alias in profile.aliases
+        if alias.lower() in text
+    ]
+    if matches:
+        return max(matches)[1]
     return "academic_paper"
 
 

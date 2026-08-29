@@ -7,6 +7,7 @@ installed.
 import importlib.util
 import unittest
 
+from report_workflow.profiles import PROFILE_IDS
 from report_workflow.mcp_server import (
     list_profiles_payload,
     verify_claims_payload,
@@ -117,7 +118,7 @@ class ProfileAndStatusPayloadTests(unittest.TestCase):
         profile_ids = {profile["profile_id"] for profile in payload["profiles"]}
         self.assertIn("engineering_lab_report", profile_ids)
         self.assertIn("custom", profile_ids)
-        self.assertEqual(len(profile_ids), 7)
+        self.assertEqual(len(profile_ids), len(PROFILE_IDS))
 
     def test_unknown_job_id_raises_value_error(self):
         with self.assertRaises(ValueError):
