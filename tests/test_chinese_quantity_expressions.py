@@ -57,6 +57,27 @@ NOT_A_RATE: tuple[tuple[str, str], ...] = (
     ("每噸的成本結構複雜，售價 500 美元", "a clause boundary separates the two"),
 )
 
+#: 一 after a demonstrative points at something already named — it is not a
+#: count of one. Each of these blocked a true claim in a real run: FE reported
+#: "Claim number '1'組 is not stated in the evidence" for a sentence whose only
+#: figure was 2.14, which the evidence stated. 其中一 was already handled; it
+#: is kept here so the next reader can see where the boundary is.
+DETERMINER_NOT_A_COUNT: tuple[tuple[str, str], ...] = (
+    ("這一組的單筆平均是 2.14 個百分點", "這一 points at a group already named"),
+    ("那一批共有 83 筆", "那一 likewise"),
+    ("每一組都有對照", "每一 is 'each', not 'one per'"),
+    ("同一批股票、隨機時點", "同一 is 'the same'"),
+    ("另一組是 56.6 個百分點", "另一 is 'the other'"),
+    ("其中一格贏過基準", "其中一 was already bounded; asserted so it stays that way"),
+)
+
+#: The same characters *without* a determiner are real counts and must survive.
+STILL_A_COUNT: tuple[tuple[str, str], ...] = (
+    ("一家廠商佔 92 筆", "1"),
+    ("三筆交易", "3"),
+    ("兩年內完成", "2"),
+)
+
 #: Values written with the modifiers a real table carries. The factuality
 #: reader takes these literally; the chart reader resolves them, and the two
 #: are asserted separately below.
@@ -72,6 +93,24 @@ MODIFIED_VALUES: tuple[tuple[str, float], ...] = (
 
 class FactualityReaderTests(unittest.TestCase):
     """What FE and FS see. A miss here blocks a correct claim."""
+
+    def test_determiner_is_not_read_as_the_quantity_one(self):
+        for text, why in DETERMINER_NOT_A_COUNT:
+            with self.subTest(text=text):
+                values = [v for v, _ in _extract_numbers_with_unit(text)]
+                self.assertNotIn(
+                    "1", values,
+                    f"{text}: {why} — reading it as 1 blocks a true claim",
+                )
+
+    def test_the_same_characters_without_a_determiner_still_count(self):
+        for text, expected in STILL_A_COUNT:
+            with self.subTest(text=text):
+                values = [v for v, _ in _extract_numbers_with_unit(text)]
+                self.assertIn(
+                    expected, values,
+                    f"{text}: the determiner guard must not swallow real counts",
+                )
 
     def test_every_expression_yields_its_value_and_unit(self):
         for text, number, unit in QUANTITY_CORPUS:

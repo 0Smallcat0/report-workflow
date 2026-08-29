@@ -592,6 +592,14 @@ _LIMITING_PHRASE_RE = re.compile(
 )
 
 
+#: A demonstrative in front of 一: 這一組, 那一批, 每一筆, 同一批, 另一組. In
+#: every one of these the 一 points back at something already named, and the
+#: counter after it belongs to the noun rather than to a count. 第一 is excluded
+#: by the numeral pattern's own lookbehind; that lookbehind is fixed-width, so
+#: the two-character 其中 and the rest are checked here instead.
+_DETERMINER_RE = re.compile(r"(?:這|这|那|每|同|另|前|後|后)\s*$")
+
+
 def _normalize_for_numbers(text: str) -> str:
     shielded = (text or "").replace(_FULLWIDTH_COMMA, _COMMA_SHIELD)
     return unicodedata.normalize("NFKC", shielded).replace(
@@ -648,6 +656,15 @@ def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
         # in front of a unit — 三筆, 兩年 — still counts, because that is where
         # the notation actually appears.
         if len(m.group(1)) == 1 and not suffix:
+            continue
+        # 「這一組的單筆平均是 2.14 個百分點」 says *this* group, not one group.
+        # Read as the quantity 1 it became a claim number that no evidence could
+        # state, and FE blocked three claims whose figures — 2.14, 56.6, 83 —
+        # were every one of them stated correctly. 一 with nothing in front of
+        # it, 一家廠商佔 92 筆, still counts.
+        if m.group(1) == "一" and _DETERMINER_RE.search(
+            normalized[max(0, m.start(1) - 2):m.start(1)]
+        ):
             continue
         # 「DJI 一家就佔 92 筆」 says DJI *alone*, not one company: 一 followed
         # by a counter and then 就/獨/便 is a quantifier idiom, and reading it
