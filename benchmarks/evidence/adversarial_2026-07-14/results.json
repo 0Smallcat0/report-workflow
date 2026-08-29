@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-14T17:16:04",
+  "generated_at": "2026-08-29T12:34:12",
   "corpus": {
     "total_cases": 73,
     "honest_cases": 27,
@@ -1440,7 +1440,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '12'分鐘 is not stated in the evidence (evidence states: 3, 1984)"
+          "reason": "Claim number '12'分鐘 is not stated in the evidence (evidence states: 3, 1984) — read from 「流程平均需時十二分鐘。」"
         },
         {
           "case_id": "fc01",
@@ -1737,7 +1737,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '0.2'% is not stated in the evidence (evidence states: 3.5%, 9.0%)"
+          "reason": "Claim number '0.2'% is not stated in the evidence (evidence states: 3.5%, 9.0%) — read from 「just 0.2%.」"
         },
         {
           "case_id": "e02",
@@ -1746,7 +1746,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '2.1'minutes is not stated in the evidence (evidence states: 7.8minutes, 12.4minutes)"
+          "reason": "Claim number '2.1'minutes is not stated in the evidence (evidence states: 7.8minutes, 12.4minutes) — read from 「ed to 2.1 minutes unde」"
         },
         {
           "case_id": "e03",
@@ -1755,7 +1755,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '9,900'for is not stated in the evidence (evidence states: 4,800for)"
+          "reason": "Claim number '9,900'for is not stated in the evidence (evidence states: 4,800for) — read from 「d USD 9,900 for setu」"
         },
         {
           "case_id": "e04",
@@ -1764,7 +1764,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '99'% is not stated in the evidence (evidence states: 86%)"
+          "reason": "Claim number '99'% is not stated in the evidence (evidence states: 86%) — read from 「ached 99% under」"
         },
         {
           "case_id": "e05",
@@ -1773,7 +1773,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '168'participants is not stated in the evidence (evidence states: 42participants)"
+          "reason": "Claim number '168'participants is not stated in the evidence (evidence states: 42participants) — read from 「same 168 participants note」"
         },
         {
           "case_id": "e06",
@@ -1782,7 +1782,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '0.9'% is not stated in the evidence (evidence states: 3.5%, 7.8分鐘, 12.4分鐘)"
+          "reason": "Claim number '0.9'% is not stated in the evidence (evidence states: 3.5%, 7.8分鐘, 12.4分鐘) — read from 「,錯誤率降至0.9%。」"
         },
         {
           "case_id": "e07",
@@ -1791,7 +1791,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '1.2'分鐘 is not stated in the evidence (evidence states: 3.5%, 7.8分鐘, 12.4分鐘)"
+          "reason": "Claim number '1.2'分鐘 is not stated in the evidence (evidence states: 3.5%, 7.8分鐘, 12.4分鐘) — read from 「處理時間降至1.2分鐘。」"
         },
         {
           "case_id": "f01",
@@ -1998,7 +1998,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '99' is not stated in the evidence (evidence states: 42participants)"
+          "reason": "Claim number '99' is not stated in the evidence (evidence states: 42participants) — read from 「ed to 99.」"
         },
         {
           "case_id": "x02",
@@ -2225,7 +2225,7 @@
   "expected_mismatches": [],
   "determinism": {
     "runs": 5,
-    "verdict_hash": "1faa32b90bd32defe4e529a930cfb317bd79dc0427fa72ea9c06b848d5901a0f",
+    "verdict_hash": "a06747aae0689b5bffa9b8caea23c4c3d8036463517b19e81afb805de519ef4e",
     "identical": true
   }
 }

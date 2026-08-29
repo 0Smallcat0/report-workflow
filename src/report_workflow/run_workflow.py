@@ -37,6 +37,7 @@ from .nodes.revision_apply import run_revision_apply
 from .nodes.merge_draft import run_merge_draft
 from .nodes.project_identity_gate import run_project_identity_gate
 from .nodes.admissions_tone_gate import run_admissions_tone_gate
+from .nodes.register_gate import run_register_gate
 from .nodes.section_role_check import run_section_role_check
 from .nodes.citation_bind import run_citation_bind
 from .nodes.reference_verify import run_reference_verify
@@ -205,6 +206,7 @@ def validate_stages() -> list[WorkflowStage]:
             "DRAFT_GATES",
             _step("PROJECT_IDENTITY_GATE", run_project_identity_gate),
             _step("ADMISSIONS_TONE_GATE", run_admissions_tone_gate),
+            _step("REGISTER_GATE", run_register_gate),
             _step("SECTION_ROLE_CHECK", run_section_role_check),
         ),
         _stage(

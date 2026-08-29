@@ -629,6 +629,34 @@ def _with_sign(text: str, start: int, number: str) -> str:
         return number
     return "-" + number
 
+def claim_number_source_text(text: str, number: str, unit: str) -> str:
+    """The words in the claim that produced this (number, unit), or "".
+
+    FE used to refuse a claim with "Claim number '1'組 is not stated in the
+    evidence" and leave the author to work out which characters it had read that
+    from. When the number is written in digits the answer is obvious; when it
+    comes from a Chinese numeral it is not, and the author's guess is what the
+    repair depends on. Naming the span turns a search into a reading.
+    """
+    normalized = _normalize_for_numbers(text or "")
+    for pattern, is_cjk in ((_BARE_NUMBER_RE, False), (_CJK_NUMBER_RE, True)):
+        for m in pattern.finditer(normalized):
+            raw = m.group(1)
+            if is_cjk:
+                value = _cjk_numeral_value(raw)
+                if value is None or f"{value:g}" != str(number):
+                    continue
+            elif raw.lstrip("~").replace(",", "") != str(number).replace(",", ""):
+                continue
+            found_unit = _unit_after(normalized, m.end(1))
+            if unit and found_unit and found_unit != unit:
+                continue
+            start = max(0, m.start(1) - 6)
+            end = min(len(normalized), m.end(1) + len(found_unit) + 6)
+            return normalized[start:end].strip()
+    return ""
+
+
 def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
     """Return list of (number_str, unit_str) from text."""
     results = []
@@ -1514,9 +1542,11 @@ def _content_overlap_findings(
                         f"{', '.join(unit_conflicts)}"
                     )))
                 else:
+                    span = claim_number_source_text(claim_text, num_str, unit)
+                    where = f" — read from \u300c{span}\u300d" if span else ""
                     reasons.append((number_key, (
                         f"Claim number {num_str!r}{unit} is not stated in the evidence "
-                        f"(evidence states: {ev_nums_str})"
+                        f"(evidence states: {ev_nums_str}){where}"
                     )))
 
     # 3. Term overlap — key terms from claim should appear in evidence.
