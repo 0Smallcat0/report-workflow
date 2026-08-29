@@ -413,6 +413,40 @@ def _is_parameter_table(headers: list[str], content: str) -> bool:
     return any(term in text for term in PARAMETER_TABLE_TERMS)
 
 
+#: A column whose every value is a run of the same few symbols — "++++",
+#: "++-+", "+-++" — is a compressed verdict, not a dimension. Grouping by it
+#: produced "mean lag by half-year sign", a chart of nothing: the axis is a
+#: summary of the result and the measure is a setting.
+_FLAG_STRING_RE = re.compile(r"^[+\-−✓✗x?]{2,}$")
+
+
+def _is_flag_string_column(values: list[str]) -> bool:
+    cleaned = [_clean_text(v) for v in values[1:] if _clean_text(v)]
+    if len(cleaned) < MIN_CHART_ROWS:
+        return False
+    return all(_FLAG_STRING_RE.match(v) for v in cleaned)
+
+
+#: The number in a settings column identifies the row rather than measuring it:
+#: a table of eleven exit rules crossed with two lag values has "lag" in every
+#: row, and averaging it says nothing. Two distinct values over eleven rows is a
+#: knob that was turned, not a quantity that was observed. A real measure varies
+#: with the row; the threshold is deliberately low so that a genuine measure
+#: taking few values -- a count of 1, 2, 3 -- is still a measure.
+_MAX_SETTING_DISTINCT = 3
+
+
+def _is_setting_column(numeric_values: list[float], row_count: int) -> bool:
+    if row_count < MIN_CHART_ROWS * 2 or not numeric_values:
+        return False
+    distinct = {round(v, 9) for v in numeric_values}
+    # A single-valued column is a held-constant control, and that already has
+    # its own handling with its own warning. Taking it here would silence that.
+    if len(distinct) < 2:
+        return False
+    return len(distinct) <= _MAX_SETTING_DISTINCT and len(distinct) * 3 <= row_count
+
+
 def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> dict:
     data_rows = rows[1:]
     total_cells = max(len(data_rows) * len(headers), 1)
@@ -457,10 +491,19 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
             and (missing / max(len(data_rows), 1)) < 0.5
         )
 
+        flag_string = _is_flag_string_column(values)
+        setting = numeric_column and _is_setting_column(numeric_values, len(data_rows))
+
         if id_like:
             role = "id_like"
+        elif flag_string:
+            # Not categorical: a verdict string must not become an axis.
+            role = TEXT_MIXED_ROLE
         elif time_like:
             role = "time_like"
+        elif setting:
+            # A knob that was turned. It can label a series; it is not a measure.
+            role = "categorical"
         elif numeric_column:
             role = "numeric_measure"
         elif categorical:

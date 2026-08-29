@@ -104,6 +104,39 @@ def _planned_figure_ids(state: ReportState) -> list[str] | None:
     ]
 
 
+def _starter_plan_is_untouched(state: ReportState) -> bool:
+    """True when figure_plan.json is still exactly what the pipeline generated.
+
+    The starter plan is written by the deterministic prepare step from the
+    figure recommendations, before the author has written an outline. So on a
+    first run every entry in it is unused by definition, and the outline stage
+    refused the run over a file the author had never opened — thirteen figures
+    they had not asked for, named as their omission.
+
+    Once the author edits the plan they have adopted it, and the disagreement
+    check is exactly right. Untouched, it is a suggestion: the run proceeds and
+    the unplaced entries are simply not built.
+    """
+    if not state.output.get("auto_figure_plan_path"):
+        return False
+    current = run_dir_for(state) / "section_drafts" / "figure_plan.json"
+    try:
+        payload = json.loads(current.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    if not isinstance(payload, dict):
+        return False
+    # The generator stamps its own count into the file it writes. An author who
+    # edits the figures does not maintain that count, so a mismatch — or the
+    # stamp being absent, as in any hand-written plan — means the plan has been
+    # adopted and must agree with the outline.
+    declared = payload.get("generated_figure_count")
+    if not isinstance(declared, int):
+        return False
+    figures = payload.get("figures")
+    return isinstance(figures, list) and len(figures) == declared
+
+
 def _validate_figure_plan_against_outline(state: ReportState, sections: dict) -> None:
     """Refuse an outline that disagrees with figure_plan.json.
 
@@ -129,6 +162,10 @@ def _validate_figure_plan_against_outline(state: ReportState, sections: dict) ->
     dangling = [figure_id for figure_id in used if figure_id not in planned]
 
     problems: list[str] = []
+    if unused and _starter_plan_is_untouched(state):
+        # Not adopted, so not the author's claim about the report. Say so once
+        # rather than refusing a run over a file they have not opened.
+        unused = []
     if unused:
         problems.append(
             "figure_plan.json plans figures no outline section uses: "
