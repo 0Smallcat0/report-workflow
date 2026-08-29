@@ -606,6 +606,47 @@ def _abstract_section(report_profile: str, blueprint: dict, document_language: s
     )
 
 
+def outline_brief_section_ids(blueprint: dict) -> list[str]:
+    """The sections the outline brief must show, in blueprint order.
+
+    `validate_required_outline_sections` refuses an outline missing any section
+    the blueprint marks required. The brief used to document a single `results`
+    section regardless, so an author who wrote exactly what the brief showed was
+    rejected by the gate that reads it — nine sections missing on a first run of
+    `academic_paper`, with no way forward except to open the blueprint and infer
+    what the brief had left out.
+
+    Both now read the same list, so the documented shape is the accepted shape.
+    """
+    sections = blueprint.get("sections") or {}
+    if sections:
+        required = [sid for sid, sec in sections.items() if sec.get("required", False)]
+    else:
+        required = list(blueprint.get("required_sections")
+                        or blueprint.get("section_order") or [])
+    order = blueprint.get("section_order") or []
+    return sorted(required, key=lambda sid: order.index(sid) if sid in order else len(order))
+
+
+def outline_brief_sections_block(blueprint: dict) -> str:
+    """The `sections` block of the brief's Required Output, one entry per section."""
+    parts = []
+    for sid in outline_brief_section_ids(blueprint):
+        extra = ""
+        if sid == "results":
+            extra = '\n      "results_mode": "empirical" | "architectural_characterization",'
+        parts.append(
+            '    "' + sid + '": {\n'
+            '      "section_id": "' + sid + '",' + extra + '\n'
+            '      "goals": "What this section should accomplish.",\n'
+            '      "claim_ids": ["claim id from claim_matrix.json"],\n'
+            '      "paragraph_order": ["paragraph intent"],\n'
+            '      "figure_ids": []\n'
+            '    }'
+        )
+    return ",\n".join(parts)
+
+
 def _results_mode_section(report_profile: str) -> str:
     """Describe results_mode where the workflow actually reads it.
 
@@ -1261,6 +1302,8 @@ the ledger and never appear in this window.)
 ```
 """
 
+    outline_sections_block = outline_brief_sections_block(state.plan.get("blueprint") or {})
+
     outline_task = f"""# 02 Outline Plan
 
 ## Inputs
@@ -1290,14 +1333,7 @@ Write `{run_dir / "outline.json"}` with this shape:
     "uncertainty_limitations": "Known uncertainty, assumptions, or measurement limits."
   }},
   "sections": {{
-    "results": {{
-      "section_id": "results",
-      "results_mode": "empirical" | "architectural_characterization",
-      "goals": "What this section should accomplish.",
-      "claim_ids": ["claim id from claim_matrix.json"],
-      "paragraph_order": ["paragraph intent"],
-      "figure_ids": []
-    }}
+{outline_sections_block}
   }}
 }}
 ```
