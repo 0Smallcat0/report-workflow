@@ -451,9 +451,11 @@ def strip_obsidian_comments(text: str) -> str:
     """Blank out %% comments, keeping one line for every line that was there."""
     if "%%" not in text:
         return text
+    from .source_text import split_source_lines
+
     out: list[str] = []
     inside = False
-    for line in text.splitlines(keepends=True):
+    for line in split_source_lines(text):
         ending = line[len(line.rstrip("\r\n")):]
         body = line.rstrip("\r\n")
         if _OBSIDIAN_COMMENT_FENCE_RE.match(body):
@@ -516,11 +518,9 @@ def parse_markdown(file_path: str) -> dict:
     import hashlib
 
     try:
-        from .source_text import read_source_text
+        from .source_text import read_source_text, split_source_lines
 
-        lines = strip_obsidian_comments(read_source_text(file_path)).splitlines(
-            keepends=True
-        )
+        lines = split_source_lines(strip_obsidian_comments(read_source_text(file_path)))
 
         blocks = []
         all_text_parts = []

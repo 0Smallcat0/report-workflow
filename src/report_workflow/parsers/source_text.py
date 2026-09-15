@@ -12,7 +12,15 @@ supersets of Big5 and GBK respectively, so each covers its family. There is no
 catch-all last resort: latin-1 decodes any byte sequence and would turn an
 unreadable file into silent mojibake, which is worse than refusing it.
 """
+import re
 from pathlib import Path
+
+#: The line breaks an editor, ``grep -n`` and a text-mode ``readlines()`` count.
+#: ``str.splitlines`` also breaks on form feed, vertical tab and five Unicode
+#: separators; a PDF exported to text carries a form feed at every page break,
+#: so each page moved every later line number one further from the line a
+#: reader opens.
+_LINE_BREAK_RE = re.compile(r"\r\n|\r|\n")
 
 #: Tried in order. Traditional Chinese before Simplified only because this
 #: project's users write Traditional; neither decodes the other's bytes
@@ -34,6 +42,24 @@ def read_source_text(file_path: str | Path) -> str:
     )
 
 
+def split_source_lines(text: str) -> list[str]:
+    """Lines numbered the way the reader's editor numbers them, endings kept.
+
+    A government plan exported with pdftotext holds a form feed per page, and
+    ``splitlines`` counted each as a line: text on line 908, with 39 page breaks
+    above it, was cited as line 947, and a ``"lines": "950-971"`` selection kept
+    the wrong passage and silently dropped the one it named.
+    """
+    lines: list[str] = []
+    start = 0
+    for match in _LINE_BREAK_RE.finditer(text):
+        lines.append(text[start:match.end()])
+        start = match.end()
+    if start < len(text):
+        lines.append(text[start:])
+    return lines
+
+
 def read_source_lines(file_path: str | Path) -> list[str]:
     """Decoded lines, each keeping its trailing newline as readlines() does."""
-    return read_source_text(file_path).splitlines(keepends=True)
+    return split_source_lines(read_source_text(file_path))

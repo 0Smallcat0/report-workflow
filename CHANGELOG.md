@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Fixed — a line number counts the lines an editor counts
+
+Text and Markdown sources were split with `str.splitlines`, which also breaks on
+form feed — and a PDF exported to text carries one at every page break. In a
+government plan, text on line 908, 39 page breaks down, was cited as line 947, and a
+`"lines": "950-971"` selection kept the wrong passage while silently dropping the
+2030/2035/2040 targets it was chosen for. Lines now break on `\n`, `\r\n` and
+`\r` only, as an editor, `grep -n` and a text-mode `readlines()` count them.
+
 ### Fixed — a declared publication stays declared, and its own bibliography is not the report's
 
 Two gaps in the source-citation work, found by the first full run with it. A
