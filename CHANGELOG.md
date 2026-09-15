@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+### Fixed — formula evidence prints each operand with the places it was used with
+
+The operand line of a formula exists to be redone, and it printed every value
+above one to two places: `gd = 2.29` beside a table computed from 2.2906, so the
+stated arithmetic gave 158.0 where the cell said 158.1. Operands now print every
+place they carry, up to six.
+
 ### Fixed — a line number counts the lines an editor counts
 
 Text and Markdown sources were split with `str.splitlines`, which also breaks on

@@ -337,6 +337,26 @@ def format_number(value: float, decimals: int | None = None) -> str:
     return f"{value:.4g}"
 
 
+#: The most places an operand is printed with. Past six the digits are float
+#: noise, and no stated result depends on them.
+MAX_OPERAND_DECIMALS = 6
+
+
+def format_operand(value: float) -> str:
+    """An operand exactly as the formula used it.
+
+    ``format_number`` rounds anything above one to two places, so a formula
+    over a fuel factor of 2.2906 printed ``gd = 2.29`` beside a result computed
+    from 2.2906, and a reader redoing the stated arithmetic got 158.0 where the
+    table said 158.1. The operand line is there to be redone; it prints every
+    place the value has, up to six.
+    """
+    if value and abs(value) < 10 ** -MAX_OPERAND_DECIMALS:
+        return f"{value:.6g}"
+    places = len(f"{value:.{MAX_OPERAND_DECIMALS}f}".rstrip("0").rstrip(".").partition(".")[2])
+    return format_number(value, places)
+
+
 def declared_decimals(request: dict) -> int | None:
     """How many decimal places the author wants this figure recorded to.
 
@@ -1658,12 +1678,12 @@ def _formula_text(request: dict, result: dict, zh: bool) -> str:
     files = "、".join(result["files"]) if zh else ", ".join(result["files"])
     if zh:
         operands = "；".join(
-            f"{name} = {format_number(item['value'])}（{item['zh']}）"
+            f"{name} = {format_operand(item['value'])}（{item['zh']}）"
             for name, item in result["resolved"].items()
         )
         return f"衍生計算(來源:{files}):{label}為 {shown}。計算式:{request.get('expr')}；其中 {operands}。"
     operands = "; ".join(
-        f"{name} = {format_number(item['value'])} ({item['en']})"
+        f"{name} = {format_operand(item['value'])} ({item['en']})"
         for name, item in result["resolved"].items()
     )
     return (
@@ -1804,7 +1824,7 @@ def _formula_table_text(request: dict, table: dict, zh: bool) -> str:
     if zh:
         lines = "；".join(f"{item['label']} = {item['expression']}" for item in formulas)
         shared = "；".join(
-            f"{name} = {format_number(item['value'])}（{item['zh']}）"
+            f"{name} = {format_operand(item['value'])}（{item['zh']}）"
             for name, item in table["shared"].items()
         )
         head = (
@@ -1816,7 +1836,7 @@ def _formula_table_text(request: dict, table: dict, zh: bool) -> str:
         return head + "\n" + "\n".join(grid)
     lines = "; ".join(f"{item['label']} = {item['expression']}" for item in formulas)
     shared = "; ".join(
-        f"{name} = {format_number(item['value'])} ({item['en']})"
+        f"{name} = {format_operand(item['value'])} ({item['en']})"
         for name, item in table["shared"].items()
     )
     head = (

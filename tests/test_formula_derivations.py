@@ -80,12 +80,35 @@ class ScalarFormulaTests(unittest.TestCase):
         unit = _only(units, "E_D_bev_production")
         self.assertIn("電動車製造排放為 10.77 t CO2e", unit["content"])
         # Every operand is stated with where it was read, so a reader can redo it.
-        self.assertIn("kwh = 53.40（lca_parameters.csv 中 參數=電池容量 的 數值）", unit["content"])
+        self.assertIn("kwh = 53.4（lca_parameters.csv 中 參數=電池容量 的 數值）", unit["content"])
         self.assertIn("body + kwh * factor / 1000", unit["content"])
         self.assertIn("參數=電池容量", unit["content"])
         operands = unit["derivation"]["operands"]
         self.assertEqual(operands["kwh"]["value"], 53.4)
         self.assertEqual(unit["derivation"]["method"], "formula")
+
+    def test_every_operand_is_printed_with_the_places_it_was_used_with(self):
+        units, problems = build_requested_units(
+            [
+                {"id": "direct_factor", "op": "formula", "expr": "fuel", "decimals": 4,
+                 "inputs": {"fuel": {"source": "scenarios.csv", "rows": "情境=A", "column": "fuel"}}},
+                {"id": "per_year", "op": "formula", "source": "scenarios.csv", "row_label": "情境", "decimals": 0,
+                 "formulas": [{"label": "fuel emissions", "expr": "gd * annual", "unit": "kg"}],
+                 "inputs": {"gd": "direct_factor", "annual": _cell("年行駛里程")}},
+                {"id": "body_share", "op": "formula", "expr": "body / 13", "decimals": 3,
+                 "inputs": {"body": _cell("電動車車體製造")}},
+            ],
+            REGISTRY,
+            CREATED_AT,
+            zh=True,
+        )
+        self.assertEqual(problems, [])
+        content = _only(units, "E_D_per_year")["content"]
+        # The operand line is there to be redone: 2.2906 * 11,896 = 27,249, and
+        # "gd = 2.29" beside that cell gave a reader 27,242.
+        self.assertIn("gd = 2.2906（", content)
+        self.assertIn("A | 27,249", content)
+        self.assertIn("body = 6.5（", _only(units, "E_D_body_share")["content"])
 
     def test_a_later_formula_can_use_an_earlier_one(self):
         units, problems = build_requested_units(
