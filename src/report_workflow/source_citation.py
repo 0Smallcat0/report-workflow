@@ -232,8 +232,10 @@ def format_bibtex(citation: dict[str, str], key: str) -> str:
     return f"@{entry_type}{{{safe_key},\n" + ",\n".join(fields) + "\n}"
 
 
-_LATIN_PAREN = r"\([^()（）]*?,\s*(?:\d{4}[a-z]?|n\.d\.)\)"
-_CJK_PAREN = r"（[^()（）]*?，\s*(?:\d{4}[a-z]?|無日期)）"
+# "n.d.-a" is how two undated works by one author are told apart, and the
+# shape missed it: four citations of two U.S. DOE pages printed side by side.
+_LATIN_PAREN = r"\([^()（）]*?,\s*(?:\d{4}[a-z]?|n\.d\.(?:-[a-z])?)\)"
+_CJK_PAREN = r"（[^()（）]*?，\s*(?:\d{4}[a-z]?|無日期(?:-?[a-z])?)）"
 _ADJACENT_LATIN_RE = re.compile(rf"({_LATIN_PAREN})(?:\s*;?\s*({_LATIN_PAREN}))+")
 _ADJACENT_CJK_RE = re.compile(rf"({_CJK_PAREN})(?:\s*[;；]?\s*({_CJK_PAREN}))+")
 

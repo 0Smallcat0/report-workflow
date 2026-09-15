@@ -77,6 +77,10 @@ def collect_source_tables(evidence_ledger: list[dict]) -> dict[str, dict]:
             "source_file_name": str(row.get("source_file_name") or ""),
             "source_span": str(row.get("source_span") or ""),
             "evidence_ids": [str(row.get("evidence_id") or "")],
+            # Computed here, from a file or from a publication the author
+            # declared; the attribution under the table has to say which.
+            "computed": True,
+            "citation": row.get("citation") if isinstance(row.get("citation"), dict) else None,
         }
         tables[entry["table_id"]] = entry
         request_id = (row.get("derivation") or {}).get("request_id")
@@ -128,6 +132,24 @@ def provenance_line(table: dict, language: str) -> str:
     under every table in the delivered document. Prefix only when the span does
     not already name the file.
     """
+    citation = table.get("citation") if isinstance(table.get("citation"), dict) else None
+    if citation:
+        # A table computed over a declared publication is that publication's
+        # data. Printing the transcription's file name under it — "來源：
+        # knobloch2020_table6_2015.csv (9 rows)" — attributed Knobloch et al.'s
+        # figures to a CSV the reader has never seen.
+        from ..source_citation import in_text_author
+
+        author = in_text_author(citation)
+        year = str(citation.get("year") or "").strip() or ("無日期" if language == "zh" else "n.d.")
+        if CJK_RE.search(author):
+            named = f"{author}（{year}）"
+        else:
+            named = f"{author} ({year})"
+        if language == "zh":
+            return f"來源：{named}" + ("，本報告整理計算" if table.get("computed") else "")
+        return f"Source: {named}" + ("; computed for this report" if table.get("computed") else "")
+
     file_name = str(table.get("source_file_name") or "").strip()
     span = str(table.get("source_span") or "").strip()
     if file_name and span.startswith(file_name):
@@ -135,6 +157,9 @@ def provenance_line(table: dict, language: str) -> str:
     locator = " ".join(part for part in (file_name, span) if part)
     if not locator:
         return ""
+    if table.get("computed"):
+        # Not a table the file holds: the pipeline computed it from the file.
+        return f"來源：{locator}，本報告計算" if language == "zh" else f"Source: {locator}, computed for this report"
     return f"來源：{locator}" if language == "zh" else f"Source: {locator}"
 
 

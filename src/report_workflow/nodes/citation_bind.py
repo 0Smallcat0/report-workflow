@@ -413,10 +413,11 @@ def _format_source_trace_entry(evidence: dict, number: int) -> str:
         evidence.get("source_file_name") or evidence.get("source_id") or "unknown source"
     )
     span = str(evidence.get("source_span") or "").strip()
-    quote = " ".join(str(evidence.get("quote") or evidence.get("content") or "").split())
-    quote = quote[:SOURCE_TRACE_QUOTE_CHARS].rstrip()
-    if quote.endswith("..."):
-        quote = quote[:-3].rstrip()
+    derived = str(evidence.get("block_type") or "") == "derived_statistic"
+    shown = _source_trace_statement(evidence)
+    if shown is None:
+        quote = " ".join(str(evidence.get("quote") or evidence.get("content") or "").split())
+        quote = _clip_at_boundary(quote, SOURCE_TRACE_QUOTE_CHARS)
 
     # File name, line span and quote are what a reader can act on. The ledger's
     # evidence id is an internal handle — the same rule that keeps `[CITE:E…]`
@@ -431,7 +432,10 @@ def _format_source_trace_entry(evidence: dict, number: int) -> str:
         if part
     ) or file_name
     parts = [f"[S{number}] {locator}"]
-    if quote:
+    if shown is not None:
+        if shown:
+            parts.append(shown)
+    elif quote:
         parts.append(f"“{quote}”")
 
     # A cited row often carries the outside source it was taken from — a URL,
@@ -439,11 +443,63 @@ def _format_source_trace_entry(evidence: dict, number: int) -> str:
     # links and the deliverable had none, because the entry stopped at the
     # file name: the reader could find which line of which file the figure sat
     # on, but not who published it. These are read off the row, so the list
-    # asserts only what the source already stated.
-    external = _external_references(evidence)
+    # asserts only what the source already stated. A derived statistic's
+    # "(來源:file)" is the pipeline's own label for the file already named.
+    external = [] if derived else _external_references(evidence)
     if external:
         parts.append(", ".join(external))
     return " — ".join(parts)
+
+
+#: The label a derived statistic opens with, which names the file the entry
+#: already names: "衍生計算(來源:params.csv):", "Derived calculation from params.csv:".
+_DERIVED_LABEL_RE = re.compile(
+    r"^(?:衍生(?:統計|計算)\s*[(（]來源[:：][^)）]*[)）]\s*[:：]|Derived (?:statistics|calculation) from [^:]+:)\s*"
+)
+
+
+def _clip_at_boundary(text: str, limit: int) -> str:
+    """Shorten to ``limit`` characters at a clause boundary, never mid-word."""
+    if text.endswith("..."):
+        text = text[:-3].rstrip()
+    if len(text) <= limit:
+        return text
+    cut = text[:limit]
+    boundary = max(cut.rfind(mark) for mark in ("。", "；", ";", "，", ",", "、", " "))
+    if boundary >= limit // 2:
+        cut = cut[:boundary]
+    return cut.rstrip(" ，,、；;：:") + "…"
+
+
+def _source_trace_statement(evidence: dict) -> str | None:
+    """What a data row or a computed figure says, written for a reader.
+
+    None for prose, which is quoted as it stands. The list used to quote every
+    entry the same way, so a Chinese course report closed on three pages of
+    raw JSON — “{“參數”: “汽油車保養”, “數值”: “5”…}” — and of formula
+    internals cut off mid-token at 140 characters: “…其中 heat = 7,586（lca”.
+    A row is its fields; a computed figure is its result sentence, marked as
+    computed, with the arithmetic left to the evidence where it is complete.
+    """
+    content = " ".join(str(evidence.get("content") or "").split())
+    zh = bool(re.search(r"[一-鿿]", content))
+    if str(evidence.get("block_type") or "") == "derived_statistic":
+        body = _DERIVED_LABEL_RE.sub("", content)
+        match = re.match(r"(.+?)(?:。|\.(?=\s|$))", body)
+        result = (match.group(1) if match else body).strip()
+        if not result:
+            return None
+        result = _clip_at_boundary(result, SOURCE_TRACE_QUOTE_CHARS)
+        return f"本報告計算：{result}" if zh else f"Computed for this report: {result}"
+    try:
+        record = json.loads(str(evidence.get("content") or ""))
+    except (ValueError, TypeError):
+        return None
+    if not isinstance(record, dict) or not record:
+        return None
+    joiner, pair = ("；", "{}：{}") if zh else ("; ", "{}: {}")
+    fields = [pair.format(key, value) for key, value in record.items() if str(value).strip()]
+    return _clip_at_boundary(joiner.join(fields), SOURCE_TRACE_QUOTE_CHARS)
 
 
 #: A URL, and a Chinese source attribution such as "（來源：Fastmarkets，2026）".

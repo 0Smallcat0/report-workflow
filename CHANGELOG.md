@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Fixed — the Sources list, table attributions and undated citations read as written for a reader
+
+Read page by page, the delivered Word file of a Chinese course report closed on
+three pages of Sources-list entries quoting raw JSON rows ("“{“參數”: “汽油車保養”,
+“數值”: “5”…}”") and formula internals cut off mid-token ("其中 heat = 7,586（lca");
+the table computed from Knobloch et al.'s data was attributed to
+"knobloch2020_table6_2015.csv (9 rows)"; and one sentence citing two undated U.S.
+DOE pages printed four parentheticals side by side, because "n.d.-a" matched
+neither the merge nor the duplicate-collapse shape. A row is now listed as its
+fields, a computed figure as its result sentence marked 本報告計算 / Computed for
+this report, and a long quote is cut at a clause boundary; a table computed over
+a declared publication names the publication, and any computed table says it was
+computed; suffixed undated citations merge like dated ones.
+
 ### Fixed — registering evidence before the first stage no longer blocks it
 
 `register_derived_evidence` rewrites the task briefs, and doing so re-labelled
