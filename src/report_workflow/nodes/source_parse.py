@@ -10,6 +10,7 @@ from ..parsers.semi_structured_parser import parse_semi_structured
 from ..parsers.code_parser import parse_code
 from ..parsers.agent_fallback import parse_agent_fallback
 from ..validators.parse_validator import validate_parsed_output
+from ..source_selection import SourceSelectionError, apply_selection, describe
 
 STRUCTURED_TYPES = {"csv", "xlsx", "json", "toml"}
 SEMI_STRUCTURED_TYPES = {"pdf", "docx", "txt", "md"}
@@ -131,8 +132,22 @@ def run_source_parse(state: ReportState) -> ReportState:
         parsed = parse_single_source(entry)
         is_valid, reason = validate_parsed_output(parsed)
 
+        raw_blocks = parsed.get("blocks", [])
+        selection = entry.get("selection")
+        if selection and raw_blocks and is_valid:
+            try:
+                kept = apply_selection(raw_blocks, selection, entry.get("file_name", ""))
+            except SourceSelectionError as error:
+                raise QAHardBlockError(str(error)) from error
+            entry["selection_applied"] = {
+                "selection": describe(selection),
+                "blocks_kept": len(kept),
+                "blocks_read": len(raw_blocks),
+            }
+            raw_blocks = kept
+
         blocks = []
-        for block in parsed.get("blocks", []):
+        for block in raw_blocks:
             blocks.append(SourceContentBlock(
                 block_id=block.get("block_id", ""),
                 block_type=block.get("block_type", "paragraph"),

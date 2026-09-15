@@ -23,6 +23,7 @@ from report_workflow.run_workflow import (
 )
 from report_workflow.errors import AgentWorkRequired, QAHardBlockError
 from report_workflow.source_citation import normalize_citation
+from report_workflow.source_selection import normalize_selection
 from report_workflow.state import ReportState, run_dir_for
 from report_workflow.runtime_support import load_jsonl
 from report_workflow.artifact_contract import remap_evidence_ids
@@ -152,6 +153,25 @@ def _source_citation_map(source_files: list[str | dict]) -> dict[str, dict]:
         for key in (path, str(Path(path).name), resolved):
             citations[key] = citation
     return citations
+
+
+def _source_selection_map(source_files: list[str | dict]) -> dict[str, dict]:
+    """The ``pages``/``lines`` each structured source entry names, keyed like roles."""
+    selections: dict[str, dict] = {}
+    for index, item in enumerate(source_files or []):
+        if not isinstance(item, dict):
+            continue
+        selection = normalize_selection(item, f"source_files[{index}]")
+        path = str(item.get("path") or item.get("file_path") or "").strip()
+        if not selection or not path:
+            continue
+        try:
+            resolved = str(Path(path).expanduser().resolve())
+        except OSError:
+            resolved = path
+        for key in (path, str(Path(path).name), resolved):
+            selections[key] = selection
+    return selections
 
 
 def check_setup() -> dict:
@@ -285,6 +305,7 @@ def start_report_task(
     try:
         normalized_source_files, artifact_role_map = _normalize_source_files(source_files)
         source_citations = _source_citation_map(source_files)
+        source_selections = _source_selection_map(source_files)
 
         # The user's recorded decision is the flag. Requiring a second,
         # parallel enable_* argument meant an approval could be recorded and
@@ -340,6 +361,7 @@ def start_report_task(
             artifact_role_map=artifact_role_map,
             source_citation_columns=source_citation_columns,
             source_citations=source_citations,
+            source_selections=source_selections,
             front_matter={
                 key: value for key, value in {
                     "title": title,

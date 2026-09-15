@@ -351,6 +351,7 @@ def prepare_workflow(
     reference_docx: str | None = None,
     source_citation_columns: list[str] | None = None,
     source_citations: dict[str, dict] | None = None,
+    source_selections: dict[str, dict] | None = None,
 ) -> ReportState:
     """Prepare deterministic artifacts and agent task briefs.
 
@@ -366,6 +367,9 @@ def prepare_workflow(
             with a declared citation is cited author-year and listed in the
             references; one without keeps the honest default of a Sources-list
             marker.
+        source_selections: ``{"pages": [(start, end), ...]}`` or ``"lines"``
+            per source, keyed the same way; only blocks inside the span enter
+            the ledger, with their real page and line numbers.
     """
     state = ReportState.new(user_prompt, uploaded_files, output_dir, front_matter=front_matter)
     if report_profile:
@@ -395,6 +399,11 @@ def prepare_workflow(
         ]
     if source_citations:
         state.spec["source_citations"] = dict(source_citations)
+    if source_selections:
+        state.spec["source_selections"] = {
+            key: {kind: [list(pair) for pair in ranges] for kind, ranges in selection.items()}
+            for key, selection in source_selections.items()
+        }
     try:
         state = run_preflight_checks(state)
     except QAHardBlockError as e:

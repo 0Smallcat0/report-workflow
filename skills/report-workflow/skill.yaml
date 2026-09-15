@@ -101,7 +101,9 @@ tools:
           "title", "publisher", "container", "volume", "issue", "pages", "doi",
           "url", "description", "in_text", "reference"}) to a source whose
           publication you know; it is then cited author-year and listed in the
-          references instead of as a project file.
+          references instead of as a project file. Add "pages" ("80-86, 90",
+          PDF) or "lines" (text files) to read only the span a report uses;
+          those blocks keep their real page and line numbers.
       - name: output_dir
         type: string
         required: true

@@ -64,6 +64,13 @@ listed in the references:
 - The CLI takes the same objects from a JSON file: `--source-manifest sources.json`
   (relative paths resolve against the manifest's folder).
 
+A long publication does not have to enter the ledger whole. Name the span the
+report uses — `"pages": "80-86, 90"` for a PDF, `"lines": "5504-5526"` for a text
+file — and only blocks inside it are read, keeping their real page and line
+numbers; a selection that contains no text stops prepare with the reason. Prefer
+this to hand-copying a passage into a new file, which loses the locators a reader
+checks against.
+
 For academic-style profiles, pass structured front matter when available:
 `title`, `author_block`, `affiliation_block`, `correspondence`, and `keywords`.
 For school/company fixed templates, pass `template_fields` such as `course_name`,

@@ -105,6 +105,7 @@ def run_corpus_build(state: ReportState) -> ReportState:
     uploaded_files = state.spec.get("uploaded_files", [])
     artifact_role_map = state.spec.get("artifact_role_map", {})
     source_citations = state.spec.get("source_citations") or {}
+    source_selections = state.spec.get("source_selections") or {}
 
     if not uploaded_files:
         raise QAHardBlockError("No uploaded source files were provided")
@@ -209,6 +210,14 @@ def run_corpus_build(state: ReportState) -> ReportState:
             }
             if citation:
                 registry_entry["citation"] = dict(citation)
+            selection = (
+                source_selections.get(str(path.resolve()))
+                or source_selections.get(str(path))
+                or source_selections.get(str(file_path))
+                or source_selections.get(path.name)
+            )
+            if selection:
+                registry_entry["selection"] = dict(selection)
             source_registry.append(registry_entry)
             
         except QAHardBlockError:

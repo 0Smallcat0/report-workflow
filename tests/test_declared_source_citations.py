@@ -167,7 +167,7 @@ class InputSurfaceTests(unittest.TestCase):
                 {"path": "icct.md", "role": "source_data", "citation": ICCT},
                 {"path": "notes.md"},
             ]), encoding="utf-8")
-            files, roles, citations = _load_source_manifest(str(manifest))
+            files, roles, citations, _selections = _load_source_manifest(str(manifest))
             self.assertEqual(Path(files[0]).resolve(), (folder / "icct.md").resolve())
             self.assertEqual(roles["notes.md"], "source_data")
             self.assertEqual(citations["icct.md"]["author"], ICCT["author"])

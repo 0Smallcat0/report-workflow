@@ -44,7 +44,7 @@ def _parse_source_arg(value: str) -> tuple[str, str]:
     return value, "source_data"
 
 
-def _load_source_manifest(manifest_path: str) -> tuple[list[str], dict[str, str], dict[str, dict]]:
+def _load_source_manifest(manifest_path: str) -> tuple[list[str], dict[str, str], dict[str, dict], dict[str, dict]]:
     """Read a JSON list of source objects: files, role map, declared citations.
 
     The same object shape ``start_report`` takes over the agent surface, so a
@@ -54,6 +54,7 @@ def _load_source_manifest(manifest_path: str) -> tuple[list[str], dict[str, str]
     only from wherever it happened to be written.
     """
     from .source_citation import normalize_citation
+    from .source_selection import normalize_selection
 
     base = Path(manifest_path).resolve().parent
     payload = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
@@ -63,6 +64,7 @@ def _load_source_manifest(manifest_path: str) -> tuple[list[str], dict[str, str]
     files: list[str] = []
     roles: dict[str, str] = {}
     citations: dict[str, dict] = {}
+    selections: dict[str, dict] = {}
     for index, item in enumerate(items):
         if isinstance(item, str):
             item = {"path": item}
@@ -81,7 +83,12 @@ def _load_source_manifest(manifest_path: str) -> tuple[list[str], dict[str, str]
             citations[str(path)] = citation
             citations[path.name] = citation
             citations[str(path.resolve())] = citation
-    return files, roles, citations
+        selection = normalize_selection(item, f"sources[{index}]")
+        if selection:
+            selections[str(path)] = selection
+            selections[path.name] = selection
+            selections[str(path.resolve())] = selection
+    return files, roles, citations, selections
 
 
 def _parse_template_field_arg(value: str) -> tuple[str, str]:
@@ -175,7 +182,8 @@ def build_parser() -> argparse.ArgumentParser:
     prepare.add_argument(
         "--source-manifest",
         help="JSON file listing sources as objects "
-             '{"path": ..., "role": "source_data", "citation": {"author": ..., "year": ..., "title": ...}}. '
+             '{"path": ..., "role": "source_data", "citation": {"author": ..., "year": ..., "title": ...}, '
+             '"pages": "80-86"} ("lines" for text files). '
              "Relative paths resolve against the manifest's folder. May be combined with --source.",
     )
     prepare.add_argument(
@@ -694,9 +702,10 @@ def main(argv: list[str] | None = None) -> int:
                 source_files.append(str(Path(path)))
                 artifact_role_map[str(Path(path).name)] = role
             source_citations: dict[str, dict] = {}
+            source_selections: dict[str, dict] = {}
             if args.source_manifest:
                 try:
-                    manifest_files, manifest_roles, source_citations = _load_source_manifest(
+                    manifest_files, manifest_roles, source_citations, source_selections = _load_source_manifest(
                         args.source_manifest
                     )
                 except (OSError, json.JSONDecodeError, ValueError) as exc:
@@ -793,6 +802,7 @@ def main(argv: list[str] | None = None) -> int:
                 notebooklm_storage_path=cfg.notebooklm_storage_path,
                 reference_docx=args.reference_docx,
                 source_citations=source_citations or None,
+                source_selections=source_selections or None,
             )
             _print_state(state)
             return 0

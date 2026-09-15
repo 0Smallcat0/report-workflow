@@ -247,7 +247,9 @@ def build_server():
         `{"path": ..., "role": "base_document"}`. Add `"citation": {"author":
         ..., "year": ..., "title": ..., "publisher": ..., "url": ...}` to a
         source whose publication you know, and it is cited author-year and
-        listed in the references instead of as a project file. `report_profile`
+        listed in the references instead of as a project file; add `"pages":
+        "80-86"` (PDF) or `"lines": "100-140"` (text) to read only that span of a
+        long publication. `report_profile`
         is the only report-shape selector; omit it to infer one. Set
         `task_intent` to "revise_existing" to edit a base document instead of
         drafting. `title`, `author_block`, `affiliation_block`, `keywords` and

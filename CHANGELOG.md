@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Added — a source can name the pages it is used for
+
+The same report cites one table of an 86-page white paper and two articles of a
+400-page regulation. Attaching them whole puts thousands of rows in front of the
+author and the gates; hand-copying the passage into a new file loses the page
+numbers a reader checks against and adds a transcription nobody verifies.
+A source entry (and a `--source-manifest` object) now takes `"pages": "80-86, 90"`
+for a PDF or `"lines": "5504-5526"` for a text file. Only blocks inside the span
+are read, they keep their real locators, `source_registry.json` records how many
+were kept, and a span that holds no text — or `pages` on a file without pages —
+stops prepare naming the file and the numbers.
+
 ### Fixed — text past a block's 2,000th character reaches the ledger
 
 The PDF parser files a page as one block, and the evidence row kept its first
