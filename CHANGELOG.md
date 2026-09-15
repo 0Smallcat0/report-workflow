@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Fixed — a declared publication stays declared, and its own bibliography is not the report's
+
+Two gaps in the source-citation work, found by the first full run with it. A
+statistic the pipeline computes over a declared dataset — the prepare-time
+summaries, a registered `max`, a `ratio` between two of them, a formula reading
+only that table — dropped the citation and resolved to an `[Sn]` marker; it is
+now cited as the dataset, while a join, or a formula mixing the dataset with the
+author's own parameters, stays the author's computation. And a declared
+publication's own references — 62 bibliography entries of a white paper, a news
+page's navigation links — were read as sources of the report, so the reference
+list of a 38-source report ran to 106 entries. A declared file is cited as
+itself; what it cites is not extracted.
+
 ### Fixed — a PDF table with a merged cell no longer stops prepare
 
 pdfplumber reports a merged or blank cell as `None` and the block model holds

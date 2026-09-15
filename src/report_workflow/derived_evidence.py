@@ -174,6 +174,9 @@ class Dataset:
         self.file_name = str(entry.get("file_name") or "")
         self.file_path = str(entry.get("file_path") or "")
         self.file_type = str(entry.get("file_type") or "")
+        #: The publication the author declared this table to be, if any. A
+        #: statistic over one declared dataset is cited as that dataset.
+        self.citation = entry.get("citation") if isinstance(entry.get("citation"), dict) else None
         self.rows = rows
         seen: list[str] = []
         for row in rows:
@@ -1286,6 +1289,13 @@ def compare_figures(request: dict, computed: dict, order: list[str]) -> dict:
     }
     if decimals is not None:
         derivation["decimals"] = decimals
+    if from_table:
+        datasets_used = list(entry.get("datasets_used") or [entry["dataset"]])
+    else:
+        datasets_used = [
+            *(top.get("datasets_used") or [top["dataset"]]),
+            *(bottom.get("datasets_used") or [bottom["dataset"]]),
+        ]
     return {
         "value": value,
         "unit": unit,
@@ -1293,6 +1303,7 @@ def compare_figures(request: dict, computed: dict, order: list[str]) -> dict:
         "detail": detail,
         "decimals": decimals,
         "dataset": dataset,
+        "datasets_used": datasets_used,
         "derivation": derivation,
     }
 
@@ -1458,6 +1469,7 @@ def _formula_input(
         return {
             "value": entry["value"],
             "dataset": entry["dataset"],
+            "datasets_used": list(entry.get("datasets_used") or [entry["dataset"]]),
             "record": {"derivation": entry["evidence_id"], "value": entry["value"]},
             "zh": f"衍生數值 {entry['request_id']}",
             "en": f"derivation {entry['request_id']}",
@@ -1481,6 +1493,7 @@ def _formula_input(
         return {
             "value": value,
             "dataset": entry["dataset"],
+            "datasets_used": list(entry.get("datasets_used") or [entry["dataset"]]),
             "record": {"table": entry["evidence_id"], "row": label, "column": column, "value": value},
             "zh": f"{entry['request_id']} 表中 {label} 列的 {column}",
             "en": f"{column} of row {label} in {entry['request_id']}",
@@ -1510,6 +1523,7 @@ def _formula_input(
         return {
             "value": value,
             "dataset": row_dataset,
+            "datasets_used": [row_dataset],
             "record": {"row_column": column},
             "zh": f"每列的 {column}",
             "en": f"each row's {column}",
@@ -1538,6 +1552,7 @@ def _formula_input(
     return {
         "value": value,
         "dataset": dataset,
+        "datasets_used": [dataset],
         "record": {
             "source_file": dataset.display_name,
             "row_filter": rows_expression,
@@ -1598,11 +1613,16 @@ def compute_formula(request: dict, computed: dict, order: list[str], datasets: l
     decimals = declared_decimals(request)
     if decimals is not None:
         value = round(value, decimals)
-    datasets_used = [item["dataset"] for item in resolved.values()]
-    dataset = datasets_used[0] if datasets_used else (datasets[0] if datasets else None)
+    first_datasets = [item["dataset"] for item in resolved.values()]
+    dataset = first_datasets[0] if first_datasets else (datasets[0] if datasets else None)
     if dataset is None:
         raise DerivationError("A formula needs at least one input read from a source")
-    files = list(dict.fromkeys(item.display_name for item in datasets_used))
+    datasets_used: list[Dataset] = []
+    for item in resolved.values():
+        for used in item.get("datasets_used") or [item["dataset"]]:
+            if all(used is not seen for seen in datasets_used):
+                datasets_used.append(used)
+    files = list(dict.fromkeys(item.display_name for item in first_datasets))
     derivation = {
         "method": FORMULA_OP,
         "expression": expr,
@@ -1622,6 +1642,7 @@ def compute_formula(request: dict, computed: dict, order: list[str], datasets: l
         "detail": "",
         "decimals": decimals,
         "dataset": dataset,
+        "datasets_used": datasets_used,
         "files": files,
         "resolved": resolved,
         "derivation": derivation,
@@ -1703,17 +1724,28 @@ def compute_formula_table(
     decimals = declared_decimals(request)
     units = [str(item.get("unit") or "").strip() for item in formulas]
     body: list[list[str]] = []
+    datasets_used: list[Dataset] = [dataset]
+
+    def note_used(read: dict) -> None:
+        for used in read.get("datasets_used") or [read["dataset"]]:
+            if all(used is not seen for seen in datasets_used):
+                datasets_used.append(used)
+
+    for item in shared.values():
+        note_used(item)
     for row in selected:
         row_label = str(row.get(label_column, "")).strip()
         values = {name: item["value"] for name, item in shared.items()}
         for name, spec in inputs.items():
             if name not in shared:
                 try:
-                    values[name] = _formula_input(
+                    read = _formula_input(
                         name, spec, computed, order, datasets, row, dataset, row_label
-                    )["value"]
+                    )
                 except DerivationError as error:
                     raise DerivationError(f"Row {row_label!r}: {error}") from error
+                values[name] = read["value"]
+                note_used(read)
         for column in identifier_columns:
             if column not in values:
                 number = parse_number(row.get(column))
@@ -1759,6 +1791,7 @@ def compute_formula_table(
         "units": ["" for _ in formulas],
         "derivation": derivation,
         "dataset": dataset,
+        "datasets_used": datasets_used,
         "shared": shared,
     }
 
@@ -1877,9 +1910,20 @@ def _unit_evidence(
     block_id: str,
     origin: str = "auto",
     table: dict | None = None,
+    datasets_used: list[Dataset] | None = None,
 ) -> dict:
     digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
     matched = derivation.get("rows_matched", len(dataset.rows))
+    # Cited as the declared publication only when every figure it reads came
+    # from that one table. A join, or a formula mixing a declared dataset with
+    # the author's own parameters, is the author's computation and keeps its
+    # Sources-list marker.
+    used = datasets_used or [dataset]
+    citation = dataset.citation if (
+        dataset.citation
+        and not dataset.join_label
+        and all(item is dataset or item.citation == dataset.citation for item in used)
+    ) else None
     unit = {
         "evidence_id": evidence_id,
         "source_id": dataset.source_id,
@@ -1927,6 +1971,8 @@ def _unit_evidence(
         # nothing, which is the failure this ledger exists to prevent.
         unit["table_grid"] = {"headers": table["headers"], "rows": table["rows"]}
         unit["table_id"] = evidence_id
+    if citation:
+        unit["citation"] = dict(citation)
     return unit
 
 
@@ -2477,6 +2523,7 @@ def build_requested_units(
                         block_id=f"derived_request_{request_id}",
                         origin="requested",
                         table=table,
+                        datasets_used=table["datasets_used"],
                     )
                 )
                 remember({
@@ -2485,6 +2532,7 @@ def build_requested_units(
                     "evidence_id": evidence_id,
                     "table": table,
                     "dataset": table["dataset"],
+                    "datasets_used": table["datasets_used"],
                     "rows_matched": table["derivation"]["rows_matched"],
                 })
                 continue
@@ -2506,6 +2554,7 @@ def build_requested_units(
                     evidence_id=evidence_id,
                     block_id=f"derived_request_{request_id}",
                     origin="requested",
+                    datasets_used=result["datasets_used"],
                 )
             )
             remember({
@@ -2515,6 +2564,7 @@ def build_requested_units(
                 "value": result["value"],
                 "unit": result["unit"],
                 "dataset": result["dataset"],
+                "datasets_used": result["datasets_used"],
                 "rows_matched": result["rows_used"],
             })
             continue
@@ -2529,6 +2579,7 @@ def build_requested_units(
                 problems.append({"id": request_id, "error": str(error)})
                 continue
             dataset = result.pop("dataset")
+            compared = result.pop("datasets_used", [dataset])
             expect_problem = _expect_problem(request, request_id, result)
             if expect_problem:
                 problems.append(expect_problem)
@@ -2547,6 +2598,7 @@ def build_requested_units(
                     evidence_id=evidence_id,
                     block_id=f"derived_request_{request_id}",
                     origin="requested",
+                    datasets_used=compared,
                 )
             )
             remember({
@@ -2556,6 +2608,7 @@ def build_requested_units(
                 "value": result["value"],
                 "unit": result["unit"],
                 "dataset": dataset,
+                "datasets_used": compared,
                 "rows_matched": result["rows_used"],
             })
             continue

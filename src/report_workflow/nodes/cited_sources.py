@@ -218,6 +218,13 @@ def extract_cited_sources(
         }
 
     for entry in source_registry or []:
+        if entry.get("citation"):
+            # The author declared this file to be a publication, so it is cited
+            # as that publication. What the publication itself cites — the 62
+            # entries of a white paper's bibliography, a news page's navigation
+            # links — are its sources, not this report's, and listing them made
+            # the reference list of a 38-source report 106 entries long.
+            continue
         for block in _blocks(entry):
             content = str(block.get("content") or "")
             if _is_tabular(entry, block):
