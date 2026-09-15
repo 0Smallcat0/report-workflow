@@ -82,8 +82,12 @@ def _configure_cjk_fonts(matplotlib_module: Any) -> None:
 #         "series": [                  (for bar/line/scatter)
 #           {"name": "Series 1", "values": [10, 20, 30]}
 #         ],
-#         "x": [1, 2, 3],             (for scatter - x values)
+#         "x": [1, 2, 3],             (for scatter - x values; for line - optional
+#                                      numeric positions of the labels)
 #         "y": [10, 20, 30],           (for scatter - y values)
+#         "markers": [                 (optional for line - a labelled vertical
+#           {"x": 2.5, "label": "…"}    line at x; "y" adds a point there)
+#         ],
 #         "rows": [["A", 10], ...],   (for table)
 #         "columns": ["Label", "Value"], (for table)
 #         "values": [1, 2, 3],        (for histogram)
@@ -165,6 +169,25 @@ def _series_items(data: dict, label: str = "data.series") -> list[dict]:
     if len(items) != len(series):
         raise ValueError(f"{label} entries must be objects")
     return items
+
+
+def _line_markers(data: dict) -> list[dict]:
+    """The labelled points a line chart marks, each checked for a numeric x."""
+    raw = data.get("markers")
+    if raw is None:
+        return []
+    if not isinstance(raw, list):
+        raise ValueError('data.markers must be a list of {"x": ..., "label": ...} objects')
+    markers: list[dict] = []
+    for index, item in enumerate(raw):
+        if not isinstance(item, dict):
+            raise ValueError(f"data.markers[{index}] must be an object with an \"x\"")
+        marker = {"x": _as_number(item.get("x"), f"data.markers[{index}].x"),
+                  "label": str(item.get("label") or "").strip()}
+        if item.get("y") is not None:
+            marker["y"] = _as_number(item.get("y"), f"data.markers[{index}].y")
+        markers.append(marker)
+    return markers
 
 
 def _labels_for_count(data: dict, count: int, label: str = "data.labels") -> list[str]:
@@ -403,12 +426,25 @@ def _generate_line(figure_id: str, title: str, data: dict, xlabel: str, ylabel: 
 
     labels = data.get("labels", [])
     series = data.get("series", [])
+    # Labels are spaced evenly unless "x" says where each one sits. A crossing
+    # at 44,208.8 km between the 40,000 and 60,000 ticks had no position to be
+    # marked at while every label was an index.
+    positions = _number_list(data["x"], "data.x") if data.get("x") is not None else None
+    markers = _line_markers(data)
 
     fig, ax = plt.subplots(figsize=(width, height), dpi=dpi)
 
     for i, s in enumerate(series):
         values = s.get("values", [])
-        x_vals = range(len(labels)) if labels else range(len(values))
+        if positions is not None:
+            if len(positions) != len(values):
+                raise ValueError(
+                    f"data.x has {len(positions)} position(s) but series "
+                    f"{s.get('name', i)!r} has {len(values)} value(s)"
+                )
+            x_vals = positions
+        else:
+            x_vals = range(len(labels)) if labels else range(len(values))
         ax.plot(
             x_vals,
             values,
@@ -421,9 +457,39 @@ def _generate_line(figure_id: str, title: str, data: dict, xlabel: str, ylabel: 
     ax.set_xlabel(xlabel)
     ax.set_ylabel(ylabel)
     ax.set_title(title)
-    if labels and len(labels) == len(range(len(labels))):
+    if positions is not None:
+        ax.set_xticks(positions)
+        ax.set_xticklabels(
+            labels if labels and len(labels) == len(positions)
+            else [f"{position:,g}" for position in positions]
+        )
+    elif labels and len(labels) == len(range(len(labels))):
         ax.set_xticks(range(len(labels)))
         ax.set_xticklabels(labels)
+    for index, marker in enumerate(markers):
+        ax.axvline(marker["x"], color="#555555", linestyle="--", linewidth=1)
+        if marker.get("y") is not None:
+            ax.plot([marker["x"]], [marker["y"]], marker="D", color="#333333", zorder=5)
+        if marker.get("label"):
+            # Staggered downwards so two nearby labels do not print over each other,
+            # and backed so a later marker's dashed line does not cut through one:
+            # "對汽油車碳平衡點 約 44,200 km" ran past 105,300 km and read "44,2|00".
+            # A box hugging the glyphs still let the dashes touch them in print.
+            ax.annotate(
+                marker["label"], xy=(marker["x"], 0.98 - 0.08 * index),
+                xycoords=ax.get_xaxis_transform(), xytext=(3, 0), textcoords="offset points",
+                ha="left", va="top", fontsize=8, zorder=6,
+                bbox={"boxstyle": "square,pad=0.4", "facecolor": "white", "edgecolor": "none"},
+            )
+    largest = max(
+        (abs(value) for s in series for value in s.get("values", []) if isinstance(value, (int, float))),
+        default=0,
+    )
+    if largest >= 10000:
+        # "120000" on an axis beside prose that writes "119,300 km".
+        from matplotlib.ticker import FuncFormatter
+
+        ax.yaxis.set_major_formatter(FuncFormatter(lambda value, _position: f"{value:,.0f}"))
     if len(series) > 1:
         _legend_outside(ax)
     ax.grid(alpha=0.3)

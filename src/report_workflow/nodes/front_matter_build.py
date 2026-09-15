@@ -594,9 +594,34 @@ def _validate_front_matter(front_matter: dict, report_profile: str) -> list[str]
     return warnings
 
 
+#: Cover labels of a Chinese report. A cover reading "Student Id:" and
+#: "Keywords:" above a Chinese title was the renderer's English, not the
+#: author's; a field this table does not know keeps its own key as the label.
+_ZH_FIELD_LABELS = {
+    "student_id": "學號",
+    "student_number": "學號",
+    "date": "日期",
+    "course": "課程",
+    "course_name": "課程",
+    "instructor": "授課教師",
+    "teacher": "授課教師",
+    "advisor": "指導教授",
+    "department": "系所",
+    "class": "班級",
+    "group": "組別",
+}
+
+
+def _front_matter_is_chinese(front_matter: dict) -> bool:
+    text = "".join(str(front_matter.get(key) or "") for key in ("title", "author_block", "affiliation_block"))
+    return bool(re.search(r"[一-鿿]", text))
+
+
 def _format_front_matter_markdown(front_matter: dict) -> str:
     """Format front matter as markdown for prepending to document."""
     sections = []
+    zh = _front_matter_is_chinese(front_matter)
+    colon = "：" if zh else ":"
 
     # Use a plain heading. "# {.Title} Title" leaks the marker in Pandoc.
     if front_matter.get("title"):
@@ -604,7 +629,8 @@ def _format_front_matter_markdown(front_matter: dict) -> str:
 
     # Short title (running title)
     if front_matter.get("short_title"):
-        sections.append(f"**Running title:** {front_matter['short_title']}\n")
+        label = "簡短標題" if zh else "Running title"
+        sections.append(f"**{label}{colon}** {front_matter['short_title']}\n")
 
     # Author block
     if front_matter.get("author_block"):
@@ -618,18 +644,22 @@ def _format_front_matter_markdown(front_matter: dict) -> str:
     if isinstance(template_fields, dict):
         for key, value in template_fields.items():
             label = str(key).replace("_", " ").strip().title()
+            if zh:
+                label = _ZH_FIELD_LABELS.get(str(key).strip().lower(), label)
             clean_value = str(value).strip()
             if label and clean_value:
-                sections.append(f"**{label}:** {clean_value}")
+                sections.append(f"**{label}{colon}** {clean_value}")
 
     # Correspondence
     if front_matter.get("correspondence"):
-        sections.append(f"\n**Correspondence:** {front_matter['correspondence']}")
+        label = "通訊作者" if zh else "Correspondence"
+        sections.append(f"\n**{label}{colon}** {front_matter['correspondence']}")
 
     # Keywords
     if front_matter.get("keywords"):
-        keywords_str = ", ".join(front_matter["keywords"])
-        sections.append(f"\n**Keywords:** {keywords_str}")
+        keywords_str = ("、" if zh else ", ").join(front_matter["keywords"])
+        label = "關鍵詞" if zh else "Keywords"
+        sections.append(f"\n**{label}{colon}** {keywords_str}")
 
     # Acknowledgements
     if front_matter.get("acknowledgements"):

@@ -149,6 +149,15 @@ def _doi_or_url(citation: dict[str, str]) -> str:
     return citation.get("url", "")
 
 
+#: An element that already ends in one of these takes no second mark. The
+#: reference list printed "gasoline cars?.", "VDI e.V.." and "減碳足跡？。".
+_ENDING_MARKS = (".", "?", "!", "。", "？", "！")
+
+
+def _mark_after(text: str, mark: str) -> str:
+    return "" if text.endswith(_ENDING_MARKS) else mark
+
+
 def format_reference(citation: dict[str, str]) -> str:
     """One reference-list entry in APA shape, from declared fields only.
 
@@ -171,7 +180,7 @@ def format_reference(citation: dict[str, str]) -> str:
         parts = [f"{author}（{year}）。"]
         if container:
             if title:
-                parts.append(f"{title}。")
+                parts.append(title + _mark_after(title, "。"))
             locator = f"*{container}*"
             if citation.get("volume"):
                 locator += f"，{citation['volume']}"
@@ -182,9 +191,9 @@ def format_reference(citation: dict[str, str]) -> str:
             parts.append(f"{locator}。")
         elif title:
             label = f"〔{description}〕" if description else ""
-            parts.append(f"*{title}*{label}。")
+            parts.append(f"*{title}*{label}" + ("。" if label else _mark_after(title, "。")))
         if publisher and publisher != author:
-            parts.append(f"{publisher}。")
+            parts.append(publisher + _mark_after(publisher, "。"))
         if link:
             parts.append(link)
         return "".join(parts).strip()
@@ -195,7 +204,7 @@ def format_reference(citation: dict[str, str]) -> str:
     parts = [f"{author if author.endswith('.') else author + '.'} ({year})."]
     if container:
         if title:
-            parts.append(f"{title}.")
+            parts.append(title + _mark_after(title, "."))
         locator = f"*{container}"
         if citation.get("volume"):
             locator += f", {citation['volume']}*"
@@ -208,9 +217,9 @@ def format_reference(citation: dict[str, str]) -> str:
         parts.append(f"{locator}.")
     elif title:
         label = f" [{description}]" if description else ""
-        parts.append(f"*{title}*{label}.")
+        parts.append(f"*{title}*{label}" + ("." if label else _mark_after(title, ".")))
     if publisher and publisher != author:
-        parts.append(f"{publisher}.")
+        parts.append(publisher + _mark_after(publisher, "."))
     if link:
         parts.append(link)
     return " ".join(parts).strip()

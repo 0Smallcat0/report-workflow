@@ -104,6 +104,14 @@ Treat these as hard gates before delivery:
 - A figure caption or figure reference requires a real nearby embedded visual.
   Verify the final DOCX contains drawing/image objects and visually inspect the
   rendered PNG pages; extracted text showing a figure title is not enough.
+  `VISUAL_RENDER_CHECK` only converts the document and renders every page to
+  `visual_check/page-*.png`; it never looks at them, and its report keeps
+  `conversion_status`, `preview_page_range` and `visual_review_status` apart.
+  After inspecting the pages, record it in `visual_review.json` beside the report
+  — `{"document_sha256": <from visual_render_check_report.json>,
+  "reviewed_pages": "1-25", "reviewer": "..."}` — and the next render reports
+  the review `completed` only when every page is listed and the document is
+  unchanged; otherwise `partial`, `stale` or `not_performed`.
 - Build charts only from accepted `source_data`. Each chart needs one visible
   chart, a caption below it, labeled axes with units where applicable, and
   readable legends.

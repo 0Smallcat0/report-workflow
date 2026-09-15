@@ -100,6 +100,25 @@ class FormatterTests(unittest.TestCase):
         english = normalize_citation({"author": "Gogoro", "title": "Battery notes"})
         self.assertEqual(format_in_text(english), "(Gogoro, n.d.)")
 
+    def test_an_element_that_already_ends_in_punctuation_takes_no_second_mark(self):
+        # The delivered reference list printed "cleaner than gasoline cars?.",
+        # "VDI e.V.." and "開電動車減碳足跡？。".
+        article = format_reference(normalize_citation({
+            "author": "Lienert, P.", "year": "2021", "container": "Reuters",
+            "title": "When do electric vehicles become cleaner than gasoline cars?",
+        }))
+        self.assertIn("gasoline cars? *Reuters*.", article)
+        factsheet = format_reference(normalize_citation({
+            "author": "VDI-Gesellschaft Fahrzeug- und Verkehrstechnik", "year": "2023",
+            "title": "VDI-Analyse der CO2äq-Emissionen", "publisher": "VDI e.V.",
+        }))
+        self.assertTrue(factsheet.endswith("VDI e.V."), factsheet)
+        chinese = format_reference(normalize_citation({
+            "author": "消費者委員會", "year": "2023", "container": "選擇月刊", "issue": "557",
+            "title": "315 消費者權益日：開電動車減碳足跡？",
+        }))
+        self.assertIn("開電動車減碳足跡？*選擇月刊*（557）。", chinese)
+
     def test_a_verbatim_reference_is_used_as_written(self):
         verbatim = "Tesla, Inc. (2023, March 1). *2023 Investor Day* [Presentation slides]."
         citation = normalize_citation({"author": "Tesla, Inc.", "in_text": "Tesla", "year": "2023", "reference": verbatim})
@@ -220,7 +239,7 @@ class LedgerAndBindingTests(unittest.TestCase):
             )
             resolved, _audit, refs, _internal, sources = resolve_citations_publication(draft, ledger, [])
             self.assertIn("電動車排放低 73% (Negri & Bieker, 2025)。", resolved)
-            self.assertIn("市區行駛較省電 [S1]。", resolved)
+            self.assertIn("市區行駛較省電（本研究整理，附錄 A1）。", resolved)
             self.assertEqual(len(refs), 1)
             self.assertTrue(refs[0].startswith("Negri, M., & Bieker, G. (2025)."))
             self.assertEqual(len(sources), 1)

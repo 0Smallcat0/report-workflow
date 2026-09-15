@@ -96,11 +96,7 @@ def _build_final_qa_summary_md(summary: dict) -> str:
         ),
         # An optional check that did not run is worth saying once, plainly. It
         # is not a render issue, and it does not move the verdict.
-        (
-            f"- Visual render check: {render['visual_render_status']}"
-            + (f" ({render['visual_render_skipped_reason']})"
-               if render.get("visual_render_skipped_reason") else "")
-        ),
+        visual_render_line(render),
         "",
         "## Packaged Evidence",
         "",
@@ -118,6 +114,41 @@ def _build_final_qa_summary_md(summary: dict) -> str:
 
     lines.append("")
     return "\n".join(lines)
+
+
+_REVIEW_WORDS = {
+    "completed": "visual review completed",
+    "partial": "visual review partial",
+    "stale": "visual review stale (recorded for a different version of the document)",
+    "not_performed": "visual review not performed",
+}
+
+
+def visual_render_line(render: dict) -> str:
+    """The delivery summary's line for the visual check, three facts kept apart.
+
+    It said "Visual render check: passed" for a 25-page report of which three
+    pages had been rendered and none looked at. Conversion, the pages
+    previewed, and whether anyone recorded reviewing them are different
+    questions, and only the last is a check.
+    """
+    status = str(render.get("visual_render_status") or "missing")
+    if status in {"skipped", "failed", "missing"}:
+        reason = render.get("visual_render_skipped_reason")
+        return f"- Visual render check: {status}" + (f" ({reason})" if reason else "")
+    conversion = str(render.get("visual_conversion_status") or "succeeded")
+    parts = [f"PDF conversion {conversion}"]
+    shown = str(render.get("visual_preview_page_range") or "")
+    total = int(render.get("visual_page_count") or 0)
+    if shown:
+        parts.append(f"previewed pages {shown}" + (f" of {total}" if total else ""))
+    review = str(render.get("visual_review_status") or "not_performed")
+    review_text = _REVIEW_WORDS.get(review, _REVIEW_WORDS["not_performed"])
+    reviewed = str(render.get("visual_reviewed_pages") or "")
+    if review in {"completed", "partial"} and reviewed:
+        review_text += f" (pages {reviewed})"
+    parts.append(review_text)
+    return "- Visual render check: " + "; ".join(parts)
 
 
 def build_final_qa_summary(state: ReportState, run_dir: Path) -> dict[str, str]:
@@ -278,6 +309,11 @@ def build_final_qa_summary(state: ReportState, run_dir: Path) -> dict[str, str]:
             "layout_manifest_status": layout.get("status", "missing") if layout else "missing",
             "visual_render_status": visual.get("status", "missing") if visual else "missing",
             "visual_render_skipped_reason": str(visual.get("skipped_reason", "")) if visual else "",
+            "visual_conversion_status": str(visual.get("conversion_status", "")) if visual else "",
+            "visual_page_count": int(visual.get("page_count", 0) or 0) if visual else 0,
+            "visual_preview_page_range": str(visual.get("preview_page_range", "")) if visual else "",
+            "visual_review_status": str(visual.get("visual_review_status", "not_performed")) if visual else "not_performed",
+            "visual_reviewed_pages": str(((visual.get("visual_review") or {}).get("reviewed_pages", ""))) if visual else "",
             "paragraph_count": int(render_counts.get("paragraphs", post_render_validate.get("paragraph_count", 0)) or 0),
             "table_count": int(render_counts.get("tables", post_render_validate.get("table_count", 0)) or 0),
             "inline_shape_count": int(render_counts.get("inline_shapes", post_render_validate.get("inline_shape_count", 0)) or 0),

@@ -38,11 +38,17 @@ paths are accepted for new drafts.
 ### Declaring what a source is a copy of
 
 A source file is not a publication, so by default a `.md`, `.txt` or `.csv`
-source is cited with a numbered `[Sn]` marker backed by the generated Sources
-list, and nothing is guessed from its file name. When the file is a transcription
-or excerpt of something published — a report, a paper, a government
-announcement, a dataset — declare it, and the source is cited author-year and
-listed in the references:
+source is cited as the report's own material — `（本研究整理，附錄 A3）` /
+`(compiled in this study, Appendix A3)` — backed by an entry in the generated
+appendix, and nothing is guessed from its file name. A figure the pipeline
+computed is labelled `本研究計算` / `calculated in this study`, and its appendix
+entry gives the result, the formula and every input with the row it was read
+from — for a formula table, each row's value of a per-row input; a computed
+table's attribution line points at the same entry. A figure
+computed from a declared publication names both: `（Knobloch et al., 2020；本研究計算，附錄 A1）`.
+When the file is a transcription or excerpt of something published — a report,
+a paper, a government announcement, a dataset — declare it, and the source is
+cited author-year and listed in the references:
 
 ```json
 {"path": "icct_2025_excerpt.md", "role": "source_data",

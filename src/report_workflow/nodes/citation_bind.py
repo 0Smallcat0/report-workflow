@@ -272,15 +272,50 @@ LOCAL_ARTIFACT_LABELS = tuple(
 #: finds here, so this string decides the level in the rendered document.
 REFERENCE_LIST_HEADING = "# References"
 
-#: Heading for the generated evidence-trace list, and its Chinese title.
+#: Heading for the generated appendix, and its Chinese title.
 #:
-#: Separate from References on purpose. A project source file is not a
-#: publication, and the formatter one function up refuses to dress one as
-#: another — but the reader still has to be able to check a number. This list
-#: says where each cited figure sits: file, line span, and the text it was
-#: taken from. It is generated from the ledger, so no author writes it.
-SOURCE_LIST_HEADING = "# Sources"
-SOURCE_LIST_HEADING_ZH = "# 資料來源"
+#: Separate from References on purpose. A figure the report computed, or a row
+#: of the author's own sheet, is not a publication, and the formatter one
+#: function up refuses to dress one as another — but the reader still has to be
+#: able to check the number. It used to be a "Sources" list of ``[S1]``–
+#: ``[S24]`` entries naming CSV files and row counts, which a reviewer read as
+#: local files listed where sources belong; each entry now gives the result,
+#: its formula and every input with where that input came from. It is generated
+#: from the ledger, so no author writes it.
+SOURCE_LIST_HEADING = "# Appendix A. Calculations and Data"
+SOURCE_LIST_HEADING_ZH = "# 附錄 A　計算與資料說明"
+
+#: The sentence under that heading, saying what the entries are.
+SOURCE_LIST_INTRO = (
+    "Figures marked \"calculated in this study\" or \"compiled in this study\" are listed "
+    "below with their formula, inputs, and where each input comes from; the "
+    "publications named are in the References."
+)
+SOURCE_LIST_INTRO_ZH = (
+    "正文標示「本研究計算」或「本研究整理」的數值，其計算式、輸入參數與各參數出處列於下；"
+    "所引文獻見參考文獻。"
+)
+
+#: What a figure no publication states is, in the sentence that uses it:
+#: (language, computed) -> label.
+_TRACE_LABELS = {
+    ("zh", True): "本研究計算",
+    ("zh", False): "本研究整理",
+    ("en", True): "calculated in this study",
+    ("en", False): "compiled in this study",
+}
+
+#: The items a citation bracket holds: an author-year citation, or a label
+#: for a figure no publication states.
+_AUTHOR_YEAR_ITEM = r"[^（）()；;]+?[，,]\s*(?:\d{4}[a-z]?|n\.d\.(?:-[a-z])?|無日期(?:-?[a-z])?)"
+_TRACE_ITEM_ZH = r"本研究(?:計算|整理)，附錄 A\d+(?:(?:、|–)A\d+)*"
+_TRACE_ITEM_EN = r"(?:calculated|compiled) in this study, Appendix A\d+(?:(?:, |–)A\d+)*"
+_CITATION_ITEM = rf"(?:{_TRACE_ITEM_ZH}|{_TRACE_ITEM_EN}|{_AUTHOR_YEAR_ITEM})"
+_CITATION_BRACKET = rf"(?:（{_CITATION_ITEM}(?:；{_CITATION_ITEM})*）|\({_CITATION_ITEM}(?:; {_CITATION_ITEM})*\))"
+_CITATION_RUN_RE = re.compile(rf"([ \t]*)({_CITATION_BRACKET}(?:\s*[;；]?\s*{_CITATION_BRACKET})+)")
+_TRACE_ITEM_RE = re.compile(rf"^(?:(本研究(?:計算|整理))，附錄 |((?:calculated|compiled) in this study), Appendix )(.+)$")
+#: A Chinese label closes up to what it follows: "CO2e（本研究計算…" not "CO2e （本研究計算…".
+_SPACE_BEFORE_TRACE_LABEL_RE = re.compile(r"[ \t]+(?=（[^（）]*?本研究(?:計算|整理)，附錄 A\d)")
 
 #: How much of the cited row to quote in that list. Long enough to recognize
 #: the figure, short enough that a hundred entries stay readable.
@@ -402,53 +437,347 @@ def _load_cited_sources(state: ReportState) -> list[dict]:
     return [row for row in (rows or []) if isinstance(row, dict)]
 
 
-def _format_source_trace_entry(evidence: dict, number: int) -> str:
-    """One line of the generated Sources list: where this figure came from.
+def _is_computed(evidence: dict) -> bool:
+    """A figure the pipeline computed rather than one a source states."""
+    return str(evidence.get("block_type") or "") == "derived_statistic"
+
+
+def _document_language(text: str) -> str:
+    return "zh" if re.search(r"[一-鿿]", text or "") else "en"
+
+
+def trace_label(evidence: dict, number: int, language: str) -> str:
+    """The in-text label for a figure no publication states: what it is, and its entry."""
+    label = _TRACE_LABELS[(language, _is_computed(evidence))]
+    if language == "zh":
+        return f"（{label}，附錄 A{number}）"
+    return f"({label}, Appendix A{number})"
+
+
+def _with_trace_label(citation: str, label: str) -> str:
+    """A publication's citation and the note that the figure was computed from it.
+
+    Knobloch et al. state g CO2e/km per region; the report computes the
+    percentage between two of them. Citing the percentage to Knobloch alone
+    said they had stated it.
+    """
+    citation = citation.strip()
+    if citation.startswith("["):
+        return f"{citation}{label}"
+    inner, note = citation[1:-1].strip(), label[1:-1].strip()
+    if label.startswith("（"):
+        return f"（{inner}；{note}）"
+    return f"({inner}; {note})"
+
+
+def _entry_numbers(raw: str) -> list[int]:
+    numbers: list[int] = []
+    for part in re.split(r"、|,\s*", raw):
+        bounds = [int(value) for value in re.findall(r"A(\d+)", part)]
+        if len(bounds) == 2 and "–" in part:
+            numbers.extend(range(bounds[0], bounds[1] + 1))
+        else:
+            numbers.extend(bounds)
+    return numbers
+
+
+def _entry_range(numbers: list[int], zh: bool) -> str:
+    """[1, 2, 3, 7] as "A1–A3、A7": three or more in a row collapse, two stay listed."""
+    ordered = sorted(set(numbers))
+    parts: list[str] = []
+    index = 0
+    while index < len(ordered):
+        end = index
+        while end + 1 < len(ordered) and ordered[end + 1] == ordered[end] + 1:
+            end += 1
+        if end - index >= 2:
+            parts.append(f"A{ordered[index]}–A{ordered[end]}")
+        else:
+            parts.extend(f"A{number}" for number in ordered[index:end + 1])
+        index = end + 1
+    return ("、" if zh else ", ").join(parts)
+
+
+def merge_adjacent_trace_labels(text: str) -> str:
+    """Adjacent citation brackets that include a trace label become one bracket.
+
+    Two computed figures in one sentence resolved to two labels side by side,
+    and a figure cited to a publication and computed from a second one
+    resolved to three brackets in a row: "（本研究計算，附錄 A8）（環境部氣候
+    變遷署，2025d） (Ember, 2026)". A reader takes that for three citation
+    systems. The run becomes one bracket — publications first, then the labels
+    with their entries — in the bracket style of the label it holds. A run of
+    author-year citations alone is left to ``merge_adjacent_parentheticals``.
+    """
+
+    def merge(match: re.Match) -> str:
+        brackets = re.findall(_CITATION_BRACKET, match.group(2))
+        publications: list[str] = []
+        traces: dict[str, list[int]] = {}
+        zh = False
+        for bracket in brackets:
+            inner = bracket[1:-1]
+            for item in re.split(r"；|; ", inner):
+                item = item.strip()
+                trace = _TRACE_ITEM_RE.match(item)
+                if trace:
+                    label = trace.group(1) or trace.group(2)
+                    zh = zh or bool(trace.group(1))
+                    traces.setdefault(label, []).extend(_entry_numbers(trace.group(3)))
+                elif item and item not in publications:
+                    publications.append(item)
+        if not traces:
+            return match.group(0)
+        if zh:
+            # A full-width bracket closes up to the text before it.
+            labels = [f"{label}，附錄 {_entry_range(numbers, True)}" for label, numbers in traces.items()]
+            return "（" + "；".join(publications + labels) + "）"
+        labels = [f"{label}, Appendix {_entry_range(numbers, False)}" for label, numbers in traces.items()]
+        return match.group(1) + "(" + "; ".join(publications + labels) + ")"
+
+    return _CITATION_RUN_RE.sub(merge, text)
+
+
+_UNIT_HEADER_RE = re.compile(r"^(?:單位|单位|計量單位|计量单位|units?|uom)$", re.IGNORECASE)
+_SOURCE_HEADER_RE = re.compile(r"(?:出處|出处|來源|来源|source|reference|citation)", re.IGNORECASE)
+
+
+def _row_note(fields: dict, value_column: str, zh: bool) -> tuple[str, str]:
+    """What names a sheet row for a reader: its label and its source, and separately its unit.
+
+    Every column used to be printed — year, notes and all — for every input of
+    every formula, which made the appendix of a 25-page report eleven pages of
+    repeated rows. The row's label and its source column say which figure it
+    is and where it came from; the sheet itself is where the rest lives.
+    """
+    unit = ""
+    source = ""
+    label = ""
+    for key, value in fields.items():
+        text = " ".join(str(value if value is not None else "").split())
+        if not text or key == value_column:
+            continue
+        if not unit and _UNIT_HEADER_RE.match(str(key).strip()):
+            unit = "" if text in {"—", "-", "–"} else text
+        elif not source and _SOURCE_HEADER_RE.search(str(key)):
+            source = text
+        elif not label:
+            label = text
+    if not (label or source):
+        joined = ("，" if zh else ", ").join(
+            (f"{key}：{value}" if zh else f"{key}: {value}")
+            for key, value in fields.items()
+            if key != value_column and str(value if value is not None else "").strip()
+        )
+        return joined, unit
+    return ("；" if zh else "; ").join(part for part in (label, source) if part), unit
+
+
+def _readable_expression(expression: object) -> str:
+    """A formula as a reader writes it: × and ÷ rather than * and /."""
+    text = str(expression or "")
+    text = text.replace("**", "^")
+    text = re.sub(r"\s*\*\s*", " × ", text)
+    return re.sub(r"\s*/\s*", " ÷ ", text)
+
+
+def _names_in_order(expression: object) -> list[str]:
+    """The names a formula uses, in the order they are written."""
+    from ..derived_evidence import formula_names
+
+    text = str(expression or "")
+    try:
+        names = formula_names(text)
+    except Exception:
+        return []
+    positions = {}
+    for name in names:
+        match = re.search(rf"(?<![\w.]){re.escape(name)}(?!\w)", text)
+        positions[name] = match.start() if match else len(text)
+    return sorted(names, key=lambda name: positions[name])
+
+
+def _operand_notes(operands: object, zh: bool, number_for) -> tuple[list[str], list[str]]:
+    """Each input of a formula as the reader redoes it: name, value, and where it came from.
+
+    Returns the notes and the names they cover, so a table's per-row columns
+    can be told apart from its shared inputs.
+    """
+    from ..derived_evidence import format_operand
+
+    notes: list[str] = []
+    names: list[str] = []
+    for name, record in (operands or {}).items() if isinstance(operands, dict) else []:
+        if not isinstance(record, dict):
+            continue
+        names.append(str(name))
+        value = record.get("value")
+        shown = format_operand(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else ""
+        where = ""
+        if record.get("row_column"):
+            notes.append(f"{name} 取各列的 {record['row_column']}" if zh else f"{name} is each row's {record['row_column']}")
+            continue
+        if record.get("derivation") or record.get("table"):
+            referenced = number_for(str(record.get("derivation") or record.get("table"))) if number_for else None
+            pointer = f"附錄 A{referenced}" if zh and referenced else (f"Appendix A{referenced}" if referenced else "")
+            if record.get("table"):
+                cell = (
+                    f"{record.get('row')} 列的 {record.get('column')}" if zh
+                    else f"{record.get('column')} of row {record.get('row')}"
+                )
+                where = f"{pointer} {cell}".strip() if zh else ", ".join(part for part in (cell, pointer) if part)
+            else:
+                where = pointer
+        else:
+            fields = record.get("fields")
+            if isinstance(fields, dict) and fields:
+                where, unit = _row_note(fields, str(record.get("column") or ""), zh)
+                if unit and shown:
+                    shown = f"{shown} {unit}"
+            elif record.get("row_filter") or record.get("column"):
+                where = (
+                    f"{record.get('row_filter')} 的 {record.get('column')}" if zh
+                    else f"{record.get('column')} where {record.get('row_filter')}"
+                )
+        equation = f"{name} = {shown}".strip() if shown else str(name)
+        if where:
+            equation += f"（{where}）" if zh else f" ({where})"
+        notes.append(equation)
+    return notes, names
+
+
+def _repeats_labels(values: list, labels: list[str]) -> bool:
+    """Whether each row's value is only its label again, as a number."""
+    try:
+        return all(
+            float(str(value).replace(",", "")) == float(str(label).replace(",", ""))
+            for value, label in zip(values, labels)
+        )
+    except ValueError:
+        return False
+
+
+def _format_source_trace_entry(
+    evidence: dict,
+    number: int,
+    language: str | None = None,
+    number_for=None,
+) -> str:
+    """One entry of the generated appendix: what the figure is and how to check it.
 
     Everything here is read off the ledger row, so nothing is asserted that
     the pipeline did not parse out of the source itself — no invented author,
-    no invented year.
+    no invented year. ``number_for`` numbers an input computed earlier, so the
+    entry can point at the entry that computes it.
     """
-    file_name = str(
-        evidence.get("source_file_name") or evidence.get("source_id") or "unknown source"
-    )
-    span = str(evidence.get("source_span") or "").strip()
-    derived = str(evidence.get("block_type") or "") == "derived_statistic"
+    zh = (language == "zh") if language else _document_language(str(evidence.get("content") or "")) == "zh"
+    lang = "zh" if zh else "en"
+    label = _TRACE_LABELS[(lang, _is_computed(evidence))]
+    head = f"**A{number}**　" if zh else f"**A{number}.** "
+    stop, joiner = ("。", "；") if zh else (". ", "; ")
+
+    if _is_computed(evidence):
+        result = _derived_result(evidence) or ""
+        parts = [f"{result}（{label}）" if zh else f"{result} ({label})"]
+        derivation = evidence.get("derivation") if isinstance(evidence.get("derivation"), dict) else {}
+        notes, names = _operand_notes(derivation.get("operands"), zh, number_for)
+        method = derivation.get("method")
+        if method == "formula" and derivation.get("expression"):
+            parts.append(("計算式：" if zh else "Formula: ") + _readable_expression(derivation["expression"]))
+            if notes:
+                parts.append(("其中 " if zh else "where ") + joiner.join(notes))
+        elif method == "formula_table" and derivation.get("formulas"):
+            formulas = [item for item in derivation["formulas"] if isinstance(item, dict)]
+            parts.append(("計算式：" if zh else "Formulas: ") + joiner.join(
+                f"{item.get('label')} = {_readable_expression(item.get('expression'))}" for item in formulas
+            ))
+            if notes:
+                parts.append(("共用輸入：" if zh else "Shared inputs: ") + joiner.join(notes))
+            per_row: list[str] = []
+            for item in formulas:
+                used = _names_in_order(item.get("expression"))
+                per_row.extend(name for name in used if name not in names and name not in per_row)
+            row_inputs = derivation.get("row_inputs") if isinstance(derivation.get("row_inputs"), dict) else {}
+            row_values = derivation.get("row_values") if isinstance(derivation.get("row_values"), dict) else {}
+            grid = evidence.get("table_grid") if isinstance(evidence.get("table_grid"), dict) else {}
+            row_labels = [str(row[0]) for row in grid.get("rows") or [] if row]
+            described = []
+            given = False
+            for name in per_row:
+                record = row_inputs.get(name) or {}
+                referenced = number_for(str(record["table"])) if record.get("table") and number_for else None
+                column = str(record.get("column") or "")
+                taken = row_values.get(name)
+                if referenced:
+                    described.append(
+                        f"{name} 取附錄 A{referenced} 表中各列的 {column}" if zh
+                        else f"{name} is each row's {column} in Appendix A{referenced}"
+                    )
+                elif column and column != name:
+                    described.append(f"{name} 取各列的 {column}" if zh else f"{name} is each row's {column}")
+                elif (
+                    row_labels and isinstance(taken, list) and len(taken) == len(row_labels)
+                    # The rows are already named by it: "各列依序為 0、50…：電網碳強度 0、50…".
+                    and not _repeats_labels(taken, row_labels)
+                ):
+                    described.append(f"{name} " + ("、" if zh else ", ").join(str(value) for value in taken))
+                    given = True
+                else:
+                    described.append(name)
+            if described and given:
+                parts.append(
+                    (f"各列輸入（各列依序為 {'、'.join(row_labels)}）：" if zh
+                     else f"Per-row inputs (rows in order: {', '.join(row_labels)}): ")
+                    + joiner.join(described)
+                )
+            elif described:
+                parts.append(("各列輸入：" if zh else "Per-row inputs: ") + ("、" if zh else ", ").join(described))
+        declared = _declared_citation(evidence)
+        if declared:
+            from ..source_citation import in_text_author
+
+            year = str(declared.get("year") or "").strip() or ("無日期" if zh else "n.d.")
+            parts.append(("資料出處：" if zh else "Data from: ") + f"{in_text_author(declared)} ({year})")
+        text = stop.join(part.rstrip("。. ") for part in parts if part) + ("。" if zh else ".")
+        return head + text
+
     shown = _source_trace_statement(evidence)
-    if shown is None:
+    if shown:
+        body = f"{shown}（{label}）" if zh else f"{shown} ({label})"
+    else:
+        file_name = str(evidence.get("source_file_name") or evidence.get("source_id") or "")
+        span = str(evidence.get("source_span") or "").strip()
+        # The span usually opens with the file name already — "products.csv
+        # (544 rows)" — so joining the two printed it twice.
+        locator = " ".join(
+            part for part in (("" if span.startswith(file_name) else file_name), span) if part
+        ) or file_name
         quote = " ".join(str(evidence.get("quote") or evidence.get("content") or "").split())
         quote = _clip_at_boundary(quote, SOURCE_TRACE_QUOTE_CHARS)
-
-    # File name, line span and quote are what a reader can act on. The ledger's
-    # evidence id is an internal handle — the same rule that keeps `[CITE:E…]`
-    # out of the body keeps it out of the delivered source list; it stays in
-    # `internal_source_appendix.md`, which is where the audit trail lives.
-    # The span usually opens with the file name already — "products.csv (544
-    # rows)" — so joining the two printed it twice on every line of the source
-    # list. Same defect as the table provenance line repaired in 0e0a40f, one
-    # renderer over; the regression test there covered the table line only.
-    locator = " ".join(
-        part for part in (("" if span.startswith(file_name) else file_name), span)
-        if part
-    ) or file_name
-    parts = [f"[S{number}] {locator}"]
-    if shown is not None:
-        if shown:
-            parts.append(shown)
-    elif quote:
-        parts.append(f"“{quote}”")
+        quoted = f"“{quote}”" if quote else ""
+        if zh:
+            body = f"{quoted}（{label}自 {locator}）" if locator else f"{quoted}（{label}）"
+        else:
+            note = f"({label} from {locator})" if locator else f"({label})"
+            body = f"{quoted} {note}" if quoted else note
 
     # A cited row often carries the outside source it was taken from — a URL,
     # or a house named in a parenthetical. The source document had 37 such
-    # links and the deliverable had none, because the entry stopped at the
-    # file name: the reader could find which line of which file the figure sat
-    # on, but not who published it. These are read off the row, so the list
-    # asserts only what the source already stated. A derived statistic's
-    # "(來源:file)" is the pipeline's own label for the file already named.
-    external = [] if derived else _external_references(evidence)
+    # links and the deliverable had none. These are read off the row, so the
+    # entry asserts only what the source already stated.
+    external = _external_references(evidence)
     if external:
-        parts.append(", ".join(external))
-    return " — ".join(parts)
+        body += joiner + ", ".join(external)
+    return head + body
+
+
+def _derived_result(evidence: dict) -> str | None:
+    """A computed figure's result sentence, without the pipeline's file label."""
+    content = " ".join(str(evidence.get("content") or "").split())
+    body = _DERIVED_LABEL_RE.sub("", content)
+    match = re.match(r"(.+?)(?:。|\.(?=\s|$))", body)
+    result = (match.group(1) if match else body).strip()
+    return _clip_at_boundary(result, SOURCE_TRACE_QUOTE_CHARS) if result else None
 
 
 #: The label a derived statistic opens with, which names the file the entry
@@ -472,25 +801,18 @@ def _clip_at_boundary(text: str, limit: int) -> str:
 
 
 def _source_trace_statement(evidence: dict) -> str | None:
-    """What a data row or a computed figure says, written for a reader.
+    """What a data row says, written for a reader.
 
     None for prose, which is quoted as it stands. The list used to quote every
     entry the same way, so a Chinese course report closed on three pages of
-    raw JSON — “{“參數”: “汽油車保養”, “數值”: “5”…}” — and of formula
-    internals cut off mid-token at 140 characters: “…其中 heat = 7,586（lca”.
-    A row is its fields; a computed figure is its result sentence, marked as
-    computed, with the arithmetic left to the evidence where it is complete.
+    raw JSON — “{“參數”: “汽油車保養”, “數值”: “5”…}”. A row is its fields.
+    A computed figure is written by ``_format_source_trace_entry`` from its
+    derivation instead: the result, the formula and every input.
     """
     content = " ".join(str(evidence.get("content") or "").split())
     zh = bool(re.search(r"[一-鿿]", content))
-    if str(evidence.get("block_type") or "") == "derived_statistic":
-        body = _DERIVED_LABEL_RE.sub("", content)
-        match = re.match(r"(.+?)(?:。|\.(?=\s|$))", body)
-        result = (match.group(1) if match else body).strip()
-        if not result:
-            return None
-        result = _clip_at_boundary(result, SOURCE_TRACE_QUOTE_CHARS)
-        return f"本報告計算：{result}" if zh else f"Computed for this report: {result}"
+    if _is_computed(evidence):
+        return None
     try:
         record = json.loads(str(evidence.get("content") or ""))
     except (ValueError, TypeError):
@@ -788,6 +1110,8 @@ def resolve_citations_publication(
     citation_audit: list[dict],
     citation_style: str = "apa",
     gbt7714_as_of: date | None = None,
+    table_evidence_ids: list[str] | tuple[str, ...] = (),
+    appendix_numbers: dict[str, int] | None = None,
 ) -> tuple[str, list[dict], list[str], list[str], list[str]]:
     """Resolve [CITE:cite_id] references to publication-ready citations.
 
@@ -796,18 +1120,23 @@ def resolve_citations_publication(
         - new_audit: updated citation audit entries
         - literature_refs: list of formatted reference entries (for reference list)
         - internal_trace_refs: list of internal refs (for audit only)
-        - source_trace_refs: generated Sources list, one entry per cited row
+        - source_trace_refs: generated appendix, one entry per figure it explains
 
     Sources whose citation cannot honestly be author-year — a project markdown
-    file, a dataset, anything the bibliography will not carry — used to
-    resolve to the empty string. The marker was deleted, the row appeared in
-    no list, and the delivered document stated figures the reader could not
-    check against anything. They now resolve to a numbered ``[Sn]`` marker
-    backed by an entry in the generated Sources list.
+    file, a dataset, a figure the pipeline computed — used to resolve to the
+    empty string, and later to a bare ``[Sn]`` marker beside author-year
+    citations. They now resolve to a label saying what the figure is —
+    本研究計算 / 本研究整理 — and which appendix entry explains it.
+
+    ``table_evidence_ids`` are the computed tables the draft places: they are
+    numbered after the figures the text cites, so a table's attribution line
+    can point at the entry holding its formulas. ``appendix_numbers``, when
+    given, is filled with the number each evidence id received.
     """
     cite_pattern = re.compile(r'\[CITE:([^\]]+)\]')
 
     resolved_md = merged_md
+    language = _document_language(merged_md)
 
     # Build evidence lookup by evidence_id and source_id
     evidence_by_id = {e["evidence_id"]: e for e in evidence_ledger}
@@ -821,19 +1150,26 @@ def resolve_citations_publication(
     # Track internal trace references
     internal_trace_refs: list[str] = []
 
-    # Generated Sources list: numbered once per cited evidence row, so the
-    # same row cited twice carries the same marker both times.
+    # Generated appendix: numbered once per evidence row, so the same row cited
+    # twice carries the same label both times. Entries are written at the end,
+    # because writing one can number the inputs it was computed from.
     source_trace_numbers: dict[str, int] = {}
-    source_trace_refs: list[str] = []
+    source_trace_order: list[str] = []
+    source_trace_evidence: dict[str, dict] = {}
+
+    def number_for(evidence_id: str, evidence: dict | None = None) -> int | None:
+        row = evidence or evidence_by_id.get(evidence_id)
+        if row is None:
+            return None
+        if evidence_id not in source_trace_numbers:
+            source_trace_numbers[evidence_id] = len(source_trace_numbers) + 1
+            source_trace_order.append(evidence_id)
+            source_trace_evidence[evidence_id] = row
+        return source_trace_numbers[evidence_id]
 
     def trace_marker(evidence: dict, cite_id: str) -> str:
         key = str(evidence.get("evidence_id") or cite_id)
-        if key not in source_trace_numbers:
-            source_trace_numbers[key] = len(source_trace_numbers) + 1
-            source_trace_refs.append(
-                _format_source_trace_entry(evidence, source_trace_numbers[key])
-            )
-        return f"[S{source_trace_numbers[key]}]"
+        return trace_label(evidence, number_for(key, evidence), language)
 
     # Process each citation. Accept both preferred separate markers
     # ([CITE:E1] [CITE:E2]) and older comma-delimited markers
@@ -875,6 +1211,8 @@ def resolve_citations_publication(
                     replacement = _format_in_text_citation(evidence)
                 if not replacement:
                     replacement = trace_marker(evidence, cite_id)
+                elif _is_computed(evidence):
+                    replacement = _with_trace_label(replacement, trace_marker(evidence, cite_id))
                 audit_entry["evidence_ids"] = [cite_id]
                 audit_entry["resolved"] = True
                 audit_entry["citation_type"] = citation_type
@@ -924,6 +1262,8 @@ def resolve_citations_publication(
                     replacement = _format_in_text_citation(evidence)
                 if not replacement:
                     replacement = trace_marker(evidence, cite_id)
+                elif _is_computed(evidence):
+                    replacement = _with_trace_label(replacement, trace_marker(evidence, cite_id))
                 audit_entry["resolved"] = True
                 audit_entry["citation_type"] = citation_type
 
@@ -969,9 +1309,27 @@ def resolve_citations_publication(
         if entry.get("cite_id") not in existing_resolved:
             new_audit.append(entry)
 
+    # A placed table is numbered after everything the text cites, so its
+    # attribution line can name the entry that holds its formulas.
+    for evidence_id in table_evidence_ids or ():
+        number_for(str(evidence_id))
+
+    source_trace_refs: list[str] = []
+    index = 0
+    while index < len(source_trace_order):
+        key = source_trace_order[index]
+        source_trace_refs.append(_format_source_trace_entry(
+            source_trace_evidence[key], source_trace_numbers[key], language, number_for
+        ))
+        index += 1
+    if appendix_numbers is not None:
+        appendix_numbers.update(source_trace_numbers)
+
     resolved_md = _collapse_adjacent_duplicate_citations(resolved_md)
     resolved_md = merge_adjacent_parentheticals(resolved_md)
+    resolved_md = merge_adjacent_trace_labels(resolved_md)
     resolved_md = re.sub(r"[ \t]{2,}", " ", resolved_md)
+    resolved_md = _SPACE_BEFORE_TRACE_LABEL_RE.sub("", resolved_md)
     # Full-width punctuation was missing from this cleanup, so a Chinese
     # sentence whose citation resolved to nothing shipped as "...價格週期支配 。"
     # — a space wedged before the period, visible in the delivered document.
@@ -1066,6 +1424,24 @@ def build_sidecar_traceability_summary(
     }
 
 
+def _placed_computed_tables(markdown: str, evidence_ledger: list[dict]) -> list[str]:
+    """Evidence ids of the computed tables a draft places, in reading order."""
+    from .source_tables import TABLE_PLACEHOLDER_RE, collect_source_tables
+
+    markers = [match.group(1).strip() for match in TABLE_PLACEHOLDER_RE.finditer(markdown or "")]
+    if not markers:
+        return []
+    tables = collect_source_tables(evidence_ledger)
+    placed: list[str] = []
+    for table_id in markers:
+        table = tables.get(table_id)
+        if table and table.get("computed"):
+            for evidence_id in table.get("evidence_ids") or []:
+                if evidence_id and evidence_id not in placed:
+                    placed.append(evidence_id)
+    return placed
+
+
 def run_citation_bind(state: ReportState) -> ReportState:
     """T18: CITATION_BIND - dual-layer citation system for publication.
 
@@ -1115,12 +1491,15 @@ def run_citation_bind(state: ReportState) -> ReportState:
     # Layer 2: Publication citation resolution
     # ------------------------------------------------------------------
     citation_style = citation_style_for_profile(state.spec.get("report_profile", ""))
+    appendix_numbers: dict[str, int] = {}
     resolved_md, new_audit, literature_refs, internal_refs, source_trace_refs = resolve_citations_publication(
         merged_md,
         evidence_ledger,
         citation_audit,
         citation_style=citation_style,
         gbt7714_as_of=state.created_at.date(),
+        table_evidence_ids=_placed_computed_tables(merged_md, evidence_ledger),
+        appendix_numbers=appendix_numbers,
     )
 
     # ------------------------------------------------------------------
@@ -1204,12 +1583,14 @@ def run_citation_bind(state: ReportState) -> ReportState:
     with open(ref_list_path, "w", encoding="utf-8") as f:
         f.write(publication_refs_md)
 
-    # The generated Sources list. Kept in its own file because REFERENCE_VERIFY
+    # The generated appendix. Kept in its own file because REFERENCE_VERIFY
     # rewrites publication_reference_list.md from the curated publication
-    # entries alone, and anything else parked there is discarded.
+    # entries alone, and anything else parked there is discarded. The heading
+    # stays English here; DOCX_RENDER swaps heading and intro for a Chinese
+    # document, as it does for References.
     source_list_md = ""
     if source_trace_refs:
-        source_list_md = f"{SOURCE_LIST_HEADING}\n\n" + "".join(
+        source_list_md = f"{SOURCE_LIST_HEADING}\n\n{SOURCE_LIST_INTRO}\n\n" + "".join(
             f"- {_clean_ref(entry)}\n" for entry in source_trace_refs
         )
     source_list_path = run_dir / "publication_source_list.md"
@@ -1236,6 +1617,7 @@ def run_citation_bind(state: ReportState) -> ReportState:
     state.citations["publication_reference_list_path"] = str(ref_list_path)
     state.citations["publication_source_list_path"] = str(source_list_path)
     state.citations["source_trace_count"] = len(source_trace_refs)
+    state.citations["appendix_numbers"] = appendix_numbers
     state.citations["publication_references_bib_path"] = str(bib_path)
     state.citations["internal_trace_path"] = trace_path
     state.citations["internal_source_appendix_path"] = str(source_appendix_path)

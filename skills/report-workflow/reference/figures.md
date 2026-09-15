@@ -29,6 +29,12 @@ setup, workflow, architecture, or concept easier to understand.
   chart plots must be stated by the evidence in its `source_evidence_ids`;
   `FIGURE_PLAN_AUDIT` hard-blocks a value no cited entry states. A computed
   series is registered with `register_derived_evidence` and cited as that table.
+  A line chart takes numeric positions in `data.x` (one per label) and labelled
+  `data.markers` — `{"x": 44208.8, "label": "對汽油車 約 44,200 km"}`, with an
+  optional `"y"` — drawn as a dashed vertical line; a marker's `x` and `y` are
+  plotted values, so the cited evidence has to state them too. Keep a label short
+  enough to end before the next marker's line; the caption can say what the
+  lines mark.
 - **Mermaid diagrams** — use when the figure should stay editable as a flowchart,
   process, decision tree, architecture, sequence, or state diagram.
 - **AI illustrations** — use image generation or request an illustration asset

@@ -204,6 +204,12 @@ For completed runs, inspect in this order when the paths are returned:
 are packaged under `published/qa/`. Failure repair order:
 [reference/authoring.md](reference/authoring.md).
 
+The visual render check converts the DOCX and renders every page to PNG; it does
+not review them, and a delivery summary saying "visual review not performed" is
+telling the truth. Look at every page before delivery and record it in
+`visual_review.json` (see [reference/engineering-lab.md](reference/engineering-lab.md));
+a document post-processed outside the workflow is reviewed again as that file.
+
 ## Improving This Skill
 
 This section is for improving `report-workflow` itself, not ordinary report

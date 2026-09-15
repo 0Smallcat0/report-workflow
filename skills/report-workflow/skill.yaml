@@ -314,9 +314,13 @@ tools:
       Adding "source", "row_label" and "formulas": [{"label", "expr", "unit"}]
       evaluates the formulas over every row of that table - names resolve to
       "inputs" first and to the row's columns second - and registers one table
-      a [TABLE:<id>] marker can place. The value is computed from the rows
+      a [TABLE:<id>] marker can place. A formula may add "display_decimals"
+      to round only how its column is shown in the document (-2 prints
+      44,208.8 as 44,200; never finer than "decimals"), while the evidence
+      keeps the recorded figure. The value is computed from the rows
       here rather than supplied by the caller, and "expect" is checked against
-      it instead of trusted. Returns the evidence_id to cite.
+      it instead of trusted. A CSV source is itself a table a
+      [TABLE:<file stem>] marker can place. Returns the evidence_id to cite.
     parameters:
       - name: job_id
         type: string

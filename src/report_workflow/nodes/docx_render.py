@@ -25,7 +25,12 @@ from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
 from ..language import detect_document_language, localized_section_title
 from ..parsers.office_math import cell_text, element_text
-from .citation_bind import SOURCE_LIST_HEADING, SOURCE_LIST_HEADING_ZH
+from .citation_bind import (
+    SOURCE_LIST_HEADING,
+    SOURCE_LIST_HEADING_ZH,
+    SOURCE_LIST_INTRO,
+    SOURCE_LIST_INTRO_ZH,
+)
 from .source_tables import replace_table_placeholders
 from ..runtime_support import PLACEHOLDER_TEXT, load_jsonl
 from ..policies import get_policy
@@ -477,7 +482,29 @@ def _normalize_cjk_typography(md: str) -> str:
         pieces.append(match.group(0))
         cursor = match.end()
     pieces.append(_close_cjk_gaps(joined[cursor:]))
-    return "".join(pieces)
+    return _font_safe_minus("".join(pieces))
+
+
+_SIGN_MINUS_RE = re.compile(r"−(?=\d)")
+
+
+def _font_safe_minus(md: str) -> str:
+    """A negative number's sign in a character a Chinese font can print.
+
+    新細明體 and 微軟正黑體 have no U+2212. Word set "−25%）" in the Chinese
+    font, borrowed the glyph from another face, and printed it wider than the
+    "−14%" beside it on a line opened up to make room. A minus between two
+    terms of a formula is set in the Latin face, which has it, and code keeps
+    what it says.
+    """
+    lines = md.split("\n")
+    in_fence = False
+    for index, line in enumerate(lines):
+        if line.strip().startswith("```"):
+            in_fence = not in_fence
+        elif not in_fence:
+            lines[index] = _SIGN_MINUS_RE.sub("-", line)
+    return "\n".join(lines)
 
 
 def _xml_text_escape(text: str) -> str:
@@ -1184,7 +1211,7 @@ def _pre_render_sanity_check(
 
     front_matter_head = "\n".join(md_content.splitlines()[:20])
     noisy_keyword_terms = ("Corpus", "Backtrader", "Pydantic", "Kelly", "Bayesian", "Ollama")
-    keyword_line = re.search(r"Keywords:\s*(.+)", front_matter_head, re.IGNORECASE)
+    keyword_line = re.search(r"(?:Keywords|關鍵詞)\**\s*[:：]\s*\**\s*(.+)", front_matter_head, re.IGNORECASE)
     if keyword_line:
         leaked_terms = [term for term in noisy_keyword_terms if re.search(rf"\b{re.escape(term)}\b", keyword_line.group(1), re.IGNORECASE)]
         if leaked_terms:
@@ -1318,9 +1345,6 @@ def _style_tables_post_render(docx_path: str) -> None:
     """
     try:
         doc = Document(docx_path)
-        if not doc.tables:
-            return
-
         for table in doc.tables:
             # Set table style to Table Grid when the reference document has it.
             # Some custom reference docs omit this style, so fall back to manual
@@ -1343,10 +1367,129 @@ def _style_tables_post_render(docx_path: str) -> None:
                     shading.set(qn('w:val'), 'clear')
                     cell._tc.get_or_add_tcPr().append(shading)
 
+            _keep_table_together(table)
+
+        _keep_figures_with_captions(doc)
         doc.save(docx_path)
         logger.info(f"[DOCX_RENDER] Table styling applied to {len(doc.tables)} table(s)")
     except Exception as exc:
         logger.warning(f"[DOCX_RENDER] Post-render table styling failed (non-fatal): {exc}")
+
+
+#: A table this many body rows or shorter fits on one page and is kept whole.
+SHORT_TABLE_MAX_ROWS = 15
+
+_TABLE_CAPTION_RE = re.compile(r"^\s*(?:表|Table)\s*\d+\s*[.．:：]", re.IGNORECASE)
+_FIGURE_CAPTION_RE = re.compile(r"^\s*(?:圖|图|Figure)\s*\d+\s*[.．:：]", re.IGNORECASE)
+
+
+def _keep_with_next(paragraph) -> None:
+    paragraph.paragraph_format.keep_with_next = True
+
+
+def _keep_table_together(table) -> None:
+    """Hold a table to its caption, its rows to themselves, and its end to its attribution.
+
+    A five-row table began at the foot of one page and ended at the top of the
+    next, its caption stranded above the break and its attribution line below
+    it, and a row broke in the middle of a cell. Rows never split. A short
+    table keeps every row with the next, which also keeps the last row with
+    the attribution line under it; a long table may break between rows, and
+    only its last row holds on to the attribution.
+    """
+    rows = list(table.rows)
+    for row in rows:
+        tr_pr = row._tr.get_or_add_trPr()
+        if tr_pr.find(qn("w:cantSplit")) is None:
+            tr_pr.append(OxmlElement("w:cantSplit"))
+    held = rows if len(rows) - 1 <= SHORT_TABLE_MAX_ROWS else rows[-1:]
+    for row in held:
+        for cell in row.cells:
+            for paragraph in cell.paragraphs:
+                _keep_with_next(paragraph)
+    previous = table._tbl.getprevious()
+    if previous is not None and previous.tag == qn("w:p"):
+        text = "".join(node.text or "" for node in previous.iter(qn("w:t")))
+        if _TABLE_CAPTION_RE.match(text):
+            p_pr = previous.get_or_add_pPr()
+            if p_pr.find(qn("w:keepNext")) is None:
+                p_pr.append(OxmlElement("w:keepNext"))
+
+
+def _keep_figures_with_captions(doc) -> None:
+    """A picture keeps with the caption directly under it."""
+    paragraphs = doc.paragraphs
+    for paragraph, following in zip(paragraphs, paragraphs[1:]):
+        if paragraph._p.find(".//" + qn("w:drawing")) is not None and _FIGURE_CAPTION_RE.match(following.text):
+            _keep_with_next(paragraph)
+
+
+def _style_front_matter_title(docx_path: str, title: str) -> bool:
+    """Give the front-matter title the Title style instead of Heading 1.
+
+    As a Heading 1 the report's own title became the first entry of its table
+    of contents. Only the first paragraph that is a Heading 1 reading exactly
+    the title is restyled, and only when the document has a Title style.
+    """
+    title = " ".join(str(title or "").split())
+    if not title:
+        return False
+    try:
+        doc = Document(docx_path)
+        style = doc.styles["Title"]
+    except (KeyError, Exception):
+        return False
+    for paragraph in doc.paragraphs:
+        if paragraph.style is not None and paragraph.style.name == "Heading 1":
+            if " ".join(paragraph.text.split()) == title:
+                paragraph.style = style
+                _break_title_after_separator(doc, paragraph)
+                doc.save(docx_path)
+                return True
+            return False
+    return False
+
+
+#: Where a title's subtitle begins.
+_TITLE_SEPARATORS = ("：", ": ")
+
+
+def _break_title_after_separator(doc: Document, paragraph) -> None:
+    """Start a long title's subtitle on its own line.
+
+    A title wider than the page wrapped wherever the line ran out, and the
+    cover printed "…全生命週期二氧化" / "碳排放評估". When the whole title does
+    not fit on one line and the part up to its colon does, the line breaks
+    after the colon instead.
+    """
+    from ..language import CJK_RE
+
+    style = paragraph.style
+    size = None
+    while style is not None and size is None:
+        size = style.font.size
+        style = style.base_style
+    em_cm = (size.pt if size is not None else 12) / 72 * 2.54
+    section = doc.sections[0]
+    line_cm = (section.page_width - section.left_margin - section.right_margin) / 360000
+
+    def width_cm(text: str) -> float:
+        return sum(1.0 if CJK_RE.match(char) else 0.55 for char in text) * em_cm
+
+    text = paragraph.text
+    if "\n" in text or width_cm(text) <= line_cm:
+        return
+    for separator in _TITLE_SEPARATORS:
+        cut = text.find(separator)
+        if cut <= 0 or width_cm(text[:cut + len(separator)]) > line_cm:
+            continue
+        for run in paragraph.runs:
+            at = run.text.find(separator)
+            if at >= 0:
+                end = at + len(separator)
+                run.text = run.text[:end].rstrip() + "\n" + run.text[end:].lstrip()
+                return
+        return
 
 
 def _apply_manual_table_borders(table) -> None:
@@ -1466,7 +1609,7 @@ def run_docx_render(state: ReportState) -> ReportState:
     # figure pass continues the sequence rather than restarting it.
     evidence_ledger = load_jsonl(state.sources.get("evidence_ledger_path", ""))
     md_content, placed_tables, unresolved_tables = replace_table_placeholders(
-        md_content, evidence_ledger
+        md_content, evidence_ledger, appendix_numbers=state.citations.get("appendix_numbers") or {}
     )
     if placed_tables:
         state.output["source_tables_placed"] = placed_tables
@@ -1544,7 +1687,7 @@ def run_docx_render(state: ReportState) -> ReportState:
             if detect_document_language(md_content) == "zh":
                 source_list_md = source_list_md.replace(
                     SOURCE_LIST_HEADING, SOURCE_LIST_HEADING_ZH, 1
-                )
+                ).replace(SOURCE_LIST_INTRO, SOURCE_LIST_INTRO_ZH, 1)
             md_content = md_content.rstrip() + "\n\n" + source_list_md
 
     run_dir = WORKFLOW_RUNS_DIR / state.job_id
@@ -1636,6 +1779,10 @@ def run_docx_render(state: ReportState) -> ReportState:
         if repaired_figures:
             state.output["post_render_figures_repaired"] = repaired_figures
         _style_tables_post_render(str(final_docx_path))
+        if has_front_matter:
+            _style_front_matter_title(
+                str(final_docx_path), (state.plan.get("front_matter") or {}).get("title", "")
+            )
 
     # --- Post-render validation ---
     validation_issues = _validate_docx(str(final_docx_path), md_content)

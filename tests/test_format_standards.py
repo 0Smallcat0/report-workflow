@@ -1006,6 +1006,23 @@ class CjkTypographyTest(unittest.TestCase):
         out = _normalize_cjk_typography(md)
         self.assertIn("第一行。\n第二行。", out)
 
+    def test_a_minus_sign_prints_in_a_glyph_the_chinese_font_has(self):
+        # 新細明體 and 微軟正黑體 have no U+2212. Word set "−25%" in the
+        # Chinese font, borrowed the glyph from another face, and printed it
+        # wider than the "−14%" beside it on a line opened up to fit it.
+        from report_workflow.nodes.docx_render import _normalize_cjk_typography
+
+        md = (
+            "電池使用回收材料（製造排放 −14% 與 −25%）時。\n\n| 變動項目 |\n| --- |\n| 製造排放 −25% |\n\n"
+            "D~be~ = (P~BEV~ − P~ICE~) × 10^6^　　（式 4）\n\n```\nx = −1\n```"
+        )
+        out = _normalize_cjk_typography(md)
+        self.assertIn("製造排放 -14% 與 -25%", out)
+        self.assertIn("| 製造排放 -25% |", out)
+        # Between two terms Word sets it in the Latin face, which has it.
+        self.assertIn("(P~BEV~ − P~ICE~)", out)
+        self.assertIn("x = −1", out)
+
 
 class DuplicateCitationCollapseTest(unittest.TestCase):
     def test_repeated_numeric_marker_collapses(self):

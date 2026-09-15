@@ -2,6 +2,76 @@
 
 ## Unreleased
 
+### Fixed — a computed figure says it was computed, and the appendix says how
+
+A reviewer of the same Chinese course report found the body mixing author-year
+citations with `[S1]`–`[S24]`, the document closing on CSV file names and row
+counts listed as if they were sources, and a percentage computed from Knobloch
+et al.'s figures cited to Knobloch et al. as though they had stated it. A figure
+the pipeline computed is now labelled in the sentence — `（本研究計算，附錄 A3）` /
+`(calculated in this study, Appendix A3)` — a row of the author's own sheet is
+`本研究整理`, and a figure computed from a declared publication names both. The
+closing list became `附錄 A　計算與資料說明` / `Appendix A. Calculations and Data`:
+each entry gives the result, the formula in × and ÷, and every input with its
+unit, its row label and its source column, pointing at the entry of any input
+computed earlier or any per-row input read from an earlier table. A per-row
+input from the table's own sheet is given row by row — `用排碳係數 1、0、0、1、0`
+— where the entry used to name a column of 0s and 1s the reader never saw, unless
+its values only repeat the row labels. A computed
+table's attribution reads `來源：本研究計算（附錄 A14）` instead of the worksheet's
+name. Adjacent brackets holding a label merge into one.
+
+### Fixed — a table is shown at the precision each column needs, and holds together on the page
+
+A break-even table printed 44,208.8 km beside 3.7 years. A formula column may
+declare `display_decimals` (−2 prints 44,200; never finer than `decimals`) and
+only the rendered column is rounded, half away from zero; the evidence keeps the
+recorded figure. A formula reading an earlier formula now reads its unrounded
+value: 658.3593 carried as 658.4 had moved a break-even distance by six
+kilometres. A CSV source can be placed whole with `[TABLE:<file stem>]`, pipe
+tables get column widths from their content instead of equal widths — measured
+at the template's 12 pt, where a 10.5 pt estimate left a header reading
+`電力係數 (g` / `CO2e/kWh` / `)`, and letting a header take a third line before a
+column of row labels wraps — rows no longer split inside a cell, a short table
+stays on one page with its caption and attribution, and a figure keeps with its
+caption.
+
+### Fixed — a line chart can mark its break-even points
+
+A crossing at 44,208.8 km had no position on a chart whose labels were indices.
+A line chart takes numeric positions in `data.x` and labelled `data.markers`,
+each checked against the cited evidence like any plotted value, and an axis of
+values past 10,000 prints thousands separators. A marker's label is printed on a
+white box above the lines, so a later marker's dashed line no longer cuts through
+it.
+
+### Fixed — minus signs and reference punctuation in a Chinese document
+
+新細明體 and 微軟正黑體 have no U+2212: Word set "−25%" in the Chinese font,
+borrowed the glyph from another face, and printed it wider than the "−14%"
+beside it on a line opened up to fit it. A negative number's sign in a Chinese
+document now renders as `-`; a minus between two terms of a formula, set in the
+Latin face, and code keep theirs. A reference title or publisher that already
+ends in `.`, `?`, `!` or their full-width forms takes no second mark — the list
+printed "gasoline cars?.", "VDI e.V.." and "減碳足跡？。".
+
+### Fixed — the visual render check no longer calls a preview a pass
+
+It rendered pages 1–3 of a 25-page report and reported `passed` because the
+PNG files existed. It now renders every page and reports conversion, the pages
+previewed out of how many, and whether a visual review was recorded for this
+document in `visual_review.json`; the delivery summary says "visual review not
+performed" until one covers every page.
+
+### Fixed — a Chinese cover is labelled in Chinese, and the title stays out of the table of contents
+
+The cover of a Chinese report read "Student Id:", "Date:" and "Keywords:", and
+the title — a Heading 1 — opened the table of contents. Known template fields,
+keywords and correspondence take Chinese labels when the front matter is
+Chinese, and the title paragraph takes the Title style. A title wider than the
+page breaks after its colon instead of wherever the line ran out — the cover
+printed "…二氧化" / "碳排放評估" — and the template field report still finds it.
+
 ### Fixed — the Sources list, table attributions and undated citations read as written for a reader
 
 Read page by page, the delivered Word file of a Chinese course report closed on

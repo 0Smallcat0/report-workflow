@@ -179,10 +179,15 @@ def _front_matter_field_values(front_matter: dict) -> dict[str, dict]:
 
     keywords = front_matter.get("keywords")
     if keywords:
+        # The same joiner the cover prints with, or a Chinese cover's keywords
+        # are searched for comma-joined and reported missing.
+        from ..nodes.front_matter_build import _front_matter_is_chinese
+
+        joiner = "、" if _front_matter_is_chinese(front_matter) else ", "
         fields["keywords"] = {
             "key": "keywords",
             "label": "Keywords",
-            "value": ", ".join(str(keyword).strip() for keyword in keywords if str(keyword).strip()),
+            "value": joiner.join(str(keyword).strip() for keyword in keywords if str(keyword).strip()),
             "source": "front_matter",
         }
 
@@ -323,6 +328,17 @@ def _build_template_field_fill_report_md(report: dict) -> str:
     return "\n".join(lines)
 
 
+def _rendered_matches(rendered_text: str, value: str) -> int:
+    """How many times a field's value appears in the rendered document.
+
+    Runs of whitespace compare as one space, and in a Chinese value as none:
+    a cover title breaking after its colon reads "回收：\\n電動車" there.
+    """
+    if re.search(r"[　-鿿＀-￯]", value):
+        return "".join(rendered_text.split()).count("".join(value.split()))
+    return " ".join(rendered_text.split()).casefold().count(" ".join(value.split()).casefold())
+
+
 def build_template_field_fill_report(state: ReportState, run_dir: Path) -> dict[str, str]:
     front_matter = state.plan.get("front_matter") or {}
     field_values = _front_matter_field_values(front_matter)
@@ -343,7 +359,6 @@ def build_template_field_fill_report(state: ReportState, run_dir: Path) -> dict[
             },
         )
 
-    normalized_rendered = " ".join(rendered_text.split()).casefold()
     fields = []
     warnings = []
     for key in sorted(field_values):
@@ -351,7 +366,7 @@ def build_template_field_fill_report(state: ReportState, run_dir: Path) -> dict[
         value = str(field.get("value", "")).strip()
         rendered_match_count = 0
         if value:
-            rendered_match_count = normalized_rendered.count(" ".join(value.split()).casefold())
+            rendered_match_count = _rendered_matches(rendered_text, value)
         placeholder = next((item for item in placeholders if item["key"] == key), None)
         if not value:
             status = "missing_value"

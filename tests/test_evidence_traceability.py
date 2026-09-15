@@ -275,7 +275,10 @@ class CitationRenderingTests(unittest.TestCase):
             self.EVIDENCE,
             [],
         )
-        self.assertIn("[S1]", resolved)
+        # A bare [S1] sat beside author-year citations and read as a second
+        # citation system; the label says what the figure is and where its
+        # entry is.
+        self.assertIn("（本研究整理，附錄 A1）", resolved)
         self.assertNotIn("[CITE:", resolved)
         self.assertEqual(len(source_refs), 1)
         self.assertIn("recycling.md", source_refs[0])
@@ -771,14 +774,14 @@ class DeliveredDocumentTests(unittest.TestCase):
     def test_the_delivered_document_carries_its_sources(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             rows, text, _tables = self._author_and_publish(tmpdir)
-            self.assertIn("[S1]", text, "no citation marker survived into the DOCX")
+            self.assertIn("附錄 A1", text, "no citation marker survived into the DOCX")
             # Either heading counts. The requirement is that the reader gets a
             # source list; which language its heading renders in is a separate
             # question, and conflating the two made a CI failure unreadable —
             # it could not say whether the section was missing or merely in
             # English, so the tail of the document goes into the message.
             self.assertTrue(
-                "資料來源" in text or "Sources" in text,
+                "計算與資料說明" in text or "Calculations and Data" in text,
                 "the DOCX has no source list; document ends: " + repr(text[-400:]),
             )
             self.assertIn("recycling.md", text, "the source list names no file")
@@ -814,7 +817,7 @@ class DeliveredDocumentTests(unittest.TestCase):
                 _rows, text, _tables = self._author_and_publish(tmpdir)
             self.assertIn("參考文獻", text, "references are dropped too now")
             self.assertNotIn(
-                "資料來源",
+                "計算與資料說明",
                 text,
                 "the fallback renderer now keeps the Sources section — delete this test",
             )

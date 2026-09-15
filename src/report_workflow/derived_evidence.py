@@ -427,6 +427,46 @@ def declared_decimals(request: dict) -> int | None:
     return places
 
 
+#: How far a column may be rounded when shown: to the nearest million.
+MAX_DISPLAY_ROUNDING = 6
+
+
+def declared_display_decimals(formula: dict, recorded: int | None) -> int | None:
+    """The places one table column is shown with, or None to show it as recorded.
+
+    A formula table had one ``decimals`` for all of its columns, so a
+    break-even table printed 44,208.8 km beside 3.7 years — a tenth of a
+    kilometre over a fifteen-year life, which nobody measured. Rounding what is
+    recorded would move the evidence the prose is checked against, so the
+    column says how it is shown instead: negative places round to tens,
+    hundreds and so on. A column is never shown finer than it was recorded,
+    which would print digits the evidence does not hold.
+    """
+    raw = formula.get("display_decimals")
+    if raw is None:
+        return None
+    label = formula.get("label") or formula.get("expr")
+    try:
+        places = int(raw)
+    except (TypeError, ValueError):
+        raise DerivationError(
+            f"Column {label!r}: 'display_decimals' is {raw!r}; it must be a whole number "
+            f"from -{MAX_DISPLAY_ROUNDING} to {MAX_DECLARED_DECIMALS}"
+        )
+    if not -MAX_DISPLAY_ROUNDING <= places <= MAX_DECLARED_DECIMALS:
+        raise DerivationError(
+            f"Column {label!r}: 'display_decimals' is {places}; it must be between "
+            f"-{MAX_DISPLAY_ROUNDING} and {MAX_DECLARED_DECIMALS}"
+        )
+    if recorded is not None and places > recorded:
+        raise DerivationError(
+            f"Column {label!r}: 'display_decimals' is {places} but the table records "
+            f"{recorded} decimal place(s); a column cannot be shown more precisely than "
+            "it was computed. Raise 'decimals' or lower 'display_decimals'."
+        )
+    return places
+
+
 def _check_op(dataset: Dataset, request: dict) -> tuple[str, str]:
     """The (op, column) a request names, or the reason it cannot be carried out."""
     op = str(request.get("op") or "").strip().lower()
@@ -1528,11 +1568,14 @@ def _formula_input(
                 f"Input {name!r} names {entry['request_id']!r}, a grouped table. Read "
                 "one cell of it with {\"table\": id, \"column\": ..., \"row\": ...}."
             )
+        # The unrounded figure when the earlier formula kept one: its rounding
+        # is for the evidence text, not for the arithmetic built on it.
+        value = entry.get("exact_value", entry["value"])
         return {
-            "value": entry["value"],
+            "value": value,
             "dataset": entry["dataset"],
             "datasets_used": list(entry.get("datasets_used") or [entry["dataset"]]),
-            "record": {"derivation": entry["evidence_id"], "value": entry["value"]},
+            "record": {"derivation": entry["evidence_id"], "value": value},
             "zh": f"衍生數值 {entry['request_id']}",
             "en": f"derivation {entry['request_id']}",
         }
@@ -1620,6 +1663,10 @@ def _formula_input(
             "row_filter": rows_expression,
             "column": column,
             "value": value,
+            # The whole row, so whoever redoes the arithmetic sees the unit,
+            # year and source the sheet gives beside the value — not a file
+            # name and a filter expression.
+            "fields": dict(selected[0]),
         },
         "zh": f"{dataset.display_name} 中 {rows_expression} 的 {column}",
         "en": f"{column} where {rows_expression} in {dataset.display_name}",
@@ -1672,6 +1719,10 @@ def compute_formula(request: dict, computed: dict, order: list[str], datasets: l
         for name, spec in inputs.items()
     }
     value = evaluate_formula(expr, {name: item["value"] for name, item in resolved.items()})
+    # The rounding below is what the evidence states. A later formula that
+    # reads this one reads ``exact``: 658.3593 carried as 658.4 moved a
+    # break-even distance computed from it by six kilometres.
+    exact = value
     decimals = declared_decimals(request)
     if decimals is not None:
         value = round(value, decimals)
@@ -1699,6 +1750,7 @@ def compute_formula(request: dict, computed: dict, order: list[str], datasets: l
         derivation["decimals"] = decimals
     return {
         "value": value,
+        "exact": exact,
         "unit": str(request.get("unit") or "").strip(),
         "rows_used": len(resolved),
         "detail": "",
@@ -1784,6 +1836,7 @@ def compute_formula_table(
         if not per_row(spec)
     }
     decimals = declared_decimals(request)
+    display = [declared_display_decimals(item, decimals) for item in formulas]
     units = [str(item.get("unit") or "").strip() for item in formulas]
     body: list[list[str]] = []
     datasets_used: list[Dataset] = [dataset]
@@ -1795,6 +1848,13 @@ def compute_formula_table(
 
     for item in shared.values():
         note_used(item)
+    # What each row took for the names that change with the row, so the
+    # appendix can give them: "各列輸入：用排碳係數、用碳足跡" named a column
+    # of 0s and 1s the reader never saw, and the table could not be redone.
+    row_names = [
+        name for item in formulas for name in formula_names(item["expr"]) if name not in shared
+    ]
+    row_values: dict[str, list[str]] = {name: [] for name in dict.fromkeys(row_names)}
     for row in selected:
         row_label = str(row.get(label_column, "")).strip()
         values = {name: item["value"] for name, item in shared.items()}
@@ -1813,6 +1873,9 @@ def compute_formula_table(
                 number = parse_number(row.get(column))
                 if number is not None:
                     values[column] = number
+        for name, taken in row_values.items():
+            if name in values:
+                taken.append(format_operand(values[name]))
         cells = [row_label]
         for item in formulas:
             try:
@@ -1839,10 +1902,28 @@ def compute_formula_table(
         "row_label": label_column,
         "formulas": [
             {"label": header, "expression": str(item["expr"])}
-            for item, header in zip(formulas, headers[1:])
+            | ({"display_decimals": places} if places is not None else {})
+            for item, header, places in zip(formulas, headers[1:], display)
         ],
         "operands": {name: item["record"] for name, item in shared.items()},
     }
+    # Where each per-row input is read, so an appendix entry can say that
+    # "grid" is a column of an earlier table rather than leave a bare name.
+    row_inputs = {}
+    for name, spec in inputs.items():
+        if name in shared or not isinstance(spec, dict):
+            continue
+        record = {"column": str(spec.get("column") or "").strip()}
+        if spec.get("table") is not None:
+            entry = computed.get(str(spec.get("table")))
+            if entry:
+                record["table"] = entry["evidence_id"]
+        row_inputs[name] = record
+    if row_inputs:
+        derivation["row_inputs"] = row_inputs
+    row_values = {name: taken for name, taken in row_values.items() if len(taken) == len(body)}
+    if row_values:
+        derivation["row_values"] = row_values
     if decimals is not None:
         derivation["decimals"] = decimals
     return {
@@ -2631,6 +2712,7 @@ def build_requested_units(
                 "request_id": request_id,
                 "evidence_id": evidence_id,
                 "value": result["value"],
+                "exact_value": result["exact"],
                 "unit": result["unit"],
                 "dataset": result["dataset"],
                 "datasets_used": result["datasets_used"],

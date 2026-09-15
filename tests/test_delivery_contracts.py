@@ -1763,7 +1763,7 @@ class DeliveredHeadingAndProvenanceTests(unittest.TestCase):
         line = _format_source_trace_entry(
             {"source_file_name": "notes.md", "source_span": "lines 4-9"}, 2
         )
-        self.assertEqual(line, "[S2] notes.md lines 4-9")
+        self.assertEqual(line, "**A2.** (compiled in this study from notes.md lines 4-9)")
 
     def test_table_provenance_still_prefixes_a_span_without_the_file_name(self):
         """The prefix is dropped only when the span already carries the name."""

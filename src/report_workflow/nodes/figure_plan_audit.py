@@ -245,6 +245,16 @@ def _plotted_numbers(data: dict) -> list[float]:
         raw = data.get(key)
         if isinstance(raw, list):
             numbers.extend(number for value in raw if (number := _to_float(value)) is not None)
+    # A marked point is drawn at a figure too — a break-even distance the
+    # evidence does not state is as unsupported as a bar it does not state.
+    markers = data.get("markers")
+    if isinstance(markers, list):
+        for marker in markers:
+            if isinstance(marker, dict):
+                numbers.extend(
+                    number for key in ("x", "y")
+                    if (number := _to_float(marker.get(key))) is not None
+                )
     for item in _series_values(data):
         errors = item.get("errors")
         if isinstance(errors, list):

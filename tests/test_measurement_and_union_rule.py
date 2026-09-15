@@ -56,15 +56,16 @@ class TheBodySplitFollowsTheHeadingTests(unittest.TestCase):
             self.assertIn(constant.lstrip("# ").strip(), headings)
 
     def test_the_source_list_is_not_counted_as_analysis(self):
+        heading = SOURCE_LIST_HEADING_ZH.lstrip("# ").strip()
         result = measure(_docx([
             "市場共 544 筆商品，中位價 71.99 美元。",
-            "資料來源",
-            "[S1] amazon_products.csv 第 12 行：4.09",
-            "[S2] amazon_reviews.csv 第 77 行：18.18%",
+            heading,
+            "A1　amazon_products.csv 第 12 行：4.09",
+            "A2　amazon_reviews.csv 第 77 行：18.18%",
         ]))
-        self.assertEqual(result["tail_heading"], "資料來源")
+        self.assertEqual(result["tail_heading"], heading)
         self.assertEqual(result["body_numbers"], 2)     # 544 and 71.99
-        # 12, 4.09, 77, 18.18 — the digits in the [S1]/[S2] labels are
+        # 12, 4.09, 77, 18.18 — the digits in the A1/A2 entry labels are
         # correctly not figures, being preceded by a word character.
         self.assertEqual(result["tail_numbers"], 4)
         self.assertLess(result["body_share"], 100.0)
