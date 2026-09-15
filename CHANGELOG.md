@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Fixed — a PDF's sub- and superscripts stay on their line
+
+pdfplumber groups characters into lines by their top edge, and a subscript set
+5.8 pt below the letters beside it fell outside its 3 pt tolerance: the ICCT
+white paper's "CO₂e/km" came out "CO e/km" with the 2 on a line of its own, 72
+times in 38 pages. A small character touching a body-size character it overlaps
+vertically is now placed on that character's line before the page text is
+assembled; chart labels and other small text elsewhere are left where they are.
+Broken occurrences in that report fell from 72 to 2.
+
 ### Fixed — a chart's plotted values are checked against the evidence it cites
 
 FIGURE_BUILD draws the numbers written into `figure_plan.json`, and nothing

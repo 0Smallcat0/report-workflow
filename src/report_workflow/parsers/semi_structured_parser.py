@@ -10,6 +10,77 @@ def table_to_text(table: list[list[str]]) -> str:
     return "\n".join(rows)
 
 
+#: A character this much smaller than the page's body text, set against a
+#: body character, is a sub- or superscript: the 2 of CO₂, the 2 of m², a
+#: footnote mark.
+SCRIPT_SIZE_RATIO = 0.8
+#: How close, in points, a script must sit to the character it is attached to.
+SCRIPT_ADJACENT_GAP = 1.5
+
+
+def _page_text(page) -> str:
+    """The page's text with sub- and superscripts kept on their own line.
+
+    pdfplumber groups characters into lines by their top edge, and a subscript
+    set 5.8 pt lower than the letters beside it fell outside the 3 pt
+    tolerance: every "CO₂e/km" in the ICCT white paper came out "CO e/km" with
+    the 2 on a line of its own. A claim writing "63 g CO2e/km" then shared no
+    term with its source and was blocked, and the stray digits read as figures.
+
+    A small character touching a body-size character it overlaps vertically is
+    placed on that character's line before the text is assembled. Anything
+    else — a chart label, a rotated axis title — is left where it is.
+    """
+    chars = list(getattr(page, "chars", None) or [])
+    sizes = sorted(float(char.get("size") or 0) for char in chars)
+    body = sizes[len(sizes) // 2] if sizes else 0
+    small = [char for char in chars if float(char.get("size") or 0) < body * SCRIPT_SIZE_RATIO]
+    if not body or not small:
+        return page.extract_text() or ""
+
+    def is_body(char: dict) -> bool:
+        return float(char.get("size") or 0) >= body * SCRIPT_SIZE_RATIO and char.get("upright", True)
+
+    by_left: dict[int, list[dict]] = {}
+    by_right: dict[int, list[dict]] = {}
+    for char in chars:
+        if is_body(char):
+            by_left.setdefault(int(char["x0"]), []).append(char)
+            by_right.setdefault(int(char["x1"]), []).append(char)
+
+    placed: list[dict] = []
+    for char in chars:
+        if is_body(char) or not char.get("upright", True):
+            placed.append(char)
+            continue
+        left, right = int(char["x0"]), int(char["x1"])
+        neighbours = [
+            other
+            for key in (left - 1, left, left + 1)
+            for other in by_right.get(key, [])
+            if abs(other["x1"] - char["x0"]) <= SCRIPT_ADJACENT_GAP
+        ] + [
+            other
+            for key in (right - 1, right, right + 1)
+            for other in by_left.get(key, [])
+            if abs(other["x0"] - char["x1"]) <= SCRIPT_ADJACENT_GAP
+        ]
+        neighbours = [other for other in neighbours if other["top"] < char["bottom"] and char["top"] < other["bottom"]]
+        if not neighbours:
+            placed.append(char)
+            continue
+        anchor = min(neighbours, key=lambda other: abs(other["top"] - char["top"]))
+        moved = dict(char)
+        moved["top"], moved["bottom"] = anchor["top"], anchor["bottom"]
+        if "doctop" in anchor:
+            moved["doctop"] = anchor["doctop"]
+        placed.append(moved)
+
+    from pdfplumber.utils import extract_text
+
+    return extract_text(placed) or ""
+
+
 def parse_pdf(file_path: str) -> dict:
     """Parse PDF using pdfplumber."""
     try:
@@ -18,7 +89,7 @@ def parse_pdf(file_path: str) -> dict:
         all_text = []
         with pdfplumber.open(file_path) as pdf:
             for page_num, page in enumerate(pdf.pages, 1):
-                text = page.extract_text() or ""
+                text = _page_text(page)
                 if text.strip():
                     all_text.append(text)
                     blocks.append({
