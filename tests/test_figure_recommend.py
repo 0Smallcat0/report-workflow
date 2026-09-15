@@ -1213,7 +1213,8 @@ class FigurePlanAuditTests(unittest.TestCase):
                         "figure_id": "figrec_1",
                         "figure_type": "bar",
                         "recommendation_id": "figrec_1",
-                        "source_evidence_ids": ["E1"],
+                        # No evidence id: these values exist to trip the
+                        # readability rules, and E1 states none of them.
                         "title": "Chart Title",
                         "xlabel": "",
                         "ylabel": "Metric",

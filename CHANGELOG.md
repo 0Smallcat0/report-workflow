@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Fixed — a chart's plotted values are checked against the evidence it cites
+
+FIGURE_BUILD draws the numbers written into `figure_plan.json`, and nothing
+compared them with the figure's `source_evidence_ids`: a claim had to find its
+number in the ledger while the bar chart beside it could plot any value under a
+real evidence id. `FIGURE_PLAN_AUDIT` now reads every plotted value — bars,
+points, slices, error bars, table cells — and hard-blocks one that no cited
+entry states (within the 1% FE allows prose), naming the value; an evidence id
+the ledger does not hold is named too. Scientific notation (`6.058E-01`) and
+signs are read, and data the pipeline built from its own recommendation is not
+re-derived.
+
 ### Fixed — intake no longer averages a column of mixed units, years or a constant
 
 A parameter sheet listing a heat value in kcal/L beside an emission factor in

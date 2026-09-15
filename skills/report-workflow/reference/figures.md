@@ -25,7 +25,10 @@ setup, workflow, architecture, or concept easier to understand.
   source-backed quantitative claims: `figure_recommendations.json`,
   `section_drafts/figure_plan.json`, `FIGURE_PLAN_AUDIT`, and `FIGURE_BUILD`. No
   AI-generated image may replace a source-data-backed chart, table, plotted
-  value, materiality matrix, ranking, or quantitative comparison.
+  value, materiality matrix, ranking, or quantitative comparison. Every value a
+  chart plots must be stated by the evidence in its `source_evidence_ids`;
+  `FIGURE_PLAN_AUDIT` hard-blocks a value no cited entry states. A computed
+  series is registered with `register_derived_evidence` and cited as that table.
 - **Mermaid diagrams** — use when the figure should stay editable as a flowchart,
   process, decision tree, architecture, sequence, or state diagram.
 - **AI illustrations** — use image generation or request an illustration asset

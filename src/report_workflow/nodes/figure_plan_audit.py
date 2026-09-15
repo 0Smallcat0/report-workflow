@@ -207,6 +207,123 @@ def _numeric_data_values(data: dict) -> list[float]:
     return values
 
 
+#: A number as evidence writes one: signed, thousands-separated, decimal or
+#: scientific — the carbon-footprint database prints 0.6058 as "6.058E-01". Not
+#: glued to a Latin letter, so the 2 of "CO2" is not a figure.
+_EVIDENCE_NUMBER_RE = re.compile(r"(?<![A-Za-z0-9_.])[-−]?\d[\d,]*(?:\.\d+)?(?:[eE][-+]?\d+)?")
+
+#: How far a plotted value may sit from the figure it draws, as a share of the
+#: larger — the tolerance FE gives a number written in prose.
+PLOTTED_VALUE_TOLERANCE = 0.01
+
+
+def _evidence_numbers(entry: dict) -> list[float]:
+    texts = [str(entry.get("content") or "")]
+    grid = entry.get("table_grid") if isinstance(entry.get("table_grid"), dict) else {}
+    rows = [grid.get("headers") or [], *(grid.get("rows") or [])]
+    if isinstance(entry.get("table_data"), list):
+        rows.extend(entry["table_data"])
+    for cells in rows:
+        if isinstance(cells, dict):
+            cells = list(cells.values())
+        if isinstance(cells, (list, tuple)):
+            texts.extend(str(cell) for cell in cells)
+    numbers: list[float] = []
+    for text in texts:
+        for match in _EVIDENCE_NUMBER_RE.finditer(text):
+            try:
+                numbers.append(float(match.group(0).replace(",", "").replace("−", "-")))
+            except ValueError:
+                continue
+    return numbers
+
+
+def _plotted_numbers(data: dict) -> list[float]:
+    """Every number a figure draws: bars, points, slices, error bars, table cells."""
+    numbers = list(_numeric_data_values(data))
+    for key in ("x", "y"):
+        raw = data.get(key)
+        if isinstance(raw, list):
+            numbers.extend(number for value in raw if (number := _to_float(value)) is not None)
+    for item in _series_values(data):
+        errors = item.get("errors")
+        if isinstance(errors, list):
+            numbers.extend(number for value in errors if (number := _to_float(value)) is not None)
+    rows = data.get("rows")
+    if isinstance(rows, list):
+        for row in rows:
+            cells = list(row.values()) if isinstance(row, dict) else (list(row) if isinstance(row, (list, tuple)) else [])
+            numbers.extend(number for value in cells if (number := _to_float(value)) is not None)
+    return numbers
+
+
+def _value_support_issues(
+    figure: dict,
+    index: int,
+    ledger_by_id: dict[str, dict],
+    recommendation: dict | None,
+) -> list[dict]:
+    """Plotted values the cited evidence does not state.
+
+    FIGURE_BUILD draws the numbers written into ``figure_plan.json``, and
+    nothing compared them with the evidence the figure cites: every claim in
+    the prose had to find its number in the ledger, while a bar chart beside it
+    could plot any number at all under a real evidence id. A chart is where a
+    reader looks first, so it is held to what the prose is held to.
+
+    Data the pipeline itself built from a recommendation is its own reading of
+    that evidence, transforms included, and is not re-derived here.
+    """
+    data = figure.get("data") if isinstance(figure.get("data"), dict) else {}
+    plotted = _plotted_numbers(data)
+    cited = sorted(_figure_evidence_ids(figure))
+    if not plotted or not cited or not ledger_by_id:
+        return []
+    if recommendation and data == ((recommendation.get("figure_plan") or {}).get("data")):
+        return []
+    figure_id = figure.get("figure_id", f"index_{index}")
+    unknown = [evidence_id for evidence_id in cited if evidence_id not in ledger_by_id]
+    if unknown:
+        return [{
+            "severity": "hard",
+            "type": "figure_evidence_not_in_ledger",
+            "figure_id": figure_id,
+            "evidence_ids": unknown,
+            "detail": (
+                f"Figure {figure_id} cites evidence the ledger does not hold: {', '.join(unknown[:5])}. "
+                "Its values cannot be checked against a source that does not exist."
+            ),
+            "repair_hint": "Cite the evidence ids the plotted values were read from; query_evidence finds them.",
+        }]
+    available = [number for evidence_id in cited for number in _evidence_numbers(ledger_by_id[evidence_id])]
+    unsupported: list[float] = []
+    for value in plotted:
+        supported = any(
+            abs(value - number) <= max(abs(value), abs(number)) * PLOTTED_VALUE_TOLERANCE + 1e-9
+            for number in available
+        )
+        if not supported and value not in unsupported:
+            unsupported.append(value)
+    if not unsupported:
+        return []
+    shown = ", ".join(f"{value:g}" for value in unsupported[:6])
+    return [{
+        "severity": "hard",
+        "type": "figure_value_not_in_evidence",
+        "figure_id": figure_id,
+        "unsupported_values": unsupported[:20],
+        "evidence_ids": cited,
+        "detail": (
+            f"Figure {figure_id} plots {len(unsupported)} value(s) that the evidence it cites "
+            f"({', '.join(cited[:4])}{'…' if len(cited) > 4 else ''}) does not state: {shown}."
+        ),
+        "repair_hint": (
+            "Copy each value from the cited entry, register the figure you need with "
+            "register_derived_evidence and cite that, or add the entry that states it."
+        ),
+    }]
+
+
 def _point_count(figure_type: str, data: dict) -> int:
     if figure_type == "scatter":
         x_vals = data.get("x", [])
@@ -570,6 +687,11 @@ def audit_figure_plan(state: ReportState, recommendations: list[dict], figure_pl
 
     strict_contract = get_policy(state.spec.get("report_profile", "academic_paper")).figure.figure_contract_required
     matched_recommendations: set[str] = set()
+    ledger_by_id = {
+        str(entry.get("evidence_id")): entry
+        for entry in load_jsonl(state.sources.get("evidence_ledger_path"))
+        if isinstance(entry, dict) and entry.get("evidence_id")
+    } if figures else {}
 
     for index, figure in enumerate(figures):
         if not isinstance(figure, dict):
@@ -622,6 +744,11 @@ def audit_figure_plan(state: ReportState, recommendations: list[dict], figure_pl
         if semantic_issues:
             issues.extend(semantic_issues)
             hard_issues.extend(issue for issue in semantic_issues if issue.get("severity") == "hard")
+        support_issues = _value_support_issues(
+            figure, index, ledger_by_id, recommendation_by_id.get(str(figure.get("recommendation_id") or ""))
+        )
+        issues.extend(support_issues)
+        hard_issues.extend(support_issues)
         rec = recommendation_by_id.get(str(figure.get("recommendation_id") or ""))
         if rec is None:
             evidence_ids = _figure_evidence_ids(figure)

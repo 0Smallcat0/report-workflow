@@ -1622,6 +1622,8 @@ When you create `{run_dir / "section_drafts" / "figure_plan.json"}`, each genera
 
 `FIGURE_PLAN_AUDIT` checks these fields. A high-confidence recommendation that is replaced with a mismatched chart type without `chart_selection_reason` can hard-block validation for strict figure-contract profiles.
 
+Every number a figure plots has to be stated by an entry in its `source_evidence_ids`, the same way a number in a sentence has to be in its `[CITE:]`. A plotted value no cited entry states is a hard block that names the value. To chart a computed series, register it with `register_derived_evidence` and cite the table it returns.
+
 **Use `mermaid` code fences for diagrams.** The pipeline auto-converts them to PNG images
 if `mmdc` is installed. Examples:
 
