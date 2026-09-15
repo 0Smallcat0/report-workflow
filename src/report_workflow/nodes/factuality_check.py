@@ -683,10 +683,34 @@ def claim_number_source_text(text: str, number: str, unit: str) -> str:
     return ""
 
 
+#: A decimal comma no English number can be: "24,2 t", "37,1 t". Thousands
+#: groups always have three digits.
+_DECIMAL_COMMA_RE = re.compile(r"(?<![\d.,])\d+,\d{1,2}(?![\d,])")
+#: A number that can only be English: comma-grouped thousands, or a decimal
+#: point with one or two places.
+_ENGLISH_NUMBER_RE = re.compile(r"(?<![\d.,])(?:\d{1,3}(?:,\d{3})+|\d+\.\d{1,2})(?![\d,.])")
+_DOT_THOUSANDS_RE = re.compile(r"(?<![\d.,])\d{1,3}(?:\.\d{3})+(?:,\d+)?(?![\d.])")
+
+
+def _decimal_comma_to_point(text: str) -> str:
+    """Rewrite continental notation — 200.000 km, 24,2 t — as 200000 and 24.2.
+
+    Only a text that commits to the notation is rewritten: it must hold a
+    number that can only be a decimal comma and none that can only be English.
+    A German VDI factsheet stating "24,2 t CO2äq" and "90.000 km" was read as
+    242 and 90.0, so a report restating its 90,000 km break-even could not
+    cite it without printing "90.000" to readers who take it for ninety.
+    """
+    if not _DECIMAL_COMMA_RE.search(text) or _ENGLISH_NUMBER_RE.search(text):
+        return text
+    text = _DOT_THOUSANDS_RE.sub(lambda match: match.group(0).replace(".", ""), text)
+    return _DECIMAL_COMMA_RE.sub(lambda match: match.group(0).replace(",", "."), text)
+
+
 def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
     """Return list of (number_str, unit_str) from text."""
     results = []
-    normalized = _normalize_for_numbers(text)
+    normalized = _decimal_comma_to_point(_normalize_for_numbers(text))
     for m in _BARE_NUMBER_RE.finditer(normalized):
         suffix = _unit_after(normalized, m.end())
         unit = _combined_unit(normalized, m.start(1), suffix)
@@ -962,6 +986,11 @@ _UNIT_ALIASES = {
     "percentage": "%",
     "tonne": "t",
     "tonnes": "t",
+    "kilometer": "km",
+    "kilometers": "km",
+    "kilometre": "km",
+    "kilometres": "km",
+    "kilometern": "km",
     "ton": "t",
     "tons": "t",
     "噸": "t",

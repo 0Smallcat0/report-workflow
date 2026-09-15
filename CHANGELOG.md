@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Fixed — FE reads a continental source's 24,2 t and 90.000 km
+
+The German VDI life-cycle factsheet writes its results as "24,2 t CO2äq" and
+"bei 90.000 km". FE read them as 242 and 90.0, so a report restating the study's
+90,000 km break-even could cite it only by printing "90.000 km" to readers who
+take it for ninety. A text that commits to continental notation — it holds a
+number that can only be a decimal comma and none that can only be English — is
+now read in it, and "Kilometern" is the unit km.
+
 ### Fixed — a structured draft can write a paragraph of more than one sentence
 
 `structured_drafts.json`, the preferred new-draft path, compiled every sentence
