@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Fixed — registering evidence before the first stage no longer blocks it
+
+`register_derived_evidence` rewrites the task briefs, and doing so re-labelled
+prepare's own starter `figure_plan.json` as `preserved_existing`. The harness
+then baselined that file as absent, so the first `claim_matrix` submission of
+the run was a scope violation that no repair could clear — restoring it meant
+deleting a file the pipeline wrote. The plan keeps its `generated` status while
+the file on disk is still the one prepare produced.
+
 ### Fixed — FE reads a continental source's 24,2 t and 90.000 km
 
 The German VDI life-cycle factsheet writes its results as "24,2 t CO2äq" and

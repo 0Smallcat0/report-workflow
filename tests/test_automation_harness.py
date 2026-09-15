@@ -270,6 +270,30 @@ class AutomationHarnessTests(unittest.TestCase):
             self.assertEqual(result["status"], "passed")
             self.assertEqual(result["next_stage"], "outline")
 
+    def test_registering_evidence_before_the_first_stage_keeps_the_starter_plan_trusted(self):
+        # Registering rewrites the briefs; it used to re-label the starter plan
+        # "preserved_existing", and the claim stage was then refused with a
+        # scope violation on a file nobody had touched.
+        from report_workflow.agent_wrapper import register_derived_evidence
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _prepare_with_chart_recommendation(tmpdir)
+            workspace_root = state.output["workspace_root"]
+            run_dir = run_dir_for(state)
+            registered = register_derived_evidence(
+                state.job_id,
+                [{"id": "readings", "source": "measurements.csv", "op": "count"}],
+                workspace_root=workspace_root,
+            )
+            self.assertEqual(registered["status"], "ok")
+
+            action = get_controlled_next_action(state.job_id, workspace_root=workspace_root)
+            self.assertEqual(action["stage"], "claim_matrix")
+            (run_dir / "claim_matrix.json").write_text("{}", encoding="utf-8")
+            result = run_controlled_stage(state.job_id, _fake_validators(), workspace_root=workspace_root)
+
+            self.assertEqual(result["status"], "passed", result.get("error_details"))
+
     def test_revise_existing_adds_revision_plan_stage(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("revise report", [], str(Path(tmpdir) / "out"))

@@ -330,6 +330,18 @@ def _recommended_figure_plans(path: str | None) -> tuple[list[dict], str]:
 def _write_auto_figure_plan(state: ReportState, recommendations_path: str | None) -> dict:
     run_dir = run_dir_for(state)
     plan_path = run_dir / "section_drafts" / "figure_plan.json"
+    previous = state.runtime.get("auto_figure_plan")
+    if (
+        plan_path.exists()
+        and isinstance(previous, dict)
+        and previous.get("status") == "generated"
+        and previous.get("path") == str(plan_path)
+    ):
+        # The briefs are rewritten when evidence is registered, and the plan on
+        # disk is still the one prepare wrote. Recording it as "preserved" told
+        # the harness it was the author's file, and the first submission of the
+        # run was refused as a scope violation that no repair could clear.
+        return previous
     if plan_path.exists():
         info = {
             "status": "preserved_existing",
