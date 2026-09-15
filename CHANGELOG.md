@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Fixed — text past a block's 2,000th character reaches the ledger
+
+The PDF parser files a page as one block, and the evidence row kept its first
+2,000 characters. On the ICCT white paper this report cites, 33 of 38 pages ran
+past that and 38% of the text (42,392 characters) never reached the ledger —
+including the headline "offset after about 17,000 km", at character 2,057 of
+page 3, which FE then refused in every sentence stating it. A pdftotext dump with
+no blank lines is one such block for the whole file. A long prose block is now
+cut into rows under the limit, between lines and inside an over-long line between
+sentences; each row keeps the page number and the lines it covers. Blocks that fit
+keep exactly their old ids, and rows and tables are untouched.
+
 ### Added — a calculation the report makes is computed here too
 
 The same course report compared vehicles by arithmetic over cited parameters:

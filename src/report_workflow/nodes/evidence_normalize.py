@@ -832,13 +832,97 @@ def _embedded_table_row_blocks(block: dict) -> list[dict] | None:
     return out if tables else None
 
 
+#: How much text one evidence row carries. The row's content is what every gate
+#: reads, so text past this point is text no claim can be checked against.
+EVIDENCE_CONTENT_LIMIT = 2000
+#: Where a longer block is cut: small enough to stay under the limit with room,
+#: large enough that a figure keeps the sentences around it.
+EVIDENCE_CHUNK_TARGET = 1500
+_SENTENCE_BREAK_RE = re.compile(r"(?<=[.!?。！？；;])\s+")
+
+
+def _split_long_block(block: dict) -> list[dict]:
+    """A prose block longer than one evidence row, cut into rows that fit.
+
+    The PDF parser files a page as one block, and the row that block became
+    kept its first 2,000 characters. On a 38-page ICCT white paper 33 pages ran
+    past that, 38% of the text never reached the ledger, and the report's own
+    headline — break-even "after about 17,000 km", at character 2,057 of page 3
+    — was a sentence no claim could cite: FE looked for the figure in the
+    evidence and it was not there. A pdftotext dump with no blank lines is one
+    such block for the whole file.
+
+    Cuts fall between lines, and inside an over-long line between sentences;
+    a chunk keeps the page number, and a block with line numbers hands each
+    chunk the lines it covers. Rows and whole tables are left alone.
+    """
+    content = str(block.get("content") or "")
+    if len(content) <= EVIDENCE_CONTENT_LIMIT or block.get("block_type") in (_ROW_BLOCK_TYPES | {"table"}):
+        return [block]
+
+    pieces: list[tuple[str, int]] = []
+    for offset, line in enumerate(content.split("\n")):
+        if len(line) <= EVIDENCE_CHUNK_TARGET:
+            pieces.append((line, offset))
+            continue
+        buffer = ""
+        for sentence in _SENTENCE_BREAK_RE.split(line):
+            while len(sentence) > EVIDENCE_CHUNK_TARGET:
+                if buffer:
+                    pieces.append((buffer, offset))
+                    buffer = ""
+                pieces.append((sentence[:EVIDENCE_CHUNK_TARGET], offset))
+                sentence = sentence[EVIDENCE_CHUNK_TARGET:]
+            if buffer and len(buffer) + 1 + len(sentence) > EVIDENCE_CHUNK_TARGET:
+                pieces.append((buffer, offset))
+                buffer = sentence
+            else:
+                buffer = f"{buffer} {sentence}" if buffer else sentence
+        if buffer:
+            pieces.append((buffer, offset))
+
+    chunks: list[tuple[str, int, int]] = []
+    current: list[str] = []
+    first = last = 0
+    for text, offset in pieces:
+        if current and sum(len(item) + 1 for item in current) + len(text) > EVIDENCE_CHUNK_TARGET:
+            chunks.append(("\n".join(current), first, last))
+            current = []
+        if not current:
+            first = offset
+        current.append(text)
+        last = offset
+    if current:
+        chunks.append(("\n".join(current), first, last))
+
+    base_id = block.get("block_id", "block")
+    line_start = block.get("line_start")
+    out: list[dict] = []
+    for index, (text, first_line, last_line) in enumerate(chunks):
+        if not text.strip():
+            continue
+        chunk = {
+            **block,
+            "block_id": f"{base_id}_c{index}",
+            "content": text.strip(),
+            "content_hash": _content_hash(text.strip()),
+            "quote": None,
+        }
+        if isinstance(line_start, int):
+            chunk["line_start"] = line_start + first_line
+            chunk["line_end"] = line_start + last_line
+        out.append(chunk)
+    return out or [block]
+
+
 def _expanded_blocks(parsed_content: list) -> list[dict]:
     expanded: list[dict] = []
     for block in parsed_content:
         rows = _table_row_blocks(block) or _embedded_table_row_blocks(block)
         # The grid is replaced, not supplemented: keeping both would file the
         # same measurements twice, once citable and once not.
-        expanded.extend(rows if rows is not None else [block])
+        for candidate in (rows if rows is not None else [block]):
+            expanded.extend(_split_long_block(candidate))
     return expanded
 
 
@@ -1229,8 +1313,9 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
                 "source_role": source_role,
                 "granularity": granularity,
                 "evidence_type": evidence_type,
-                # Fix #4: content required (truncated to 2000)
-                "content": content[:2000],
+                # Fix #4: content required. Long blocks were already cut into
+                # rows under the limit, so this bound should never bite.
+                "content": content[:EVIDENCE_CONTENT_LIMIT],
                 # Fix #4: quote — first 200 chars for fast preview
                 "quote": (content[:200] + ("..." if len(content) > 200 else "")),
                 # Fix #4: source_span — line-level traceability
