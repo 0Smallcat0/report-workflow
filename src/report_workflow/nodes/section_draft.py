@@ -90,17 +90,76 @@ def _structured_sections(payload: dict) -> dict[str, dict]:
     raise QAHardBlockError(f"{STRUCTURED_DRAFTS_FILENAME} must contain a sections object or list")
 
 
+#: A line that is a block of its own: a heading, a placed table or figure, an
+#: image, a fence, a Markdown table row. Joined into a paragraph it would
+#: render as text in the middle of prose.
+_BLOCK_LINE_RE = re.compile(r"^\s*(?:#{1,6}\s|\[(?:TABLE|FIGURE):|!\[|```|\||\$\$)")
+
+#: Characters after which the next sentence follows with no space: Chinese and
+#: Japanese sentences are not separated by one.
+_NO_SPACE_AFTER = re.compile(r"[　-〿㐀-鿿＀-￯]$")
+
+
+def section_paragraphs(section: dict, section_id: str) -> list[list[tuple[str, dict]]]:
+    """A section's sentences, grouped into the paragraphs they are written in.
+
+    Each sentence comes with the JSON path an error should name. The flat
+    ``sentences`` list compiles one paragraph per sentence — the only shape
+    there was, so every structured draft rendered as a column of one-sentence
+    paragraphs, and "context, content, conclusion" could not be written in the
+    preferred authoring path. ``paragraphs`` groups them:
+    ``{"paragraphs": [{"sentences": [...]}, ...]}``.
+    """
+    if "sentences" in section and "paragraphs" in section:
+        raise QAHardBlockError(
+            f"{STRUCTURED_DRAFTS_FILENAME} section {section_id!r} has both sentences and "
+            "paragraphs; use paragraphs to group sentences, or sentences alone"
+        )
+    if "paragraphs" in section:
+        raw_paragraphs = section.get("paragraphs")
+        if not isinstance(raw_paragraphs, list):
+            raise QAHardBlockError(
+                f"{STRUCTURED_DRAFTS_FILENAME} section {section_id!r} paragraphs must be a list"
+            )
+        groups: list[list[tuple[str, dict]]] = []
+        for paragraph_index, paragraph in enumerate(raw_paragraphs):
+            sentences = paragraph.get("sentences") if isinstance(paragraph, dict) else None
+            if not isinstance(sentences, list) or not sentences:
+                raise QAHardBlockError(
+                    f"{STRUCTURED_DRAFTS_FILENAME} {section_id}.paragraphs[{paragraph_index}] "
+                    "must be an object with a non-empty sentences list"
+                )
+            groups.append([
+                (f"{section_id}.paragraphs[{paragraph_index}].sentences[{index}]", sentence)
+                for index, sentence in enumerate(sentences)
+            ])
+        return groups
+    raw_sentences = section.get("sentences")
+    if not isinstance(raw_sentences, list):
+        raise QAHardBlockError(
+            f"{STRUCTURED_DRAFTS_FILENAME} section {section_id!r} must contain a sentences list"
+        )
+    return [[(f"{section_id}.sentences[{index}]", sentence)] for index, sentence in enumerate(raw_sentences)]
+
+
+def _join_sentences(texts: list[str]) -> str:
+    joined = texts[0]
+    for text in texts[1:]:
+        joined += text if _NO_SPACE_AFTER.search(joined) else f" {text}"
+    return joined
+
+
 def _section_heading(section_id: str, section: dict) -> str:
     title = str(section.get("title") or section_id.replace("_", " ").title()).strip()
     return title or section_id.replace("_", " ").title()
 
 
-def _as_list(value, field_name: str, section_id: str, sentence_index: int) -> list:
+def _as_list(value, field_name: str, where: str) -> list:
     if value is None:
         return []
     if not isinstance(value, list):
         raise QAHardBlockError(
-            f"{STRUCTURED_DRAFTS_FILENAME} {section_id}.sentences[{sentence_index}].{field_name} must be a list"
+            f"{STRUCTURED_DRAFTS_FILENAME} {where}.{field_name} must be a list"
         )
     return value
 
@@ -159,46 +218,49 @@ def _compile_structured_drafts(state: ReportState, section_order: list[str]) -> 
 
     for section_id in section_order:
         section = sections[section_id]
-        raw_sentences = section.get("sentences")
-        if not isinstance(raw_sentences, list):
-            raise QAHardBlockError(
-                f"{STRUCTURED_DRAFTS_FILENAME} section {section_id!r} must contain a sentences list"
-            )
-        if not raw_sentences and section_requires_claims(blueprint, section_id):
+        paragraphs = section_paragraphs(section, section_id)
+        if not paragraphs and section_requires_claims(blueprint, section_id):
             raise QAHardBlockError(
                 f"{STRUCTURED_DRAFTS_FILENAME} section {section_id!r} has no sentences"
             )
 
         lines = [f"# {_section_heading(section_id, section)}", ""]
-        for sentence_index, sentence in enumerate(raw_sentences):
-            if not isinstance(sentence, dict):
-                raise QAHardBlockError(
-                    f"{STRUCTURED_DRAFTS_FILENAME} {section_id}.sentences[{sentence_index}] must be an object"
-                )
-            raw_text = str(sentence.get("text") or "").strip()
-            if not raw_text:
-                raise QAHardBlockError(
-                    f"{STRUCTURED_DRAFTS_FILENAME} {section_id}.sentences[{sentence_index}] missing text"
-                )
+        sentence_index = 0
+        for paragraph in paragraphs:
+            texts: list[str] = []
+            for where, sentence in paragraph:
+                if not isinstance(sentence, dict):
+                    raise QAHardBlockError(f"{STRUCTURED_DRAFTS_FILENAME} {where} must be an object")
+                raw_text = str(sentence.get("text") or "").strip()
+                if not raw_text:
+                    raise QAHardBlockError(f"{STRUCTURED_DRAFTS_FILENAME} {where} missing text")
+                if len(paragraph) > 1 and _BLOCK_LINE_RE.match(raw_text):
+                    raise QAHardBlockError(
+                        f"{STRUCTURED_DRAFTS_FILENAME} {where} is a heading, table, figure or other "
+                        f"block ({raw_text[:40]!r}) inside a paragraph of {len(paragraph)} sentences; "
+                        "give it a paragraph of its own"
+                    )
 
-            claim_ids = [str(item) for item in _as_list(sentence.get("claim_ids"), "claim_ids", section_id, sentence_index)]
-            evidence_ids = [str(item) for item in _as_list(sentence.get("evidence_ids"), "evidence_ids", section_id, sentence_index)]
-            citation_ids = [str(item) for item in _as_list(sentence.get("citation_ids"), "citation_ids", section_id, sentence_index)]
-            text, auto_citations = _sentence_text_with_citations(raw_text, citation_ids or evidence_ids)
-            citation_ids = citation_ids or auto_citations
-            lines.append(text)
+                claim_ids = [str(item) for item in _as_list(sentence.get("claim_ids"), "claim_ids", where)]
+                evidence_ids = [str(item) for item in _as_list(sentence.get("evidence_ids"), "evidence_ids", where)]
+                citation_ids = [str(item) for item in _as_list(sentence.get("citation_ids"), "citation_ids", where)]
+                text, auto_citations = _sentence_text_with_citations(raw_text, citation_ids or evidence_ids)
+                citation_ids = citation_ids or auto_citations
+                texts.append(text)
+                sentence_index += 1
+
+                if claim_ids or evidence_ids or citation_ids:
+                    sentence_rows.append({
+                        "sentence_id": sentence.get("sentence_id") or f"{section_id}_{sentence_index}",
+                        "section_id": section_id,
+                        "claim_ids": claim_ids,
+                        "evidence_ids": evidence_ids,
+                        "citation_ids": citation_ids,
+                        "wording_strength": sentence.get("wording_strength", "hedged"),
+                        "draft_origin": "structured_draft",
+                    })
+            lines.append(_join_sentences(texts))
             lines.append("")
-
-            if claim_ids or evidence_ids or citation_ids:
-                sentence_rows.append({
-                    "sentence_id": sentence.get("sentence_id") or f"{section_id}_{sentence_index + 1}",
-                    "section_id": section_id,
-                    "claim_ids": claim_ids,
-                    "evidence_ids": evidence_ids,
-                    "citation_ids": citation_ids,
-                    "wording_strength": sentence.get("wording_strength", "hedged"),
-                    "draft_origin": "structured_draft",
-                })
 
         draft_path = section_drafts_dir / f"{section_id}.md"
         draft_path.write_text("\n".join(lines).rstrip() + "\n", encoding="utf-8")

@@ -126,6 +126,23 @@ When validation sees `structured_drafts.json` and the canonical draft files are
 missing, the pipeline writes `section_drafts/*.md`, inserts `[CITE:]` markers from
 `evidence_ids`, and writes `sentence_map.jsonl`.
 
+A flat `sentences` list renders one paragraph per sentence. To write a paragraph
+of several sentences, group them under `paragraphs`; each sentence keeps its own
+claims and citations, and Chinese sentences are joined without a space:
+
+```json
+{"sections": {"results": {"paragraphs": [
+  {"sentences": [
+    {"text": "電動車出廠時比汽油車多排 3.6 t CO2e。", "claim_ids": ["c3"], "evidence_ids": ["E_D_production_gap_t"]},
+    {"text": "差距幾乎全部來自電池。", "claim_ids": ["c3"], "evidence_ids": ["E_D_stage_breakdown"]}
+  ]},
+  {"sentences": [{"text": "[TABLE:E_D_stage_breakdown 表 2　基準情境的階段組成]"}]}
+]}}}
+```
+
+A heading, a `[TABLE:]` or `[FIGURE:]` marker, or an image is a paragraph of its
+own; set inside a paragraph with other sentences it is refused.
+
 Use manual `section_drafts/*.md` plus `sentence_map.jsonl` only when the draft
 needs direct Markdown control or when repairing generated canonical drafts.
 

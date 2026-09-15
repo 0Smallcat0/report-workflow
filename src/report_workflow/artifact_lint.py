@@ -324,12 +324,31 @@ def _lint_structured_drafts(
             continue
         if planned_sections and str(section_id) not in planned_sections:
             _issue(issues, "warning", "structured_drafts", path, section_path, f"Section is not in outline: {section_id}", "Remove unused sections or add them to outline.json.")
-        sentences = section.get("sentences")
-        if not isinstance(sentences, list):
-            _issue(issues, "error", "structured_drafts", path, f"{section_path}.sentences", "sentences must be a list", "Add sentence objects with text, claim_ids, and evidence_ids.")
-            continue
-        for sentence_index, sentence in enumerate(sentences):
-            base = f"{section_path}.sentences[{sentence_index}]"
+        located: list[tuple[str, object]] = []
+        if "paragraphs" in section:
+            if "sentences" in section:
+                _issue(issues, "error", "structured_drafts", path, section_path, "Section has both sentences and paragraphs", "Group the sentences under paragraphs, or keep the flat sentences list alone.")
+                continue
+            paragraphs = section.get("paragraphs")
+            if not isinstance(paragraphs, list):
+                _issue(issues, "error", "structured_drafts", path, f"{section_path}.paragraphs", "paragraphs must be a list", "Add paragraph objects, each with a sentences list.")
+                continue
+            for paragraph_index, paragraph in enumerate(paragraphs):
+                sentences = paragraph.get("sentences") if isinstance(paragraph, dict) else None
+                if not isinstance(sentences, list) or not sentences:
+                    _issue(issues, "error", "structured_drafts", path, f"{section_path}.paragraphs[{paragraph_index}]", "Paragraph must be an object with a non-empty sentences list", "Add the sentences this paragraph is written in.")
+                    continue
+                located.extend(
+                    (f"{section_path}.paragraphs[{paragraph_index}].sentences[{index}]", sentence)
+                    for index, sentence in enumerate(sentences)
+                )
+        else:
+            sentences = section.get("sentences")
+            if not isinstance(sentences, list):
+                _issue(issues, "error", "structured_drafts", path, f"{section_path}.sentences", "sentences must be a list", "Add sentence objects with text, claim_ids, and evidence_ids.")
+                continue
+            located = [(f"{section_path}.sentences[{index}]", sentence) for index, sentence in enumerate(sentences)]
+        for base, sentence in located:
             if not isinstance(sentence, dict):
                 _issue(issues, "error", "structured_drafts", path, base, "Sentence must be an object", "Replace this entry with an object.")
                 continue

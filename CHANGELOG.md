@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+### Fixed — a structured draft can write a paragraph of more than one sentence
+
+`structured_drafts.json`, the preferred new-draft path, compiled every sentence
+into a paragraph of its own, so a report authored through it was a column of
+one-sentence paragraphs — the shape the brief's own paragraph rule (context,
+content, conclusion) rules out. A section may now group its sentences under
+`paragraphs: [{"sentences": [...]}]`; each sentence keeps its claims, citations
+and sentence-map row, Chinese sentences join without a space and English ones
+with one, and a heading, table or figure marker is refused inside a
+multi-sentence paragraph. The flat `sentences` list behaves as before, and
+`lint_artifacts` reads both shapes.
+
 ### Fixed — FE reads a source's notation: 6.058E-01, CO₂, and g CO2e/kWh
 
 Three ways an official or scientific source prints a figure blocked the claim
