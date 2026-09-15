@@ -1,6 +1,8 @@
 """SOURCE_PARSE node - parse files using structured/semi-structured/agent-fallback/validator."""
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from ..errors import QAHardBlockError
 from ..state import ReportState, SourceContentBlock
 from ..config import PROJECT_ROOT
@@ -148,18 +150,30 @@ def run_source_parse(state: ReportState) -> ReportState:
 
         blocks = []
         for block in raw_blocks:
-            blocks.append(SourceContentBlock(
-                block_id=block.get("block_id", ""),
-                block_type=block.get("block_type", "paragraph"),
-                content=block.get("content", ""),
-                page_number=block.get("page_number"),
-                table_data=block.get("table_data"),
-                source_file_path=block.get("source_file_path"),
-                line_start=block.get("line_start"),
-                line_end=block.get("line_end"),
-                content_hash=block.get("content_hash"),
-                quote=block.get("quote"),
-            ))
+            try:
+                blocks.append(SourceContentBlock(
+                    block_id=block.get("block_id", ""),
+                    block_type=block.get("block_type", "paragraph"),
+                    content=block.get("content", ""),
+                    page_number=block.get("page_number"),
+                    table_data=block.get("table_data"),
+                    source_file_path=block.get("source_file_path"),
+                    line_start=block.get("line_start"),
+                    line_end=block.get("line_end"),
+                    content_hash=block.get("content_hash"),
+                    quote=block.get("quote"),
+                ))
+            except ValidationError as error:
+                # Say which file and which part of it. The model's own message
+                # lists every offending cell and names neither.
+                where = f"page {block.get('page_number')}" if block.get("page_number") else (
+                    f"line {block.get('line_start')}" if block.get("line_start") else str(block.get("block_id", ""))
+                )
+                raise QAHardBlockError(
+                    f"Could not read {entry.get('file_name')} ({where}, {block.get('block_type')}): "
+                    f"{error.error_count()} field(s) the parser returned in an unexpected shape, "
+                    f"first: {error.errors()[0].get('loc')} {error.errors()[0].get('msg')}"
+                ) from error
 
         entry["parsed_content"] = [block.model_dump() for block in blocks]
         if is_valid:

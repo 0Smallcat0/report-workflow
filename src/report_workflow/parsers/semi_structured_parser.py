@@ -29,7 +29,16 @@ def parse_pdf(file_path: str) -> dict:
                         "table_data": None
                     })
                 tables = page.extract_tables()
-                for t_idx, table in enumerate(tables):
+                for t_idx, raw_table in enumerate(tables):
+                    # pdfplumber reports a merged or blank cell as None, and the
+                    # block model holds strings. One such cell in any table of
+                    # any page used to stop prepare with a hundred-line
+                    # validation dump naming neither the file nor the page.
+                    table = [
+                        ["" if cell is None else str(cell) for cell in row]
+                        for row in raw_table
+                        if row is not None
+                    ]
                     table_text = table_to_text(table)
                     blocks.append({
                         "block_id": f"page_{page_num}_table_{t_idx}",

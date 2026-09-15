@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Fixed — a PDF table with a merged cell no longer stops prepare
+
+pdfplumber reports a merged or blank cell as `None` and the block model holds
+strings, so preparing from the ICCT white paper ended at SOURCE_PARSE with "110
+validation errors for SourceContentBlock" — a hundred lines of `table_data.0.1`
+naming neither the file nor the page. Cells are normalized to strings at the
+parser, and a block the model still refuses is reported by file, page or line,
+and the first offending field.
+
 ### Added — a source can name the pages it is used for
 
 The same report cites one table of an 86-page white paper and two articles of a
