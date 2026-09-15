@@ -61,6 +61,17 @@ _ID_COLUMN_RE = re.compile(
     re.IGNORECASE,
 )
 
+#: A column that states the unit of each row's value. When it holds more than
+#: one unit, the value column mixes quantities: a parameter sheet listing a
+#: heat value in kcal/L beside an emission factor in kg CO2/TJ and a mileage in
+#: km had its "數值" column averaged to 4,695.72 and offered as citable.
+_UNIT_COLUMN_RE = re.compile(r"^(?:單位|单位|計量單位|计量单位|units?|uom|unit of measure)$", re.IGNORECASE)
+
+#: A column of calendar years. Its mean is not a quantity ("年份 平均 2,015.00")
+#: and a year printed as "2,025" is not how anyone writes one; grouped by, it
+#: is a category.
+_YEAR_COLUMN_RE = re.compile(r"(?:年份|年度|年$|(?:^|[\s_-])years?$|^yr$)", re.IGNORECASE)
+
 #: How many groups a distribution names before it stops being a distribution
 #: and starts being the column reprinted.
 MAX_GROUPS_LISTED = 15
@@ -305,6 +316,37 @@ def select_rows(dataset: Dataset, expression: str | None) -> list[dict]:
 def _numbers(rows: list[dict], column: str) -> list[float]:
     parsed = (parse_number(row.get(column)) for row in rows)
     return [value for value in parsed if value is not None]
+
+
+def _mixed_unit_column(dataset: "Dataset") -> str | None:
+    """The unit column, when its rows state more than one unit."""
+    for column in dataset.columns[:MAX_COLUMNS_SUMMARIZED]:
+        if not _UNIT_COLUMN_RE.match(str(column).strip()):
+            continue
+        units = {str(value).strip() for value in dataset.column_values(column) if str(value).strip()}
+        if len(units) > 1:
+            return column
+    return None
+
+
+def _is_year_column(column: str, numbers: list[float]) -> bool:
+    return bool(_YEAR_COLUMN_RE.search(str(column).strip())) and all(
+        float(value).is_integer() and 1800 <= value <= 2200 for value in numbers
+    )
+
+
+def _is_summable_measure(dataset: "Dataset", column: str, numbers: list[float]) -> bool:
+    """Whether a numeric column's mean, median and range say anything.
+
+    Not when the rows are in different units, not when the column is a year,
+    and not when every row holds the same value — "最小值 2,025 … 最大值
+    2,025" is the column restated as if it varied.
+    """
+    return (
+        _mixed_unit_column(dataset) is None
+        and not _is_year_column(column, numbers)
+        and len(set(numbers)) > 1
+    )
 
 
 def _group_counts(rows: list[dict], column: str) -> list[tuple[str, int]]:
@@ -2144,11 +2186,15 @@ def dataset_summary_units(
             parsed = [parse_number(value) for value in filled]
             numbers = [number for number in parsed if number is not None]
             if len(numbers) >= 2 and len(numbers) / len(filled) >= NUMERIC_COLUMN_THRESHOLD:
-                numeric_content, numeric_derivation = _numeric_text(
-                    dataset, column, numbers, zh
-                )
-                entries.append((numeric_content, numeric_derivation, None))
-                continue
+                if _is_summable_measure(dataset, column, numbers):
+                    numeric_content, numeric_derivation = _numeric_text(
+                        dataset, column, numbers, zh
+                    )
+                    entries.append((numeric_content, numeric_derivation, None))
+                    continue
+                if not _is_year_column(column, numbers):
+                    continue
+                # A year is counted, not averaged: it falls through as a category.
             counts = _group_counts(dataset.rows, column)
             # A column whose values are nearly all distinct is a title or a
             # description, not a category. Its "distribution" is the column
@@ -2195,8 +2241,11 @@ def _column_kinds(dataset: Dataset) -> tuple[list[str], list[str]]:
         parsed = [parse_number(value) for value in filled]
         numbers = [number for number in parsed if number is not None]
         if len(numbers) >= 2 and len(numbers) / len(filled) >= NUMERIC_COLUMN_THRESHOLD:
-            numeric.append(column)
-            continue
+            if _is_summable_measure(dataset, column, numbers):
+                numeric.append(column)
+                continue
+            if not _is_year_column(column, numbers):
+                continue
         counts = _group_counts(dataset.rows, column)
         # A column with a value per row is a title, not a category, and a
         # 544-row "breakdown" is the file reprinted.

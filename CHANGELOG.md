@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Fixed — intake no longer averages a column of mixed units, years or a constant
+
+A parameter sheet listing a heat value in kcal/L beside an emission factor in
+kg CO2/TJ and a mileage in km had its value column summarised ("平均數 4,695.72")
+and averaged inside a table crossed by source; a column of publication years was
+summarised as "最小值 2,025 … 平均數 2,025" and averaged in a cross table as
+"年份 平均 2,015.00". A numeric column is summarised and crossed only when its
+rows share one unit, it is not a year, and it varies. A year column is counted as
+a category instead.
+
 ### Fixed — formula evidence prints each operand with the places it was used with
 
 The operand line of a formula exists to be redone, and it printed every value
