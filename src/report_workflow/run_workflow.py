@@ -350,6 +350,7 @@ def prepare_workflow(
     notebooklm_storage_path: str | None = None,
     reference_docx: str | None = None,
     source_citation_columns: list[str] | None = None,
+    source_citations: dict[str, dict] | None = None,
 ) -> ReportState:
     """Prepare deterministic artifacts and agent task briefs.
 
@@ -360,6 +361,11 @@ def prepare_workflow(
         source_citation_columns: table columns that really hold sources, such
             as 'source_url'. Nothing else in a table is read as a citation;
             the default reads no cells at all.
+        source_citations: declared bibliographic metadata keyed like
+            ``artifact_role_map`` (path, file name, resolved path). A source
+            with a declared citation is cited author-year and listed in the
+            references; one without keeps the honest default of a Sources-list
+            marker.
     """
     state = ReportState.new(user_prompt, uploaded_files, output_dir, front_matter=front_matter)
     if report_profile:
@@ -387,6 +393,8 @@ def prepare_workflow(
         state.spec["source_citation_columns"] = [
             str(name) for name in source_citation_columns if str(name).strip()
         ]
+    if source_citations:
+        state.spec["source_citations"] = dict(source_citations)
     try:
         state = run_preflight_checks(state)
     except QAHardBlockError as e:

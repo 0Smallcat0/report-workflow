@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+### Added — a source can say what it is a copy of
+
+A course report on vehicle life-cycle emissions was driven through the pipeline
+from Markdown transcriptions of an ICCT white paper, a government emission-factor
+announcement and a journal article. Every figure traced to its row, and not one
+sentence could be cited the way the reader expects: a `.md` source resolves to
+an `[Sn]` marker and a Sources-list line naming the file, a PDF to a tag cut
+from its file name, and the reference list carried neither. That default is the
+right one — a file name does not say who published the content — but there was
+no way for an author who does know to say so.
+
+`source_files` entries now take `citation` (`author`, `year`, `title`,
+`publisher`, `container`, `volume`, `issue`, `pages`, `doi`, `url`,
+`description`, `in_text`, `reference`), and the CLI takes the same objects from
+`--source-manifest`. A declared source is cited author-year — `(Negri & Bieker,
+2025)`, `(Machala et al., 2025)`, `（經濟部能源署，2026）` — its rows count as
+literature, and the reference list and `.bib` carry the declared record.
+Adjacent parentheticals merge as APA writes them. Nothing is inferred: a missing
+year prints `n.d.`/`無日期`, an unknown field is refused, and an author list that
+cannot be split into surnames (`Tesla, Inc.`) stops the run at prepare with a
+request for `in_text` rather than printing a name nobody wrote.
+
+The MCP `start_report` tool also gains `author_block`, `affiliation_block`,
+`keywords` and `template_fields`, which the skill reference documented and only
+the Python surface accepted.
+
+### Fixed — the BibTeX file no longer dates project files to the current year
+
+`publication_references.bib` gave every file-derived source `year = {<this
+year>}` while the reference list for the same source printed `(n.d.)` — the
+invented date the formatter's own rule forbids, in the one artifact a reader
+imports wholesale. It now prints `n.d.`.
+
 ### Changed — the landing page carries the harsher benchmark too
 
 README showed the two-arm report-quality comparison — harness wins 6 of 8,

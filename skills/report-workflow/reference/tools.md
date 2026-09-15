@@ -20,7 +20,7 @@ Start the report generation workflow. Parses source files, builds evidence ledge
 Parameters:
 
 - `prompt` (string, required): User prompt describing the desired report
-- `source_files` (list[object], required): Source files to use. Legacy strings are accepted. Prefer structured entries when roles matter: {"path": "source.pdf", "role": "source_data"} or {"path": "base.docx", "role": "base_document"}. Valid roles are source_data and base_document.
+- `source_files` (list[object], required): Source files to use. Legacy strings are accepted. Prefer structured entries when roles matter: {"path": "source.pdf", "role": "source_data"} or {"path": "base.docx", "role": "base_document"}. Valid roles are source_data and base_document. Add "citation" ({"author", "year", "title", "publisher", "container", "volume", "issue", "pages", "doi", "url", "description", "in_text", "reference"}) to a source whose publication you know; it is then cited author-year and listed in the references instead of as a project file.
 - `output_dir` (string, required): Directory to write final output files
 - `report_profile` (string, optional): Report profile ID. Built-ins: engineering_lab_report, academic_paper, business_report, proposal, admissions_report, admissions_project_report, and custom. Defaults to profile inference from the prompt, then academic_paper.
 - `task_intent` (string, optional): new_draft or revise_existing. Use revise_existing when one structured source entry has role=base_document.

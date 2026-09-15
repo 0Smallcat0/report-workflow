@@ -35,6 +35,35 @@ paths are accepted for new drafts.
   it only for the specific theory/property claim, and never use it to invent
   missing measured values or extra trial groups.
 
+### Declaring what a source is a copy of
+
+A source file is not a publication, so by default a `.md`, `.txt` or `.csv`
+source is cited with a numbered `[Sn]` marker backed by the generated Sources
+list, and nothing is guessed from its file name. When the file is a transcription
+or excerpt of something published — a report, a paper, a government
+announcement, a dataset — declare it, and the source is cited author-year and
+listed in the references:
+
+```json
+{"path": "icct_2025_excerpt.md", "role": "source_data",
+ "citation": {"author": "Negri, M., & Bieker, G.", "year": "2025",
+              "title": "Life-cycle greenhouse gas emissions from passenger cars in the European Union",
+              "publisher": "International Council on Clean Transportation",
+              "url": "https://theicct.org/..."}}
+```
+
+- In-text citations are derived from `author`: one surname, two joined with `&`,
+  three or more as `et al.`; a Chinese author gets full-width punctuation
+  (`（經濟部能源署，2026）`). When the author cannot be split into surnames —
+  `Tesla, Inc.` — the run refuses to start and asks for `in_text`.
+- Articles take `container` (the journal), `volume`, `issue`, `pages` and `doi`;
+  reports and web pages take `publisher` and `url`; `description` adds a bracketed
+  label such as `Data set` or `Press release`. `reference` is used verbatim when
+  the exact entry is already known.
+- A missing `year` prints as `n.d.` (`無日期`); no field is ever filled in for you.
+- The CLI takes the same objects from a JSON file: `--source-manifest sources.json`
+  (relative paths resolve against the manifest's folder).
+
 For academic-style profiles, pass structured front matter when available:
 `title`, `author_block`, `affiliation_block`, `correspondence`, and `keywords`.
 For school/company fixed templates, pass `template_fields` such as `course_name`,

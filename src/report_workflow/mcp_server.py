@@ -230,6 +230,10 @@ def build_server():
         report_profile: str | None = None,
         task_intent: str = "new_draft",
         title: str | None = None,
+        author_block: str | None = None,
+        affiliation_block: str | None = None,
+        keywords: list[str] | None = None,
+        template_fields: dict | None = None,
         reference_docx: str | None = None,
         preflight_confirmed: bool = False,
         preflight_decisions: dict | None = None,
@@ -240,10 +244,16 @@ def build_server():
         """Step 1. Parse sources into an evidence ledger and write the task briefs.
 
         `source_files` takes paths, or `{"path": ..., "role": "source_data"}` /
-        `{"path": ..., "role": "base_document"}`. `report_profile` is the only
-        report-shape selector; omit it to infer one. Set `task_intent` to
-        "revise_existing" to edit a base document instead of drafting.
-        `reference_docx` follows your own Word template's styles.
+        `{"path": ..., "role": "base_document"}`. Add `"citation": {"author":
+        ..., "year": ..., "title": ..., "publisher": ..., "url": ...}` to a
+        source whose publication you know, and it is cited author-year and
+        listed in the references instead of as a project file. `report_profile`
+        is the only report-shape selector; omit it to infer one. Set
+        `task_intent` to "revise_existing" to edit a base document instead of
+        drafting. `title`, `author_block`, `affiliation_block`, `keywords` and
+        `template_fields` (course_name, student_id, instructor, date, ...) fill
+        the front matter. `reference_docx` follows your own Word template's
+        styles.
 
         Optional features follow `preflight_decisions.feature_decisions`:
         recording `{"web_research": "enable"}` turns web research on. Pass
@@ -260,6 +270,10 @@ def build_server():
             report_profile=report_profile,
             task_intent=task_intent,
             title=title,
+            author_block=author_block,
+            affiliation_block=affiliation_block,
+            keywords=keywords,
+            template_fields=template_fields,
             reference_docx=reference_docx,
             preflight_confirmed=preflight_confirmed,
             preflight_decisions=preflight_decisions,

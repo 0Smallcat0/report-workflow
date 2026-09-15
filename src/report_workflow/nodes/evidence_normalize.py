@@ -613,6 +613,7 @@ def _derived_stats_units(source_registry: list, created_at: str) -> list[dict]:
                 "source_file_name": file_name,
                 "source_file_path": entry.get("file_path", ""),
                 "file_type": entry.get("file_type", ""),
+                **({"citation": dict(entry["citation"])} if entry.get("citation") else {}),
                 "source_role": "source_data",
                 "granularity": "paragraph",
                 "evidence_type": "quantitative",
@@ -1174,6 +1175,11 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
 
             # Fix #4: source_role classification
             source_role = _determine_source_role(entry, block)
+            # A source whose publication the author declared is literature,
+            # whatever container it arrived in: a Markdown transcription of a
+            # government report is that report, not a project note.
+            if entry.get("citation") and entry.get("artifact_role", "source_data") == "source_data":
+                source_role = "research_document"
 
             # Fix #9: graphify uncertainty metadata
             graph_provenance = _parse_graphify_metadata(entry, block)
@@ -1255,6 +1261,8 @@ def run_evidence_normalize(state: ReportState) -> ReportState:
             }
             if block.get("table_data"):
                 unit["table_data"] = block.get("table_data")
+            if entry.get("citation"):
+                unit["citation"] = dict(entry["citation"])
 
             # Fix #9: attach graphify uncertainty metadata
             if graph_provenance:

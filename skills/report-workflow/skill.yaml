@@ -97,7 +97,11 @@ tools:
           Source files to use. Legacy strings are accepted. Prefer structured
           entries when roles matter: {"path": "source.pdf", "role": "source_data"}
           or {"path": "base.docx", "role": "base_document"}. Valid roles are
-          source_data and base_document.
+          source_data and base_document. Add "citation" ({"author", "year",
+          "title", "publisher", "container", "volume", "issue", "pages", "doi",
+          "url", "description", "in_text", "reference"}) to a source whose
+          publication you know; it is then cited author-year and listed in the
+          references instead of as a project file.
       - name: output_dir
         type: string
         required: true

@@ -44,6 +44,46 @@ def _parse_source_arg(value: str) -> tuple[str, str]:
     return value, "source_data"
 
 
+def _load_source_manifest(manifest_path: str) -> tuple[list[str], dict[str, str], dict[str, dict]]:
+    """Read a JSON list of source objects: files, role map, declared citations.
+
+    The same object shape ``start_report`` takes over the agent surface, so a
+    run described once can be prepared from either entry point. Relative paths
+    are resolved against the manifest's own folder: a manifest is written next
+    to its sources, and resolving against the shell's cwd would make it work
+    only from wherever it happened to be written.
+    """
+    from .source_citation import normalize_citation
+
+    base = Path(manifest_path).resolve().parent
+    payload = json.loads(Path(manifest_path).read_text(encoding="utf-8"))
+    items = payload.get("sources") if isinstance(payload, dict) else payload
+    if not isinstance(items, list) or not items:
+        raise ValueError("expected a non-empty JSON list of source objects (or {\"sources\": [...]})")
+    files: list[str] = []
+    roles: dict[str, str] = {}
+    citations: dict[str, dict] = {}
+    for index, item in enumerate(items):
+        if isinstance(item, str):
+            item = {"path": item}
+        if not isinstance(item, dict) or not str(item.get("path") or "").strip():
+            raise ValueError(f"sources[{index}] needs a path")
+        path = Path(str(item["path"]).strip())
+        if not path.is_absolute():
+            path = base / path
+        role = str(item.get("role") or "source_data").strip()
+        if role not in VALID_ARTIFACT_ROLES:
+            raise ValueError(f"sources[{index}] has invalid role {role!r}")
+        files.append(str(path))
+        roles[path.name] = role
+        citation = normalize_citation(item.get("citation"), f"sources[{index}].citation")
+        if citation:
+            citations[str(path)] = citation
+            citations[path.name] = citation
+            citations[str(path.resolve())] = citation
+    return files, roles, citations
+
+
 def _parse_template_field_arg(value: str) -> tuple[str, str]:
     if "=" not in value:
         raise argparse.ArgumentTypeError("Template field must use KEY=VALUE format")
@@ -126,11 +166,17 @@ def build_parser() -> argparse.ArgumentParser:
     prepare.add_argument(
         "--source",
         action="append",
-        required=True,
+        default=[],
         type=_parse_source_arg,
         help="Source file path; may be repeated. "
              "Format 'PATH:ROLE' to set artifact role (source_data or base_document). "
              "Example: --source data.csv:source_data --source base.docx:base_document",
+    )
+    prepare.add_argument(
+        "--source-manifest",
+        help="JSON file listing sources as objects "
+             '{"path": ..., "role": "source_data", "citation": {"author": ..., "year": ..., "title": ...}}. '
+             "Relative paths resolve against the manifest's folder. May be combined with --source.",
     )
     prepare.add_argument(
         "--output",
@@ -647,6 +693,20 @@ def main(argv: list[str] | None = None) -> int:
             for path, role in args.source:
                 source_files.append(str(Path(path)))
                 artifact_role_map[str(Path(path).name)] = role
+            source_citations: dict[str, dict] = {}
+            if args.source_manifest:
+                try:
+                    manifest_files, manifest_roles, source_citations = _load_source_manifest(
+                        args.source_manifest
+                    )
+                except (OSError, json.JSONDecodeError, ValueError) as exc:
+                    print(f"invalid --source-manifest: {exc}", file=sys.stderr)
+                    return 2
+                source_files.extend(manifest_files)
+                artifact_role_map.update(manifest_roles)
+            if not source_files:
+                print("prepare needs at least one --source or a --source-manifest", file=sys.stderr)
+                return 2
             project_identity = None
             if args.project_identity:
                 with open(args.project_identity, encoding="utf-8") as f:
@@ -732,6 +792,7 @@ def main(argv: list[str] | None = None) -> int:
                 notebooklm_notebook_id=cfg.notebooklm_notebook_id,
                 notebooklm_storage_path=cfg.notebooklm_storage_path,
                 reference_docx=args.reference_docx,
+                source_citations=source_citations or None,
             )
             _print_state(state)
             return 0

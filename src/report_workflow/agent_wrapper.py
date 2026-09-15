@@ -22,6 +22,7 @@ from report_workflow.run_workflow import (
     validate_step_drafts,
 )
 from report_workflow.errors import AgentWorkRequired, QAHardBlockError
+from report_workflow.source_citation import normalize_citation
 from report_workflow.state import ReportState, run_dir_for
 from report_workflow.runtime_support import load_jsonl
 from report_workflow.artifact_contract import remap_evidence_ids
@@ -118,6 +119,39 @@ def _normalize_source_files(source_files: list[str | dict]) -> tuple[list[str], 
         artifact_role_map[resolved] = role
 
     return normalized_files, artifact_role_map
+
+
+def _source_citation_map(source_files: list[str | dict]) -> dict[str, dict]:
+    """Declared bibliographic metadata, keyed the way artifact roles are.
+
+    ``{"path": ..., "role": "source_data", "citation": {"author": ...}}`` says
+    who published the file's content. Keys are the path as given, the file
+    name and the resolved path, so CORPUS_BUILD finds it however the path was
+    written. A citation that cannot be formatted without inventing a field is
+    refused here, at prepare time, rather than surfacing as a malformed
+    reference list after drafting.
+    """
+    citations: dict[str, dict] = {}
+    for index, item in enumerate(source_files or []):
+        if not isinstance(item, dict) or item.get("citation") is None:
+            continue
+        path = str(item.get("path") or item.get("file_path") or "").strip()
+        citation = normalize_citation(item.get("citation"), f"source_files[{index}].citation")
+        if not path or not citation:
+            continue
+        try:
+            resolved = str(Path(path).expanduser().resolve())
+        except OSError:
+            resolved = path
+        previous = citations.get(resolved)
+        if previous is not None and previous != citation:
+            raise ValueError(
+                f"source_files[{index}] repeats {Path(path).name} with a different "
+                "citation; one file has one publication record"
+            )
+        for key in (path, str(Path(path).name), resolved):
+            citations[key] = citation
+    return citations
 
 
 def check_setup() -> dict:
@@ -250,6 +284,7 @@ def start_report_task(
     """
     try:
         normalized_source_files, artifact_role_map = _normalize_source_files(source_files)
+        source_citations = _source_citation_map(source_files)
 
         # The user's recorded decision is the flag. Requiring a second,
         # parallel enable_* argument meant an approval could be recorded and
@@ -304,6 +339,7 @@ def start_report_task(
             intent=task_intent,
             artifact_role_map=artifact_role_map,
             source_citation_columns=source_citation_columns,
+            source_citations=source_citations,
             front_matter={
                 key: value for key, value in {
                     "title": title,

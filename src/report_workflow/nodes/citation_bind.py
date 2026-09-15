@@ -42,6 +42,18 @@ from .cited_sources import (
     format_bibtex_entry as format_cited_bibtex_entry,
     format_reference_entry as format_cited_reference_entry,
 )
+from ..source_citation import (
+    format_bibtex as format_declared_bibtex,
+    format_in_text as format_declared_in_text,
+    format_reference as format_declared_reference,
+    merge_adjacent_parentheticals,
+)
+
+
+def _declared_citation(evidence: dict) -> dict | None:
+    """The bibliographic record the author declared for this row's source."""
+    citation = evidence.get("citation")
+    return citation if isinstance(citation, dict) and citation else None
 
 
 # ------------------------------------------------------------------
@@ -236,6 +248,10 @@ def _is_local_artifact(evidence: dict) -> bool:
     removed the entry it pointed at, and the deliverable went out with a
     bibliography that had nothing in it. Same rule, both notations.
     """
+    if _declared_citation(evidence):
+        # The author said what this file is a copy of; the reference list
+        # carries that publication, not the file.
+        return False
     metadata = evidence.get("metadata") or {}
     file_type = str(
         evidence.get("file_type") or metadata.get("file_type") or ""
@@ -335,6 +351,10 @@ def _format_in_text_citation(evidence: dict) -> str:
     - research_document: (Author, Year)
     - primary_source: (Author, Year)
     """
+    declared = _declared_citation(evidence)
+    if declared:
+        return format_declared_in_text(declared)
+
     source_role = evidence.get("source_role", "primary_source")
     file_name = evidence.get("source_file_name", evidence.get("source_id", "unknown"))
     file_type = evidence.get("file_type", "unknown")
@@ -466,6 +486,10 @@ def _format_reference_entry(evidence: dict) -> Optional[str]:
     - research_document
     - primary_source
     """
+    declared = _declared_citation(evidence)
+    if declared:
+        return format_declared_reference(declared)
+
     source_role = evidence.get("source_role", "primary_source")
 
     if source_role in ("code_artifact", "graph_analysis", "derived_summary", "internal_project_source"):
@@ -517,6 +541,11 @@ def _format_gbt7714_reference_entry(evidence: dict, number: int, standard: str =
     metadata-poor references for academic_paper.
     """
     metadata = evidence.get("source_metadata") if isinstance(evidence.get("source_metadata"), dict) else {}
+    declared = _declared_citation(evidence)
+    if declared:
+        metadata = {**metadata, **{k: v for k, v in declared.items() if k in ("title", "author", "year")}}
+        if declared.get("url") or declared.get("doi"):
+            evidence = {**evidence, "url": declared.get("url") or f"https://doi.org/{declared['doi']}"}
     file_name = str(evidence.get("source_file_name") or evidence.get("source_id") or "Unknown Source")
     title = str(evidence.get("title") or metadata.get("title") or Path(file_name).stem or file_name).strip()
     author = str(evidence.get("author") or metadata.get("author") or "").strip()
@@ -885,6 +914,7 @@ def resolve_citations_publication(
             new_audit.append(entry)
 
     resolved_md = _collapse_adjacent_duplicate_citations(resolved_md)
+    resolved_md = merge_adjacent_parentheticals(resolved_md)
     resolved_md = re.sub(r"[ \t]{2,}", " ", resolved_md)
     # Full-width punctuation was missing from this cleanup, so a Chinese
     # sentence whose citation resolved to nothing shipped as "...價格週期支配 。"
@@ -1167,8 +1197,6 @@ def _build_bibtex(evidence_ledger: list[dict], literature_refs: list[str]) -> st
     Creates @misc entries for research documents since we don't have
     full bibliographic metadata.
     """
-    from datetime import datetime
-
     bib_entries = []
 
     # Track which files we've already added
@@ -1191,7 +1219,16 @@ def _build_bibtex(evidence_ledger: list[dict], literature_refs: list[str]) -> st
         citekey = Path(file_name).stem.replace(" ", "_").replace("-", "_")
         citekey = re.sub(r'[^a-zA-Z0-9_]', '', citekey)
 
-        year = datetime.now().year
+        declared = _declared_citation(ev)
+        if declared:
+            bib_entries.append(format_declared_bibtex(declared, citekey or source_id))
+            continue
+
+        # A file has no publication year. The reference entry for the same
+        # source prints "(n.d.)"; this record used to print the year the
+        # pipeline happened to run, which is the invented date that rule
+        # exists to prevent — in the one artifact a reader imports wholesale.
+        year = "n.d."
 
         if file_type == "pdf":
             entry_type = "misc"
