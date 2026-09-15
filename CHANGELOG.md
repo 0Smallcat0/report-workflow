@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+### Fixed — FE reads a source's notation: 6.058E-01, CO₂, and g CO2e/kWh
+
+Three ways an official or scientific source prints a figure blocked the claim
+that restated it correctly. A value in scientific notation — Taiwan's
+carbon-footprint database prints 0.6058 as `6.058E-01` — was extracted and then
+failed to parse, because the exponent was rewritten on its own as
+`float("E-01")`. A subscript digit made a unit look absent: the claim's
+`kgCO2e/度` was searched for in `kgCO₂e/度` without the NFKC fold the numbers get.
+And the unit reader stopped at the space or at the digit of CO2, so "63 g CO2e/km"
+was the unit g, "kgCO2e/度" was "kgCO", and a column headed "(g CO2e/kWh)" was
+"gco2e/kwh" — three spellings of one unit that never matched. A gas named between
+a mass and its denominator is now read past, so all three are g/km, kg/度 and
+g/kWh; a different mass or a different denominator still fails.
+
 ### Fixed — a PDF's sub- and superscripts stay on their line
 
 pdfplumber groups characters into lines by their top edge, and a subscript set

@@ -462,13 +462,31 @@ _BARE_NUMBER_RE = re.compile(
 
 _APOSTROPHE_SUFFIX_RE = re.compile(r"'[strelmv]|'ll|'ve|'d\b")
 
+#: Masses a greenhouse-gas quantity is weighed in.
+_MASS_UNITS = r"(?:g|kg|t|kt|mt|gt|lbs?|公斤|公克|公噸|噸|克|千克)"
+
+#: The gas named between a mass and its denominator: "63 g CO2e/km",
+#: "0.467 公斤 CO2e/度", "kg CO2-eq". It says what was weighed, not a different
+#: unit, and reading the unit only as far as the space turned "g CO2e/km" into
+#: "g" — so the per-kilometre figure could never meet a column in g CO2e/km.
+_SPECIES_AFTER_MASS_RE = re.compile(r"[ \t　]*(?:CO2(?:-?eq\.?|e)?|CH4|N2O)(?![A-Za-z0-9])", re.IGNORECASE)
+
+#: The same gas written without a space, "kgCO2e/度": the Latin run stops at the
+#: digit and leaves "kgCO" with "2e" behind it.
+_GLUED_SPECIES_RE = re.compile(r"^(?P<mass>g|kg|t|kt|mt|gt|lbs?)CO$", re.IGNORECASE)
+_GLUED_SPECIES_TAIL_RE = re.compile(r"2(?:-?eq\.?|e)?(?![A-Za-z0-9])", re.IGNORECASE)
+
+#: Either spelling folded out of a normalised unit component.
+_SPECIES_IN_UNIT_RE = re.compile(r"^(%s)(?:co2(?:-?eq\.?|e)?|ch4|n2o)$" % _MASS_UNITS)
+
 
 def _unit_after(text: str, position: int) -> str:
     """The unit stated immediately after a number, or "" when none is.
 
     A slash-compound is taken whole — 美元/噸 and MJ/kg are single units, and
     reading only the numerator would let a price per tonne match a price per
-    kilogram.
+    kilogram. A gas named between the mass and the slash — g CO2e/km — is
+    read past, so the compound is g/km.
     """
     rest = text[position:]
     stripped = rest.lstrip(" \t　")
@@ -482,6 +500,14 @@ def _unit_after(text: str, position: int) -> str:
         return ""
 
     after = position + offset + match.end()
+    glued = _GLUED_SPECIES_RE.match(unit)
+    tail_species = _GLUED_SPECIES_TAIL_RE.match(text, after) if glued else None
+    if glued and tail_species:
+        unit, after = glued.group("mass"), tail_species.end()
+    elif re.fullmatch(_MASS_UNITS, unit, re.IGNORECASE):
+        species = _SPECIES_AFTER_MASS_RE.match(text, after)
+        if species:
+            after = species.end()
     if text[after:after + 1] == "/":
         tail = text[after + 1:]
         tail_match = _CJK_UNIT_RE.match(tail) or _ASCII_UNIT_RE.match(tail)
@@ -902,13 +928,17 @@ def _row_numbers_with_unit(content: str) -> tuple[list, list] | None:
 
 
 def _normalize_number_str(s: str) -> float:
-    """Parse a number string to float, stripping commas and ~ prefix."""
-    import re as _re
+    """Parse a number string to float, stripping commas and ~ prefix.
+
+    Scientific notation is float's own syntax. The exponent used to be
+    rewritten on its own first — float("E-01") — which raised for every such
+    number, so a figure the Taiwan carbon-footprint database prints as
+    "6.058E-01" could never support a claim stating 0.6058, although both
+    extractors read the notation.
+    """
     # Strip commas (thousands separator) and ~ prefix (evidence "approximately" marker)
     # e.g. "~451,947" → "451947", "9,696" → "9696"
-    s = s.lstrip('~').replace(',', '')
-    s = _re.sub(r'[eE][+-]?\d+', lambda m: str(float(m.group(0))), s)
-    return float(s)
+    return float(s.lstrip('~').replace(',', ''))
 
 
 def _same_value(claim_val: float, evidence_num: str) -> bool:
@@ -1010,11 +1040,12 @@ def _normalize_unit(unit: str) -> str:
     normalized = normalized.replace(" ", "")
     if normalized in _UNIT_ALIASES:
         return _UNIT_ALIASES[normalized]
+    # A column headed "(g CO2e/kWh)" states g/kWh of CO2e; the gas is folded
+    # out of each component the way the prose extractor reads past it.
+    parts = [_SPECIES_IN_UNIT_RE.sub(r"\1", part) for part in normalized.split("/")]
     if "/" in normalized:
-        return "/".join(
-            _UNIT_ALIASES.get(part, part) for part in normalized.split("/")
-        )
-    return normalized
+        return "/".join(_UNIT_ALIASES.get(part, part) for part in parts)
+    return _UNIT_ALIASES.get(parts[0], parts[0])
 
 
 def _units_match(claim_unit: str, evidence_unit: str) -> bool:
@@ -1272,13 +1303,16 @@ def _check_cross_script_tokens(claim_text: str, evidence_content: str) -> list[s
     sentence summarising an English source in Chinese words. That gap is
     recorded as a documented evasion rather than papered over.
     """
+    # Compared after NFKC, as the numbers are: a source printing "kgCO₂e/度"
+    # and a claim writing "kgCO2e/度" name the same unit, and the subscript
+    # digit alone made the token look absent.
     tokens = [
-        token for token in _LATIN_TOKEN_RE.findall(claim_text)
+        token for token in _LATIN_TOKEN_RE.findall(unicodedata.normalize("NFKC", claim_text))
         if token.lower() not in _LATIN_TOKEN_STOPWORDS
     ]
     if not tokens:
         return []
-    evidence_lower = evidence_content.lower()
+    evidence_lower = unicodedata.normalize("NFKC", evidence_content).lower()
     missing = [token for token in tokens if token.lower() not in evidence_lower]
     coverage = 1 - len(missing) / len(tokens)
     # Same 0.40 floor the English term check uses, deliberately: two shapes
