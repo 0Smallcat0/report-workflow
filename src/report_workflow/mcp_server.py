@@ -374,6 +374,18 @@ def build_server():
         `ratio` is numerator over denominator and carries no unit. Both read
         figures produced earlier in the same call, so order matters.
 
+        `formula` computes a stated calculation — a life-cycle total, a
+        break-even distance — from operands the tool reads itself:
+        `{"id": "bev_production", "op": "formula",
+        "expr": "body + kwh * factor / 1000", "unit": "t", "decimals": 1,
+        "inputs": {"body": {"source": "parameters.csv", "rows": "name=body",
+        "column": "value"}, "kwh": "battery_kwh"}}`. An input reads one cell of
+        a source, an earlier derivation, or `{"table", "column", "row"}`; a
+        bare number is refused, every name must be declared and every input
+        used, and only + - * / ** and parentheses run. Add `source`,
+        `row_label` and `formulas` to evaluate them over every row of a table
+        and register one placeable table.
+
         `decimals` pins how many places the figure is rounded to before it is
         recorded, and the evidence then states exactly that many — use it when
         a claim needs "3.53%", since the content check refuses a claim carrying

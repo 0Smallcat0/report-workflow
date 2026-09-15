@@ -986,11 +986,26 @@ register_derived_evidence(job_id="<job_id>", derivations=[
   # Comparing across files or across statistics names two registered ids.
   {"id": "photo_share_of_catalogue", "op": "ratio",
    "numerator": "photo_count", "denominator": "listing_count"},
+
+  # A calculation the report makes: the formula is yours, every operand is
+  # read from a source cell or an earlier derivation, the value is computed.
+  {"id": "bev_production", "op": "formula",
+   "expr": "body + kwh * factor / 1000", "unit": "t CO2e", "decimals": 1,
+   "inputs": {"body": {"source": "parameters.csv", "rows": "name=body", "column": "value"},
+              "kwh": {"source": "parameters.csv", "rows": "name=battery_kwh", "column": "value"},
+              "factor": {"source": "parameters.csv", "rows": "name=battery_factor", "column": "value"}}},
+
+  # The same formulas over every row of a scenario table, as one placeable table.
+  {"id": "scenario_results", "op": "formula", "source": "scenarios.csv",
+   "row_label": "scenario", "decimals": 1,
+   "formulas": [{"label": "use-phase emissions", "expr": "kwh100 / 100 * grid", "unit": "g/km"}],
+   "inputs": {"kwh100": {"source": "parameters.csv", "rows": "name=kwh_per_100km", "column": "value"}}},
 ])
 ```
 
-`ratio` and `pp_diff` read figures produced **earlier in the same call**, so
-the two they compare have to appear before them in the list.
+`ratio`, `pp_diff` and `formula` read figures produced **earlier in the same
+call**, so the ones they use have to appear before them in the list. A formula
+input is never a bare number: constants go in `expr`, figures are read.
 
 `decimals` pins how many decimal places a figure is rounded to before it is
 recorded, and the evidence then states exactly that many. Use it when the
@@ -1010,7 +1025,8 @@ with no `rows` filter is the group's share of the whole selection; a `share`
 *with* one is that rate inside the group.
 
 Ops: `count`, `sum`, `mean`, `median`, `min`, `max`, `distinct`, `share`,
-`hhi`, `top_share` (CR-k, with `k`). Filters: `col=value`, `col!=value`,
+`hhi`, `top_share` (CR-k, with `k`); `ratio`, `pp_diff` and `formula` on their
+own. Filters: `col=value`, `col!=value`,
 `col>=n`, `col~text`, joined with `&`; omit for every row.
 
 Joins: `inner` on a single key; `on` when both files name it the same way,

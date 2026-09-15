@@ -28,9 +28,11 @@ columns, which operation. A reader who doubts a figure can redo it.
 """
 from __future__ import annotations
 
+import ast
 import hashlib
 import itertools
 import json
+import operator
 import re
 import statistics
 import unicodedata
@@ -96,6 +98,18 @@ SUPPORTED_OPS = (
 #: recorded runs FE blocked 67 claims, 41 of them for a number the evidence
 #: does not state.
 COMPARISON_OPS = ("ratio", "pp_diff")
+
+#: A stated arithmetic formula over figures the tool reads itself.
+#:
+#: The comparison operations cover the two shapes an argument reaches for over
+#: one table. A report that models something — a vehicle's life-cycle
+#: emissions from a production figure, a battery size, an emission factor and
+#: a mileage; a break-even distance from two of those — needs arithmetic the
+#: two shapes cannot spell, and the author's options were a side script whose
+#: output entered as an uncheckable CSV, or the number typed into prose where
+#: FE blocks it. The formula is the author's; every operand is read here, and
+#: the value is computed here.
+FORMULA_OP = "formula"
 
 #: The furthest a declared rounding may go. Past six places the request is
 #: about float representation rather than about the figure.
@@ -359,10 +373,16 @@ def _check_op(dataset: Dataset, request: dict) -> tuple[str, str]:
             "earlier, or 'source' naming a grouped table plus 'column', "
             "'numerator_group' and 'denominator_group'."
         )
+    if op == FORMULA_OP:
+        raise DerivationError(
+            "Operation 'formula' is registered on its own rather than as a "
+            "'measures' entry: give it 'expr' and 'inputs'."
+        )
     if op not in SUPPORTED_OPS:
         raise DerivationError(
             f"Operation {op!r} is not supported. Use one of: {', '.join(SUPPORTED_OPS)}"
-            f" — or {', '.join(COMPARISON_OPS)} to compare two figures already computed."
+            f" — or {', '.join(COMPARISON_OPS)} to compare two figures already computed,"
+            f" or {FORMULA_OP} to compute a stated formula from figures read from the sources."
         )
     column = str(request.get("column") or "").strip()
     if op != "count" and op != "share" and not column:
@@ -1311,6 +1331,470 @@ def _comparison_text(request: dict, dataset: Dataset, result: dict, zh: bool) ->
     )
 
 
+# ----------------------------------------------------------------------
+# Formulas: stated arithmetic over figures read from the sources
+# ----------------------------------------------------------------------
+
+_FORMULA_BINOPS = {
+    ast.Add: operator.add,
+    ast.Sub: operator.sub,
+    ast.Mult: operator.mul,
+    ast.Div: operator.truediv,
+    ast.Pow: operator.pow,
+}
+_FORMULA_UNARY = {ast.UAdd: operator.pos, ast.USub: operator.neg}
+#: A power past this is not a model of anything a report states, and an
+#: unbounded one is a way to hang the run.
+MAX_FORMULA_EXPONENT = 10
+
+
+def _formula_tree(expr: object) -> ast.Expression:
+    text = str(expr or "").strip()
+    if not text:
+        raise DerivationError("A formula needs 'expr', for example \"annual_km * years\"")
+    try:
+        tree = ast.parse(text, mode="eval")
+    except SyntaxError as error:
+        raise DerivationError(f"Formula {text!r} does not parse: {error.msg}") from error
+    for node in ast.walk(tree):
+        allowed = (
+            isinstance(node, (ast.Expression, ast.Name, ast.Load))
+            or (isinstance(node, ast.Constant) and isinstance(node.value, (int, float))
+                and not isinstance(node.value, bool))
+            or (isinstance(node, ast.BinOp) and type(node.op) in _FORMULA_BINOPS)
+            or (isinstance(node, ast.UnaryOp) and type(node.op) in _FORMULA_UNARY)
+            or type(node) in _FORMULA_BINOPS
+            or type(node) in _FORMULA_UNARY
+        )
+        if not allowed:
+            fragment = ast.unparse(node) if isinstance(node, ast.expr) else type(node).__name__
+            raise DerivationError(
+                f"{fragment!r} is not allowed in a formula. A formula uses numbers, "
+                "input names, + - * / ** and parentheses — nothing else runs."
+            )
+    return tree
+
+
+def formula_names(expr: object) -> list[str]:
+    """The input names a formula uses, in the order it first uses them."""
+    names: list[str] = []
+    for node in ast.walk(_formula_tree(expr)):
+        if isinstance(node, ast.Name) and node.id not in names:
+            names.append(node.id)
+    return names
+
+
+def evaluate_formula(expr: object, values: dict[str, float]) -> float:
+    """The value of a formula, or a DerivationError naming what stopped it."""
+    tree = _formula_tree(expr)
+
+    def visit(node: ast.AST) -> float:
+        if isinstance(node, ast.Expression):
+            return visit(node.body)
+        if isinstance(node, ast.Constant):
+            return float(node.value)
+        if isinstance(node, ast.Name):
+            if node.id not in values:
+                raise DerivationError(
+                    f"Formula uses {node.id!r}, which is not one of its inputs: "
+                    f"{', '.join(values) or '(none)'}"
+                )
+            return float(values[node.id])
+        if isinstance(node, ast.UnaryOp):
+            return _FORMULA_UNARY[type(node.op)](visit(node.operand))
+        left, right = visit(node.left), visit(node.right)
+        if isinstance(node.op, ast.Div) and right == 0:
+            raise DerivationError(
+                f"Formula divides by zero at {ast.unparse(node)!r}, and nothing is a "
+                "multiple of nothing"
+            )
+        if isinstance(node.op, ast.Pow) and abs(right) > MAX_FORMULA_EXPONENT:
+            raise DerivationError(
+                f"Formula raises to the power {format_number(right)} at "
+                f"{ast.unparse(node)!r}; the limit is {MAX_FORMULA_EXPONENT}"
+            )
+        return _FORMULA_BINOPS[type(node.op)](left, right)
+
+    value = visit(tree)
+    if value != value or value in (float("inf"), float("-inf")):
+        raise DerivationError(f"Formula {str(expr)!r} does not produce a finite number")
+    return value
+
+
+def _formula_input(
+    name: str,
+    spec: object,
+    computed: dict,
+    order: list[str],
+    datasets: list[Dataset],
+    row: dict | None = None,
+    row_dataset: Dataset | None = None,
+    row_label: str | None = None,
+) -> dict:
+    """One operand, read rather than supplied: its value and where it came from.
+
+    Four ways to point at a figure, and a bare number is not one of them — a
+    constant belongs in the expression, where the reader sees it, and a
+    parameter belongs in a source, where it can be checked.
+    """
+    if isinstance(spec, (int, float)) and not isinstance(spec, bool):
+        raise DerivationError(
+            f"Input {name!r} is a bare number. Write constants into 'expr' itself; "
+            "a figure the formula depends on is read from a source (\"source\", "
+            "\"rows\", \"column\") or from a derivation registered earlier."
+        )
+    if isinstance(spec, str):
+        spec = {"derivation": spec}
+    if not isinstance(spec, dict):
+        raise DerivationError(f"Input {name!r} must be a derivation id or an object")
+
+    if spec.get("derivation") is not None:
+        entry = _registered_figure(computed, spec.get("derivation"), f"input {name!r}", order)
+        if entry.get("kind") != "scalar":
+            raise DerivationError(
+                f"Input {name!r} names {entry['request_id']!r}, a grouped table. Read "
+                "one cell of it with {\"table\": id, \"column\": ..., \"row\": ...}."
+            )
+        return {
+            "value": entry["value"],
+            "dataset": entry["dataset"],
+            "record": {"derivation": entry["evidence_id"], "value": entry["value"]},
+            "zh": f"衍生數值 {entry['request_id']}",
+            "en": f"derivation {entry['request_id']}",
+        }
+
+    if spec.get("table") is not None:
+        entry = _registered_figure(computed, spec.get("table"), f"input {name!r}", order)
+        if entry.get("kind") != "table":
+            raise DerivationError(
+                f"Input {name!r} names {entry['request_id']!r}, a single figure; name "
+                "it directly as a derivation instead of as a table."
+            )
+        # Without "row", a formula evaluated over a table reads the row of the
+        # earlier table that carries the same label, so a scenario computed in
+        # two steps does not have to repeat the first step's expression.
+        wanted_row = spec.get("row") if spec.get("row") is not None else row_label
+        value, _unit, label = _table_row_figure(
+            entry, {"column": spec.get("column"), "row": wanted_row}, "row"
+        )
+        column = str(spec.get("column") or "").strip()
+        return {
+            "value": value,
+            "dataset": entry["dataset"],
+            "record": {"table": entry["evidence_id"], "row": label, "column": column, "value": value},
+            "zh": f"{entry['request_id']} 表中 {label} 列的 {column}",
+            "en": f"{column} of row {label} in {entry['request_id']}",
+        }
+
+    column = str(spec.get("column") or "").strip()
+    if not column:
+        raise DerivationError(f"Input {name!r} needs a 'column' to read")
+
+    if spec.get("source") is None:
+        if row is None or row_dataset is None:
+            raise DerivationError(
+                f"Input {name!r} names only a column. That form reads the current row "
+                "of a formula registered with a 'source' table; a single figure needs "
+                "\"source\" and \"rows\" as well."
+            )
+        if column not in row_dataset.columns:
+            raise DerivationError(
+                f"Input {name!r}: column {column!r} is not in {row_dataset.display_name}. "
+                f"Its columns are: {', '.join(row_dataset.columns[:12])}"
+            )
+        value = parse_number(row.get(column))
+        if value is None:
+            raise DerivationError(
+                f"Input {name!r}: the {column!r} cell holds {row.get(column)!r}, not a number"
+            )
+        return {
+            "value": value,
+            "dataset": row_dataset,
+            "record": {"row_column": column},
+            "zh": f"每列的 {column}",
+            "en": f"each row's {column}",
+        }
+
+    dataset = resolve_frame({"source": spec.get("source")}, datasets)
+    if column not in dataset.columns:
+        raise DerivationError(
+            f"Input {name!r}: column {column!r} is not in {dataset.display_name}. Its "
+            f"columns are: {', '.join(dataset.columns[:12])}"
+        )
+    rows_expression = str(spec.get("rows") or "").strip()
+    selected = select_rows(dataset, rows_expression)
+    if len(selected) != 1:
+        raise DerivationError(
+            f"Input {name!r} reads one cell, and {rows_expression or 'no filter'!r} selects "
+            f"{len(selected)} rows of {dataset.file_name}. Narrow 'rows' to exactly one "
+            "row, or register a statistic over them and name that derivation instead."
+        )
+    value = parse_number(selected[0].get(column))
+    if value is None:
+        raise DerivationError(
+            f"Input {name!r}: the {column!r} cell of {dataset.file_name} where "
+            f"{rows_expression} holds {selected[0].get(column)!r}, not a number"
+        )
+    return {
+        "value": value,
+        "dataset": dataset,
+        "record": {
+            "source_file": dataset.display_name,
+            "row_filter": rows_expression,
+            "column": column,
+            "value": value,
+        },
+        "zh": f"{dataset.display_name} 中 {rows_expression} 的 {column}",
+        "en": f"{column} where {rows_expression} in {dataset.display_name}",
+    }
+
+
+def _formula_inputs(request: dict) -> dict:
+    inputs = request.get("inputs") or {}
+    if not isinstance(inputs, dict):
+        raise DerivationError(
+            "'inputs' maps each name the formula uses to where its value is read, "
+            'for example {"km": {"source": "params.csv", "rows": "name=annual_km", '
+            '"column": "value"}}'
+        )
+    return inputs
+
+
+def _check_formula_names(expressions: list[str], inputs: dict, row_columns: list[str]) -> None:
+    """Every name used is declared, and every declared input is used.
+
+    A declared input nothing uses is the trace of a typo — "kWh" read, "kwh"
+    written — and in a pipeline where a typo must not mint a figure, the
+    formula that silently ignored it is the one that should not register.
+    """
+    used: list[str] = []
+    for expr in expressions:
+        for name in formula_names(expr):
+            if name not in inputs and name not in row_columns:
+                raise DerivationError(
+                    f"Formula {expr!r} uses {name!r}, which is not declared in 'inputs'"
+                    + (" and is not a column of the row source" if row_columns else "")
+                )
+            if name not in used:
+                used.append(name)
+    unused = [name for name in inputs if name not in used]
+    if unused:
+        raise DerivationError(
+            f"Input(s) {', '.join(unused)} are declared but no formula uses them; "
+            "remove them or fix the name in 'expr'"
+        )
+
+
+def compute_formula(request: dict, computed: dict, order: list[str], datasets: list[Dataset]) -> dict:
+    """One stated formula over read operands: a single figure."""
+    expr = str(request.get("expr") or "").strip()
+    inputs = _formula_inputs(request)
+    _check_formula_names([expr], inputs, [])
+    resolved = {
+        name: _formula_input(name, spec, computed, order, datasets)
+        for name, spec in inputs.items()
+    }
+    value = evaluate_formula(expr, {name: item["value"] for name, item in resolved.items()})
+    decimals = declared_decimals(request)
+    if decimals is not None:
+        value = round(value, decimals)
+    datasets_used = [item["dataset"] for item in resolved.values()]
+    dataset = datasets_used[0] if datasets_used else (datasets[0] if datasets else None)
+    if dataset is None:
+        raise DerivationError("A formula needs at least one input read from a source")
+    files = list(dict.fromkeys(item.display_name for item in datasets_used))
+    derivation = {
+        "method": FORMULA_OP,
+        "expression": expr,
+        "source_file": ", ".join(files),
+        "row_filter": "*",
+        "rows_matched": len(resolved),
+        "rows_total": len(dataset.rows),
+        "input_columns": [],
+        "operands": {name: item["record"] for name, item in resolved.items()},
+    }
+    if decimals is not None:
+        derivation["decimals"] = decimals
+    return {
+        "value": value,
+        "unit": str(request.get("unit") or "").strip(),
+        "rows_used": len(resolved),
+        "detail": "",
+        "decimals": decimals,
+        "dataset": dataset,
+        "files": files,
+        "resolved": resolved,
+        "derivation": derivation,
+    }
+
+
+def _formula_text(request: dict, result: dict, zh: bool) -> str:
+    """The formula as evidence text: result, expression, and every operand's value and origin."""
+    label = str(request.get("label") or "").strip() or str(request.get("id") or "")
+    rendered = format_number(result["value"], result.get("decimals"))
+    unit = result["unit"]
+    shown = f"{rendered} {unit}".strip() if unit and unit != "%" else (f"{rendered}%" if unit == "%" else rendered)
+    files = "、".join(result["files"]) if zh else ", ".join(result["files"])
+    if zh:
+        operands = "；".join(
+            f"{name} = {format_number(item['value'])}（{item['zh']}）"
+            for name, item in result["resolved"].items()
+        )
+        return f"衍生計算(來源:{files}):{label}為 {shown}。計算式:{request.get('expr')}；其中 {operands}。"
+    operands = "; ".join(
+        f"{name} = {format_number(item['value'])} ({item['en']})"
+        for name, item in result["resolved"].items()
+    )
+    return (
+        f"Derived calculation from {files}: {label} is {shown}. "
+        f"Formula: {request.get('expr')}, where {operands}."
+    )
+
+
+def compute_formula_table(
+    request: dict,
+    computed: dict,
+    order: list[str],
+    datasets: list[Dataset],
+    zh: bool = False,
+) -> dict:
+    """The same formulas evaluated over every row of a source table.
+
+    A scenario comparison is one table — a row per scenario, a column per
+    result — and registering each cell as its own formula is the brick-laying
+    the grouped form exists to end. Names in a formula resolve to the shared
+    ``inputs`` first and to the current row's columns second.
+    """
+    dataset = resolve_frame({"source": request.get("source")}, datasets)
+    formulas = request.get("formulas")
+    if not isinstance(formulas, list) or not formulas or not all(
+        isinstance(item, dict) and str(item.get("expr") or "").strip() for item in formulas
+    ):
+        raise DerivationError(
+            "A formula table needs 'formulas', a list of {\"label\": ..., \"expr\": ...} "
+            "objects — one per output column"
+        )
+    label_column = str(request.get("row_label") or "").strip()
+    if not label_column or label_column not in dataset.columns:
+        raise DerivationError(
+            f"A formula table needs 'row_label', naming the column of {dataset.display_name} "
+            f"that labels each row. Its columns are: {', '.join(dataset.columns[:12])}"
+        )
+    inputs = _formula_inputs(request)
+    identifier_columns = [column for column in dataset.columns if column.isidentifier()]
+    _check_formula_names([str(item["expr"]) for item in formulas], inputs, identifier_columns)
+    rows_expression = str(request.get("rows") or "")
+    selected = select_rows(dataset, rows_expression)
+    if not selected:
+        raise DerivationError(
+            f"Row filter {rows_expression!r} selects no rows of {dataset.file_name}"
+        )
+    def per_row(spec: object) -> bool:
+        """An input whose value changes with the row: a column of it, or a table cell by its label."""
+        if not isinstance(spec, dict) or spec.get("source") is not None or spec.get("derivation") is not None:
+            return False
+        return spec.get("table") is None or spec.get("row") is None
+
+    shared = {
+        name: _formula_input(name, spec, computed, order, datasets)
+        for name, spec in inputs.items()
+        if not per_row(spec)
+    }
+    decimals = declared_decimals(request)
+    units = [str(item.get("unit") or "").strip() for item in formulas]
+    body: list[list[str]] = []
+    for row in selected:
+        row_label = str(row.get(label_column, "")).strip()
+        values = {name: item["value"] for name, item in shared.items()}
+        for name, spec in inputs.items():
+            if name not in shared:
+                try:
+                    values[name] = _formula_input(
+                        name, spec, computed, order, datasets, row, dataset, row_label
+                    )["value"]
+                except DerivationError as error:
+                    raise DerivationError(f"Row {row_label!r}: {error}") from error
+        for column in identifier_columns:
+            if column not in values:
+                number = parse_number(row.get(column))
+                if number is not None:
+                    values[column] = number
+        cells = [row_label]
+        for item in formulas:
+            try:
+                value = evaluate_formula(item["expr"], values)
+            except DerivationError as error:
+                raise DerivationError(
+                    f"Row {cells[0]!r}, {item.get('label') or item['expr']!r}: {error}"
+                ) from error
+            if decimals is not None:
+                value = round(value, decimals)
+            cells.append(format_number(value, decimals))
+        body.append(cells)
+    headers = [str(request.get("row_label_header") or label_column)] + [
+        str(item.get("label") or item["expr"]) + (f" ({unit})" if unit else "")
+        for item, unit in zip(formulas, units)
+    ]
+    derivation = {
+        "method": "formula_table",
+        "source_file": dataset.display_name,
+        "row_filter": rows_expression or "*",
+        "rows_matched": len(selected),
+        "rows_total": len(dataset.rows),
+        "input_columns": [label_column],
+        "row_label": label_column,
+        "formulas": [
+            {"label": header, "expression": str(item["expr"])}
+            for item, header in zip(formulas, headers[1:])
+        ],
+        "operands": {name: item["record"] for name, item in shared.items()},
+    }
+    if decimals is not None:
+        derivation["decimals"] = decimals
+    return {
+        "headers": headers,
+        "rows": body,
+        # The unit travels in the header text; cells stay bare numbers so a
+        # later formula or ratio can read them back without guessing a suffix.
+        "units": ["" for _ in formulas],
+        "derivation": derivation,
+        "dataset": dataset,
+        "shared": shared,
+    }
+
+
+def _formula_table_text(request: dict, table: dict, zh: bool) -> str:
+    dataset = table["dataset"]
+    label = str(request.get("label") or "").strip() or str(request.get("id") or "")
+    grid = [" | ".join(row) for row in [table["headers"], *table["rows"]]]
+    formulas = table["derivation"]["formulas"]
+    if zh:
+        lines = "；".join(f"{item['label']} = {item['expression']}" for item in formulas)
+        shared = "；".join(
+            f"{name} = {format_number(item['value'])}（{item['zh']}）"
+            for name, item in table["shared"].items()
+        )
+        head = (
+            f"衍生計算(來源:{dataset.display_name}):{label}。對 {len(table['rows'])} 列逐列計算，"
+            f"計算式:{lines}。"
+        )
+        if shared:
+            head += f"共用輸入:{shared}。"
+        return head + "\n" + "\n".join(grid)
+    lines = "; ".join(f"{item['label']} = {item['expression']}" for item in formulas)
+    shared = "; ".join(
+        f"{name} = {format_number(item['value'])} ({item['en']})"
+        for name, item in table["shared"].items()
+    )
+    head = (
+        f"Derived calculation from {dataset.display_name}: {label}. Evaluated for each of "
+        f"{len(table['rows'])} rows. Formulas: {lines}."
+    )
+    if shared:
+        head += f" Shared inputs: {shared}."
+    return head + "\n" + "\n".join(grid)
+
+
 def _group_table_text(frame: Dataset, request: dict, table: dict, zh: bool) -> str:
     """The table as evidence text, with every cell readable in place.
 
@@ -1848,7 +2332,9 @@ def brick_laying_problems(requests: list[dict]) -> dict[str, str]:
             continue
         op = str(request.get("op") or "").strip().lower()
         rows_expression = str(request.get("rows") or "").strip()
-        if not op or not rows_expression:
+        if not op or not rows_expression or op == FORMULA_OP:
+            # A formula is not a statistic over a slice, so no grouped table
+            # replaces several of them.
             continue
         key = (_source_key(request), op, str(request.get("column") or ""))
         families.setdefault(key, []).append(request)
@@ -1971,6 +2457,66 @@ def build_requested_units(
             continue
         if request_id in bricks:
             problems.append({"id": request_id, "error": bricks[request_id]})
+            continue
+
+        if str(request.get("op") or "").strip().lower() == FORMULA_OP:
+            evidence_id = request_evidence_id(request_id)
+            if request.get("formulas") is not None:
+                try:
+                    table = compute_formula_table(request, computed, order, datasets, zh=zh)
+                except DerivationError as error:
+                    problems.append({"id": request_id, "error": str(error)})
+                    continue
+                units.append(
+                    _unit_evidence(
+                        table["dataset"],
+                        _formula_table_text(request, table, zh),
+                        {**table["derivation"], "request_id": request_id, "origin": "requested"},
+                        created_at,
+                        evidence_id=evidence_id,
+                        block_id=f"derived_request_{request_id}",
+                        origin="requested",
+                        table=table,
+                    )
+                )
+                remember({
+                    "kind": "table",
+                    "request_id": request_id,
+                    "evidence_id": evidence_id,
+                    "table": table,
+                    "dataset": table["dataset"],
+                    "rows_matched": table["derivation"]["rows_matched"],
+                })
+                continue
+            try:
+                result = compute_formula(request, computed, order, datasets)
+            except DerivationError as error:
+                problems.append({"id": request_id, "error": str(error)})
+                continue
+            expect_problem = _expect_problem(request, request_id, result)
+            if expect_problem:
+                problems.append(expect_problem)
+                continue
+            units.append(
+                _unit_evidence(
+                    result["dataset"],
+                    _formula_text(request, result, zh),
+                    {**result["derivation"], "request_id": request_id, "origin": "requested"},
+                    created_at,
+                    evidence_id=evidence_id,
+                    block_id=f"derived_request_{request_id}",
+                    origin="requested",
+                )
+            )
+            remember({
+                "kind": "scalar",
+                "request_id": request_id,
+                "evidence_id": evidence_id,
+                "value": result["value"],
+                "unit": result["unit"],
+                "dataset": result["dataset"],
+                "rows_matched": result["rows_used"],
+            })
             continue
 
         if str(request.get("op") or "").strip().lower() in COMPARISON_OPS:

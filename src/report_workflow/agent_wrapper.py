@@ -842,6 +842,22 @@ def register_derived_evidence(
     ``ratio`` is ``numerator / denominator`` and is recorded without a unit.
     Both read figures produced *earlier in the same call*, so order matters.
 
+    ``formula`` is a calculation the report makes. The expression is the
+    author's; every operand is read — one cell of a source, an earlier
+    derivation, or one cell of an earlier table — and the value is computed::
+
+        {"id": "bev_production", "op": "formula",
+         "expr": "body + kwh * factor / 1000", "unit": "t CO2e", "decimals": 1,
+         "inputs": {"body": {"source": "parameters.csv", "rows": "name=body", "column": "value"},
+                    "kwh": "battery_kwh",                       # a derivation id
+                    "factor": {"table": "factors", "column": "kg/kWh", "row": "China"}}}
+
+    With ``source``, ``row_label`` and ``formulas`` (``[{"label", "expr",
+    "unit"}]``) the formulas run over every row of that table, names resolving
+    to ``inputs`` first and the row's columns second, and one table is
+    registered. A bare number is refused as an input, an undeclared name or an
+    unused input is refused, and only ``+ - * / **`` and parentheses run.
+
     ``decimals`` pins how many decimal places the figure is rounded to before
     it is recorded, and the evidence then states exactly that many. Use it when
     a claim needs "3.53%": the content check refuses a claim carrying more

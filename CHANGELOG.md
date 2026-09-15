@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### Added — a calculation the report makes is computed here too
+
+The same course report compared vehicles by arithmetic over cited parameters:
+production plus battery size times an emission factor, plus a per-kilometre
+figure times a mileage, and a break-even distance as one difference over
+another. None of that is a statistic over rows, so none of it was
+registrable; the calculation ran in a side script whose output entered as a
+CSV no gate could check, which is the uncheckable number the ledger exists to
+keep out.
+
+`register_derived_evidence` now takes `op: "formula"`. The expression is the
+author's; every operand is read — one cell of a source (`source`, `rows`,
+`column`, exactly one row), an earlier derivation, or one cell of an earlier
+table — and the value is computed and recorded with each operand's value and
+origin. With `source`, `row_label` and `formulas` the formulas run over every
+row of a scenario table and register one table a `[TABLE:]` marker can place,
+whose cells a later `ratio` or formula can read — a second formula table reads
+the same-labelled row of the first when its `table` input names no `row`, so a
+two-step scenario does not repeat the first step's expression. A bare number is refused as an
+input (constants belong in the expression, where the reader sees them), an
+undeclared name and an unused input are both refused as the trace of a typo,
+and only `+ - * / **` and parentheses run.
+
 ### Added — a source can say what it is a copy of
 
 A course report on vehicle life-cycle emissions was driven through the pipeline

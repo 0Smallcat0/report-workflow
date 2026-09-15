@@ -300,10 +300,21 @@ tools:
       the same call, so order matters. "decimals" pins how many places a
       figure is rounded to before it is recorded, and the evidence then states
       exactly that many - use it when a claim needs "3.53%", since the content
-      check refuses a claim carrying more places than its evidence. The value
-      is computed from the rows here rather than supplied by the caller, and
-      "expect" is checked against it instead of trusted. Returns the
-      evidence_id to cite.
+      check refuses a claim carrying more places than its evidence. A report
+      that calculates something - a life-cycle total, a break-even point - uses
+      "formula": {"id": "bev_production", "op": "formula", "expr": "body + kwh
+      * factor / 1000", "inputs": {"body": {"source": "parameters.csv", "rows":
+      "name=body", "column": "value"}, "kwh": "battery_kwh"}, "unit": "t",
+      "decimals": 1}. Each input reads exactly one cell of a source, a
+      registered derivation, or {"table": id, "column", "row"}; a bare number
+      is refused (constants go in "expr"), every name must be declared and
+      every declared input used, and only + - * / ** and parentheses run.
+      Adding "source", "row_label" and "formulas": [{"label", "expr", "unit"}]
+      evaluates the formulas over every row of that table - names resolve to
+      "inputs" first and to the row's columns second - and registers one table
+      a [TABLE:<id>] marker can place. The value is computed from the rows
+      here rather than supplied by the caller, and "expect" is checked against
+      it instead of trusted. Returns the evidence_id to cite.
     parameters:
       - name: job_id
         type: string
