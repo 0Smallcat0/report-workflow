@@ -278,7 +278,7 @@ class CitationRenderingTests(unittest.TestCase):
         # A bare [S1] sat beside author-year citations and read as a second
         # citation system; the label says what the figure is and where its
         # entry is.
-        self.assertIn("（本研究整理，附錄 A1）", resolved)
+        self.assertIn("（本研究整理，計算附件 C1）", resolved)
         self.assertNotIn("[CITE:", resolved)
         self.assertEqual(len(source_refs), 1)
         self.assertIn("recycling.md", source_refs[0])
@@ -758,6 +758,14 @@ class DeliveredDocumentTests(unittest.TestCase):
         self.assertTrue(docx_path and Path(docx_path).exists(), "nothing was rendered")
         document = Document(docx_path)
         text = "\n".join(paragraph.text for paragraph in document.paragraphs)
+        record_path = (
+            rendered.output.get("published_calculation_record_path")
+            or rendered.output.get("calculation_record_docx_path")
+        )
+        self.record_text = (
+            "\n".join(paragraph.text for paragraph in Document(record_path).paragraphs)
+            if record_path and Path(record_path).exists() else ""
+        )
         return rows, text, document.tables
 
     def test_the_delivered_document_carries_its_source_tables(self):
@@ -774,53 +782,42 @@ class DeliveredDocumentTests(unittest.TestCase):
     def test_the_delivered_document_carries_its_sources(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             rows, text, _tables = self._author_and_publish(tmpdir)
-            self.assertIn("附錄 A1", text, "no citation marker survived into the DOCX")
-            # Either heading counts. The requirement is that the reader gets a
-            # source list; which language its heading renders in is a separate
+            self.assertIn("計算附件 C1", text, "no citation marker survived into the DOCX")
+            record = self.record_text
+            # Either heading counts. The requirement is that the reader gets the
+            # record; which language its heading renders in is a separate
             # question, and conflating the two made a CI failure unreadable —
-            # it could not say whether the section was missing or merely in
-            # English, so the tail of the document goes into the message.
+            # it could not say whether the record was missing or merely in
+            # English, so its opening goes into the message.
             self.assertTrue(
-                "計算與資料說明" in text or "Calculations and Data" in text,
-                "the DOCX has no source list; document ends: " + repr(text[-400:]),
+                "計算附件" in record or "Calculation Record" in record,
+                "no calculation record was published beside the report: " + repr(record[:400]),
             )
-            self.assertIn("recycling.md", text, "the source list names no file")
+            self.assertIn("recycling.md", record, "the record names no file")
             # Traceability is checked the way a reader checks it: the entry
             # names a line span of a real file. Probing for the ledger's
             # internal id would only pass while that id was being printed into
             # the deliverable, which is itself the leak.
             traced = [
                 row for row in rows
-                if str(row.get("source_span") or "") and str(row["source_span"]) in text
+                if str(row.get("source_span") or "") and str(row["source_span"]) in record
             ]
-            self.assertTrue(traced, "no source entry in the DOCX can be traced to a ledger row")
-            leaked = [row for row in rows if row["evidence_id"] in text]
-            self.assertFalse(leaked, "internal evidence ids reached the delivered document")
+            self.assertTrue(traced, "no record entry can be traced to a ledger row")
+            leaked = [row for row in rows if row["evidence_id"] in text or row["evidence_id"] in record]
+            self.assertFalse(leaked, "internal evidence ids reached the delivered documents")
 
-    def test_the_fallback_renderer_drops_the_sources_section(self):
-        """A measured defect, not a passing behaviour.
-
-        Without pandoc the python-docx fallback runs, and the generated
-        Sources list does not survive it — References does. So a reader who
-        installed the package without the render extra gets a document whose
-        figures trace to nothing, which is the exact guarantee this section
-        exists to provide.
-
-        Recorded as failing-as-asserted rather than repaired here: the fix is
-        in the fallback converter, and this round is a release. Delete this
-        test when it is fixed; do not loosen the assertion above to match it.
-        """
+    def test_the_fallback_renderer_still_publishes_the_calculation_record(self):
+        # Without pandoc the python-docx fallback runs, and the Sources list
+        # that used to close the report did not survive it — a reader without
+        # the render extra got figures that traced to nothing. The record is
+        # its own document now, rendered by whichever converter is present.
         import report_workflow.nodes.docx_render as docx_render
 
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch.object(docx_render, "_find_pandoc", return_value=None):
                 _rows, text, _tables = self._author_and_publish(tmpdir)
             self.assertIn("參考文獻", text, "references are dropped too now")
-            self.assertNotIn(
-                "計算與資料說明",
-                text,
-                "the fallback renderer now keeps the Sources section — delete this test",
-            )
+            self.assertIn("recycling.md", self.record_text)
 
     def test_no_workflow_marker_and_no_stranded_space_ship(self):
         with tempfile.TemporaryDirectory() as tmpdir:

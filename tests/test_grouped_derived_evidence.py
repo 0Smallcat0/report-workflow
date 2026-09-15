@@ -339,16 +339,16 @@ class DerivedTablesReachTheDocumentTests(unittest.TestCase):
     def test_the_placed_table_carries_where_its_numbers_came_from(self):
         # It printed the worksheet — "Source: products.csv" — which a reviewer
         # read as a local file standing where a source belongs. A computed table
-        # says it was computed; CITATION_BIND numbers the appendix entry that
-        # holds its grouping, and the line points there.
+        # says it was computed; CITATION_BIND says where its grouping is shown,
+        # and the line points there.
         markdown, _placed, _unresolved = replace_table_placeholders(
             "[TABLE:band]", self._units()
         )
         self.assertIn("Source: calculated in this study", markdown)
         numbered, _placed, _unresolved = replace_table_placeholders(
-            "[TABLE:band]", self._units(), appendix_numbers={"E_D_band": 4}
+            "[TABLE:band]", self._units(), pointers={"E_D_band": "calculation record C4"}
         )
-        self.assertIn("Source: calculated in this study (Appendix A4)", numbered)
+        self.assertIn("Source: calculated in this study (calculation record C4)", numbered)
 
 
 class LedgerBytesStayPutTests(unittest.TestCase):

@@ -317,7 +317,11 @@ tools:
       a [TABLE:<id>] marker can place. A formula may add "display_decimals"
       to round only how its column is shown in the document (-2 prints
       44,208.8 as 44,200; never finer than "decimals"), while the evidence
-      keeps the recorded figure. The value is computed from the rows
+      keeps the recorded figure. Any derivation may add "explained_in", the
+      section of the report's own appendix that shows the calculation ("附錄
+      A.3"); a sentence citing it then points the reader there instead of at
+      its entry in the calculation record published beside the report. The
+      value is computed from the rows
       here rather than supplied by the caller, and "expect" is checked against
       it instead of trusted. A CSV source is itself a table a
       [TABLE:<file stem>] marker can place. Returns the evidence_id to cite.

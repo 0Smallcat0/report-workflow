@@ -239,7 +239,7 @@ class LedgerAndBindingTests(unittest.TestCase):
             )
             resolved, _audit, refs, _internal, sources = resolve_citations_publication(draft, ledger, [])
             self.assertIn("電動車排放低 73% (Negri & Bieker, 2025)。", resolved)
-            self.assertIn("市區行駛較省電（本研究整理，附錄 A1）。", resolved)
+            self.assertIn("市區行駛較省電（本研究整理，計算附件 C1）。", resolved)
             self.assertEqual(len(refs), 1)
             self.assertTrue(refs[0].startswith("Negri, M., & Bieker, G. (2025)."))
             self.assertEqual(len(sources), 1)

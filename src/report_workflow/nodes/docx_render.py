@@ -1140,6 +1140,40 @@ def _localize_reference_heading(ref_md: str, body_md: str, blueprint: dict) -> s
     )
 
 
+_APPENDIX_HEADING_RE = re.compile(r"^#{1,6}[ \t]+(?:附錄|附录|Appendix|Appendices)", re.MULTILINE | re.IGNORECASE)
+
+
+def _insert_before_appendices(md_content: str, block: str) -> str:
+    """Place ``block`` ahead of the first appendix, or at the end when there is none.
+
+    The reference list was always appended last, so an appendix the author
+    wrote came out in front of 參考文獻.
+    """
+    match = _APPENDIX_HEADING_RE.search(md_content)
+    if not match:
+        return md_content.rstrip() + "\n\n" + block
+    return md_content[:match.start()].rstrip() + "\n\n" + block.rstrip() + "\n\n" + md_content[match.start():]
+
+
+def _render_calculation_record(
+    record_md: str, run_dir: Path, reference_doc: Path | None, use_pandoc: bool
+) -> Path | None:
+    """The calculation record as a document of its own, styled like the report."""
+    if detect_document_language(record_md) == "zh":
+        record_md = _normalize_cjk_typography(record_md)
+    md_path = run_dir / "calculation_record.md"
+    md_path.write_text(record_md, encoding="utf-8")
+    docx_path = run_dir / "calculation_record.docx"
+    try:
+        if use_pandoc and _render_via_pandoc(str(md_path), str(docx_path), reference_doc=reference_doc):
+            return docx_path
+        markdown_to_docx(record_md, str(docx_path))
+        return docx_path
+    except Exception as exc:  # the report itself rendered; say what is missing
+        logger.warning(f"[DOCX_RENDER] calculation record not rendered: {exc}")
+        return None
+
+
 def _truncate_orphan_sections(md_text: str) -> str:
     """Strip orphan content after the canonical end of the main body."""
     sentinel_re = re.compile(r"^##?\s+End\s+of\s+Main\s+Report\s*$", re.MULTILINE | re.IGNORECASE)
@@ -1381,6 +1415,8 @@ SHORT_TABLE_MAX_ROWS = 15
 
 _TABLE_CAPTION_RE = re.compile(r"^\s*(?:表|Table)\s*\d+\s*[.．:：]", re.IGNORECASE)
 _FIGURE_CAPTION_RE = re.compile(r"^\s*(?:圖|图|Figure)\s*\d+\s*[.．:：]", re.IGNORECASE)
+_TABLE_ATTRIBUTION_RE = re.compile(r"^\s*(?:來源|来源|資料來源|Source)\s*[:：]", re.IGNORECASE)
+_TABLE_NOTE_RE = re.compile(r"^\s*(?:註|注|Note|Notes)\s*[.．:：]", re.IGNORECASE)
 
 
 def _keep_with_next(paragraph) -> None:
@@ -1414,6 +1450,19 @@ def _keep_table_together(table) -> None:
             p_pr = previous.get_or_add_pPr()
             if p_pr.find(qn("w:keepNext")) is None:
                 p_pr.append(OxmlElement("w:keepNext"))
+    # A note under the attribution belongs to the table: "註：車體數值不含
+    # 電池…" opened the next page, cut off from the table it annotates.
+    attribution = table._tbl.getnext()
+    note = attribution.getnext() if attribution is not None else None
+    if (
+        attribution is not None and note is not None
+        and attribution.tag == qn("w:p") and note.tag == qn("w:p")
+        and _TABLE_ATTRIBUTION_RE.match("".join(node.text or "" for node in attribution.iter(qn("w:t"))))
+        and _TABLE_NOTE_RE.match("".join(node.text or "" for node in note.iter(qn("w:t"))))
+    ):
+        p_pr = attribution.get_or_add_pPr()
+        if p_pr.find(qn("w:keepNext")) is None:
+            p_pr.append(OxmlElement("w:keepNext"))
 
 
 def _keep_figures_with_captions(doc) -> None:
@@ -1609,7 +1658,7 @@ def run_docx_render(state: ReportState) -> ReportState:
     # figure pass continues the sequence rather than restarting it.
     evidence_ledger = load_jsonl(state.sources.get("evidence_ledger_path", ""))
     md_content, placed_tables, unresolved_tables = replace_table_placeholders(
-        md_content, evidence_ledger, appendix_numbers=state.citations.get("appendix_numbers") or {}
+        md_content, evidence_ledger, pointers=state.citations.get("table_pointers") or {}
     )
     if placed_tables:
         state.output["source_tables_placed"] = placed_tables
@@ -1674,21 +1723,19 @@ def run_docx_render(state: ReportState) -> ReportState:
         pub_ref_md, md_content, state.plan.get("blueprint") or {}
     )
     if pub_ref_md.strip():
-        md_content = md_content.rstrip() + "\n\n" + pub_ref_md
+        md_content = _insert_before_appendices(md_content, pub_ref_md)
 
-    # The generated Sources list. Without it a document citing project sources
-    # ships with markers pointing at nothing — which is what happened before:
-    # the markers were deleted instead, and the reader could check no figure
-    # in the document against anything.
+    # The calculation record goes out as its own document (below). It used to
+    # close the report, and a course report ended on seven pages of variables,
+    # switches and repeated parameters where its reader wanted an appendix.
+    record_md = ""
     source_list_path = state.citations.get("publication_source_list_path", "")
     if source_list_path and Path(source_list_path).exists():
-        source_list_md = Path(source_list_path).read_text(encoding="utf-8")
-        if source_list_md.strip():
-            if detect_document_language(md_content) == "zh":
-                source_list_md = source_list_md.replace(
-                    SOURCE_LIST_HEADING, SOURCE_LIST_HEADING_ZH, 1
-                ).replace(SOURCE_LIST_INTRO, SOURCE_LIST_INTRO_ZH, 1)
-            md_content = md_content.rstrip() + "\n\n" + source_list_md
+        record_md = Path(source_list_path).read_text(encoding="utf-8")
+        if record_md.strip() and detect_document_language(md_content) == "zh":
+            record_md = record_md.replace(
+                SOURCE_LIST_HEADING, SOURCE_LIST_HEADING_ZH, 1
+            ).replace(SOURCE_LIST_INTRO, SOURCE_LIST_INTRO_ZH, 1)
 
     run_dir = WORKFLOW_RUNS_DIR / state.job_id
     md_content = _absolutize_image_paths(
@@ -1783,6 +1830,12 @@ def run_docx_render(state: ReportState) -> ReportState:
             _style_front_matter_title(
                 str(final_docx_path), (state.plan.get("front_matter") or {}).get("title", "")
             )
+    if record_md.strip():
+        record_path = _render_calculation_record(
+            record_md, run_dir, _resolve_reference_doc(state.spec) if used_pandoc else None, used_pandoc
+        )
+        if record_path:
+            state.output["calculation_record_docx_path"] = str(record_path)
 
     # --- Post-render validation ---
     validation_issues = _validate_docx(str(final_docx_path), md_content)

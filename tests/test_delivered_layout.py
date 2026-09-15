@@ -52,7 +52,7 @@ class TablePaginationTests(unittest.TestCase):
         for index, row in enumerate(table.rows):
             row.cells[0].text = "情境" if index == 0 else f"情境 {index}"
             row.cells[1].text = "碳平衡點" if index == 0 else f"{40000 + index * 100:,}"
-        doc.add_paragraph("來源：本研究計算（附錄 A24）")
+        doc.add_paragraph("來源：本研究計算（附錄 A.4）")
         doc.save(path)
         _style_tables_post_render(str(path))
         return Document(path)
@@ -73,6 +73,25 @@ class TablePaginationTests(unittest.TestCase):
         self.assertFalse(all(_keep_next(p) for p in table.rows[1].cells[0].paragraphs))
         self.assertTrue(all(_keep_next(p) for p in table.rows[-1].cells[0].paragraphs))
         self.assertTrue(all(row._tr.trPr.find(qn("w:cantSplit")) is not None for row in table.rows))
+
+    def test_a_note_under_the_attribution_stays_with_its_table(self):
+        # "註：車體數值不含電池…" opened the next page, cut off from the table
+        # it annotates.
+        path = Path(tempfile.mkdtemp()) / "report.docx"
+        doc = Document()
+        doc.add_paragraph("表 1. 車型參數")
+        table = doc.add_table(rows=4, cols=2)
+        for index, row in enumerate(table.rows):
+            row.cells[0].text = "車種" if index == 0 else f"車 {index}"
+            row.cells[1].text = "數值" if index == 0 else str(index)
+        doc.add_paragraph("來源：Negri & Bieker (2025)")
+        doc.add_paragraph("註：車體數值不含電池；「—」表示不適用。")
+        doc.add_paragraph("下一段正文。")
+        doc.save(path)
+        _style_tables_post_render(str(path))
+        paragraphs = Document(path).paragraphs
+        self.assertTrue(_keep_next(paragraphs[1]), "the attribution lets its note fall to the next page")
+        self.assertFalse(_keep_next(paragraphs[2]), "the note should not drag the following text along")
 
     def test_a_figure_keeps_with_its_caption(self):
         path = Path(tempfile.mkdtemp()) / "report.docx"
@@ -118,6 +137,46 @@ class ColumnWidthTests(unittest.TestCase):
         label_cm = dashes[0] / sum(dashes) * source_tables.TEXT_WIDTH_CM
         needed_cm = source_tables._display_width("歐盟潔淨電網（參考）") * source_tables.DISPLAY_COLUMN_CM + source_tables.CELL_PADDING_CM
         self.assertGreaterEqual(label_cm, needed_cm - 0.05, separator)
+
+    def _units(self, headers, rows):
+        from report_workflow.nodes import source_tables
+
+        dashes = source_tables._column_dashes(headers, rows)
+        return [
+            (dash / sum(dashes) * source_tables.TEXT_WIDTH_CM - source_tables.CELL_PADDING_CM)
+            / source_tables.DISPLAY_COLUMN_CM
+            for dash in dashes
+        ]
+
+    def test_a_header_breaks_between_words_not_inside_one(self):
+        # "電池容量 (kWh)" was sized as half its length and printed
+        # "電池容" / "量" / "(kWh)"; the header row grew a line and pushed the
+        # three-row vehicle table off a half-empty page.
+        headers = ["車種", "車體製造與回收 (t CO2e)", "電池容量 (kWh)", "實際油耗 (L/100 km)",
+                   "實際電耗 (kWh/100 km)", "保養 (g CO2e/km)"]
+        rows = [["汽油車", "7.2", "—", "6.9", "—", "5"], ["油電混合車", "7.2", "—", "5.3", "—", "5"],
+                ["電動車", "6.5", "53.4", "—", "20.2", "4"]]
+        units = self._units(headers, rows)
+        self.assertGreaterEqual(units[2], 8 - 0.05, units)
+
+    def test_short_labels_are_not_wrapped_to_make_room_for_text_that_wraps_anyway(self):
+        # Capping every wide column alike gave 參數 the same width as 來源 and
+        # 說明, so every parameter name wrapped while the long sources wrapped
+        # regardless; nine rows became eighteen lines.
+        headers = ["參數", "數值", "單位", "年份", "來源", "說明"]
+        rows = [
+            ["車用汽油低位熱值", "7,586", "kcal/L", "2025", "環境部（2026）", "114 年度"],
+            ["汽油 CO2 排放係數", "69,300", "kg CO2/TJ", "2024", "環境部（2024a）", "燃料燃燒"],
+            ["汽油 CH4 排放係數", "25", "kg CH4/TJ", "2024", "環境部（2024a）", "氧化觸媒車輛"],
+            ["汽油 N2O 排放係數", "8.0", "kg N2O/TJ", "2024", "環境部（2024a）", "氧化觸媒車輛"],
+            ["CH4 全球暖化潛勢", "28", "—", "2024", "環境部（2024a）", "100 年"],
+            ["N2O 全球暖化潛勢", "265", "—", "2024", "環境部（2024a）", "100 年"],
+            ["車用汽油上游碳足跡", "0.6078", "kg CO2e/L", "2022", "環境部氣候變遷署（2025c）", "未燃燒部分"],
+            ["電力間接碳足跡", "110.8", "g CO2e/kWh", "2022", "環境部氣候變遷署（2025d）", "碳足跡與排碳係數之差"],
+            ["電網線路損失率", "3.82", "%", "2022", "環境部氣候變遷署（2025d）", "台電公告值"],
+        ]
+        units = self._units(headers, rows)
+        self.assertGreaterEqual(units[0], 17 - 0.05, units)
 
     def test_widths_are_estimated_at_the_type_size_the_template_prints(self):
         # Widths were estimated for 10.5 pt text and the template prints tables

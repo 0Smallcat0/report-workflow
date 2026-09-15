@@ -1667,6 +1667,9 @@ def _formula_input(
             # year and source the sheet gives beside the value — not a file
             # name and a filter expression.
             "fields": dict(selected[0]),
+            # A sheet transcribed from a publication names it here, having no
+            # source column of its own.
+            **({"citation": dict(dataset.citation)} if dataset.citation else {}),
         },
         "zh": f"{dataset.display_name} 中 {rows_expression} 的 {column}",
         "en": f"{column} where {rows_expression} in {dataset.display_name}",
@@ -2654,6 +2657,14 @@ def build_requested_units(
         if request_id in bricks:
             problems.append({"id": request_id, "error": bricks[request_id]})
             continue
+        explained_in = request.get("explained_in")
+        if explained_in is not None and not (isinstance(explained_in, str) and explained_in.strip()):
+            problems.append({
+                "id": request_id,
+                "error": "'explained_in' names where the report explains this figure, as text — "
+                         "\"附錄 A.3\" or \"Appendix A.3\"",
+            })
+            continue
 
         if str(request.get("op") or "").strip().lower() == FORMULA_OP:
             evidence_id = request_evidence_id(request_id)
@@ -2837,4 +2848,15 @@ def build_requested_units(
             "dataset": dataset,
             "rows_matched": result["rows_used"],
         })
+    # Where the report explains a figure, so the sentence citing it can send
+    # the reader there rather than to its line in the calculation record.
+    explained = {
+        str(request.get("id") or "").strip(): request["explained_in"].strip()
+        for request in requests or []
+        if isinstance(request, dict) and isinstance(request.get("explained_in"), str) and request["explained_in"].strip()
+    }
+    for unit in units:
+        derivation = unit.get("derivation")
+        if isinstance(derivation, dict) and derivation.get("request_id") in explained:
+            derivation["explained_in"] = explained[derivation["request_id"]]
     return units, problems

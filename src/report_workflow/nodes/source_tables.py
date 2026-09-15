@@ -198,21 +198,52 @@ def _display_width(text: str) -> int:
     return sum(2 if _is_wide(char) else 1 for char in str(text))
 
 
-def _longest_unbreakable(header: str) -> int:
-    """Display columns of the widest piece of a header no line break can split.
+#: The longest run of Chinese characters kept on one line when the column
+#: allows it: a short term such as 電池容量 or 油電混合車 printed split —
+#: "電池容" / "量" — reads as two words. Longer runs wrap anywhere.
+WHOLE_TERM_CHARACTERS = 5
 
-    Chinese breaks between any two characters; a Latin run only at a space.
-    """
-    widest = 0.0
-    for piece in str(header).split():
-        run = 0.0
-        for char in piece:
-            if _is_wide(char):
-                widest, run = max(widest, run, 2), 0.0
+
+def _atoms(text: str, latin_columns: float) -> list[tuple[float, bool]]:
+    """A cell's text as the pieces a line breaks between: (display columns, follows a space)."""
+    atoms: list[tuple[float, bool]] = []
+    for index, word in enumerate(str(text).split()):
+        spaced = index > 0
+        pieces: list[tuple[str, bool]] = []
+        for char in word:
+            wide = _is_wide(char)
+            if pieces and pieces[-1][1] == wide:
+                pieces[-1] = (pieces[-1][0] + char, wide)
             else:
-                run += HEADER_LATIN_COLUMNS
-        widest = max(widest, run)
-    return int(-(-widest // 1))
+                pieces.append((char, wide))
+        for piece, wide in pieces:
+            if not wide:
+                atoms.append((len(piece) * latin_columns, spaced))
+            elif len(piece) <= WHOLE_TERM_CHARACTERS:
+                atoms.append((2.0 * len(piece), spaced))
+            else:
+                atoms.extend((2.0, spaced and position == 0) for position in range(len(piece)))
+            spaced = False
+    return atoms
+
+
+def _lines_at(text: str, units: float, latin_columns: float = 1.0) -> int:
+    """The lines a cell fills at a width, broken the way a word processor breaks them."""
+    lines, used = 1, 0.0
+    for width, spaced in _atoms(text, latin_columns):
+        gap = 1.0 if spaced and used else 0.0
+        if used and used + gap + width > units + 1e-9:
+            lines += 1
+            used = 0.0
+            gap = 0.0
+        if not used and width > units + 1e-9:
+            # Wider than the column: forced breaks inside it.
+            extra = int(-(-width // units)) - 1
+            lines += extra
+            used = width - extra * units
+            continue
+        used += gap + width
+    return lines
 
 
 def _column_dashes(headers: list[str], rows: list[list[str]]) -> list[int]:
@@ -222,38 +253,85 @@ def _column_dashes(headers: list[str], rows: list[list[str]]) -> list[int]:
     parameter table gave the column of two-digit values as much room as the
     column of sentences beside it and ran to five pages. Proportional widths
     were the next failure — a column of "53.4" got 6% of the page, less than
-    its own padding, and printed "53." over "4". So each column first gets the
-    width its longest cell needs, a header on two lines. When that does not
-    fit, headers take a third line first: capping every wide column alike
-    wrapped all the row labels of a scenario table to spare one header line,
-    and the taller table left its page half empty. Only then do the widest
-    columns give way, down to a common cap.
+    its own padding, and printed "53." over "4". Capping every wide column
+    alike was the third: parameter names wrapped to make room for sources that
+    wrapped anyway, and a unit header sized at half its length printed
+    "電池容" / "量" / "(kWh)". So each column starts at the narrowest width that
+    breaks nothing it should not — a number, a unit, a short term — and the
+    room left goes, a column at a time, where it saves the most lines.
     """
-    def centimetres(units: int) -> float:
-        return units * DISPLAY_COLUMN_CM + CELL_PADDING_CM
+    count = len(headers)
+    cells = [[row[index] if index < len(row) else "" for row in rows] for index in range(count)]
 
-    natural, least = [], []
+    def piece(text: str, latin: float) -> float:
+        return max((width for width, _spaced in _atoms(text, latin)), default=0.0)
+
+    minimum: list[float] = []
+    natural: list[float] = []
     for index, header in enumerate(headers):
-        longest = max((_display_width(row[index]) for row in rows if index < len(row)), default=0)
-        width, piece = _display_width(header), _longest_unbreakable(header)
-        natural.append(centimetres(max(longest, (width + 1) // 2, piece, 2)))
-        least.append(centimetres(max(longest, (width + 2) // 3, piece, 2)))
-    if sum(natural) <= TEXT_WIDTH_CM:
-        widths = natural
-    elif sum(least) <= TEXT_WIDTH_CM:
-        share = (TEXT_WIDTH_CM - sum(least)) / (sum(natural) - sum(least))
-        widths = [low + (high - low) * share for low, high in zip(least, natural)]
+        least = max([piece(header, HEADER_LATIN_COLUMNS), 2.0] + [piece(cell, 1.0) for cell in cells[index]])
+        least = float(int(-(-least // 1)))
+        longest = max([float(_display_width(cell)) for cell in cells[index]] + [least])
+        two_lines = least
+        while _lines_at(header, two_lines, HEADER_LATIN_COLUMNS) > 2:
+            two_lines += 1
+        minimum.append(least)
+        natural.append(max(longest, two_lines))
+
+    available = (TEXT_WIDTH_CM - count * CELL_PADDING_CM) / DISPLAY_COLUMN_CM
+    measured: dict[tuple[int, float], tuple[int, ...]] = {}
+
+    def column_lines(index: int, width: float) -> tuple[int, ...]:
+        """The header's lines, then each row's, for one column at one width."""
+        key = (index, width)
+        if key not in measured:
+            measured[key] = (_lines_at(headers[index], width, HEADER_LATIN_COLUMNS),
+                             *(_lines_at(cell, width) for cell in cells[index]))
+        return measured[key]
+
+    def height(units: list[float]) -> float:
+        columns = [column_lines(index, units[index]) for index in range(count)]
+        lines_by_row = list(zip(*columns))
+        # Row heights are what the page pays for; every wrapped cell still
+        # breaks ties between layouts that are equally tall.
+        tall = sum(max(row) for row in lines_by_row)
+        return tall + 0.1 * sum(map(sum, columns))
+
+    if sum(natural) <= available:
+        units = natural
+    elif sum(minimum) >= available:
+        units = [value * available / sum(minimum) for value in minimum]
     else:
-        remaining = TEXT_WIDTH_CM
-        ordered = sorted(least)
-        cap = ordered[-1]
-        for position, width in enumerate(ordered):
-            share = remaining / (len(ordered) - position)
-            if width > share:
-                cap = share
+        units = list(minimum)
+        budget = available - sum(units)
+        current = height(units)
+        while True:
+            best = None
+            for index in range(count):
+                target = units[index]
+                previous = column_lines(index, target)
+                while target + 1 <= natural[index] and target + 1 - units[index] <= budget + 1e-9:
+                    target += 1
+                    lines = column_lines(index, target)
+                    if lines == previous:
+                        continue
+                    previous = lines
+                    trial = list(units)
+                    trial[index] = target
+                    value = height(trial)
+                    gain = (current - value) / (target - units[index])
+                    if gain > 1e-9 and (best is None or gain > best[0] + 1e-9):
+                        best = (gain, index, target, value)
+            if best is None:
                 break
-            remaining -= width
-        widths = [min(width, cap) for width in least]
+            _gain, index, target, current = best
+            budget -= target - units[index]
+            units[index] = target
+        lacking = [max(0.0, natural[index] - units[index]) for index in range(count)]
+        spread = sum(lacking)
+        for index in range(count):
+            units[index] += budget * (lacking[index] / spread if spread else 1 / count)
+    widths = [value * DISPLAY_COLUMN_CM + CELL_PADDING_CM for value in units]
     total = sum(widths)
     return [max(3, round(width / total * SEPARATOR_DASHES)) for width in widths]
 
@@ -270,21 +348,22 @@ _OWN_SHEET_FILE_TYPES = frozenset({"csv", "tsv", "json"})
 _OWN_NOTE_FILE_TYPES = frozenset({"md", "txt"})
 
 
-def provenance_line(table: dict, language: str, appendix_number: int | None = None) -> str:
+def provenance_line(table: dict, language: str, pointer: str | None = None) -> str:
     """Where this table came from, in the document's language.
 
-    A computed table says it was computed and names the appendix entry holding
-    its formulas; it used to print the worksheet it was computed from —
-    "來源：taiwan_scenarios.csv (5 rows)，本報告計算" — a local file and a row
-    count standing where a source belongs. A table read from the author's own
-    sheet is 本研究整理. Only a table found inside a document keeps the
-    document's locator, which is the one route a reader has to it.
+    A computed table says it was computed and where its calculation is shown —
+    the report's own appendix, or its entry in the calculation record; it used
+    to print the worksheet it was computed from — "來源：taiwan_scenarios.csv
+    (5 rows)，本報告計算" — a local file and a row count standing where a
+    source belongs. A table read from the author's own sheet is 本研究整理.
+    Only a table found inside a document keeps the document's locator, which
+    is the one route a reader has to it.
     """
     zh = language == "zh"
     computed = bool(table.get("computed"))
-    pointer = ""
-    if appendix_number:
-        pointer = f"（附錄 A{appendix_number}）" if zh else f" (Appendix A{appendix_number})"
+    pointer = str(pointer or "").strip()
+    if pointer:
+        pointer = f"（{pointer}）" if zh else f" ({pointer})"
     calculated = "本研究計算" if zh else "calculated in this study"
     citation = table.get("citation") if isinstance(table.get("citation"), dict) else None
     if citation:
@@ -339,7 +418,7 @@ def render_source_table(
     number: int,
     caption: str = "",
     language: str = "en",
-    appendix_number: int | None = None,
+    pointer: str | None = None,
 ) -> str:
     """One markdown table, captioned and attributed.
 
@@ -368,10 +447,30 @@ def render_source_table(
     )
 
     parts = [heading, "", header_row, separator, body]
-    source = provenance_line(table, language, appendix_number)
+    source = provenance_line(table, language, pointer)
     if source:
         parts.extend(["", source])
     return "\n".join(parts)
+
+
+def placed_table_numbers(markdown: str, evidence_ledger: list[dict]) -> dict[str, int]:
+    """The number each placed table prints under, for every evidence id it shows.
+
+    Counted the way ``replace_table_placeholders`` counts: markers in reading
+    order, one number per marker that names a table. A sentence citing a row
+    or a computed figure the document prints in a table can then point there.
+    """
+    tables = collect_source_tables(evidence_ledger)
+    numbers: dict[str, int] = {}
+    number = 0
+    for match in TABLE_PLACEHOLDER_RE.finditer(markdown or ""):
+        table = tables.get(match.group(1).strip())
+        if table is None:
+            continue
+        number += 1
+        for evidence_id in table.get("evidence_ids") or []:
+            numbers.setdefault(str(evidence_id), number)
+    return numbers
 
 
 def replace_table_placeholders(
@@ -379,15 +478,14 @@ def replace_table_placeholders(
     evidence_ledger: list[dict],
     *,
     start_number: int = 0,
-    appendix_numbers: dict[str, int] | None = None,
+    pointers: dict[str, str] | None = None,
 ) -> tuple[str, int, list[str]]:
     """Expand ``[TABLE:<id>]`` markers into the source's own tables.
 
     Returns the rewritten markdown, how many tables were placed, and the ids
     that named no table — those are reported rather than silently dropped,
-    the way an unresolved figure id is. ``appendix_numbers`` maps an evidence
-    id to the appendix entry CITATION_BIND gave it, so a computed table can
-    point at its formulas.
+    the way an unresolved figure id is. ``pointers`` maps a computed table's
+    evidence id to where CITATION_BIND says its calculation is shown.
     """
     tables = collect_source_tables(evidence_ledger)
     if not tables:
@@ -416,7 +514,7 @@ def replace_table_placeholders(
             number=number,
             caption=(match.group(2) or "").strip(),
             language=language,
-            appendix_number=(appendix_numbers or {}).get(evidence_ids[0]) if evidence_ids else None,
+            pointer=(pointers or {}).get(evidence_ids[0]) if evidence_ids else None,
         )
 
     return TABLE_PLACEHOLDER_RE.sub(replace, markdown), placed, unresolved

@@ -2,6 +2,39 @@
 
 ## Unreleased
 
+### Fixed — the calculation record leaves the report, and the report's own appendix is the one a reader follows
+
+The reviewer of the revised course report found its appendix unusable: the
+entries the next section describes, printed as prose, carried program names
+(`g_cfp`, `bev_body`), per-row switches (`用 Ember 0、0、1、0、0`) and the same
+inputs and long formulas in every entry, and changing `[S]` to 「附錄 A」 had not
+made them readable. The record now renders as a document of its own,
+`published/calculation_record.docx` (`計算附件　完整運算紀錄` / `Calculation
+Record`), with entries numbered `C1`, `C2`…, and the report keeps the appendix
+its author writes. A derivation may declare `explained_in`, the section that
+shows its calculation, and a non-text value is refused. A sentence citing a
+computed figure points at the table the figure is placed in (`本研究計算，表 5`),
+else at `explained_in` (`附錄 A.3`), else at its record entry (`計算附件 C3`);
+a computed table's attribution points at `explained_in` or the entry, never at
+itself. Merged labels read in order without a repeated prefix — `附錄 A.3、A.4、
+表 5、表 6`, `計算附件 C1–C3`. The references come before an authored `附錄` / `Appendix` section, which is no
+longer numbered as a chapter. A record input read from a wide sheet names the
+unit in its column header and the publication the sheet declares, where it had
+printed a bare number.
+
+### Fixed — a parameter table no longer runs to four pages
+
+The same report's parameter table spread over four pages with a 說明 column so
+narrow that a short clause took several lines. Part of that was the content — the
+revision splits the table and moves conversion-only rows to its appendix — and
+part was the widths: every wide column was capped alike, so parameter names
+wrapped to make room for sources that wrapped anyway, and a unit header sized
+at half its length printed `電池容` / `量` / `(kWh)`. Each column now starts at
+the narrowest width that breaks nothing it should not — a number, a unit, a
+Chinese term of up to five characters — and the room left goes, a column at a
+time, where it saves the most row height. A `註：` / `Note:` paragraph under a
+table's attribution stays on the page with the table.
+
 ### Fixed — a computed figure says it was computed, and the appendix says how
 
 A reviewer of the same Chinese course report found the body mixing author-year

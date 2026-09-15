@@ -63,11 +63,16 @@ def _section_id_for_heading(text: str, sections: dict, title_map: dict[str, str]
     return aliases.get(normalized, normalized)
 
 
+#: Sections that are not chapters. An appendix after the references printed as
+#: "6. 附錄", numbered as if it were the sixth chapter of the argument.
+_UNNUMBERED_SECTIONS = frozenset({"abstract", "references", "cover", "appendix"})
+
+
 def _canonical_heading(section_id: str, title: str, ordinal: int | None) -> str:
     # Abstract/References stay unnumbered but follow the document language:
     # the caller passes the localized blueprint title ("Abstract"/"摘要"),
     # so English documents render byte-identically.
-    if section_id in {"abstract", "references"}:
+    if section_id in {"abstract", "references", "appendix"}:
         # Both are top-level sections. Emitting References at H2 while every
         # sibling sat at H1 made Word nest 參考文獻 under the last body section
         # in the table of contents instead of listing it as a section.
@@ -90,7 +95,7 @@ def normalize_heading_contract(markdown: str, blueprint: dict) -> tuple[str, lis
         # title page, not a numbered body section — the renderer promotes it
         # to a centered cover block, so numbering starts at the first real
         # section.
-        if sid in {"abstract", "references", "cover"}:
+        if sid in _UNNUMBERED_SECTIONS:
             continue
         ordinal_by_sid[sid] = ordinal
         ordinal += 1

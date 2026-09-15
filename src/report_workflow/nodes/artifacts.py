@@ -473,6 +473,11 @@ def run_artifacts(state: ReportState) -> ReportState:
 
     if docx_copied:
         artifacts_meta["files"].append({"role": "report_docx", "path": docx_copied})
+    # The complete calculation record travels beside the report it explains.
+    record_copied = _copy_file(state.output.get("calculation_record_docx_path"), published_dir, "calculation_record.docx")
+    if record_copied:
+        state.output["published_calculation_record_path"] = record_copied
+        artifacts_meta["files"].append({"role": "calculation_record_docx", "path": record_copied})
 
     merged_md = _publication_markdown_source(state)
     md_copied = _copy_file(merged_md, published_dir, "report.md")

@@ -38,14 +38,28 @@ paths are accepted for new drafts.
 ### Declaring what a source is a copy of
 
 A source file is not a publication, so by default a `.md`, `.txt` or `.csv`
-source is cited as the report's own material — `（本研究整理，附錄 A3）` /
-`(compiled in this study, Appendix A3)` — backed by an entry in the generated
-appendix, and nothing is guessed from its file name. A figure the pipeline
-computed is labelled `本研究計算` / `calculated in this study`, and its appendix
-entry gives the result, the formula and every input with the row it was read
-from — for a formula table, each row's value of a per-row input; a computed
-table's attribution line points at the same entry. A figure
-computed from a declared publication names both: `（Knobloch et al., 2020；本研究計算，附錄 A1）`.
+source is cited as the report's own material — `（本研究整理，計算附件 C3）` /
+`(compiled in this study, calculation record C3)` — and nothing is guessed from
+its file name. A figure the pipeline computed is labelled `本研究計算` /
+`calculated in this study`. Both point at an entry of the calculation record, a
+document published beside the report (`published/calculation_record.docx`) that
+gives the result, the formula and every input with its unit, the row it was read
+from and its source — for a formula table, each row's value of a per-row input.
+A figure the report places as a table is pointed at by its table number
+(`本研究計算，表 5`). A figure computed from a declared publication names both:
+`（Knobloch et al., 2020；本研究計算，表 4）`.
+
+The record is complete rather than readable: it spells out every input of every
+figure, program names included. When the report explains its calculations in an
+appendix of its own, write that appendix for a reader — the formulas with their
+symbols, a table of the parameters used only there, one complete worked example,
+and for every other scenario only the parameters it changes and where its
+results are shown — and give each derivation the section that explains it with
+`"explained_in": "附錄 A.3"`. Sentences citing that figure, and the attribution of
+a table computed by it, then point there instead of at the record. A section
+with the `appendix` id is not numbered, and the references are placed before a
+heading that starts with 附錄 or Appendix.
+
 When the file is a transcription or excerpt of something published — a report,
 a paper, a government announcement, a dataset — declare it, and the source is
 cited author-year and listed in the references:
