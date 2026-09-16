@@ -45,6 +45,17 @@ more dimensions than you trail, so 0–0 is not a win and **the stop condition
 is not met this round** — not because anything was lost, but because the
 rubric's top band no longer separates these three documents.
 
+**Three judges is three contexts, not three instruments.** All three votes
+here — and all three in the 2026-08-14 archive — were cast by `claude-opus-5`
+in a fresh context on the same relabelled pack under the same prompt. Fresh
+contexts remove the author's knowledge of which arm is which; they do not make
+the readings independent, because one model's blind spots are in all three of
+them. So a unanimous 4/4/4 is weaker than it looks: it is consistent with the
+documents being indistinguishable at the top band, and equally consistent with
+one model's ceiling being reached. The median-of-three protocol treats these
+votes as independent readers, and on this evidence they are not. Separating
+the two readings needs a judge that is not this model.
+
 Two things about this panel belong in the record. All three judges found the
 AI-direct arm's arithmetic error (544 − 148 − 63 − 46 − 8 = 279, printed as
 267) and the contaminated table under its strongest counter-evidence, which

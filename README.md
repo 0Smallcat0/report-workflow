@@ -154,8 +154,10 @@ nothing was lost to get there. All three documents scored **4/4/4** on the
 argument axis, so the tool arm neither leads nor trails on any of its three
 dimensions — and an axis is won by leading on more dimensions than you trail.
 The rubric's top band no longer separates a report this pipeline delivers from a
-person's or from an AI's. The same panel found the two defects the previous
-panel docked the AI-direct arm two points for — an arithmetic error in its
+person's or from an AI's — with one caveat that belongs in the same breath: all
+three votes come from one model in three fresh contexts, so a unanimous tie is
+equally consistent with that model's ceiling being reached. The same panel found
+the two defects the previous panel docked the AI-direct arm two points for — an arithmetic error in its
 headline figure, a contaminated population under its strongest counter-evidence
 — and docked it nothing for them. **Panel variance is the measurement this axis
 keeps reproducing.**
