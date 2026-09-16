@@ -51,10 +51,11 @@ from run_report_quality_benchmark import check_frozen_body, score_document  # no
 
 FIXTURES = REPO_ROOT / "benchmarks" / "fixtures"
 SOURCE_DIR = FIXTURES / "drone_market"
-#: The current round. `drone_market_2026-08-07` is the previous one and stays
-#: as it was recorded — the tool arm it scored no longer exists, and an archive
-#: rewritten in place cannot show what moved.
-EVIDENCE_ROOT = REPO_ROOT / "benchmarks" / "evidence" / "drone_market_2026-08-14"
+#: The current round. `drone_market_2026-08-07` and `drone_market_2026-08-14`
+#: are the previous ones and stay as they were recorded — the tool arm each of
+#: them scored no longer exists, and an archive rewritten in place cannot show
+#: what moved.
+EVIDENCE_ROOT = REPO_ROOT / "benchmarks" / "evidence" / "drone_market_2026-09-16"
 VOTES_PATH = EVIDENCE_ROOT / "argument_votes.json"
 RUBRIC_PATH = REPO_ROOT / "benchmarks" / "rubrics" / "argument_rubric.md"
 
@@ -185,54 +186,81 @@ def verdict(scores: dict) -> dict:
     }
 
 
-#: What these numbers are an upper bound on.
+#: Why the tool arm was re-recorded, and what moved when it was.
 #:
-#: The tool arm is the only arm that moves, and this round it was rewritten by
-#: an author holding three blind judges' itemised deductions on the previous
-#: version — same task, same data, same rubric, same judges' criteria. A rise
-#: is close to guaranteed, and this round's design cannot separate how much of
-#: it is the tool improving from how much is a second attempt at one exam.
+#: Always printed, above the table. A reader who sees `external_sources` fall
+#: from 12 to 0 will otherwise conclude the delivered report lost its sourcing,
+#: and what actually happened is that the twelve were never external.
+_WHAT_CHANGED = [
+    "## What changed this round",
+    "",
+    "**The tool arm was re-recorded and the argument axis was re-judged.** The",
+    "previous recording could no longer be reproduced at all: `e401849` added the",
+    "FL checker, which hard-blocks three of the arm's own claims for calling a",
+    "table row labelled `1–2` 「1–3 星區間」 — the defect the 2026-08-14 archive",
+    "recorded and deliberately left unrepaired. From that commit onward the",
+    "recording script failed at validate and CI's re-record job was red. The three",
+    "labels now name the row FL points at, which is what its message prescribes,",
+    "and that is the only change to the author's prose.",
+    "",
+    "**What moved on the counted axes is the citation apparatus, not the writing.**",
+    "`80994fb`, `4d501b8` and `2b5472a` moved the derivations out of the report",
+    "into `published/calculation_record.docx` and replaced the `[S1]` markers with",
+    "「（本研究計算，表 N）」:",
+    "",
+    "- `external_sources` 12 → 0. All twelve lived in the old `# 資料來源` list:",
+    "  six Amazon URLs and six quoted `(來源:…csv)` strings naming the input files.",
+    "  Not one of them was a source outside this data set — the dimension was",
+    "  counting the pipeline's own record of its own derivations.",
+    "- `verifiable_numbers` 137 → 167. Thirty numbers added, none removed, and all",
+    "  thirty are digits inside `表 N` pointers. The arm states no more checkable",
+    "  figures than it did before.",
+    "- `verifiable_number_ratio` 0.5269 → 0.5759, on those same thirty digits —",
+    "  which is what turns that dimension from a loss into a win against the",
+    "  AI-direct arm.",
+    "- `paragraph_length_fitness` 0.5333 → 0.4074. The authored paragraphs are",
+    "  unchanged in shape: 22 fit, 31 under 60 characters, 1 over 500, before and",
+    "  after. The twenty-one source-list entries that left the document took 18",
+    "  fit paragraphs out of the denominator with them.",
+    "",
+    "Two of those dimensions do not measure what their names say, and both move",
+    "when the citation format changes. That is a defect in the instrument. It is",
+    "recorded here rather than banked as a result.",
+    "",
+    "**The argument axis tied on every dimension.** Three blind judges returned",
+    "hand 4/4/4, tool 4/4/4, AI-direct 4/4/4; one judge scored the tool arm 3 on",
+    "`claim_strength` and was outvoted by the median. An axis is won by leading on",
+    "more dimensions than you trail, so 0–0 is not a win and **the stop condition",
+    "is not met this round** — not because anything was lost, but because the",
+    "rubric's top band no longer separates these three documents.",
+    "",
+    "Two things about this panel belong in the record. All three judges found the",
+    "AI-direct arm's arithmetic error (544 − 148 − 63 − 46 − 8 = 279, printed as",
+    "267) and the contaminated table under its strongest counter-evidence, which",
+    "are the two defects the previous panel docked it two points for — and this",
+    "panel docked it nothing, taking them as not overturning its conclusions. The",
+    "measurement that keeps reproducing here is the panel's own variance. And the",
+    "judging prompt carried one sentence earlier rounds may not have had: that the",
+    "three documents need not be spread across the scale. It was there to stop",
+    "forced differentiation, and one judge differentiated anyway, but it is a",
+    "deviation from whatever the earlier prompt said and it points toward the",
+    "ceiling this round hit.",
+    "",
+]
+
+#: What these numbers are an upper bound on.
 _SCOPE_CAVEAT = [
-    "## Read this before the table",
-    "",
-    "**The stop condition is met, and one number decides it.** On the argument axis",
-    "the tool arm reads 3/4/4 and the AI-direct arm 4/3/3, so the tool arm wins that",
-    "axis 2–1. The AI-direct arm is frozen: its bytes are identical to the round",
-    "that scored it 4/4/4. Had this panel returned 4/4/4 again, the tool arm would",
-    "have been 0–1 on the argument axis, the axis would not be won, and the stop",
-    "condition would not be met.",
-    "",
-    "So a two-point move on a document that did not change is what carries the",
-    "verdict. Both drops are attributable — all three judges independently found",
-    "that the AI-direct arm's headline figure is wrong (544 - 148 - 63 - 46 - 8 =",
-    "279, written as 267) and that the table carrying its strongest counter-evidence",
-    "is contaminated: its top two review counts are a pair of binoculars and a",
-    "telescope, 51.9% of the total it quotes, from the 46 rows that arm itself",
-    "excluded as keyword contamination. Those are real defects and the deductions",
-    "are earned. But they were equally present in the previous round and that panel",
-    "did not find them, which is the measurement this archive can actually make:",
-    "**the round-to-round noise on the argument axis is at least one point per",
-    "dimension, and this round's margin is one point.**",
-    "",
-    "The tool arm has its own defect this round, found by all three judges: the",
-    "pain-point section calls a table row labelled `1–2` 「1–3 星區間 49 則評論」",
-    "three times. The row and the 49 are right; 1–3 stars is 68 reviews. It is the",
-    "same class of error the band-label repair was for, one layer up — the labels",
-    "were corrected and the prose quoting the old ones was not. Not repaired here,",
-    "because repairing it means re-recording and re-judging, and a round re-run",
-    "until it comes out better is not a measurement.",
-    "",
     "## What these scores are an upper bound on",
     "",
-    "The tool arm is the only arm that moves. This round it was written a second",
-    "time against the same task, the same three CSVs and the same rubric, by an",
-    "author holding the previous round's itemised deductions from three blind",
-    "judges. Scores going up under those conditions is close to guaranteed.",
+    "The tool arm is the only arm that moves. Its prose was written against the",
+    "same task, the same three CSVs and the same rubric by an author holding three",
+    "blind judges' itemised deductions on the previous version, and this round",
+    "repaired the one defect that panel found in it. Scores holding up under those",
+    "conditions is close to guaranteed.",
     "",
-    "How much of the rise is the pipeline getting better and how much is a second",
-    "attempt at one exam, **this round's design cannot separate**. Read the",
-    "numbers as this task's ceiling for this pipeline, not as what it would score",
-    "on a task it has not seen.",
+    "How much of that is the pipeline and how much is a second attempt at one exam,",
+    "**this design cannot separate**. Read the numbers as this task's ceiling for",
+    "this pipeline, not as what it would score on a task it has not seen.",
     "",
     "What would separate them is a held-out task: new sources, a new question, no",
     "prior judging to write against. There is not one, and there will not be one",
@@ -251,8 +279,10 @@ def _summary_markdown(results: dict) -> str:
         "scorers. Reproduce with `python scripts/run_drone_market_benchmark.py --check`.",
         "",
     ]
-    # An archive announcing that it met its stop condition owes the reader the
-    # width of that condition before the table, not after it.
+    # Why the arm that moves moved, before the table it moved in. An archive
+    # announcing that it met its stop condition owes the reader the width of
+    # that condition in the same place.
+    lines.extend(_WHAT_CHANGED)
     if results["verdict"]["stop_condition_met"]:
         lines.extend(_SCOPE_CAVEAT)
     for arm, path in results["arms"].items():
@@ -322,12 +352,15 @@ def _summary_markdown(results: dict) -> str:
         "the hand-written arm was ahead of the pipeline when it was recorded, and the",
         "AI-direct arm is the strongest of four independent drafts.",
         "",
-        "## The instrument changed this round",
+        "## The instrument, and the round it changed in",
         "",
-        "The layout axis went from three dimensions to six. The first three read prose;",
-        "the deliverable is a DOCX and nothing was looking at the furniture around a",
-        "table. Added: `table_caption_ratio`, `table_provenance_ratio`,",
-        "`table_size_fitness`.",
+        "This round did not touch it: the scorers, the axes and the rubric are the",
+        "ones the 2026-08-14 archive used, which is what makes the two comparable.",
+        "",
+        "In that round the layout axis went from three dimensions to six. The first",
+        "three read prose; the deliverable is a DOCX and nothing was looking at the",
+        "furniture around a table. Added: `table_caption_ratio`,",
+        "`table_provenance_ratio`, `table_size_fitness`.",
         "",
         "Declared because of who added them. The same author who rewrote the tool arm",
         "chose these three, after reading all three documents. Two of them — caption and",

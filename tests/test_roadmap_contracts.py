@@ -1592,7 +1592,7 @@ class DocumentationContractTests(unittest.TestCase):
     #: swapping archives is a deliberate edit to this line, which forces both
     #: READMEs to move in the same commit — which is the whole point of the
     #: guard.
-    DRONE_ARCHIVE = Path("benchmarks/evidence/drone_market_2026-08-14")
+    DRONE_ARCHIVE = Path("benchmarks/evidence/drone_market_2026-09-16")
 
     def test_both_readmes_quote_the_archived_three_arm_result(self):
         """The landing page has to carry the harsher benchmark, not the kinder one.

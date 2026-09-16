@@ -2,6 +2,65 @@
 
 ## Unreleased
 
+### Measured — the tool arm re-records after a month in which it could not be recorded at all
+
+`e401849` added the FL checker three hours after `e496f93` recorded the tool
+arm, and FL hard-blocks three of that arm's own claims: the pain-point section
+calls a table row labelled `1–2` 「1–3 星區間」 three times. Every re-recording
+since has failed at validate, CI's re-record job is red on the last pushed
+commit for exactly that reason, and `--check` kept passing because it re-scores
+the checked-in file rather than regenerating it. The `Body SHA-256:` line does
+not catch this either: it proves nobody edited the fixture by hand, not that the
+pipeline would still produce it. The three labels now name the row FL points at,
+which is the one change to the author's prose — and it is the defect the
+2026-08-14 archive recorded and deliberately left alone.
+
+This is therefore the first recording to carry `80994fb`, `4d501b8` and
+`2b5472a`, which moved the derivations into `published/calculation_record.docx`
+and replaced the `[S1]` markers with 「（本研究計算，表 N）」. Four numbers moved
+and not one of them is about the writing: `external_sources` 12 → 0 (all twelve
+were URLs and file names quoted inside the record that left, none a source
+outside the data set), `verifiable_numbers` 137 → 167 with
+`verifiable_number_ratio` 0.5269 → 0.5759 (thirty `表 N` pointer digits, not one
+further checkable figure — and it is what flips that dimension to a win against
+the AI-direct arm), and `paragraph_length_fitness` 0.5333 → 0.4074 (the
+twenty-one source-list entries took 18 fit paragraphs out of the denominator;
+the authored paragraphs are unchanged at 22 fit, 31 short, 1 long). Two
+dimensions are not measuring what their names say. That is in the archive as a
+defect in the instrument, not banked as a result.
+
+Re-judged blind, all three arms in one pass: hand **4/4/4**, tool **4/4/4**,
+AI-direct **4/4/4**; one judge scored the tool arm 3 on `claim_strength` and was
+outvoted by the median. **The stop condition is not met.** An axis is won by
+leading on more dimensions than you trail, and 0–0 is not a win — nothing was
+lost, the rubric's top band simply no longer separates the three documents. The
+same panel found the two defects that cost the AI-direct arm two points last
+round and docked it nothing for them, so panel variance remains the only thing
+this axis reliably measures. `benchmarks/evidence/drone_market_2026-09-16/` is
+the new archive and both earlier rounds stay as they were recorded. Declared:
+the judging prompt told the judges the three documents need not be spread across
+the scale, which earlier rounds may not have said, and it points the same way as
+the ceiling that was hit.
+
+### Fixed — the report-quality arm looked for a blueprint key that no longer exists
+
+`f00f100` renamed `requires_undermines` to `counter_evidence`, and
+`scripts/run_report_quality_benchmark.py` was the last place reading the old
+name. Finding no counter-evidence section, the mechanical author handed all
+eight claims to all four sections and wrote 32 claim paragraphs where it writes
+20, which raised four of that benchmark's eight dimensions on an arm whose whole
+job is to hold still. Repaired before the archive was written, together with the
+`undermines` list it wrote, which nothing has read since that commit.
+
+With the arm back in its intended shape, the citation work moves two numbers:
+`verifiable_number_ratio` 0.9014 → 0.9143 and `structured_paragraph_ratio`
+0.5714 → 0.6061. Both are two blocks leaving the delivered document — a bare
+`executive_summary` section id that used to reach the page, and the `資料來源`
+heading over the `[S1]`–`[S8]` list — plus an appendix that is no longer
+numbered as a chapter, so its `5` is no longer counted as a prose figure the
+source does not contain. `verifiable_numbers` did not move at all, and the
+harness still wins 6 of 8.
+
 ### Fixed — the calculation record leaves the report, and the report's own appendix is the one a reader follows
 
 The reviewer of the revised course report found its appendix unusable: the

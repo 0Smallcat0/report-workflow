@@ -1,0 +1,278 @@
+{
+ "llm_direct": [
+  {
+   "arm": "llm_direct",
+   "vote": 1,
+   "judge": {
+    "model": "claude-opus-5",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false
+   },
+   "claim_strength": {
+    "score": 4,
+    "evidence": "低價帶的擁擠有一半是零件造成的，不是整機競爭造成的。"
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "三個數字裡沒有一個是靠另外兩個推出來的，而三個都指向同一件事"
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "第九節選擇後者是基於風險偏好的判斷，不是基於資料的判斷"
+   }
+  },
+  {
+   "arm": "llm_direct",
+   "vote": 2,
+   "judge": {
+    "model": "claude-opus-5",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false
+   },
+   "claim_strength": {
+    "score": 4,
+    "evidence": "這個對照排除了一種常見的誤讀：影像被 58.6% 的評論提到、是提及率最高的主題，很容易讀成「買家最在意影像」，但它在低分區反而掉了 17.8 個百分點，代表提到影像的評論絕大多數是在稱讚。"
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "它有 243 件掛牌、佔全體 44.7%，累積評論數中位數 225 則，銷量欄位覆蓋率 48.6%——三個數字裡沒有一個是靠另外兩個推出來的，而三個都指向同一件事。"
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "如果進入者的目標是規模而非穩定，這份資料指向的切點是 $30–100 而不是 $200–800。"
+   }
+  },
+  {
+   "arm": "llm_direct",
+   "vote": 3,
+   "judge": {
+    "model": "claude-opus-5",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false
+   },
+   "claim_strength": {
+    "score": 4,
+    "evidence": "在 $50 以下賣東西，做品牌這件事收不到錢。"
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "三個數字裡沒有一個是靠另外兩個推出來的，而三個都指向同一件事。"
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "高價帶的需求被系統性低估，這削弱第四節的整個排序。"
+   }
+  }
+ ],
+ "tool": [
+  {
+   "arm": "tool",
+   "vote": 1,
+   "judge": {
+    "model": "claude-opus-5",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false
+   },
+   "claim_strength": {
+    "score": 4,
+    "evidence": "而「高價帶沒需求」這個讀法，在 800+ 這一段其實是「這一段有 32.08% 是另一個通路的商品」。"
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "4.90% 的負評率與 4.66 出自同一批 102 則評論，只是同一個訊號的第二種寫法，不另計為佐證。"
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "如果先取得的第三方銷量資料顯示低價帶的頭部規模遠大於此，正確的切點會變成 30–100，那時這份報告的建議應該被推翻而不是被修補。"
+   }
+  },
+  {
+   "arm": "tool",
+   "vote": 2,
+   "judge": {
+    "model": "claude-opus-5",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false
+   },
+   "claim_strength": {
+    "score": 4,
+    "evidence": "所以把整條價格軸當成一個市場來比較平均價或平均星等，比較的是三個不同的貨架；而「高價帶沒需求」這個讀法，在 800+ 這一段其實是「這一段有 32.08% 是另一個通路的商品」。"
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "三個獨立的量支撐它，各自來自不同的檔案：4.66 星來自評論檔；327.00 則累積評論中位數與 53 件、9.74% 來自掛牌檔；66.04% 的攝影佔比來自分類檔與掛牌檔以 asin 內聯結後的交叉表。4.90% 的負評率與 4.66 出自同一批 102 則評論，只是同一個訊號的第二種寫法，不另計為佐證。"
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "所以這裡把建議降級：進入 200–500，但先以單一機種試水而不是鋪產品線，並在自有銷售資料累積到 50 件同帶商品之前，不要把這個價格帶的口碑優勢寫進投資假設。"
+   }
+  },
+  {
+   "arm": "tool",
+   "vote": 3,
+   "judge": {
+    "model": "claude-opus-5",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false
+   },
+   "claim_strength": {
+    "score": 3,
+    "evidence": "這不是一個多強權競爭的品類，是一家獨大加上一群規模相近的小玩家。"
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "4.90% 的負評率與 4.66 出自同一批 102 則評論，只是同一個訊號的第二種寫法，不另計為佐證。"
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "在自有銷售資料累積到 50 件同帶商品之前，不要把這個價格帶的口碑優勢寫進投資假設。"
+   }
+  }
+ ],
+ "hand": [
+  {
+   "arm": "hand",
+   "vote": 1,
+   "judge": {
+    "model": "claude-opus-5",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false
+   },
+   "claim_strength": {
+    "score": 4,
+    "evidence": "中價帶不是 DJI 在守，是白牌在互相踩。"
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "左欄是「大家在談什麼」，右欄是「談了就代表不滿」。兩者不是同一件事。"
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "這些痛點可能是特定廠商的品質問題，不是市場級的結構空隙。"
+   }
+  },
+  {
+   "arm": "hand",
+   "vote": 2,
+   "judge": {
+    "model": "claude-opus-5",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false
+   },
+   "claim_strength": {
+    "score": 4,
+    "evidence": "DJI 在 $50–200 的掛牌占比只有 5% 上下，在 $400 以上是 27.1%。中價帶不是 DJI 在守，是白牌在互相踩。"
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "依據是需求真實存在（無人機子集累積 253,601 則評論、75,500 的月銷量代理下界）、在位者在中價帶的品質評價明確偏低（$100–200 有 28.6% 的商品評分低於 4.0、負評率 23.4%）、且該帶 DJI 掛牌占比僅 5.0%。"
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "一件 $1,049 的商品即使月銷 49 件（營收約 $51,401）也會被記為無資料，而一件 $39.98 賣 500 件（營收約 $19,990）卻會被計入。本報告用的「每筆掛牌銷量」指標因此對高價帶不公平。"
+   }
+  },
+  {
+   "arm": "hand",
+   "vote": 3,
+   "judge": {
+    "model": "claude-opus-5",
+    "inputs": [
+     "the three reports, relabelled document_A/B/C and shuffled, comment headers stripped",
+     "benchmarks/rubrics/argument_rubric.md",
+     "benchmarks/fixtures/drone_market/amazon_classified.csv",
+     "benchmarks/fixtures/drone_market/amazon_products.csv",
+     "benchmarks/fixtures/drone_market/amazon_reviews.csv",
+     "the task statement the three arms were given"
+    ],
+    "same_context_as_author": false,
+    "saw_pipeline_code": false,
+    "saw_task_prompt": false
+   },
+   "claim_strength": {
+    "score": 4,
+    "evidence": "中價帶不是 DJI 在守，是白牌在互相踩。"
+   },
+   "evidence_depth": {
+    "score": 4,
+    "evidence": "這一帶有 28.6% 的商品評分低於 4.0（全樣本最高），對應評論的負評率 23.4%（全價格帶最高）。"
+   },
+   "counter_specificity": {
+    "score": 4,
+    "evidence": "在位者在高價帶做得很好，這是「不要進」的正當理由；但「高價帶沒需求」不是資料支持的說法。"
+   }
+  }
+ ]
+}

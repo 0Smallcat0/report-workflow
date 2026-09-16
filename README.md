@@ -146,31 +146,36 @@ an AI given the same files. Three axes: counted (numeric), rule-scored
 (layout), and judged against a fixed rubric by three independent blind judges
 who are told nothing about how any arm was produced (argument). Every number
 below is from
-[`benchmarks/evidence/drone_market_2026-08-14/`](benchmarks/evidence/drone_market_2026-08-14/summary.md).
-Check the date: the next re-recording moves these, and two checkers landed
-after this round that will change what the tool arm contains.
+[`benchmarks/evidence/drone_market_2026-09-16/`](benchmarks/evidence/drone_market_2026-09-16/summary.md).
+Check the date: the next re-recording moves these.
 
-**Read this before the table.** The stop condition is met — the tool arm wins
-every axis against the AI-direct arm and loses at most one to the hand-written
-control — and **one number decides it, in a document that did not change.**
-The AI-direct arm is frozen; it is byte-identical to the round that scored it
-4/4/4 on the argument axis, and this panel scored it 4/3/3. Had this panel
-returned 4/4/4 again, the tool arm would have been 0–1 on that axis, the axis
-would not be won, and the stop condition would not be met. Both of the
-AI-direct arm's deductions are earned — three judges independently found an
-arithmetic error in its headline figure and a contaminated population under its
-strongest counter-evidence — but the same defects were present in the previous
-round and that panel did not find them. **So the round-to-round variation
-between judging panels is at least one point per dimension, and this round's
-winning margin is one point.**
+**Read this before the table.** The stop condition is not met this round, and
+nothing was lost to get there. All three documents scored **4/4/4** on the
+argument axis, so the tool arm neither leads nor trails on any of its three
+dimensions — and an axis is won by leading on more dimensions than you trail.
+The rubric's top band no longer separates a report this pipeline delivers from a
+person's or from an AI's. The same panel found the two defects the previous
+panel docked the AI-direct arm two points for — an arithmetic error in its
+headline figure, a contaminated population under its strongest counter-evidence
+— and docked it nothing for them. **Panel variance is the measurement this axis
+keeps reproducing.**
+
+**The counted axes moved because the citations changed, not the prose.** The
+derivations left the report for a calculation record of its own, so
+`external_sources` fell 12 → 0 — all twelve were URLs and file names quoted
+inside that record, and not one was a source outside this data set. Citations
+became 「（本研究計算，表 N）」, whose pointer digits added thirty to
+`verifiable_numbers` without the arm stating a single further checkable figure.
+Two dimensions are not measuring what their names say; the archive records that
+rather than banking it as a result.
 
 **These scores are this task's ceiling, not a general result.** The tool arm is
-the only arm that moves, and this round it was written a *second* time against
-the same task, the same three CSVs and the same rubric, by an author holding
-the previous round's itemised deductions from three blind judges. Scores rising
-under those conditions is close to guaranteed, and this round's design cannot
-separate how much of the rise is the pipeline getting better from how much is a
-second attempt at one exam.
+the only arm that moves, and its prose was written a *second* time against the
+same task, the same three CSVs and the same rubric, by an author holding the
+previous round's itemised deductions from three blind judges — and this round
+repaired the one defect that panel found in it. This design cannot separate how
+much of the result is the pipeline from how much is a second attempt at one
+exam.
 
 **This archive has no held-out task** — no second question with new sources and
 no prior judging to write against. Building one means commissioning a second
@@ -179,22 +184,23 @@ this benchmark. That is the largest known limitation of these numbers.
 
 | Axis | vs the hand-written control | vs the AI writing directly |
 | --- | --- | --- |
-| numeric — counted properties of the document | 4–2 won | 4–2 won |
-| layout — rule-scored structure and table furniture | 5–1 won | 4–2 won |
-| argument — three blind judges against a fixed rubric | **0–1 lost** | 2–1 won |
+| numeric — counted properties of the document | 3–2 won | 4–1 won |
+| layout — rule-scored structure and table furniture | 4–2 won | 4–2 won |
+| argument — three blind judges against a fixed rubric | **0–0 lost** | **0–0 lost** |
 
 Argument axis, median of three votes per dimension
 (`claim_strength`/`evidence_depth`/`counter_specificity`): hand **4/4/4**,
-tool **3/4/4**, AI-direct **4/3/3**. The tool arm still trails a person on
-`claim_strength`, and the archive records the defect all three judges found in
-it. Every vote, with the passage behind it and a record of who cast it, is in
-[`argument_votes.json`](benchmarks/evidence/drone_market_2026-08-14/argument_votes.json).
+tool **4/4/4**, AI-direct **4/4/4**. One judge scored the tool arm 3 on
+`claim_strength` and was outvoted by the median; the other two separated none of
+the three documents. Every vote, with the passage behind it and a record of who
+cast it, is in
+[`argument_votes.json`](benchmarks/evidence/drone_market_2026-09-16/argument_votes.json).
 
-The layout axis was extended in this same round, by the author of the arm being
-measured, after reading all three documents — two of its three new dimensions
-are properties the renderer produces by construction and neither hand-written
-arm produces at all. That is declared in
-[the summary](benchmarks/evidence/drone_market_2026-08-14/summary.md), and it is
+The layout axis was extended in the previous round, by the author of the arm
+being measured, after reading all three documents — two of its three new
+dimensions are properties the renderer produces by construction and neither
+hand-written arm produces at all. That is declared in
+[the summary](benchmarks/evidence/drone_market_2026-09-16/summary.md), and it is
 a reason to discount that axis rather than a footnote to it.
 
 ## Other ways to run it
