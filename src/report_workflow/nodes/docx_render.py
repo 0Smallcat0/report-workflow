@@ -717,6 +717,139 @@ def _render_via_pandoc(
 
 
 # ------------------------------------------------------------------
+# Wide tables
+# ------------------------------------------------------------------
+
+#: A table with at least this many columns is given its own landscape section.
+#:
+#: The shipped reference.docx is A4 portrait with 1-inch margins, so the text
+#: column is 9026 twips (15.9 cm). Pandoc emits every table at `tblW pct 5000`,
+#: which makes Word divide that column evenly: eleven columns come out at
+#: 1.44 cm each, and a 9pt CJK glyph is 3.2 mm wide. Four characters per line.
+#: A header like "資金使用率" wraps to two lines, every row of the body wraps,
+#: and the table reads as a grey block.
+#:
+#: Eight is where that starts. Seven columns is 2.27 cm, which holds a short
+#: header on one line. Lowering the threshold would flip well-formed tables
+#: into landscape and make the reader rotate the page for no gain.
+_LANDSCAPE_MIN_COLS = 8
+
+#: A4 portrait in twips, used when the reference doc declares no page size
+#: (pandoc's own default template does not).
+_DEFAULT_PAGE = (11906, 16838)
+_DEFAULT_MARGINS = {"top": 1440, "right": 1440, "bottom": 1440, "left": 1440}
+
+
+def _page_geometry(reference_doc: Path | None) -> tuple[int, int, dict[str, int]]:
+    """Page size and margins declared by the reference doc.
+
+    Read rather than hard-coded: a caller who supplies their own template via
+    `reference_docx_path` has already chosen a paper size, and a landscape
+    section that ignored it would change the paper size halfway through the
+    document.
+    """
+    if reference_doc is None or not reference_doc.exists():
+        return (*_DEFAULT_PAGE, dict(_DEFAULT_MARGINS))
+    try:
+        with zipfile.ZipFile(reference_doc) as z:
+            xml = z.read("word/document.xml").decode("utf-8", "replace")
+    except (OSError, KeyError, zipfile.BadZipFile):
+        return (*_DEFAULT_PAGE, dict(_DEFAULT_MARGINS))
+
+    size = re.search(r"<w:pgSz\b[^>]*/>", xml)
+    width, height = _DEFAULT_PAGE
+    if size:
+        w = re.search(r'w:w="(\d+)"', size.group(0))
+        h = re.search(r'w:h="(\d+)"', size.group(0))
+        if w and h:
+            width, height = int(w.group(1)), int(h.group(1))
+    margins = dict(_DEFAULT_MARGINS)
+    mar = re.search(r"<w:pgMar\b[^>]*/>", xml)
+    if mar:
+        for edge in margins:
+            found = re.search(rf'w:{edge}="(\d+)"', mar.group(0))
+            if found:
+                margins[edge] = int(found.group(1))
+    return width, height, margins
+
+
+def _sect_break(width: int, height: int, margins: dict[str, int], landscape: bool) -> str:
+    """An empty paragraph carrying a sectPr, as a raw openxml block.
+
+    In OOXML a sectPr inside a paragraph describes the section that *ends* at
+    that paragraph, so bracketing a landscape run takes a portrait sectPr
+    before it and a landscape sectPr after it. The document-final sectPr comes
+    from the reference doc and returns everything below to portrait.
+    """
+    if landscape:
+        width, height = max(width, height), min(width, height)
+        orient = ' w:orient="landscape"'
+    else:
+        width, height = min(width, height), max(width, height)
+        orient = ""
+    pg = (
+        f'<w:pgSz w:w="{width}" w:h="{height}"{orient}/>'
+        f'<w:pgMar w:top="{margins["top"]}" w:right="{margins["right"]}" '
+        f'w:bottom="{margins["bottom"]}" w:left="{margins["left"]}" '
+        'w:header="851" w:footer="992" w:gutter="0"/>'
+    )
+    return (
+        "\n```{=openxml}\n"
+        f"<w:p><w:pPr><w:sectPr>{pg}</w:sectPr></w:pPr></w:p>\n"
+        "```\n"
+    )
+
+
+def _wrap_wide_tables(md: str, reference_doc: Path | None) -> tuple[str, int]:
+    """Put every table of `_LANDSCAPE_MIN_COLS`+ columns in a landscape section.
+
+    Adjacent wide tables are merged into one section when only headings and
+    blank lines separate them. Without the merge, a lone `### 4.3` between two
+    wide tables becomes its own portrait section -- a near-empty portrait page
+    wedged between two landscape ones. A run of prose does split the section:
+    a 24 cm measure holds ninety-odd CJK characters per line, which is a worse
+    place to read a paragraph than the narrow column it came from.
+
+    Raw openxml only reaches the pandoc path; the python-docx fallback cannot
+    consume it, and this runs on the pandoc input alone.
+    """
+    lines = md.split("\n")
+    spans: list[list[int]] = []
+    i = 0
+    while i < len(lines):
+        if not lines[i].lstrip().startswith("|"):
+            i += 1
+            continue
+        j = i
+        while j < len(lines) and lines[j].lstrip().startswith("|"):
+            j += 1
+        if lines[i].count("|") - 1 >= _LANDSCAPE_MIN_COLS:
+            gap = [x for x in lines[spans[-1][1]:i] if x.strip()] if spans else None
+            if gap is not None and all(x.lstrip().startswith("#") for x in gap):
+                spans[-1][1] = j
+            else:
+                spans.append([i, j])
+        i = j
+
+    if not spans:
+        return md, 0
+
+    width, height, margins = _page_geometry(reference_doc)
+    portrait = _sect_break(width, height, margins, landscape=False)
+    landscape = _sect_break(width, height, margins, landscape=True)
+    out: list[str] = []
+    prev = 0
+    for a, b in spans:
+        out.extend(lines[prev:a])
+        out.append(portrait)
+        out.extend(lines[a:b])
+        out.append(landscape)
+        prev = b
+    out.extend(lines[prev:])
+    return "\n".join(out), len(spans)
+
+
+# ------------------------------------------------------------------
 # Post-render validation
 # ------------------------------------------------------------------
 
@@ -1760,21 +1893,30 @@ def run_docx_render(state: ReportState) -> ReportState:
         not has_front_matter
         and state.spec.get("task_intent") == "revise_existing"
     )
+    # Resolve before writing the pandoc input: an unusable custom template must
+    # hard-block rather than get swallowed into the python-docx fallback, and
+    # the landscape sections below take their paper size from it.
+    reference_doc = _resolve_reference_doc(state.spec)
+
     pandoc_input_md = run_dir / "pandoc_input.md"
-    with open(pandoc_input_md, "w", encoding="utf-8") as f:
-        f.write(
-            _inject_toc(
-                md_content,
-                has_front_matter,
-                cover_title=cover_title,
-                title_leads=title_leads,
-            )
+    pandoc_md, flipped = _wrap_wide_tables(
+        _inject_toc(
+            md_content,
+            has_front_matter,
+            cover_title=cover_title,
+            title_leads=title_leads,
+        ),
+        reference_doc,
+    )
+    if flipped:
+        logger.info(
+            f"[DOCX_RENDER] {flipped} landscape section(s) for tables of "
+            f"{_LANDSCAPE_MIN_COLS}+ columns"
         )
+    with open(pandoc_input_md, "w", encoding="utf-8") as f:
+        f.write(pandoc_md)
 
     # --- Primary path: pandoc ---
-    # Resolve outside the try: an unusable custom template must hard-block,
-    # not get swallowed into the python-docx fallback.
-    reference_doc = _resolve_reference_doc(state.spec)
     custom_template_requested = bool(str(state.spec.get("reference_docx_path") or "").strip())
     used_pandoc = False
     pandoc_warnings: list[str] = []
