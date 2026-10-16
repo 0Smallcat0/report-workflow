@@ -42,7 +42,7 @@ than the stop.
 Not because the ideas are bad — because each one doubles the surface a single
 maintainer has to keep honest:
 
-- **An eighth report profile**, or any new public selector for report shape.
+- **A ninth report profile**, or any new public selector for report shape.
   `report_profile` is the only one, and there is no `report_family`, detail
   level, subtype, or variant.
 - **A semantic layer.** The gates are lexical on purpose: same input, same
