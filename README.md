@@ -69,8 +69,8 @@ Then just ask, in your own words:
 > Use report-workflow to turn the files in ./data into a business report for the
 > operations manager: what changed, what it costs, whether to adopt it.
 
-Seven kinds of document: lab report, academic paper, business report, proposal,
-two admissions formats, and a general one. **The maths a marker looks for — how
+Eight kinds of document: lab report, academic paper, business report, proposal,
+quantitative research memo, two admissions formats, and a general one. **The maths a marker looks for — how
 close your measurements came to theory, an R², a budget total — is worked out by
 the tool from your own data**, so the AI never has to make a number up. Formats,
 Chinese documents, and using your own Word template:

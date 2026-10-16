@@ -1,0 +1,109 @@
+{
+  "thesis_statement": "The structured workflow pilot demonstrates that evidence handling, QA thinking, controlled procedure, and explicit quality boundaries can support a serious but bounded report-generation project.",
+  "sections": {
+    "summary": {
+      "section_id": "summary",
+      "title": "Summary",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_baseline",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "question_and_data": {
+      "section_id": "question_and_data",
+      "title": "Question and Data",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_baseline",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "method": {
+      "section_id": "method",
+      "title": "Method",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_baseline",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "results": {
+      "section_id": "results",
+      "title": "Results",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_baseline",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": [
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7",
+        "8"
+      ]
+    },
+    "robustness": {
+      "section_id": "robustness",
+      "title": "Robustness",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_baseline",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "limitations": {
+      "section_id": "limitations",
+      "title": "Limitations",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_baseline",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
+    },
+    "appendix": {
+      "section_id": "appendix",
+      "title": "Appendix",
+      "claim_ids": [],
+      "figure_ids": []
+    }
+  },
+  "_contract": {
+    "job_id": "run_27e81c5e",
+    "evidence_ledger_hash": "5374489269e5d02f",
+    "source_registry_hash": "b9c9341ed341d59d"
+  }
+}

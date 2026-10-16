@@ -94,9 +94,9 @@ python scripts/run_external_benchmark.py --check      # recompute all 20,000 ver
 
 Full analysis: [`benchmarks/evidence/halueval_qa_2026-07-15/summary.md`](../benchmarks/evidence/halueval_qa_2026-07-15/summary.md).
 
-## End-to-end: seven profiles, one controlled source
+## End-to-end: eight profiles, one controlled source
 
-The seven-profile benchmark prepares, authors (with a deterministic synthetic
+The eight-profile benchmark prepares, authors (with a deterministic synthetic
 author), validates, and renders a report for every built-in profile from one
 controlled source. The archived run is reproducible and machine-checkable:
 
@@ -109,14 +109,14 @@ Archived results ([`benchmarks/evidence/full_benchmark_2026-05-13/summary.md`](.
 
 | Metric | Result |
 | --- | --- |
-| Profiles passing end-to-end | **7 / 7** |
-| Claims verified against evidence | **42** (6 per profile), **0 blocked** |
+| Profiles passing end-to-end | **8 / 8** (re-run 2026-10-16) |
+| Claims verified against evidence | **80** (10 per profile, `verified_count` in each `factuality_report.json`), **0 blocked** |
 | Unresolved citation-audit entries | **0** |
 | Delivery QA decision | `pass` on every profile |
-| Unit tests at the time of the archived run | **351 passing** (1257 today) |
+| Unit tests at the time of the archived run | **1257 passing** (1257 today) |
 
 Each report is packaged with its QA pack (`final_qa_summary`, factuality,
-scholarly-quality, figure-visual, template-style, and render-layout reports) so
+figure-visual, template-style, and render-layout reports) so
 the publish decision is auditable after the fact, not just asserted.
 
 Beyond the synthetic benchmark, every built-in profile has also been run on a

@@ -1,0 +1,104 @@
+{
+  "job_id": "run_27e81c5e",
+  "status": "passed_with_warnings",
+  "figure_plan_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Research Memo--run_27e81c5e\\section_drafts\\figure_plan.json",
+  "recommendation_count": 8,
+  "figure_count": 8,
+  "issues": [
+    {
+      "severity": "warning",
+      "type": "raw_identifier_in_figure_text",
+      "figure_id": "1",
+      "detail": "Figure text carries raw data identifiers where the reader expects words: median_processing_minutes, baseline_manual, structured_workflow",
+      "repair_hint": "Rename these in the figure plan the way the caption already names them; the column name in the source stays as it is.",
+      "identifiers": [
+        "median_processing_minutes",
+        "baseline_manual",
+        "structured_workflow"
+      ]
+    },
+    {
+      "severity": "warning",
+      "type": "raw_identifier_in_figure_text",
+      "figure_id": "2",
+      "detail": "Figure text carries raw data identifiers where the reader expects words: processing_minutes, baseline_manual, structured_workflow",
+      "repair_hint": "Rename these in the figure plan the way the caption already names them; the column name in the source stays as it is.",
+      "identifiers": [
+        "processing_minutes",
+        "baseline_manual",
+        "structured_workflow"
+      ]
+    },
+    {
+      "severity": "warning",
+      "type": "raw_identifier_in_figure_text",
+      "figure_id": "3",
+      "detail": "Figure text carries raw data identifiers where the reader expects words: median_processing_minutes, error_rate_percent, reviewer_satisfaction_percent, baseline_manual, structured_workflow",
+      "repair_hint": "Rename these in the figure plan the way the caption already names them; the column name in the source stays as it is.",
+      "identifiers": [
+        "median_processing_minutes",
+        "error_rate_percent",
+        "reviewer_satisfaction_percent",
+        "baseline_manual",
+        "structured_workflow"
+      ]
+    },
+    {
+      "severity": "warning",
+      "type": "raw_identifier_in_figure_text",
+      "figure_id": "4",
+      "detail": "Figure text carries raw data identifiers where the reader expects words: median_processing_minutes, baseline_manual, structured_workflow",
+      "repair_hint": "Rename these in the figure plan the way the caption already names them; the column name in the source stays as it is.",
+      "identifiers": [
+        "median_processing_minutes",
+        "baseline_manual",
+        "structured_workflow"
+      ]
+    },
+    {
+      "severity": "warning",
+      "type": "raw_identifier_in_figure_text",
+      "figure_id": "5",
+      "detail": "Figure text carries raw data identifiers where the reader expects words: median_processing_minutes",
+      "repair_hint": "Rename these in the figure plan the way the caption already names them; the column name in the source stays as it is.",
+      "identifiers": [
+        "median_processing_minutes"
+      ]
+    },
+    {
+      "severity": "warning",
+      "type": "raw_identifier_in_figure_text",
+      "figure_id": "6",
+      "detail": "Figure text carries raw data identifiers where the reader expects words: review_effort_score, intake_complexity_score",
+      "repair_hint": "Rename these in the figure plan the way the caption already names them; the column name in the source stays as it is.",
+      "identifiers": [
+        "review_effort_score",
+        "intake_complexity_score"
+      ]
+    },
+    {
+      "severity": "warning",
+      "type": "raw_identifier_in_figure_text",
+      "figure_id": "7",
+      "detail": "Figure text carries raw data identifiers where the reader expects words: baseline_manual, structured_workflow",
+      "repair_hint": "Rename these in the figure plan the way the caption already names them; the column name in the source stays as it is.",
+      "identifiers": [
+        "baseline_manual",
+        "structured_workflow"
+      ]
+    },
+    {
+      "severity": "warning",
+      "type": "raw_identifier_in_figure_text",
+      "figure_id": "8",
+      "detail": "Figure text carries raw data identifiers where the reader expects words: setup_cost, onboarding_sessions, shadow_period",
+      "repair_hint": "Rename these in the figure plan the way the caption already names them; the column name in the source stays as it is.",
+      "identifiers": [
+        "setup_cost",
+        "onboarding_sessions",
+        "shadow_period"
+      ]
+    }
+  ],
+  "hard_issues": []
+}

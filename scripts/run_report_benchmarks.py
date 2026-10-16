@@ -43,6 +43,7 @@ PROFILES = [
     "admissions_report",
     "admissions_project_report",
     "custom",
+    "quant_research_memo",
 ]
 
 GAP_CATEGORIES = {
@@ -62,6 +63,7 @@ PROMPTS = {
     "admissions_report": "Write an admissions-facing scholarly report about the structured workflow project.",
     "admissions_project_report": "Write an admissions-facing project report about the structured workflow project.",
     "custom": "Write a custom hybrid report about the structured workflow pilot.",
+    "quant_research_memo": "Write an internal research memo on what the structured workflow pilot tested, what held, and what the sample cannot support.",
 }
 
 QA_SNAPSHOT_FILES = [
@@ -147,6 +149,27 @@ def _pick_evidence(rows: list[dict[str, Any]], terms: list[str], fallback_index:
     return str(rows[min(fallback_index, len(rows) - 1)].get("evidence_id") or "")
 
 
+def _measurement_rows(rows: list[dict[str, Any]]) -> dict[str, str]:
+    """The comparison-table row of each condition, by condition.
+
+    Picked by the fields they carry rather than by keyword score: the derived
+    statistics EVIDENCE_BUILD writes for every table name the same columns and
+    outscore the rows themselves, and a claim bound to "median 24, range 20-28"
+    cannot state 42 participants, 7.5% or 84%.
+    """
+    found: dict[str, str] = {}
+    for row in rows:
+        content = str(row.get("content") or "")
+        if not all(key in content for key in ("participants", "error_rate_percent")):
+            continue
+        for condition in ("baseline_manual", "structured_workflow"):
+            if f'"{condition}"' in content:
+                found[condition] = str(row.get("evidence_id") or "")
+    if set(found) != {"baseline_manual", "structured_workflow"}:
+        raise RuntimeError("comparison-table rows not found in the evidence ledger")
+    return found
+
+
 def _front_matter(profile: str) -> dict[str, Any]:
     title = {
         "engineering_lab_report": "Structured Workflow Pilot Laboratory Report",
@@ -156,6 +179,7 @@ def _front_matter(profile: str) -> dict[str, Any]:
         "admissions_report": "Evidence-Bounded Workflow Project for Graduate Study Readiness",
         "admissions_project_report": "Evidence-Bounded Workflow Project Report",
         "custom": "Structured Workflow Pilot Hybrid Report",
+        "quant_research_memo": "Structured Workflow Pilot Research Memo",
     }[profile]
     return {
         "title": title,
@@ -196,10 +220,10 @@ def _project_identity() -> dict[str, Any]:
 
 
 def _claims(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    measured = _measurement_rows(rows)
     ids = {
         "context": _pick_evidence(rows, ["converted intake notes", "final DOCX report package"], 3),
         "method": _pick_evidence(rows, ["same 42 participants", "compare median processing"], 7),
-        "measurement": _pick_evidence(rows, ["baseline_manual", "structured_workflow", "median_processing_minutes"], 5),
         "limit": _pick_evidence(rows, ["not be generalized beyond", "tested intake"], 10),
         "satisfaction": _pick_evidence(rows, ["supportive, not primary", "reviewer satisfaction"], 11),
         "proposal": _pick_evidence(rows, ["six weeks", "USD 4,800", "onboarding sessions"], 13),
@@ -229,17 +253,33 @@ def _claims(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "evidence_ids": [ids["method"]],
             "topic_tags": ["method", "controlled comparison"],
         },
+        # One claim per row of the comparison table. FE checks a claim against
+        # each row it cites, so a claim that compares the two conditions cannot
+        # cite both, and it reads "across" and "median" as statements about the
+        # whole dataset even where median names the row's own column.
         {
-            "claim_id": "c_measurement",
+            "claim_id": "c_baseline",
             "claim_text": (
-                "Across the same 42 participant notes, the structured workflow cut median "
-                "processing time from 28 to 20 minutes per note and the error rate from "
-                "7.5% to 4.1%, while reviewer satisfaction rose from 71% to 84%."
+                "Under the manual baseline, 42 participants recorded a processing time of "
+                "28 minutes per note, an error rate of 7.5%, and reviewer satisfaction of 71%."
             ),
             "claim_type": "factual",
             "claim_role": "primary",
             "status": "supported",
-            "evidence_ids": [ids["measurement"]],
+            "evidence_ids": [measured["baseline_manual"]],
+            "topic_tags": ["pilot outcome", "measurement"],
+        },
+        {
+            "claim_id": "c_measurement",
+            "claim_text": (
+                "Under the structured workflow, the same 42 participants recorded a "
+                "processing time of 20 minutes per note, an error rate of 4.1%, and "
+                "reviewer satisfaction of 84%."
+            ),
+            "claim_type": "factual",
+            "claim_role": "primary",
+            "status": "supported",
+            "evidence_ids": [measured["structured_workflow"]],
             "topic_tags": ["pilot outcome", "measurement"],
         },
         {
@@ -306,7 +346,7 @@ The structured workflow reduced median processing time from 28 to 20 minutes per
 The benchmark supports using evidence boundaries, explicit methods, adoption assumptions, and limitation statements as quality controls for report generation research. Its value is methodological: it creates a controlled profile comparison without converting one sample report into a universal template."""
     return _sent(
         text,
-        ["c_context", "c_method", "c_measurement", "c_limit", "c_satisfaction", "c_proposal"],
+        ["c_context", "c_method", "c_baseline", "c_measurement", "c_limit", "c_satisfaction", "c_proposal"],
         claims,
     )
 
@@ -335,7 +375,7 @@ def _abstract_plain(profile: str, claims: list[dict[str, Any]]) -> dict[str, Any
         "elements to describe what changed, what can be recommended, and what should remain bounded as pilot "
         "evidence."
     )
-    return _sent(text, ["c_context", "c_method", "c_measurement", "c_limit"], claims)
+    return _sent(text, ["c_context", "c_method", "c_baseline", "c_measurement", "c_limit"], claims)
 
 
 def _section_sentence(profile: str, section_id: str, claims: list[dict[str, Any]]) -> dict[str, Any] | None:
@@ -348,37 +388,37 @@ def _section_sentence(profile: str, section_id: str, claims: list[dict[str, Any]
     if section_id == "introduction" and profile == "academic_paper":
         return _sent(
             "The gap addressed by this benchmark is the limited visibility between source intake notes, claim selection, and final report prose in small evidence-handling workflows. The objective is to evaluate a controlled structured workflow pilot using the same source data, procedure, quality criteria, and report-profile comparison across every run. The contribution is a reproducible source-to-report case that demonstrates how evidence boundaries, deterministic chart guidance, and QA artifacts can be assessed without treating one reference report as a universal template.",
-            ["c_context", "c_method", "c_measurement", "c_limit"],
+            ["c_context", "c_method", "c_baseline", "c_measurement", "c_limit"],
             claims,
         )
-    if section_id in {"introduction", "cover", "executive_summary"}:
+    if section_id in {"introduction", "cover", "executive_summary", "summary"}:
         return _sent(
             "The structured workflow pilot is best read as a bounded evidence-handling and QA thinking project: it converted intake notes into auditable report artifacts, compared a controlled procedure, recorded measurement signals, bounded its claims, treated satisfaction as supportive evidence, and named adoption assumptions.",
-            ["c_context", "c_method", "c_measurement", "c_limit", "c_satisfaction", "c_proposal"],
+            ["c_context", "c_method", "c_baseline", "c_measurement", "c_limit", "c_satisfaction", "c_proposal"],
             claims,
         )
-    if section_id in {"research_scope", "objectives", "requirements", "problem_statement"}:
+    if section_id in {"research_scope", "objectives", "requirements", "problem_statement", "question_and_data"}:
         return _sent(
             "The controlled scope keeps the project tied to the tested intake workflow, the same participant-note procedure, and explicit limits on generalization.",
             ["c_method", "c_limit"],
             claims,
         )
-    if section_id in {"methods", "procedure", "proposed_approach"}:
+    if section_id in {"methods", "method", "procedure", "proposed_approach"}:
         return _sent(
             "The methods used the controlled source dataset as the sample basis, processed the same 42 participant notes once with the baseline manual procedure and once with the structured workflow, compared the conditions on median processing time per note, detected error rate, and reviewer satisfaction, and used no exclusions beyond the documented pilot scope; deterministic chart transforms were kept in figure metadata rather than recomputed in prose.",
-            ["c_method", "c_measurement", "c_limit"],
+            ["c_method", "c_baseline", "c_measurement", "c_limit"],
             claims,
         )
     if section_id in {"results", "data", "findings"}:
         return _sent(
             "Across the same 42 notes, median processing time fell from 28 minutes per note under the manual baseline to 20 minutes under the structured workflow, the share of notes needing reviewer repair fell from 7.5% to 4.1%, and reviewer satisfaction rose from 71% to 84%.",
-            ["c_measurement"],
+            ["c_baseline", "c_measurement"],
             claims,
         )
-    if section_id in {"discussion", "results_discussion"}:
+    if section_id in {"discussion", "results_discussion", "robustness"}:
         return _sent(
             "The pattern — faster processing, fewer repairs, and higher reviewer satisfaction — is useful for decision-making because it combines practical review signals with a clear warning that the pilot should not be generalized beyond the tested workflow.",
-            ["c_measurement", "c_limit"],
+            ["c_baseline", "c_measurement", "c_limit"],
             claims,
         )
     if section_id == "limitations":
@@ -414,7 +454,7 @@ def _section_sentence(profile: str, section_id: str, claims: list[dict[str, Any]
     if section_id == "calculations":
         return _sent(
             "The calculation basis is the measured comparison itself: median processing time of 28 minutes per note under the manual baseline versus 20 minutes under the structured workflow, an error rate of 7.5% versus 4.1%, and reviewer satisfaction of 71% versus 84%.",
-            ["c_measurement"],
+            ["c_baseline", "c_measurement"],
             claims,
         )
     if section_id == "conclusion":
@@ -426,7 +466,7 @@ def _section_sentence(profile: str, section_id: str, claims: list[dict[str, Any]
             )
         return _sent(
             "Overall, the pilot supports cautious workflow adoption and further study because its favorable review signals remain bounded by a small synthetic source fixture.",
-            ["c_measurement", "c_limit"],
+            ["c_baseline", "c_measurement", "c_limit"],
             claims,
         )
     return _sent(
@@ -631,7 +671,7 @@ def _figure_sentence(
             f"{lead_in.format(n=display_number)} [FIGURE:{figure_id}]\n\n"
             f"Figure {display_number}: {caption}."
         ),
-        ["c_measurement"],
+        ["c_baseline", "c_measurement"],
         claims,
     )
 
@@ -741,6 +781,42 @@ def _qa_digest(run_dir: Path) -> dict[str, Any]:
     if qa_summary:
         digest["qa_decision"] = qa_summary.get("qa_decision")
         digest["hard_fail_reasons"] = qa_summary.get("hard_fail_reasons", [])
+    figure = _read_json(run_dir / "figure_visual_quality_report.json")
+    if figure:
+        digest["figure_visual_quality"] = {
+            "status": figure.get("status"),
+            "issue_count": figure.get("issue_count"),
+        }
+    final_qa = _read_json(run_dir / "published" / "qa" / "final_qa_summary.json")
+    if final_qa:
+        digest["final_qa_summary_status"] = final_qa.get("status") or final_qa.get("qa_decision")
+    recommendations = _read_json(run_dir / "figure_recommendations.json")
+    if recommendations:
+        recs = recommendations.get("recommendations", [])
+        digest["figure_recommendations"] = {
+            "status": recommendations.get("status"),
+            "recommendation_count": recommendations.get("recommendation_count", 0),
+            "recommended_types": [
+                rec.get("recommended_figure_type")
+                for rec in recs
+                if isinstance(rec, dict) and rec.get("recommended_figure_type")
+            ],
+        }
+    plan_audit = _read_json(run_dir / "figure_plan_audit_report.json")
+    if plan_audit:
+        figure_plan = _read_json(run_dir / "section_drafts" / "figure_plan.json")
+        planned_types = [
+            str(figure.get("figure_type") or "").strip().lower()
+            for figure in figure_plan.get("figures", [])
+            if isinstance(figure, dict) and str(figure.get("figure_type") or "").strip()
+        ]
+        digest["figure_plan_audit"] = {
+            "status": plan_audit.get("status"),
+            "figure_count": plan_audit.get("figure_count", 0),
+            "planned_types": planned_types,
+            "hard_issue_count": len(plan_audit.get("hard_issues", []) or []),
+        }
+    return digest
 
 
 def run_profile(profile: str, evidence_root: Path = EVIDENCE_ROOT) -> dict[str, Any]:

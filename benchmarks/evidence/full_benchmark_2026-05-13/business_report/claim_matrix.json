@@ -7,7 +7,7 @@
       "claim_role": "supporting",
       "status": "supported",
       "evidence_ids": [
-        "E_1b728a3d_619f04e311"
+        "E_4dbd9d9f_b72647a044"
       ],
       "topic_tags": [
         "workflow design",
@@ -21,7 +21,7 @@
       "claim_role": "supporting",
       "status": "supported",
       "evidence_ids": [
-        "E_1b728a3d_63f592e104"
+        "E_4dbd9d9f_65901f3a2d"
       ],
       "topic_tags": [
         "method",
@@ -29,13 +29,27 @@
       ]
     },
     {
-      "claim_id": "c_measurement",
-      "claim_text": "Across the same 42 participant notes, the structured workflow cut median processing time from 28 to 20 minutes per note and the error rate from 7.5% to 4.1%, while reviewer satisfaction rose from 71% to 84%.",
+      "claim_id": "c_baseline",
+      "claim_text": "Under the manual baseline, 42 participants recorded a processing time of 28 minutes per note, an error rate of 7.5%, and reviewer satisfaction of 71%.",
       "claim_type": "factual",
       "claim_role": "primary",
       "status": "supported",
       "evidence_ids": [
-        "E_1b728a3d_6bbbb16a9b"
+        "E_4dbd9d9f_aeb3a2984c"
+      ],
+      "topic_tags": [
+        "pilot outcome",
+        "measurement"
+      ]
+    },
+    {
+      "claim_id": "c_measurement",
+      "claim_text": "Under the structured workflow, the same 42 participants recorded a processing time of 20 minutes per note, an error rate of 4.1%, and reviewer satisfaction of 84%.",
+      "claim_type": "factual",
+      "claim_role": "primary",
+      "status": "supported",
+      "evidence_ids": [
+        "E_4dbd9d9f_426712b2ff"
       ],
       "topic_tags": [
         "pilot outcome",
@@ -49,7 +63,7 @@
       "claim_role": "background",
       "status": "supported",
       "evidence_ids": [
-        "E_1b728a3d_b72befbf78"
+        "E_4dbd9d9f_b28714cc0a"
       ],
       "topic_tags": [
         "limitation"
@@ -62,7 +76,7 @@
       "claim_role": "supporting",
       "status": "supported",
       "evidence_ids": [
-        "E_1b728a3d_ed6453069f"
+        "E_4dbd9d9f_b28714cc0a"
       ],
       "topic_tags": [
         "reviewer evidence"
@@ -75,7 +89,7 @@
       "claim_role": "background",
       "status": "supported",
       "evidence_ids": [
-        "E_1b728a3d_7067b4a674"
+        "E_4dbd9d9f_f685553c85"
       ],
       "topic_tags": [
         "proposal",
@@ -84,8 +98,8 @@
     }
   ],
   "_contract": {
-    "job_id": "run_90aaa136",
-    "evidence_ledger_hash": "d40300c0456eeb37",
-    "source_registry_hash": "f3493997243fa203"
+    "job_id": "run_461e9e62",
+    "evidence_ledger_hash": "ec5f7b5c7cece34d",
+    "source_registry_hash": "29611f710a8cd3da"
   }
 }

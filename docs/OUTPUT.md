@@ -54,7 +54,8 @@ document its reader rates highly. All three are guidance, not gates:
 
 `report_profile` is the only public report-shape selector. Built-in profiles:
 `engineering_lab_report`, `academic_paper`, `business_report`, `proposal`,
-`admissions_report`, `admissions_project_report`, and `custom`. The pipeline
+`admissions_report`, `admissions_project_report`, `custom`, and
+`quant_research_memo`. The pipeline
 infers a profile from the prompt unless `--profile` or `report_profile` is
 given.
 

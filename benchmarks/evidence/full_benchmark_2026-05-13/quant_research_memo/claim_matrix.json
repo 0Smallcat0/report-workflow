@@ -1,0 +1,105 @@
+{
+  "claims": [
+    {
+      "claim_id": "c_context",
+      "claim_text": "The pilot converted intake notes into a structured evidence ledger, a claim matrix, and a final DOCX report package.",
+      "claim_type": "factual",
+      "claim_role": "supporting",
+      "status": "supported",
+      "evidence_ids": [
+        "E_4dbd9d9f_b72647a044"
+      ],
+      "topic_tags": [
+        "workflow design",
+        "evidence handling"
+      ]
+    },
+    {
+      "claim_id": "c_method",
+      "claim_text": "The procedure processed the same participant notes through both baseline manual and structured workflow methods before comparison.",
+      "claim_type": "factual",
+      "claim_role": "supporting",
+      "status": "supported",
+      "evidence_ids": [
+        "E_4dbd9d9f_65901f3a2d"
+      ],
+      "topic_tags": [
+        "method",
+        "controlled comparison"
+      ]
+    },
+    {
+      "claim_id": "c_baseline",
+      "claim_text": "Under the manual baseline, 42 participants recorded a processing time of 28 minutes per note, an error rate of 7.5%, and reviewer satisfaction of 71%.",
+      "claim_type": "factual",
+      "claim_role": "primary",
+      "status": "supported",
+      "evidence_ids": [
+        "E_4dbd9d9f_aeb3a2984c"
+      ],
+      "topic_tags": [
+        "pilot outcome",
+        "measurement"
+      ]
+    },
+    {
+      "claim_id": "c_measurement",
+      "claim_text": "Under the structured workflow, the same 42 participants recorded a processing time of 20 minutes per note, an error rate of 4.1%, and reviewer satisfaction of 84%.",
+      "claim_type": "factual",
+      "claim_role": "primary",
+      "status": "supported",
+      "evidence_ids": [
+        "E_4dbd9d9f_426712b2ff"
+      ],
+      "topic_tags": [
+        "pilot outcome",
+        "measurement"
+      ]
+    },
+    {
+      "claim_id": "c_limit",
+      "claim_text": "The study is a pilot that should not be generalized beyond the tested intake workflow.",
+      "claim_type": "factual",
+      "claim_role": "background",
+      "status": "supported",
+      "evidence_ids": [
+        "E_4dbd9d9f_b28714cc0a"
+      ],
+      "topic_tags": [
+        "limitation"
+      ]
+    },
+    {
+      "claim_id": "c_satisfaction",
+      "claim_text": "Reviewer satisfaction was collected as supportive rather than primary evidence.",
+      "claim_type": "factual",
+      "claim_role": "supporting",
+      "status": "supported",
+      "evidence_ids": [
+        "E_4dbd9d9f_b28714cc0a"
+      ],
+      "topic_tags": [
+        "reviewer evidence"
+      ]
+    },
+    {
+      "claim_id": "c_proposal",
+      "claim_text": "The proposal inputs identify six weeks of implementation effort, USD 4,800 in direct setup cost, reviewer training risk, and onboarding mitigation.",
+      "claim_type": "factual",
+      "claim_role": "background",
+      "status": "supported",
+      "evidence_ids": [
+        "E_4dbd9d9f_f685553c85"
+      ],
+      "topic_tags": [
+        "proposal",
+        "implementation"
+      ]
+    }
+  ],
+  "_contract": {
+    "job_id": "run_27e81c5e",
+    "evidence_ledger_hash": "5374489269e5d02f",
+    "source_registry_hash": "b9c9341ed341d59d"
+  }
+}

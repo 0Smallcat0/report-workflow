@@ -1,46 +1,70 @@
 {
-  "job_id": "run_90aaa136",
+  "job_id": "run_461e9e62",
   "status": "passed",
-  "generated_count": 5,
+  "generated_count": 8,
   "issue_count": 0,
   "issues": [],
   "figures": [
     {
       "figure_id": "1",
-      "figure_type": "bar",
-      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_90aaa136\\figures\\1.png",
+      "figure_type": "table",
+      "path": "",
       "status": "passed",
       "issue_count": 0,
       "issues": []
     },
     {
       "figure_id": "2",
-      "figure_type": "line",
-      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_90aaa136\\figures\\2.png",
+      "figure_type": "table",
+      "path": "",
       "status": "passed",
       "issue_count": 0,
       "issues": []
     },
     {
       "figure_id": "3",
-      "figure_type": "scatter",
-      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_90aaa136\\figures\\3.png",
+      "figure_type": "table",
+      "path": "",
       "status": "passed",
       "issue_count": 0,
       "issues": []
     },
     {
       "figure_id": "4",
-      "figure_type": "boxplot",
-      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_90aaa136\\figures\\4.png",
+      "figure_type": "bar",
+      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_461e9e62\\figures\\4.png",
       "status": "passed",
       "issue_count": 0,
       "issues": []
     },
     {
       "figure_id": "5",
+      "figure_type": "line",
+      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_461e9e62\\figures\\5.png",
+      "status": "passed",
+      "issue_count": 0,
+      "issues": []
+    },
+    {
+      "figure_id": "6",
+      "figure_type": "scatter",
+      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_461e9e62\\figures\\6.png",
+      "status": "passed",
+      "issue_count": 0,
+      "issues": []
+    },
+    {
+      "figure_id": "7",
+      "figure_type": "boxplot",
+      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_461e9e62\\figures\\7.png",
+      "status": "passed",
+      "issue_count": 0,
+      "issues": []
+    },
+    {
+      "figure_id": "8",
       "figure_type": "table",
-      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_90aaa136\\figures\\5.png",
+      "path": "",
       "status": "passed",
       "issue_count": 0,
       "issues": []

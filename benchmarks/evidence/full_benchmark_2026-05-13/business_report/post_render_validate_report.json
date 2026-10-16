@@ -1,10 +1,10 @@
 {
-  "job_id": "run_90aaa136",
-  "paragraph_count": 26,
-  "table_count": 0,
-  "inline_shape_count": 5,
-  "expected_table_count": 0,
-  "expected_figure_count": 5,
+  "job_id": "run_461e9e62",
+  "paragraph_count": 37,
+  "table_count": 4,
+  "inline_shape_count": 4,
+  "expected_table_count": 4,
+  "expected_figure_count": 4,
   "issues": [],
   "status": "passed"
 }

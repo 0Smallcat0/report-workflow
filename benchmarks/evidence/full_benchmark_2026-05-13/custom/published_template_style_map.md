@@ -5,15 +5,21 @@
 - Renderer: pandoc
 - Reference DOCX applied: True
 - Reference DOCX: D:\report_workflow\src\report_workflow\templates\reference.docx
-- Rendered DOCX: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_2111cb15\final.docx
+- Rendered DOCX: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_39440bbd\final.docx
 
 ## Rendered Style Usage
 
-- Body Text: 14
+- Body Text: 20
 - First Paragraph: 8
-- Heading 1: 8
+- Heading 1: 7
 - Heading 2: 1
-- Normal: 1
+- Normal: 3
+- TOC Heading: 1
+- Title: 1
+
+## Rendered Table Styles
+
+- Table: 4
 
 ## Reference Key Styles
 
@@ -28,5 +34,5 @@
 
 ## Style Match
 
-- Rendered paragraph styles defined in reference: 5
+- Rendered paragraph styles defined in reference: 7
 - Rendered paragraph styles not defined in reference: 0

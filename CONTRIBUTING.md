@@ -28,7 +28,7 @@ file that reproduces the same stop is better than a redacted real one.
 - **Defects.** Something rendered wrong, a gate blocked a claim it should not
   have, a claim it should have blocked got through, a message told you the wrong
   thing, a file your users actually have could not be read.
-- **The seven built-in profiles** and both languages (English and Chinese).
+- **The eight built-in profiles** and both languages (English and Chinese).
 - **Making an existing node do its job correctly**, including cases nobody ran
   yet — an unusual source format, a table shape, a document that came back for a
   second revision.

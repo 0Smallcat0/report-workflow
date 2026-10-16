@@ -7,6 +7,7 @@
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -20,6 +21,7 @@
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -30,8 +32,25 @@
         "2",
         "3",
         "4",
-        "5"
+        "5",
+        "6",
+        "7",
+        "8"
       ]
+    },
+    "limitations": {
+      "section_id": "limitations",
+      "title": "Data Limitations and Counter-Evidence",
+      "claim_ids": [
+        "c_context",
+        "c_method",
+        "c_baseline",
+        "c_measurement",
+        "c_limit",
+        "c_satisfaction",
+        "c_proposal"
+      ],
+      "figure_ids": []
     },
     "recommendations": {
       "section_id": "recommendations",
@@ -39,6 +58,7 @@
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -51,11 +71,17 @@
       "title": "Appendix",
       "claim_ids": [],
       "figure_ids": []
+    },
+    "references": {
+      "section_id": "references",
+      "title": "References",
+      "claim_ids": [],
+      "figure_ids": []
     }
   },
   "_contract": {
-    "job_id": "run_90aaa136",
-    "evidence_ledger_hash": "d40300c0456eeb37",
-    "source_registry_hash": "f3493997243fa203"
+    "job_id": "run_461e9e62",
+    "evidence_ledger_hash": "ec5f7b5c7cece34d",
+    "source_registry_hash": "29611f710a8cd3da"
   }
 }

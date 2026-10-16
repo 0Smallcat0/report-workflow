@@ -3,10 +3,11 @@
   "sections": {
     "cover": {
       "section_id": "cover",
-      "title": "\u5c01\u9762",
+      "title": "Cover",
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -16,10 +17,11 @@
     },
     "abstract": {
       "section_id": "abstract",
-      "title": "\u6458\u8981",
+      "title": "Abstract",
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -29,10 +31,11 @@
     },
     "objectives": {
       "section_id": "objectives",
-      "title": "\u5be6\u9a57\u76ee\u7684",
+      "title": "Objectives",
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -42,10 +45,11 @@
     },
     "requirements": {
       "section_id": "requirements",
-      "title": "\u9700\u6c42\u8207\u898f\u683c\u77e9\u9663",
+      "title": "Requirements and Specifications",
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -55,10 +59,11 @@
     },
     "theory": {
       "section_id": "theory",
-      "title": "\u539f\u7406\u8207\u516c\u5f0f",
+      "title": "Theory and Formulas",
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -68,10 +73,11 @@
     },
     "apparatus": {
       "section_id": "apparatus",
-      "title": "\u5100\u5668\u8207\u6750\u6599",
+      "title": "Apparatus and Materials",
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -81,10 +87,11 @@
     },
     "procedure": {
       "section_id": "procedure",
-      "title": "\u5be6\u9a57\u6b65\u9a5f",
+      "title": "Procedure",
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -94,10 +101,11 @@
     },
     "data": {
       "section_id": "data",
-      "title": "\u539f\u59cb\u8cc7\u6599\u8207\u5716\u8868",
+      "title": "Data and Figures",
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -108,15 +116,19 @@
         "2",
         "3",
         "4",
-        "5"
+        "5",
+        "6",
+        "7",
+        "8"
       ]
     },
     "calculations": {
       "section_id": "calculations",
-      "title": "\u8a08\u7b97\u8207\u55ae\u4f4d\u6aa2\u6838",
+      "title": "Calculations and Unit Checks",
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -126,10 +138,11 @@
     },
     "results_discussion": {
       "section_id": "results_discussion",
-      "title": "\u7d50\u679c\u8207\u8a0e\u8ad6",
+      "title": "Results and Discussion",
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -139,10 +152,11 @@
     },
     "conclusion": {
       "section_id": "conclusion",
-      "title": "\u7d50\u8ad6",
+      "title": "Conclusion",
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -152,13 +166,13 @@
     },
     "references": {
       "section_id": "references",
-      "title": "\u53c3\u8003\u8cc7\u6599",
+      "title": "References",
       "claim_ids": [],
       "figure_ids": []
     },
     "appendix": {
       "section_id": "appendix",
-      "title": "\u9644\u9304",
+      "title": "Appendix",
       "claim_ids": [],
       "figure_ids": []
     }
@@ -171,8 +185,8 @@
     "uncertainty_limitations": "The fixture is synthetic, small, and not generalizable beyond the tested intake workflow."
   },
   "_contract": {
-    "job_id": "run_6be33634",
-    "evidence_ledger_hash": "19b25ccd241582f9",
-    "source_registry_hash": "daac9d7201a5f7f9"
+    "job_id": "run_345c23ee",
+    "evidence_ledger_hash": "251a498c9854fbc8",
+    "source_registry_hash": "aaed9d8e2ec90935"
   }
 }

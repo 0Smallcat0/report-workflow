@@ -47,6 +47,10 @@ Observed results:
 | `admissions_report` | `awaiting_agent_artifacts` | `run_17d5c0b7` |
 | `admissions_project_report` | `awaiting_agent_artifacts` | `run_b670220b` |
 | `custom` | `awaiting_agent_artifacts` | `run_385e46df` |
+| `quant_research_memo` | `awaiting_agent_artifacts` | `run_87386335` |
+
+`quant_research_memo` was added to the registry on 2026-08-29; its row was
+recorded on 2026-10-16 with the same call and fixture.
 
 Next benchmark step: create agent-authored artifacts for each profile, publish
 the controlled reports, and archive representative QA summaries outside ignored

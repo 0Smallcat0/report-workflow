@@ -6,8 +6,8 @@ This matrix turns public report guidance into benchmark criteria for
 `report-workflow`. It does not introduce new public selectors; `report_profile`
 remains the only report-shape selector.
 
-Latest full benchmark: `scripts/run_report_benchmarks.py` passed all seven
-built-in profiles on 2026-05-13 using both
+Latest full benchmark: `scripts/run_report_benchmarks.py` passed all eight
+built-in profiles (first run 2026-05-13, re-run 2026-10-16) using both
 `benchmarks/fixtures/controlled_source.md` and
 the `benchmarks/fixtures/chart_*.csv` fixture set for bar, line, scatter,
 boxplot, and table-fallback figure coverage. Compact QA evidence is archived under
@@ -29,6 +29,7 @@ evidence without rerunning the workflow.
 | [Harvard SEAS: Graduate CS Application Advice](https://seas.harvard.edu/news/what-know-you-apply-graduate-school-computer-science) | `admissions_report`, `admissions_project_report` | Evidence of research potential, meaningful project experience, direction without rigidity. |
 | [GMU Writing Center: White Papers](https://writingcenter.gmu.edu/writing-resources/different-genres/white-papers) | `custom`, `business_report` | Problem-solution structure, objective tone, authoritative evidence, optional recommendations. |
 | [BCcampus: Recommendation and Feasibility Reports](https://opentextbc.ca/technicalwritingh5p/chapter/long-reports-recommendation-reports-and-feasibility-studies/) | `business_report`, `custom` | Criteria, options, systematic comparison, conclusions, recommendation logic. |
+| [Bailey et al., Notices of the AMS (2014): Backtest Overfitting](https://www.ams.org/notices/201405/rnoti-p458.pdf) | `quant_research_memo` | Number of trials disclosed, out-of-sample evidence, a best configuration is not a finding on its own. |
 
 ## Profile Matrix
 
@@ -41,6 +42,7 @@ evidence without rerunning the workflow.
 | `admissions_report` | Research interests, qualifications, motivation, career direction, serious scholarly tone, admissions fit without flattery. | `admissions_tone_report.json`, `project_identity_report.json`, `final_qa_summary.json`. | Use explicit `project_identity` terms when a project spine must be preserved; do not hardcode one prior project into the profile. |
 | `admissions_project_report` | Concrete project evidence, research readiness, limitations, future direction, relaxed publication metadata. | `reference_relevance_report.json`, `project_identity_report.json`, `final_qa_summary.json`. | Keep internal-source allowance explicit, read outline thesis for identity, and avoid forcing academic-paper reference strictness. |
 | `custom` | One dominant rhetorical purpose, clear criteria, evidence/interpretation/recommendation separation, medium strictness. | `final_qa_summary.json`, `figure_visual_quality_report.json`, `template_style_map.json`. | Add guidance that chooses a dominant rubric rather than mixing all profiles. |
+| `quant_research_memo` | Findings first, sample and window stated before the method, robustness across settings, limits of the sample named, no thesis. | `final_qa_summary.json`, `figure_visual_quality_report.json`, `template_style_map.json`. | Keep the robustness section required; do not let one favourable setting stand as the result. |
 
 ## Ranking
 

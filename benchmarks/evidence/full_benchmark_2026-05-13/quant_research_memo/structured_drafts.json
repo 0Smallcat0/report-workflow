@@ -1,0 +1,293 @@
+{
+  "generated_by": "scripts.run_report_benchmarks",
+  "benchmark_fixture": "benchmarks\\fixtures\\controlled_source.md",
+  "sections": {
+    "summary": {
+      "title": "Summary",
+      "sentences": [
+        {
+          "text": "The structured workflow pilot is best read as a bounded evidence-handling and QA thinking project: it converted intake notes into auditable report artifacts, compared a controlled procedure, recorded measurement signals, bounded its claims, treated satisfaction as supportive evidence, and named adoption assumptions.",
+          "claim_ids": [
+            "c_context",
+            "c_method",
+            "c_baseline",
+            "c_measurement",
+            "c_limit",
+            "c_satisfaction",
+            "c_proposal"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_b72647a044",
+            "E_4dbd9d9f_65901f3a2d",
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff",
+            "E_4dbd9d9f_b28714cc0a",
+            "E_4dbd9d9f_b28714cc0a",
+            "E_4dbd9d9f_f685553c85"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_b72647a044",
+            "E_4dbd9d9f_65901f3a2d",
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff",
+            "E_4dbd9d9f_b28714cc0a",
+            "E_4dbd9d9f_b28714cc0a",
+            "E_4dbd9d9f_f685553c85"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "question_and_data": {
+      "title": "Question and Data",
+      "sentences": [
+        {
+          "text": "The controlled scope keeps the project tied to the tested intake workflow, the same participant-note procedure, and explicit limits on generalization.",
+          "claim_ids": [
+            "c_method",
+            "c_limit"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_65901f3a2d",
+            "E_4dbd9d9f_b28714cc0a"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_65901f3a2d",
+            "E_4dbd9d9f_b28714cc0a"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "method": {
+      "title": "Method",
+      "sentences": [
+        {
+          "text": "The methods used the controlled source dataset as the sample basis, processed the same 42 participant notes once with the baseline manual procedure and once with the structured workflow, compared the conditions on median processing time per note, detected error rate, and reviewer satisfaction, and used no exclusions beyond the documented pilot scope; deterministic chart transforms were kept in figure metadata rather than recomputed in prose.",
+          "claim_ids": [
+            "c_method",
+            "c_baseline",
+            "c_measurement",
+            "c_limit"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_65901f3a2d",
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff",
+            "E_4dbd9d9f_b28714cc0a"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_65901f3a2d",
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff",
+            "E_4dbd9d9f_b28714cc0a"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "results": {
+      "title": "Results",
+      "sentences": [
+        {
+          "text": "Across the same 42 notes, median processing time fell from 28 minutes per note under the manual baseline to 20 minutes under the structured workflow, the share of notes needing reviewer repair fell from 7.5% to 4.1%, and reviewer satisfaction rose from 71% to 84%.",
+          "claim_ids": [
+            "c_baseline",
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure 1 lists the adoption parameters behind the proposal: two onboarding sessions, a one-week shadow period, and USD 4,800 in setup cost. [FIGURE:1]\n\nFigure 1: Adoption planning parameters from the proposal inputs.",
+          "claim_ids": [
+            "c_baseline",
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure 2 lists the adoption parameters behind the proposal: two onboarding sessions, a one-week shadow period, and USD 4,800 in setup cost. [FIGURE:2]\n\nFigure 2: Adoption planning parameters from the proposal inputs.",
+          "claim_ids": [
+            "c_baseline",
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure 3 lists the adoption parameters behind the proposal: two onboarding sessions, a one-week shadow period, and USD 4,800 in setup cost. [FIGURE:3]\n\nFigure 3: Adoption planning parameters from the proposal inputs.",
+          "claim_ids": [
+            "c_baseline",
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure 4 compares the two conditions directly: the structured workflow brings median processing time down from 28 to 20 minutes per note. [FIGURE:4]\n\nFigure 4: Median processing time per note, manual baseline versus structured workflow (minutes).",
+          "claim_ids": [
+            "c_baseline",
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure 5 traces the month-by-month trend across the pilot period, with median processing time falling as the structured workflow settled in. [FIGURE:5]\n\nFigure 5: Median processing time per note by month over the pilot period (minutes).",
+          "claim_ids": [
+            "c_baseline",
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure 6 sets intake complexity against review effort, showing that more complex notes demanded proportionally more reviewer attention. [FIGURE:6]\n\nFigure 6: Review effort score versus intake complexity score for the sampled notes.",
+          "claim_ids": [
+            "c_baseline",
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure 7 shows the spread of per-note processing times within each condition, not just the medians. [FIGURE:7]\n\nFigure 7: Distribution of per-note processing minutes under each condition.",
+          "claim_ids": [
+            "c_baseline",
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure 8 lists the adoption parameters behind the proposal: two onboarding sessions, a one-week shadow period, and USD 4,800 in setup cost. [FIGURE:8]\n\nFigure 8: Adoption planning parameters from the proposal inputs.",
+          "claim_ids": [
+            "c_baseline",
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "robustness": {
+      "title": "Robustness",
+      "sentences": [
+        {
+          "text": "The pattern — faster processing, fewer repairs, and higher reviewer satisfaction — is useful for decision-making because it combines practical review signals with a clear warning that the pilot should not be generalized beyond the tested workflow.",
+          "claim_ids": [
+            "c_baseline",
+            "c_measurement",
+            "c_limit"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff",
+            "E_4dbd9d9f_b28714cc0a"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff",
+            "E_4dbd9d9f_b28714cc0a"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "limitations": {
+      "title": "Limitations",
+      "sentences": [
+        {
+          "text": "The study remains a pilot, and reviewer satisfaction should be interpreted as supportive evidence rather than the primary basis for adoption.",
+          "claim_ids": [
+            "c_limit",
+            "c_satisfaction"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_b28714cc0a",
+            "E_4dbd9d9f_b28714cc0a"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_b28714cc0a",
+            "E_4dbd9d9f_b28714cc0a"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "appendix": {
+      "title": "Appendix",
+      "sentences": []
+    }
+  },
+  "_contract": {
+    "job_id": "run_27e81c5e",
+    "evidence_ledger_hash": "5374489269e5d02f",
+    "source_registry_hash": "b9c9341ed341d59d"
+  }
+}

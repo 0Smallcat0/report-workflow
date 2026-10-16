@@ -1,6 +1,6 @@
 {
-  "job_id": "run_d3abee56",
-  "created_at": "2026-07-16T23:16:00.111702",
+  "job_id": "run_d0c73931",
+  "created_at": "2026-10-16T15:11:59.812875",
   "status": "pass",
   "report_profile": "proposal",
   "reference_template_mode": "style_reference",
@@ -136,19 +136,23 @@
     ]
   },
   "rendered_docx": {
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_d3abee56\\final.docx",
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_d0c73931\\final.docx",
     "exists": true,
     "load_error": "",
-    "paragraph_count": 38,
-    "table_count": 0,
+    "paragraph_count": 47,
+    "table_count": 4,
     "paragraph_style_counts": {
-      "Heading 1": 11,
+      "Title": 1,
       "First Paragraph": 11,
-      "Body Text": 14,
+      "Body Text": 20,
       "Heading 2": 1,
-      "Normal": 1
+      "Normal": 3,
+      "TOC Heading": 1,
+      "Heading 1": 10
     },
-    "table_style_counts": {},
+    "table_style_counts": {
+      "Table": 4
+    },
     "paragraph_style_names": [
       "Abstract",
       "Abstract Title",
@@ -253,11 +257,13 @@
       "First Paragraph",
       "Heading 1",
       "Heading 2",
-      "Normal"
+      "Normal",
+      "TOC Heading",
+      "Title"
     ],
     "rendered_styles_not_defined_in_reference": [],
     "reference_paragraph_style_count": 31,
-    "rendered_paragraph_style_count": 5
+    "rendered_paragraph_style_count": 7
   },
   "warnings": []
 }

@@ -24,6 +24,10 @@ pipeline infers one from the prompt, then falls back to `academic_paper`.
 - `custom`: user-defined or mixed reports with medium strictness. Claims and
   section contracts stay evidence-backed; citation format, word counts, and
   figure rules default to lenient.
+- `quant_research_memo`: internal quantitative research memos and backtest
+  reports: what was tested, what held, what was falsified, and what the sample
+  cannot support. Findings lead, a robustness section is required, and there is
+  no thesis to defend. Medium strictness.
 
 ## What a Profile Controls
 

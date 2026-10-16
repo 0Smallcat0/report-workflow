@@ -14,6 +14,7 @@ EXPECTED_PROFILES = {
     "admissions_report",
     "admissions_project_report",
     "custom",
+    "quant_research_memo",
 }
 
 GAP_CATEGORIES = {

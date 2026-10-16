@@ -10,26 +10,29 @@
           "claim_ids": [
             "c_context",
             "c_method",
+            "c_baseline",
             "c_measurement",
             "c_limit",
             "c_satisfaction",
             "c_proposal"
           ],
           "evidence_ids": [
-            "E_1b728a3d_619f04e311",
-            "E_1b728a3d_63f592e104",
-            "E_1b728a3d_6bbbb16a9b",
-            "E_1b728a3d_b72befbf78",
-            "E_1b728a3d_ed6453069f",
-            "E_1b728a3d_7067b4a674"
+            "E_4dbd9d9f_b72647a044",
+            "E_4dbd9d9f_65901f3a2d",
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff",
+            "E_4dbd9d9f_b28714cc0a",
+            "E_4dbd9d9f_b28714cc0a",
+            "E_4dbd9d9f_f685553c85"
           ],
           "citation_ids": [
-            "E_1b728a3d_619f04e311",
-            "E_1b728a3d_63f592e104",
-            "E_1b728a3d_6bbbb16a9b",
-            "E_1b728a3d_b72befbf78",
-            "E_1b728a3d_ed6453069f",
-            "E_1b728a3d_7067b4a674"
+            "E_4dbd9d9f_b72647a044",
+            "E_4dbd9d9f_65901f3a2d",
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff",
+            "E_4dbd9d9f_b28714cc0a",
+            "E_4dbd9d9f_b28714cc0a",
+            "E_4dbd9d9f_f685553c85"
           ],
           "wording_strength": "hedged"
         }
@@ -41,78 +44,165 @@
         {
           "text": "Across the same 42 notes, median processing time fell from 28 minutes per note under the manual baseline to 20 minutes under the structured workflow, the share of notes needing reviewer repair fell from 7.5% to 4.1%, and reviewer satisfaction rose from 71% to 84%.",
           "claim_ids": [
+            "c_baseline",
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_1b728a3d_6bbbb16a9b"
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
           ],
           "citation_ids": [
-            "E_1b728a3d_6bbbb16a9b"
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
           ],
           "wording_strength": "hedged"
         },
         {
-          "text": "Figure 1 compares the two conditions directly: the structured workflow brings median processing time down from 28 to 20 minutes per note. [FIGURE:1]\n\nFigure 1: Median processing time per note, manual baseline versus structured workflow (minutes).",
+          "text": "Figure 1 lists the adoption parameters behind the proposal: two onboarding sessions, a one-week shadow period, and USD 4,800 in setup cost. [FIGURE:1]\n\nFigure 1: Adoption planning parameters from the proposal inputs.",
           "claim_ids": [
+            "c_baseline",
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_1b728a3d_6bbbb16a9b"
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
           ],
           "citation_ids": [
-            "E_1b728a3d_6bbbb16a9b"
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
           ],
           "wording_strength": "hedged"
         },
         {
-          "text": "Figure 2 traces the month-by-month trend across the pilot period, with median processing time falling as the structured workflow settled in. [FIGURE:2]\n\nFigure 2: Median processing time per note by month over the pilot period (minutes).",
+          "text": "Figure 2 lists the adoption parameters behind the proposal: two onboarding sessions, a one-week shadow period, and USD 4,800 in setup cost. [FIGURE:2]\n\nFigure 2: Adoption planning parameters from the proposal inputs.",
           "claim_ids": [
+            "c_baseline",
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_1b728a3d_6bbbb16a9b"
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
           ],
           "citation_ids": [
-            "E_1b728a3d_6bbbb16a9b"
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
           ],
           "wording_strength": "hedged"
         },
         {
-          "text": "Figure 3 sets intake complexity against review effort, showing that more complex notes demanded proportionally more reviewer attention. [FIGURE:3]\n\nFigure 3: Review effort score versus intake complexity score for the sampled notes.",
+          "text": "Figure 3 lists the adoption parameters behind the proposal: two onboarding sessions, a one-week shadow period, and USD 4,800 in setup cost. [FIGURE:3]\n\nFigure 3: Adoption planning parameters from the proposal inputs.",
           "claim_ids": [
+            "c_baseline",
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_1b728a3d_6bbbb16a9b"
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
           ],
           "citation_ids": [
-            "E_1b728a3d_6bbbb16a9b"
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
           ],
           "wording_strength": "hedged"
         },
         {
-          "text": "Figure 4 shows the spread of per-note processing times within each condition, not just the medians. [FIGURE:4]\n\nFigure 4: Distribution of per-note processing minutes under each condition.",
+          "text": "Figure 4 compares the two conditions directly: the structured workflow brings median processing time down from 28 to 20 minutes per note. [FIGURE:4]\n\nFigure 4: Median processing time per note, manual baseline versus structured workflow (minutes).",
           "claim_ids": [
+            "c_baseline",
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_1b728a3d_6bbbb16a9b"
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
           ],
           "citation_ids": [
-            "E_1b728a3d_6bbbb16a9b"
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
           ],
           "wording_strength": "hedged"
         },
         {
-          "text": "Figure 5 lists the adoption parameters behind the proposal: two onboarding sessions, a one-week shadow period, and USD 4,800 in setup cost. [FIGURE:5]\n\nFigure 5: Adoption planning parameters from the proposal inputs.",
+          "text": "Figure 5 traces the month-by-month trend across the pilot period, with median processing time falling as the structured workflow settled in. [FIGURE:5]\n\nFigure 5: Median processing time per note by month over the pilot period (minutes).",
           "claim_ids": [
+            "c_baseline",
             "c_measurement"
           ],
           "evidence_ids": [
-            "E_1b728a3d_6bbbb16a9b"
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
           ],
           "citation_ids": [
-            "E_1b728a3d_6bbbb16a9b"
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure 6 sets intake complexity against review effort, showing that more complex notes demanded proportionally more reviewer attention. [FIGURE:6]\n\nFigure 6: Review effort score versus intake complexity score for the sampled notes.",
+          "claim_ids": [
+            "c_baseline",
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure 7 shows the spread of per-note processing times within each condition, not just the medians. [FIGURE:7]\n\nFigure 7: Distribution of per-note processing minutes under each condition.",
+          "claim_ids": [
+            "c_baseline",
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "wording_strength": "hedged"
+        },
+        {
+          "text": "Figure 8 lists the adoption parameters behind the proposal: two onboarding sessions, a one-week shadow period, and USD 4,800 in setup cost. [FIGURE:8]\n\nFigure 8: Adoption planning parameters from the proposal inputs.",
+          "claim_ids": [
+            "c_baseline",
+            "c_measurement"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_aeb3a2984c",
+            "E_4dbd9d9f_426712b2ff"
+          ],
+          "wording_strength": "hedged"
+        }
+      ]
+    },
+    "limitations": {
+      "title": "Data Limitations and Counter-Evidence",
+      "sentences": [
+        {
+          "text": "The study remains a pilot, and reviewer satisfaction should be interpreted as supportive evidence rather than the primary basis for adoption.",
+          "claim_ids": [
+            "c_limit",
+            "c_satisfaction"
+          ],
+          "evidence_ids": [
+            "E_4dbd9d9f_b28714cc0a",
+            "E_4dbd9d9f_b28714cc0a"
+          ],
+          "citation_ids": [
+            "E_4dbd9d9f_b28714cc0a",
+            "E_4dbd9d9f_b28714cc0a"
           ],
           "wording_strength": "hedged"
         }
@@ -128,12 +218,12 @@
             "c_satisfaction"
           ],
           "evidence_ids": [
-            "E_1b728a3d_7067b4a674",
-            "E_1b728a3d_ed6453069f"
+            "E_4dbd9d9f_f685553c85",
+            "E_4dbd9d9f_b28714cc0a"
           ],
           "citation_ids": [
-            "E_1b728a3d_7067b4a674",
-            "E_1b728a3d_ed6453069f"
+            "E_4dbd9d9f_f685553c85",
+            "E_4dbd9d9f_b28714cc0a"
           ],
           "wording_strength": "hedged"
         }
@@ -142,11 +232,15 @@
     "appendix": {
       "title": "Appendix",
       "sentences": []
+    },
+    "references": {
+      "title": "References",
+      "sentences": []
     }
   },
   "_contract": {
-    "job_id": "run_90aaa136",
-    "evidence_ledger_hash": "d40300c0456eeb37",
-    "source_registry_hash": "f3493997243fa203"
+    "job_id": "run_461e9e62",
+    "evidence_ledger_hash": "ec5f7b5c7cece34d",
+    "source_registry_hash": "29611f710a8cd3da"
   }
 }

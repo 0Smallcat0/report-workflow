@@ -7,6 +7,7 @@
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -20,6 +21,7 @@
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -33,6 +35,7 @@
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -46,6 +49,7 @@
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -56,7 +60,10 @@
         "2",
         "3",
         "4",
-        "5"
+        "5",
+        "6",
+        "7",
+        "8"
       ]
     },
     "discussion": {
@@ -65,6 +72,7 @@
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -78,6 +86,7 @@
       "claim_ids": [
         "c_context",
         "c_method",
+        "c_baseline",
         "c_measurement",
         "c_limit",
         "c_satisfaction",
@@ -99,8 +108,8 @@
     }
   },
   "_contract": {
-    "job_id": "run_2111cb15",
-    "evidence_ledger_hash": "5abfc03b95ea5660",
-    "source_registry_hash": "57f2a21ffa403a91"
+    "job_id": "run_39440bbd",
+    "evidence_ledger_hash": "d4e4b7b06eaeafa6",
+    "source_registry_hash": "c32120fd00c13da2"
   }
 }

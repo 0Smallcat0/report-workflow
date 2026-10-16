@@ -119,6 +119,7 @@ infers one. Built-ins:
 - `admissions_report`
 - `admissions_project_report`
 - `custom`
+- `quant_research_memo`
 
 Do not use `report_family`, `--family`, `--detail`, variant, or subtype naming.
 Profile contract, custom-profile rules, and template priority:

@@ -94,6 +94,7 @@ alternate public selectors, subtypes, or detail levels. Built-in profile IDs:
 - `admissions_report`
 - `admissions_project_report`
 - `custom`
+- `quant_research_memo`
 
 Profiles control blueprint selection, policy strictness, aliases, front matter,
 abstract rules, citation behavior, figure/table contracts, tone rules, and
@@ -103,7 +104,7 @@ in `skills/report-workflow/reference/profiles.md`.
 
 ## Scope
 
-The pipeline is feature-complete for what it set out to do. Seven profiles, two
+The pipeline is feature-complete for what it set out to do. Eight profiles, two
 languages, a user-supplied `.docx` template, revision of an existing document,
 the CLI, the agent skill, and the MCP gate surface are the whole product. Work
 from here is defect repair, not expansion.
@@ -111,7 +112,9 @@ from here is defect repair, not expansion.
 Settled, and not to be reopened without the owner saying so in the current
 session:
 
-- No eighth profile, and no second public selector for report shape. See
+- No ninth profile, and no second public selector for report shape. The
+  eighth, `quant_research_memo`, was added on 2026-08-29 and kept by the owner
+  on 2026-10-16; it runs in the end-to-end benchmark like the other seven. See
   "Public Contract" above: `report_family`, family flags, detail levels,
   subtypes, and variants are all gone and stay gone.
 - No semantic layer in the checker. The gates are lexical so the verdict is

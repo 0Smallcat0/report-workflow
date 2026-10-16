@@ -51,8 +51,8 @@
     "summary_path": "evidence/full_benchmark_2026-05-13/summary.json",
     "markdown_summary_path": "evidence/full_benchmark_2026-05-13/summary.md",
     "check_command": "python scripts/run_report_benchmarks.py --check",
-    "profiles_total": 7,
-    "profiles_passed": 7,
+    "profiles_total": 8,
+    "profiles_passed": 8,
     "profiles_failed": 0,
     "chart_coverage": {
       "status": "pass",
@@ -70,7 +70,7 @@
         "boxplot",
         "table"
       ],
-      "profiles_with_figure_recommendations": 7,
+      "profiles_with_figure_recommendations": 8,
       "profiles_with_full_type_coverage": [
         "engineering_lab_report",
         "academic_paper",
@@ -78,9 +78,10 @@
         "proposal",
         "admissions_report",
         "admissions_project_report",
-        "custom"
+        "custom",
+        "quant_research_memo"
       ],
-      "profiles_with_passing_figure_visual_quality": 7
+      "profiles_with_passing_figure_visual_quality": 8
     },
     "qa_snapshot_roles": [
       "final_qa_summary.json",
@@ -88,7 +89,8 @@
       "figure_visual_quality_report.json",
       "template_style_map.json",
       "profile-specific QA reports"
-    ]
+    ],
+    "rerun_date": "2026-10-16"
   },
   "profiles": [
     {
@@ -360,6 +362,37 @@
           "status": "not_recommended"
         }
       ]
+    },
+    {
+      "report_profile": "quant_research_memo",
+      "benchmark_status": "full_benchmark_passed",
+      "benchmark_case": "profile_cases/quant_research_memo.md",
+      "fixture": "fixtures/controlled_source.md",
+      "chart_fixtures": [
+        "fixtures/chart_source.csv",
+        "fixtures/chart_line_source.csv",
+        "fixtures/chart_scatter_source.csv",
+        "fixtures/chart_boxplot_source.csv",
+        "fixtures/chart_table_fallback_source.csv"
+      ],
+      "latest_evidence_path": "evidence/full_benchmark_2026-05-13/quant_research_memo",
+      "rubric_sources": [
+        "https://www.ams.org/notices/201405/rnoti-p458.pdf"
+      ],
+      "qa_artifacts": [
+        "final_qa_summary.json",
+        "figure_visual_quality_report.json",
+        "template_style_map.json"
+      ],
+      "initial_gaps": [
+        {
+          "category": "agent_authoring_gap",
+          "severity": "medium",
+          "finding": "The benchmark's synthetic author no longer passed FE on current code for any profile: its measurement claim was bound by keyword score to a derived-statistics unit, and one claim compared two table rows, which FE checks row by row.",
+          "action": "Bind each condition's claim to its own comparison-table row; re-run all eight profiles (2026-10-16).",
+          "status": "implemented"
+        }
+      ]
     }
   ],
   "ranked_actions": [
@@ -375,7 +408,8 @@
         "proposal",
         "admissions_report",
         "admissions_project_report",
-        "custom"
+        "custom",
+        "quant_research_memo"
       ],
       "evidence_path": "evidence/full_benchmark_2026-05-13/summary.json"
     },

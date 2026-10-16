@@ -13,6 +13,12 @@
       "reason": "Claim/evidence/sentence linkage confirmed"
     },
     {
+      "claim_id": "c_baseline",
+      "status": "verified",
+      "checker": "FA",
+      "reason": "Claim/evidence/sentence linkage confirmed"
+    },
+    {
       "claim_id": "c_measurement",
       "status": "verified",
       "checker": "FA",
@@ -35,11 +41,47 @@
       "status": "verified",
       "checker": "FA",
       "reason": "Claim/evidence/sentence linkage confirmed"
+    },
+    {
+      "claim_id": "c_baseline",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c_measurement",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
+    },
+    {
+      "claim_id": "c_proposal",
+      "status": "verified",
+      "checker": "FS",
+      "reason": "Draft states every figure the claim asserts"
     }
   ],
   "advisory": [],
   "blocked_count": 0,
-  "verified_count": 6,
+  "verified_count": 10,
+  "checkers_run": [
+    "FA",
+    "FB",
+    "FE",
+    "FS",
+    "FD"
+  ],
+  "checker_descriptions": {
+    "FA": "claim, evidence and sentence ids link up",
+    "FB": "a statistical claim cites quantitative evidence",
+    "FE": "the claim's numbers, quotes and terms appear in the evidence it cites",
+    "FS": "the drafted prose states every figure its claim asserts",
+    "FT": "a trend asserted over a computed group table holds across all its groups",
+    "FT2": "a relation asserted between two columns of a computed group table holds across all its groups",
+    "FL": "a band the claim names is a row the cited table has, not a neighbouring spelling of one",
+    "FD": "wording strength is allowed by the weakest cited evidence grade"
+  },
+  "verified_means": "Every checker listed in checkers_run examined this claim and found no violation. It is a deterministic, lexical comparison against the supplied evidence \u2014 not an external fact check, and not a judgement that the claim is true.",
   "sidecars_consumed": {
     "claim_matrix": true,
     "sentence_map": true,

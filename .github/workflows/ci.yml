@@ -40,7 +40,7 @@ jobs:
       - name: Anti-hallucination gate demo
         run: python examples/anti_hallucination_gate.py
 
-      - name: Benchmark evidence check (7 profiles)
+      - name: Benchmark evidence check (8 profiles)
         run: python scripts/run_report_benchmarks.py --check
 
       - name: Adversarial benchmark check (catch rate + determinism)

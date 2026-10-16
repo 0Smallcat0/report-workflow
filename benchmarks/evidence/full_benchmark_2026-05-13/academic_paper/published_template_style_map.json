@@ -1,6 +1,6 @@
 {
-  "job_id": "run_11e7ba0f",
-  "created_at": "2026-07-16T23:15:57.239491",
+  "job_id": "run_48be8e5e",
+  "created_at": "2026-10-16T15:11:48.323503",
   "status": "pass",
   "report_profile": "academic_paper",
   "reference_template_mode": "style_reference",
@@ -136,19 +136,23 @@
     ]
   },
   "rendered_docx": {
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_11e7ba0f\\final.docx",
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_48be8e5e\\final.docx",
     "exists": true,
     "load_error": "",
-    "paragraph_count": 43,
-    "table_count": 0,
+    "paragraph_count": 53,
+    "table_count": 4,
     "paragraph_style_counts": {
-      "Heading 1": 9,
+      "Title": 1,
       "First Paragraph": 14,
-      "Body Text": 14,
-      "Heading 2": 5,
-      "Normal": 1
+      "Body Text": 20,
+      "Heading 2": 6,
+      "Normal": 3,
+      "TOC Heading": 1,
+      "Heading 1": 8
     },
-    "table_style_counts": {},
+    "table_style_counts": {
+      "Table": 4
+    },
     "paragraph_style_names": [
       "Abstract",
       "Abstract Title",
@@ -253,11 +257,13 @@
       "First Paragraph",
       "Heading 1",
       "Heading 2",
-      "Normal"
+      "Normal",
+      "TOC Heading",
+      "Title"
     ],
     "rendered_styles_not_defined_in_reference": [],
     "reference_paragraph_style_count": 31,
-    "rendered_paragraph_style_count": 5
+    "rendered_paragraph_style_count": 7
   },
   "warnings": []
 }
