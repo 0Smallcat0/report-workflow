@@ -1,6 +1,6 @@
 {
-  "job_id": "run_c967a7b0",
-  "created_at": "2026-10-16T15:12:11.700581",
+  "job_id": "run_aca87fdc",
+  "created_at": "2026-10-16T15:27:17.060678",
   "status": "pass",
   "report_profile": "admissions_project_report",
   "reference_template_mode": "style_reference",
@@ -136,7 +136,7 @@
     ]
   },
   "rendered_docx": {
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project Report--run_c967a7b0\\final.docx",
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project Report--run_aca87fdc\\final.docx",
     "exists": true,
     "load_error": "",
     "paragraph_count": 44,

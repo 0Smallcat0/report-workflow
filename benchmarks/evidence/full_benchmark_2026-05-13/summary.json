@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-10-16T15:12:23",
+  "generated_at": "2026-10-16T15:27:27",
   "fixture": "benchmarks\\fixtures\\controlled_source.md",
   "fixtures": [
     "benchmarks\\fixtures\\controlled_source.md",
@@ -32,8 +32,8 @@
       ],
       "status": "pass",
       "gap_classification": null,
-      "job_id": "run_345c23ee",
-      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Laboratory Report--run_345c23ee",
+      "job_id": "run_245b8617",
+      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Laboratory Report--run_245b8617",
       "prepare_status": "awaiting_agent_artifacts",
       "agent_artifacts": {
         "claim_count": 7,
@@ -53,7 +53,7 @@
       },
       "validate_status": "validated",
       "render_status": "completed",
-      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Laboratory Report--run_345c23ee\\published\\report.docx",
+      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Laboratory Report--run_245b8617\\published\\report.docx",
       "qa_digest": {
         "qa_decision": "pass",
         "hard_fail_reasons": [],
@@ -168,8 +168,8 @@
       ],
       "status": "pass",
       "gap_classification": null,
-      "job_id": "run_48be8e5e",
-      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_48be8e5e",
+      "job_id": "run_0edcae4f",
+      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_0edcae4f",
       "prepare_status": "awaiting_agent_artifacts",
       "agent_artifacts": {
         "claim_count": 7,
@@ -189,7 +189,7 @@
       },
       "validate_status": "validated",
       "render_status": "completed",
-      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_48be8e5e\\published\\report.docx",
+      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_0edcae4f\\published\\report.docx",
       "qa_digest": {
         "qa_decision": "pass",
         "hard_fail_reasons": [],
@@ -304,8 +304,8 @@
       ],
       "status": "pass",
       "gap_classification": null,
-      "job_id": "run_461e9e62",
-      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_461e9e62",
+      "job_id": "run_ecaa8425",
+      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_ecaa8425",
       "prepare_status": "awaiting_agent_artifacts",
       "agent_artifacts": {
         "claim_count": 7,
@@ -325,7 +325,7 @@
       },
       "validate_status": "validated",
       "render_status": "completed",
-      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_461e9e62\\published\\report.docx",
+      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Business Review--run_ecaa8425\\published\\report.docx",
       "qa_digest": {
         "qa_decision": "pass",
         "hard_fail_reasons": [],
@@ -440,8 +440,8 @@
       ],
       "status": "pass",
       "gap_classification": null,
-      "job_id": "run_d0c73931",
-      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_d0c73931",
+      "job_id": "run_fc188ced",
+      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_fc188ced",
       "prepare_status": "awaiting_agent_artifacts",
       "agent_artifacts": {
         "claim_count": 7,
@@ -461,7 +461,7 @@
       },
       "validate_status": "validated",
       "render_status": "completed",
-      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_d0c73931\\published\\report.docx",
+      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Adoption Proposal--run_fc188ced\\published\\report.docx",
       "qa_digest": {
         "qa_decision": "pass",
         "hard_fail_reasons": [],
@@ -576,8 +576,8 @@
       ],
       "status": "pass",
       "gap_classification": null,
-      "job_id": "run_3e3369b2",
-      "run_dir": "output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3e3369b2",
+      "job_id": "run_46d386d0",
+      "run_dir": "output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_46d386d0",
       "prepare_status": "awaiting_agent_artifacts",
       "agent_artifacts": {
         "claim_count": 7,
@@ -597,7 +597,7 @@
       },
       "validate_status": "validated",
       "render_status": "completed",
-      "final_docx_path": "output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3e3369b2\\published\\report.docx",
+      "final_docx_path": "output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_46d386d0\\published\\report.docx",
       "qa_digest": {
         "qa_decision": "pass",
         "hard_fail_reasons": [],
@@ -724,8 +724,8 @@
       ],
       "status": "pass",
       "gap_classification": null,
-      "job_id": "run_c967a7b0",
-      "run_dir": "output\\benchmark_runs\\Evidence-Bounded Workflow Project Report--run_c967a7b0",
+      "job_id": "run_aca87fdc",
+      "run_dir": "output\\benchmark_runs\\Evidence-Bounded Workflow Project Report--run_aca87fdc",
       "prepare_status": "awaiting_agent_artifacts",
       "agent_artifacts": {
         "claim_count": 7,
@@ -745,7 +745,7 @@
       },
       "validate_status": "validated",
       "render_status": "completed",
-      "final_docx_path": "output\\benchmark_runs\\Evidence-Bounded Workflow Project Report--run_c967a7b0\\published\\report.docx",
+      "final_docx_path": "output\\benchmark_runs\\Evidence-Bounded Workflow Project Report--run_aca87fdc\\published\\report.docx",
       "qa_digest": {
         "qa_decision": "pass",
         "hard_fail_reasons": [],
@@ -868,8 +868,8 @@
       ],
       "status": "pass",
       "gap_classification": null,
-      "job_id": "run_39440bbd",
-      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_39440bbd",
+      "job_id": "run_802036ab",
+      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_802036ab",
       "prepare_status": "awaiting_agent_artifacts",
       "agent_artifacts": {
         "claim_count": 7,
@@ -889,7 +889,7 @@
       },
       "validate_status": "validated",
       "render_status": "completed",
-      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_39440bbd\\published\\report.docx",
+      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_802036ab\\published\\report.docx",
       "qa_digest": {
         "qa_decision": "pass",
         "hard_fail_reasons": [],
@@ -1004,8 +1004,8 @@
       ],
       "status": "pass",
       "gap_classification": null,
-      "job_id": "run_27e81c5e",
-      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Research Memo--run_27e81c5e",
+      "job_id": "run_844b877a",
+      "run_dir": "output\\benchmark_runs\\Structured Workflow Pilot Research Memo--run_844b877a",
       "prepare_status": "awaiting_agent_artifacts",
       "agent_artifacts": {
         "claim_count": 7,
@@ -1025,7 +1025,7 @@
       },
       "validate_status": "validated",
       "render_status": "completed",
-      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Research Memo--run_27e81c5e\\published\\report.docx",
+      "final_docx_path": "output\\benchmark_runs\\Structured Workflow Pilot Research Memo--run_844b877a\\published\\report.docx",
       "qa_digest": {
         "qa_decision": "pass",
         "hard_fail_reasons": [],

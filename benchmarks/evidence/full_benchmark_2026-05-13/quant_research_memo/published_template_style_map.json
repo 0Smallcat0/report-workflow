@@ -1,6 +1,6 @@
 {
-  "job_id": "run_27e81c5e",
-  "created_at": "2026-10-16T15:12:23.034006",
+  "job_id": "run_844b877a",
+  "created_at": "2026-10-16T15:27:27.668353",
   "status": "pass",
   "report_profile": "quant_research_memo",
   "reference_template_mode": "style_reference",
@@ -136,7 +136,7 @@
     ]
   },
   "rendered_docx": {
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Research Memo--run_27e81c5e\\final.docx",
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Research Memo--run_844b877a\\final.docx",
     "exists": true,
     "load_error": "",
     "paragraph_count": 41,

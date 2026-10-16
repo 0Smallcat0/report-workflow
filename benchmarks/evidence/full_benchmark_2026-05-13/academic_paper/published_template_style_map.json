@@ -1,6 +1,6 @@
 {
-  "job_id": "run_48be8e5e",
-  "created_at": "2026-10-16T15:11:48.323503",
+  "job_id": "run_0edcae4f",
+  "created_at": "2026-10-16T15:26:55.280738",
   "status": "pass",
   "report_profile": "academic_paper",
   "reference_template_mode": "style_reference",
@@ -136,7 +136,7 @@
     ]
   },
   "rendered_docx": {
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_48be8e5e\\final.docx",
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_0edcae4f\\final.docx",
     "exists": true,
     "load_error": "",
     "paragraph_count": 53,

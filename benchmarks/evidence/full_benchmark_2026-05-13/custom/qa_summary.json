@@ -1,5 +1,5 @@
 {
-  "job_id": "run_39440bbd",
+  "job_id": "run_802036ab",
   "qa_decision": "pass",
   "artifact_completeness_status": "pass",
   "hard_fail_reasons": [],
@@ -329,5 +329,5 @@
     "claim_count": 7,
     "evidence_count": 49
   },
-  "factuality_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_39440bbd\\factuality_report.json"
+  "factuality_report_path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_802036ab\\factuality_report.json"
 }

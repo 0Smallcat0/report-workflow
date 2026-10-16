@@ -5,7 +5,7 @@
 - Renderer: pandoc
 - Reference DOCX applied: True
 - Reference DOCX: D:\report_workflow\src\report_workflow\templates\reference.docx
-- Rendered DOCX: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_27e81c5e\final.docx
+- Rendered DOCX: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_844b877a\final.docx
 
 ## Rendered Style Usage
 

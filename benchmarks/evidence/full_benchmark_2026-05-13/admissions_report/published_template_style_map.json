@@ -1,6 +1,6 @@
 {
-  "job_id": "run_3e3369b2",
-  "created_at": "2026-10-16T15:12:05.589435",
+  "job_id": "run_46d386d0",
+  "created_at": "2026-10-16T15:27:11.281378",
   "status": "pass",
   "report_profile": "admissions_report",
   "reference_template_mode": "style_reference",
@@ -136,7 +136,7 @@
     ]
   },
   "rendered_docx": {
-    "path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3e3369b2\\final.docx",
+    "path": "D:\\report_workflow\\output\\benchmark_runs\\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_46d386d0\\final.docx",
     "exists": true,
     "load_error": "",
     "paragraph_count": 44,

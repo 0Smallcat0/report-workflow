@@ -4,7 +4,7 @@
 - QA decision: pass
 - Report profile: business_report
 - Renderer: pandoc
-- Report to send: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_461e9e62\published\report.docx
+- Report to send: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_ecaa8425\published\report.docx
 
 ## Key Checks
 
@@ -20,13 +20,13 @@
 
 ## Packaged Evidence
 
-- qa_summary: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_461e9e62\qa_summary.json
-- factuality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_461e9e62\factuality_report.json
+- qa_summary: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_ecaa8425\qa_summary.json
+- factuality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_ecaa8425\factuality_report.json
 - artifact_lint_report: missing
 - engineering_audit_report: missing
-- template_style_map: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_461e9e62\template_style_map.json
-- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_461e9e62\template_field_fill_report.json
-- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_461e9e62\figure_visual_quality_report.json
-- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_461e9e62\post_render_validate_report.json
-- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_461e9e62\post_render_layout_manifest.json
-- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_461e9e62\visual_render_check_report.json
+- template_style_map: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_ecaa8425\template_style_map.json
+- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_ecaa8425\template_field_fill_report.json
+- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_ecaa8425\figure_visual_quality_report.json
+- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_ecaa8425\post_render_validate_report.json
+- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_ecaa8425\post_render_layout_manifest.json
+- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Business Review--run_ecaa8425\visual_render_check_report.json

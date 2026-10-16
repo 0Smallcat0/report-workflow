@@ -4,7 +4,7 @@
 - QA decision: pass
 - Report profile: custom
 - Renderer: pandoc
-- Report to send: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_39440bbd\published\report.docx
+- Report to send: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_802036ab\published\report.docx
 
 ## Key Checks
 
@@ -20,13 +20,13 @@
 
 ## Packaged Evidence
 
-- qa_summary: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_39440bbd\qa_summary.json
-- factuality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_39440bbd\factuality_report.json
+- qa_summary: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_802036ab\qa_summary.json
+- factuality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_802036ab\factuality_report.json
 - artifact_lint_report: missing
 - engineering_audit_report: missing
-- template_style_map: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_39440bbd\template_style_map.json
-- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_39440bbd\template_field_fill_report.json
-- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_39440bbd\figure_visual_quality_report.json
-- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_39440bbd\post_render_validate_report.json
-- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_39440bbd\post_render_layout_manifest.json
-- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_39440bbd\visual_render_check_report.json
+- template_style_map: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_802036ab\template_style_map.json
+- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_802036ab\template_field_fill_report.json
+- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_802036ab\figure_visual_quality_report.json
+- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_802036ab\post_render_validate_report.json
+- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_802036ab\post_render_layout_manifest.json
+- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Hybrid Report--run_802036ab\visual_render_check_report.json

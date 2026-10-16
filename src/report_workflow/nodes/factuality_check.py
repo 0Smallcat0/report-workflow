@@ -12,6 +12,7 @@ import itertools
 import json
 import re
 import unicodedata
+from collections.abc import Iterable
 from pathlib import Path
 
 from ..errors import QAHardBlockError
@@ -1294,8 +1295,30 @@ _DATASET_SCOPE_RE = re.compile(
 _COLUMN_BRACKET_RE = re.compile(r"[(（\[［].*?[)）\]］]")
 
 
-def _is_dataset_scope_claim(claim_text: str) -> bool:
-    return bool(_DATASET_SCOPE_RE.search(claim_text or ""))
+def _is_dataset_scope_claim(claim_text: str, row_columns: Iterable[str] = ()) -> bool:
+    """True when a scope word in the claim speaks about the whole dataset.
+
+    A scope word that is part of one of the row's own column names is the
+    claim naming that cell, not the sample: a row of a per-condition summary
+    table carries `median_processing_minutes`, and "a median processing time
+    of 28 minutes" restates its cell. Counting that "median" as dataset scope
+    blocked the honest sentence and sent its author to rewrite the metric out
+    of it. Every other scope word still counts, so "the median across the
+    sample" stays blocked on "across" and "sample".
+    """
+    column_words: set[str] = set()
+    for column in row_columns:
+        name = _COLUMN_BRACKET_RE.sub(" ", str(column or "")).casefold()
+        column_words.update(re.findall(r"[a-z][a-z0-9]*", name))
+        column_words.update(re.findall(r"[㐀-鿿]+", name))
+    for match in _DATASET_SCOPE_RE.finditer(claim_text or ""):
+        word = match.group(0).casefold()
+        if word in column_words or any(
+            re.fullmatch(r"[㐀-鿿]+", w) and word in w for w in column_words
+        ):
+            continue
+        return True
+    return False
 
 
 def _claim_names_column(claim_text: str, column: str) -> bool:
@@ -1479,7 +1502,9 @@ def _content_overlap_findings(
         and str(evidence.get("block_type", "")) in _RAW_ROW_BLOCK_TYPES
     )
 
-    if is_raw_row and claim_numbers and _is_dataset_scope_claim(claim_text):
+    if is_raw_row and claim_numbers and _is_dataset_scope_claim(
+        claim_text, json.loads(evidence_content).keys()
+    ):
         return [((
             "dataset_scope",
         ), (

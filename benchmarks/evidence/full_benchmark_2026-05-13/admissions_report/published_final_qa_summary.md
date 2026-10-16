@@ -4,7 +4,7 @@
 - QA decision: pass
 - Report profile: admissions_report
 - Renderer: pandoc
-- Report to send: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3e3369b2\published\report.docx
+- Report to send: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_46d386d0\published\report.docx
 
 ## Key Checks
 
@@ -20,13 +20,13 @@
 
 ## Packaged Evidence
 
-- qa_summary: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3e3369b2\qa_summary.json
-- factuality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3e3369b2\factuality_report.json
+- qa_summary: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_46d386d0\qa_summary.json
+- factuality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_46d386d0\factuality_report.json
 - artifact_lint_report: missing
 - engineering_audit_report: missing
-- template_style_map: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3e3369b2\template_style_map.json
-- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3e3369b2\template_field_fill_report.json
-- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3e3369b2\figure_visual_quality_report.json
-- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3e3369b2\post_render_validate_report.json
-- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3e3369b2\post_render_layout_manifest.json
-- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_3e3369b2\visual_render_check_report.json
+- template_style_map: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_46d386d0\template_style_map.json
+- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_46d386d0\template_field_fill_report.json
+- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_46d386d0\figure_visual_quality_report.json
+- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_46d386d0\post_render_validate_report.json
+- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_46d386d0\post_render_layout_manifest.json
+- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project for Graduate Study Readiness--run_46d386d0\visual_render_check_report.json

@@ -4,7 +4,7 @@
 - QA decision: pass
 - Report profile: quant_research_memo
 - Renderer: pandoc
-- Report to send: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_27e81c5e\published\report.docx
+- Report to send: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_844b877a\published\report.docx
 
 ## Key Checks
 
@@ -20,13 +20,13 @@
 
 ## Packaged Evidence
 
-- qa_summary: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_27e81c5e\qa_summary.json
-- factuality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_27e81c5e\factuality_report.json
+- qa_summary: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_844b877a\qa_summary.json
+- factuality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_844b877a\factuality_report.json
 - artifact_lint_report: missing
 - engineering_audit_report: missing
-- template_style_map: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_27e81c5e\template_style_map.json
-- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_27e81c5e\template_field_fill_report.json
-- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_27e81c5e\figure_visual_quality_report.json
-- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_27e81c5e\post_render_validate_report.json
-- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_27e81c5e\post_render_layout_manifest.json
-- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_27e81c5e\visual_render_check_report.json
+- template_style_map: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_844b877a\template_style_map.json
+- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_844b877a\template_field_fill_report.json
+- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_844b877a\figure_visual_quality_report.json
+- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_844b877a\post_render_validate_report.json
+- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_844b877a\post_render_layout_manifest.json
+- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot Research Memo--run_844b877a\visual_render_check_report.json

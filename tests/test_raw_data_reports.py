@@ -260,6 +260,34 @@ class EvidenceMustSupportTheClaimTests(unittest.TestCase):
         self.assertEqual(result["status"], "blocked")
         self.assertIn("single data row", result["reason"])
 
+    def test_a_scope_word_that_is_the_rows_own_column_is_not_dataset_scope(self):
+        # The row is one condition of a summary table; its column is
+        # median_processing_minutes. "median" names that cell, not the sample.
+        result = _fe(
+            "Under the manual baseline, the median processing time was 28 minutes per note.",
+            _row_evidence({"condition": "baseline_manual", "median_processing_minutes": "28"}),
+            claim_type="factual",
+        )
+        self.assertEqual(result["status"], "verified", result.get("reason"))
+
+    def test_a_scope_word_outside_the_column_names_still_blocks(self):
+        result = _fe(
+            "Across the sample, the median processing time was 28 minutes per note.",
+            _row_evidence({"condition": "baseline_manual", "median_processing_minutes": "28"}),
+            claim_type="factual",
+        )
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn("single data row", result["reason"])
+
+    def test_median_is_still_dataset_scope_when_no_column_says_median(self):
+        result = _fe(
+            "The median rating is 4.3.",
+            _row_evidence({"asin": "B0X", "price": "$71.99", "rating": "4.3"}),
+            claim_type="factual",
+        )
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn("single data row", result["reason"])
+
     def test_a_price_with_a_currency_prefix_is_readable(self):
         result = _fe(
             "該商品標價為 71.99 美元。",

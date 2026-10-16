@@ -185,8 +185,8 @@
     "uncertainty_limitations": "The fixture is synthetic, small, and not generalizable beyond the tested intake workflow."
   },
   "_contract": {
-    "job_id": "run_345c23ee",
-    "evidence_ledger_hash": "251a498c9854fbc8",
-    "source_registry_hash": "aaed9d8e2ec90935"
+    "job_id": "run_245b8617",
+    "evidence_ledger_hash": "b57b1bd082ca1c8e",
+    "source_registry_hash": "52886cc5552d4a81"
   }
 }

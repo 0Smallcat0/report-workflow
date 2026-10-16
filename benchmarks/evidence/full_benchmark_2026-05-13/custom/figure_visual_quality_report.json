@@ -1,5 +1,5 @@
 {
-  "job_id": "run_39440bbd",
+  "job_id": "run_802036ab",
   "status": "passed",
   "generated_count": 8,
   "issue_count": 0,
@@ -32,7 +32,7 @@
     {
       "figure_id": "4",
       "figure_type": "bar",
-      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_39440bbd\\figures\\4.png",
+      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_802036ab\\figures\\4.png",
       "status": "passed",
       "issue_count": 0,
       "issues": []
@@ -40,7 +40,7 @@
     {
       "figure_id": "5",
       "figure_type": "line",
-      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_39440bbd\\figures\\5.png",
+      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_802036ab\\figures\\5.png",
       "status": "passed",
       "issue_count": 0,
       "issues": []
@@ -48,7 +48,7 @@
     {
       "figure_id": "6",
       "figure_type": "scatter",
-      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_39440bbd\\figures\\6.png",
+      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_802036ab\\figures\\6.png",
       "status": "passed",
       "issue_count": 0,
       "issues": []
@@ -56,7 +56,7 @@
     {
       "figure_id": "7",
       "figure_type": "boxplot",
-      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_39440bbd\\figures\\7.png",
+      "path": "D:\\report_workflow\\output\\benchmark_runs\\Structured Workflow Pilot Hybrid Report--run_802036ab\\figures\\7.png",
       "status": "passed",
       "issue_count": 0,
       "issues": []

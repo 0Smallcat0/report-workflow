@@ -30,7 +30,7 @@
     },
     {
       "claim_id": "c_baseline",
-      "claim_text": "Under the manual baseline, 42 participants recorded a processing time of 28 minutes per note, an error rate of 7.5%, and reviewer satisfaction of 71%.",
+      "claim_text": "Under the manual baseline, 42 participants recorded a median processing time of 28 minutes per note, an error rate of 7.5%, and reviewer satisfaction of 71%.",
       "claim_type": "factual",
       "claim_role": "primary",
       "status": "supported",
@@ -44,7 +44,7 @@
     },
     {
       "claim_id": "c_measurement",
-      "claim_text": "Under the structured workflow, the same 42 participants recorded a processing time of 20 minutes per note, an error rate of 4.1%, and reviewer satisfaction of 84%.",
+      "claim_text": "Under the structured workflow, the same 42 participants recorded a median processing time of 20 minutes per note, an error rate of 4.1%, and reviewer satisfaction of 84%.",
       "claim_type": "factual",
       "claim_role": "primary",
       "status": "supported",
@@ -98,8 +98,8 @@
     }
   ],
   "_contract": {
-    "job_id": "run_345c23ee",
-    "evidence_ledger_hash": "251a498c9854fbc8",
-    "source_registry_hash": "aaed9d8e2ec90935"
+    "job_id": "run_245b8617",
+    "evidence_ledger_hash": "b57b1bd082ca1c8e",
+    "source_registry_hash": "52886cc5552d4a81"
   }
 }

@@ -4,7 +4,7 @@
 - QA decision: pass
 - Report profile: academic_paper
 - Renderer: pandoc
-- Report to send: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_48be8e5e\published\report.docx
+- Report to send: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_0edcae4f\published\report.docx
 
 ## Key Checks
 
@@ -20,13 +20,13 @@
 
 ## Packaged Evidence
 
-- qa_summary: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_48be8e5e\qa_summary.json
-- factuality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_48be8e5e\factuality_report.json
+- qa_summary: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_0edcae4f\qa_summary.json
+- factuality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_0edcae4f\factuality_report.json
 - artifact_lint_report: missing
 - engineering_audit_report: missing
-- template_style_map: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_48be8e5e\template_style_map.json
-- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_48be8e5e\template_field_fill_report.json
-- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_48be8e5e\figure_visual_quality_report.json
-- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_48be8e5e\post_render_validate_report.json
-- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_48be8e5e\post_render_layout_manifest.json
-- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_48be8e5e\visual_render_check_report.json
+- template_style_map: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_0edcae4f\template_style_map.json
+- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_0edcae4f\template_field_fill_report.json
+- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_0edcae4f\figure_visual_quality_report.json
+- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_0edcae4f\post_render_validate_report.json
+- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_0edcae4f\post_render_layout_manifest.json
+- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Structured Workflow Pilot for Evidence-Bounded Report Generation--run_0edcae4f\visual_render_check_report.json

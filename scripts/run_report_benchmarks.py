@@ -255,12 +255,11 @@ def _claims(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         },
         # One claim per row of the comparison table. FE checks a claim against
         # each row it cites, so a claim that compares the two conditions cannot
-        # cite both, and it reads "across" and "median" as statements about the
-        # whole dataset even where median names the row's own column.
+        # cite both. "Median" is the row's own column, so the claims may say it.
         {
             "claim_id": "c_baseline",
             "claim_text": (
-                "Under the manual baseline, 42 participants recorded a processing time of "
+                "Under the manual baseline, 42 participants recorded a median processing time of "
                 "28 minutes per note, an error rate of 7.5%, and reviewer satisfaction of 71%."
             ),
             "claim_type": "factual",
@@ -273,7 +272,7 @@ def _claims(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "claim_id": "c_measurement",
             "claim_text": (
                 "Under the structured workflow, the same 42 participants recorded a "
-                "processing time of 20 minutes per note, an error rate of 4.1%, and "
+                "median processing time of 20 minutes per note, an error rate of 4.1%, and "
                 "reviewer satisfaction of 84%."
             ),
             "claim_type": "factual",

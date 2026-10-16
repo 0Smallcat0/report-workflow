@@ -4,7 +4,7 @@
 - QA decision: pass
 - Report profile: admissions_project_report
 - Renderer: pandoc
-- Report to send: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_c967a7b0\published\report.docx
+- Report to send: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_aca87fdc\published\report.docx
 
 ## Key Checks
 
@@ -20,13 +20,13 @@
 
 ## Packaged Evidence
 
-- qa_summary: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_c967a7b0\qa_summary.json
-- factuality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_c967a7b0\factuality_report.json
+- qa_summary: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_aca87fdc\qa_summary.json
+- factuality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_aca87fdc\factuality_report.json
 - artifact_lint_report: missing
 - engineering_audit_report: missing
-- template_style_map: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_c967a7b0\template_style_map.json
-- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_c967a7b0\template_field_fill_report.json
-- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_c967a7b0\figure_visual_quality_report.json
-- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_c967a7b0\post_render_validate_report.json
-- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_c967a7b0\post_render_layout_manifest.json
-- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_c967a7b0\visual_render_check_report.json
+- template_style_map: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_aca87fdc\template_style_map.json
+- template_field_fill_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_aca87fdc\template_field_fill_report.json
+- figure_visual_quality_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_aca87fdc\figure_visual_quality_report.json
+- post_render_validate_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_aca87fdc\post_render_validate_report.json
+- post_render_layout_manifest: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_aca87fdc\post_render_layout_manifest.json
+- visual_render_check_report: D:\report_workflow\output\benchmark_runs\Evidence-Bounded Workflow Project Report--run_aca87fdc\visual_render_check_report.json
