@@ -1,0 +1,1 @@
+{"step": "start_report", "status": "needs_user_decision", "message": "Call check_environment(), ask the user about every pending install and optional integration, then start again with selected feature flags and a complete preflight_decisions record.", "decision_issues": ["missing install decision for 'mmdc'", "missing install decision for 'notebook_sync'"]}

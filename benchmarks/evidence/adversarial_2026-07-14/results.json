@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-08-29T12:34:12",
+  "generated_at": "2026-10-19T12:30:33",
   "corpus": {
     "total_cases": 73,
     "honest_cases": 27,
@@ -1755,7 +1755,7 @@
           "expected_verdict": "blocked",
           "verdict": "blocked",
           "blocked_by": "FE",
-          "reason": "Claim number '9,900'for is not stated in the evidence (evidence states: 4,800for) — read from 「d USD 9,900 for setu」"
+          "reason": "Claim number '9,900' is not stated in the evidence (evidence states: 4,800) — read from 「d USD 9,900 for s」"
         },
         {
           "case_id": "e04",
@@ -2225,7 +2225,7 @@
   "expected_mismatches": [],
   "determinism": {
     "runs": 5,
-    "verdict_hash": "a06747aae0689b5bffa9b8caea23c4c3d8036463517b19e81afb805de519ef4e",
+    "verdict_hash": "2029a82905f5c6cc1927eeeb07d0aa54abff0f73aa6be077b4e328721347294d",
     "identical": true
   }
 }

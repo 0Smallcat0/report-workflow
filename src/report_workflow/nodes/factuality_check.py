@@ -443,6 +443,15 @@ _CJK_UNIT_RE = re.compile(
 
 _ASCII_UNIT_RE = re.compile(r"[a-zA-Z%°]+")
 
+#: Words that follow a number in running English without measuring anything.
+#: "staffed 24/7 and answers" made "and" the unit of 7, so the same figure
+#: written "7 days" or "7×24 with" was a unit mismatch. Lower case only: "A"
+#: is still an ampere.
+_ENGLISH_FUNCTION_WORDS = frozenset({
+    "and", "or", "with", "of", "to", "the", "an", "for", "at", "on", "by",
+    "from", "as", "is", "are", "was", "were", "than", "that", "which", "while", "but",
+})
+
 #: A number, unit optional. It has to be optional: a date written "2025-06"
 #: states two numbers and no unit, and a claim saying "2025 年 6 月" cites both
 #: of them. Requiring a unit meant the evidence's 2025 was never extracted at
@@ -497,7 +506,7 @@ def _unit_after(text: str, position: int) -> str:
     if not match:
         return ""
     unit = _APOSTROPHE_SUFFIX_RE.sub("", match.group(0))
-    if not unit:
+    if not unit or unit in _ENGLISH_FUNCTION_WORDS:
         return ""
 
     after = position + offset + match.end()
@@ -544,6 +553,13 @@ _CLAUSE_BREAK_RE = re.compile(r"[，。；：！？、,;:!?\n]")
 #: combination would turn a month into a rate.
 _CALENDAR_UNITS = frozenset({"年", "月", "日", "天", "週", "周", "季", "季度", "世紀", "世纪"})
 
+#: Measure words that only count the noun after them. In 每個擺長 / 每位學生 /
+#: 每組樣本 the noun is the denominator; the classifier names nothing.
+_NOUN_CLASSIFIERS = frozenset({
+    "個", "个", "位", "名", "項", "项", "件", "組", "组", "筆", "笔", "種", "种",
+    "條", "条", "張", "张", "台", "部", "座", "家", "間", "间", "批", "次",
+})
+
 
 def _per_prefix_unit(text: str, number_start: int) -> str:
     """The "每X" denominator governing a number, or "" when none does."""
@@ -556,7 +572,17 @@ def _per_prefix_unit(text: str, number_start: int) -> str:
     between = window[match.end():]
     if len(between) > _PER_PREFIX_MAX_GAP or _CLAUSE_BREAK_RE.search(between):
         return ""
-    return match.group("unit")
+    # 「每個擺長重複 5 次」 is "for each length, 5 times": 個 is the classifier
+    # of the noun that follows it, and that noun is the denominator, not 個.
+    # Read as 5 次/個 it met a claim written 「並重複 5 次」 as a unit mismatch,
+    # and a lab report's honest procedure sentence was blocked twice — FE and
+    # FS — until it was rewritten into the source's word order. A measure
+    # word that is a unit (每噸, 每公斤) or stands alone before the number
+    # (每人 3 次) still makes a rate.
+    unit = match.group("unit")
+    if unit in _NOUN_CLASSIFIERS and re.match(r"[㐀-鿿]", between):
+        return ""
+    return unit
 
 
 def _combined_unit(text: str, number_start: int, suffix_unit: str) -> str:
@@ -708,10 +734,20 @@ def _decimal_comma_to_point(text: str) -> str:
     return _DECIMAL_COMMA_RE.sub(lambda match: match.group(0).replace(",", "."), text)
 
 
+#: Two figures joined by a multiplication sign: 7×24, 7x24, 7 * 24, 1920×1080.
+#: Written with a Latin x, the x was read as the first number's unit and the
+#: lookbehind that keeps "A4" from yielding a 4 then hid the second number, so
+#: a source saying the desk is "staffed 7x24" stated a 7 and nothing else, and
+#: the claim restating it as 7×24 was blocked for a 24 "not stated in the
+#: evidence". Every spelling is folded to one before numbers are read.
+_PRODUCT_SIGN_RE = re.compile(r"\b(\d+)\s*[xX×*＊]\s*(\d+)\b")
+
+
 def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
     """Return list of (number_str, unit_str) from text."""
     results = []
     normalized = _decimal_comma_to_point(_normalize_for_numbers(text))
+    normalized = _PRODUCT_SIGN_RE.sub(r"\1 × \2", normalized)
     for m in _BARE_NUMBER_RE.finditer(normalized):
         suffix = _unit_after(normalized, m.end())
         unit = _combined_unit(normalized, m.start(1), suffix)
@@ -2627,6 +2663,34 @@ def run_factuality_check_ft(
     return results
 
 
+def _revision_plan_links(state: ReportState) -> list[dict]:
+    """The claim links a revision plan makes, read as sentence-map rows for FA.
+
+    In revise_existing the document is the base document with revision_plan.json
+    applied; section drafts are not merged into it. Each change already names
+    the claims and evidence it states, which is the link FA checks, but FA read
+    only the drafts' sentence map — so a claim carried by a revision change and
+    by no draft was blocked as "does not appear in sentence_map", and the only
+    way through was to write a draft sentence that never reaches the reader.
+    """
+    if state.spec.get("task_intent") != "revise_existing":
+        return []
+    from ..state import run_dir_for
+
+    plan = _load_json(run_dir_for(state) / "revision_plan.json")
+    links = []
+    for index, change in enumerate(plan.get("changes") or []):
+        if not isinstance(change, dict) or not change.get("claim_ids"):
+            continue
+        links.append({
+            "sentence_id": f"revision_change_{index}",
+            "section_id": str(change.get("section_id") or ""),
+            "claim_ids": list(change.get("claim_ids") or []),
+            "evidence_ids": list(change.get("evidence_ids") or []),
+        })
+    return links
+
+
 def run_factuality_check(state: ReportState) -> ReportState:
     """T13: FACTUALITY_CHECK - verify claims vs evidence."""
     run_dir = WORKFLOW_RUNS_DIR / state.job_id
@@ -2642,7 +2706,9 @@ def run_factuality_check(state: ReportState) -> ReportState:
     if not claim_matrix.get("claims"):
         raise QAHardBlockError("Claim matrix is empty")
 
-    results_fa = run_factuality_check_fa(sentence_map, claim_matrix, evidence_ledger)
+    results_fa = run_factuality_check_fa(
+        sentence_map + _revision_plan_links(state), claim_matrix, evidence_ledger
+    )
     all_results = run_factuality_check_fb(results_fa, claim_matrix, evidence_ledger)
     checkers_run = ["FA", "FB"]
 

@@ -65,7 +65,22 @@ def compute_revision_diff(
         status = "valid"
         reason = ""
 
-        if change_type == "replace" and original_text == new_text:
+        if change_type == "retitle" and not new_text.strip():
+            status = "unresolvable"
+            reason = "retitle needs the new heading in new_text"
+        elif change_type in ("retitle", "remove_section") and section_id not in base_sections:
+            status = "unresolvable"
+            reason = (
+                f"Section '{section_id}' not found in base document; "
+                f"sections are: {', '.join(sorted(base_sections))}"
+            )
+        elif change_type in ("retitle", "remove_section"):
+            # Structural changes REVISION_APPLY performs. This pre-check knew
+            # only replace/insert/delete, so the two types the brief and
+            # revision.md document were refused here as "Unknown change_type"
+            # before the node that applies them ever ran.
+            pass
+        elif change_type == "replace" and original_text == new_text:
             status = "unresolvable"
             reason = "No-op replace change: original_text and new_text are identical"
         elif change_type == "insert" and not new_text.strip():

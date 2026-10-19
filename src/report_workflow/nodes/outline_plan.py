@@ -9,6 +9,7 @@ from ..state import ReportState
 from ..artifact_contract import make_artifact_contract, validate_artifact_contract, write_artifact_contract
 from .agent_tasks import missing_agent_artifacts, write_agent_task_briefs
 from .section_contract import validate_required_outline_sections
+from .blueprint_plan import results_section_id
 
 
 def _outline_path(state: ReportState) -> Path:
@@ -104,6 +105,21 @@ def _planned_figure_ids(state: ReportState) -> list[str] | None:
     ]
 
 
+def _recommended_figure_ids(state: ReportState) -> set[str]:
+    """Plan entries the pipeline proposed from figure_recommendations.json."""
+    path = run_dir_for(state) / "section_drafts" / "figure_plan.json"
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return set()
+    figures = payload.get("figures") if isinstance(payload, dict) else None
+    return {
+        str(figure.get("figure_id")).strip()
+        for figure in figures or []
+        if isinstance(figure, dict) and figure.get("recommendation_id")
+    }
+
+
 def _starter_plan_is_untouched(state: ReportState) -> bool:
     """True when figure_plan.json is still exactly what the pipeline generated.
 
@@ -166,6 +182,14 @@ def _validate_figure_plan_against_outline(state: ReportState, sections: dict) ->
         # Not adopted, so not the author's claim about the report. Say so once
         # rather than refusing a run over a file they have not opened.
         unused = []
+    # The same holds entry by entry. Editing one figure, or adding one of their
+    # own, used to turn every other starter suggestion into an omission the
+    # author had to answer for — on a sales sheet, four "rows by category"
+    # count tables of a balanced design, each to be deleted by hand before the
+    # outline was accepted. An entry that came from a recommendation and that
+    # no section uses is a suggestion not taken; it is not built either way.
+    suggested = _recommended_figure_ids(state)
+    unused = [figure_id for figure_id in unused if figure_id not in suggested]
     if unused:
         problems.append(
             "figure_plan.json plans figures no outline section uses: "
@@ -366,7 +390,7 @@ def run_outline_plan(state: ReportState) -> ReportState:
         # author is never told their choice was dropped.
         raise QAHardBlockError(
             "outline.json sets 'results_mode' at the top level, where nothing reads it. "
-            "Move it to sections.results.results_mode."
+            f"Move it to sections.{results_section_id(state.plan.get('blueprint') or {})}.results_mode."
         )
 
     blueprint_sections = set((state.plan.get("blueprint") or {}).get("sections", {}).keys())
@@ -389,7 +413,13 @@ def run_outline_plan(state: ReportState) -> ReportState:
                 pass
     unknown_sections = sorted(section_id for section_id in sections if allowed_sections and section_id not in allowed_sections)
     if unknown_sections:
-        raise QAHardBlockError(f"Outline references unknown sections: {', '.join(unknown_sections)}")
+        hint = f" Valid section ids: {', '.join(sorted(allowed_sections))}."
+        results_section = results_section_id(state.plan.get("blueprint") or {})
+        if "results" in unknown_sections and results_section != "results":
+            hint += f" This profile's results section is '{results_section}'; results_mode goes there."
+        raise QAHardBlockError(
+            f"Outline references unknown sections: {', '.join(unknown_sections)}.{hint}"
+        )
     if not revise_mode:
         # Blueprint-required sections apply to new drafts only; a revision
         # outline mirrors whatever sections the base document actually has.

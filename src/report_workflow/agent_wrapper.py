@@ -572,9 +572,16 @@ def lint_agent_artifacts(job_id: str, workspace_root: str | None = None) -> dict
     try:
         state = ReportState.resume(job_id, workspace_root=workspace_root)
         report = run_artifact_lint(state)
+        errors = [issue for issue in report.get("issues", []) if issue.get("severity") == "error"]
         return {
             "status": "ok" if report.get("error_count", 0) == 0 else "issues_found",
             "job_id": job_id,
+            # The harness repeats error_details as the reason a stage failed;
+            # without it a lint failure arrived with an empty reason.
+            "error_details": "; ".join(
+                f"{issue.get('artifact')} {issue.get('json_path')}: {issue.get('message')}"
+                for issue in errors[:5]
+            ),
             "report_path": report.get("report_path", ""),
             "issue_count": report.get("issue_count", 0),
             "error_count": report.get("error_count", 0),
@@ -671,11 +678,11 @@ def submit_and_publish_report(
             # owns the fix and returns allowed_repair_paths. That was
             # discoverable only by guessing.
             "next_step": (
-                f"Call submit_action(job_id=\"{job_id}\") to route this failure to "
-                "the authoring stage that can repair it. It returns "
-                "allowed_repair_paths naming the files you may edit. Until then "
-                "get_next_action reports the publish stage, whose write scope is "
-                "empty by design."
+                f"Fix the artifacts the error names, then call submit_action(job_id=\"{job_id}\"): "
+                "it re-opens the run at the earliest stage that owns a changed file and "
+                "re-validates from there. Calling submit_action before editing instead "
+                "routes the failure and returns allowed_repair_paths, which cover every "
+                "authoring stage from that one onward."
             ),
             "error_details": str(e),
             "rendered_but_not_publishable": rendered_docx.exists(),
@@ -1149,6 +1156,15 @@ def submit_revision_plan(job_id: str, workspace_root: str | None = None) -> dict
         )
 
         if has_errors:
+            # The counts alone sent the author into diff_report_path to learn
+            # which change failed and why; the harness passes `message` on as
+            # the error, so the reasons belong in it.
+            details = "; ".join(
+                f"change {item['change_index']}: {item['reason']}"
+                for item in diff_result["unresolvable"][:5]
+            ) + "".join(
+                f"; changes {a} and {b} overlap" for a, b in diff_result["conflicts"][:5]
+            )
             return {
                 "status": "validation_failed",
                 "job_id": job_id,
@@ -1156,6 +1172,7 @@ def submit_revision_plan(job_id: str, workspace_root: str | None = None) -> dict
                     f"Revision plan has issues: "
                     f"{len(diff_result['unresolvable'])} unresolvable change(s), "
                     f"{len(diff_result['conflicts'])} conflict(s). "
+                    f"{details.lstrip('; ')}. "
                     f"Fix revision_plan.json and call again."
                 ),
                 "diff_report_path": report_path,

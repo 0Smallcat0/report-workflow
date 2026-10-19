@@ -54,7 +54,24 @@ def _configure_cjk_fonts(matplotlib_module: Any) -> None:
         "PingFang TC",
         "Noto Sans CJK TC",
         "Noto Sans CJK SC",
+        "Noto Sans CJK JP",
+        "Noto Sans TC",
+        "Noto Sans SC",
+        "Source Han Sans TC",
+        "Source Han Sans SC",
         "SimHei",
+        "Heiti TC",
+        "PingFang SC",
+        "Hiragino Sans GB",
+        # The faces a Linux distribution actually ships. With only the names
+        # above, a runner with WenQuanYi installed still drew every Chinese
+        # axis label as boxes, and the QA note told the user to install a
+        # CJK font they already had.
+        "WenQuanYi Zen Hei",
+        "WenQuanYi Micro Hei",
+        "Droid Sans Fallback",
+        "AR PL UMing TW",
+        "Arial Unicode MS",
         "DejaVu Sans",
     ]
     current = list(matplotlib_module.rcParams.get("font.sans-serif", []))
@@ -743,6 +760,41 @@ def _generate_stacked_bar(figure_id: str, title: str, data: dict, xlabel: str, y
 # Main node
 # ------------------------------------------------------------------
 
+def _drop_unplaced_suggestions(state: ReportState, figures: list[dict]) -> list[dict]:
+    """Leave out starter-plan figures no outline section placed.
+
+    The starter plan is generated from the figure recommendations before the
+    outline exists, and OUTLINE_PLAN accepts an outline that uses none of it —
+    "the unplaced entries are simply not built". They were built: every entry
+    went into the figure manifest, POST_RENDER_VALIDATE expected each to be
+    embedded, and the run stopped at "expected 1 embedded figure(s), found 0".
+    In revise_existing, where a revision plan has no way to place a figure,
+    that stop could not be repaired at all. An entry the author wrote, or one
+    a section names, is built as before.
+    """
+    outline = state.plan.get("outline") or {}
+    sections = outline.get("sections") if isinstance(outline, dict) else None
+    if not isinstance(sections, dict):
+        return figures
+    placed = {
+        str(figure_id).strip().lower()
+        for section in sections.values()
+        if isinstance(section, dict)
+        for figure_id in (section.get("figure_ids") or [])
+    }
+    kept = [
+        figure for figure in figures
+        if not (isinstance(figure, dict) and figure.get("recommendation_id"))
+        or str(figure.get("figure_id") or "").strip().lower() in placed
+    ]
+    if len(kept) != len(figures):
+        logger.info(
+            "[FIGURE_BUILD] %d suggested figure(s) not placed by the outline; not built.",
+            len(figures) - len(kept),
+        )
+    return kept
+
+
 def run_figure_build(state: ReportState) -> ReportState:
     """T14: FIGURE_BUILD - generate figures from agent-authored figure_plan.json.
 
@@ -777,6 +829,7 @@ def run_figure_build(state: ReportState) -> ReportState:
         return state
 
     figures: list[dict] = plan.get("figures", [])
+    figures = _drop_unplaced_suggestions(state, figures)
     if not figures:
         logger.info("[FIGURE_BUILD] figure_plan has no figures; skipping.")
         state.output["figure_manifest_path"] = ""

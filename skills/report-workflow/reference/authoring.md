@@ -142,6 +142,11 @@ authoring for new drafts:
 }
 ```
 
+The keys under `sections` are this run's blueprint section ids, the ones the
+outline brief lists — `results` above is only an example. Profiles differ:
+`engineering_lab_report` writes its results under `results_discussion`, and
+`business_report` under `findings`.
+
 When validation sees `structured_drafts.json` and the canonical draft files are
 missing, the pipeline writes `section_drafts/*.md`, inserts `[CITE:]` markers from
 `evidence_ids`, and writes `sentence_map.jsonl`.
@@ -296,6 +301,12 @@ Failure returns:
 - `scope_violation`: undo or isolate the out-of-scope artifact changes before
   retrying the same stage. Do not manually advance stages by editing
   `harness_manifest.json`.
+- A failure routed back to an earlier stage (a publish failure goes to the
+  earliest stage that owns part of the fix) opens every artifact from that stage
+  onward for repair, and keeps the later artifacts you already wrote: fix the
+  claim and the sentence together, then submit stage by stage. After a
+  `publish_report` failure you may also edit first and call `submit_action`
+  afterwards; the run re-opens at the stage that owns what you changed.
 - `blocked_non_author_repair`: the failure is outside the current controlled
   authoring surface. Inspect the returned evidence paths; it needs a workflow,
   source, environment, or deterministic-code fix, not edits to read-only workflow

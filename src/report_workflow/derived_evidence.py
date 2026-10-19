@@ -319,11 +319,21 @@ def _numbers(rows: list[dict], column: str) -> list[float]:
 
 
 def _mixed_unit_column(dataset: "Dataset") -> str | None:
-    """The unit column, when its rows state more than one unit."""
+    """The unit column, when its rows state more than one unit.
+
+    A unit is a word — kg, t, 公斤 — so a column named ``units`` holding
+    numbers is a count of units sold, not a unit of measure. Read as one, its
+    420, 282, 208 were "three different units", the whole file was declared
+    mixed-unit, and every numeric column lost its mean, median and range: a
+    sales sheet with revenue, units and a return rate reached the author as
+    row counts of a balanced design and nothing else.
+    """
     for column in dataset.columns[:MAX_COLUMNS_SUMMARIZED]:
         if not _UNIT_COLUMN_RE.match(str(column).strip()):
             continue
         units = {str(value).strip() for value in dataset.column_values(column) if str(value).strip()}
+        if units and sum(parse_number(unit) is not None for unit in units) > len(units) / 2:
+            continue
         if len(units) > 1:
             return column
     return None

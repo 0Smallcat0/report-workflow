@@ -9,6 +9,9 @@ from typing import Any
 
 from .artifact_contract import load_jsonl_without_contract
 from .runtime_support import PLACEHOLDER_TEXT, write_json_artifact
+from .errors import QAHardBlockError
+from .nodes.claim_plan import _validate_claim_matrix
+from .nodes.factuality_check import _allowed_claim_types
 from .state import ReportState, run_dir_for
 
 
@@ -139,18 +142,22 @@ def _required_sections(state: ReportState) -> list[str]:
     return required
 
 
-def _known_evidence_from_state(state: ReportState) -> set[str]:
+def _ledger_from_state(state: ReportState) -> dict[str, dict]:
     path = state.sources.get("evidence_ledger_path")
     if not path:
-        return set()
+        return {}
     try:
         return {
-            str(row.get("evidence_id"))
+            str(row.get("evidence_id")): row
             for row in load_jsonl_without_contract(path)
             if row.get("evidence_id")
         }
     except Exception:
-        return set()
+        return {}
+
+
+def _known_evidence_from_state(state: ReportState) -> set[str]:
+    return set(_ledger_from_state(state))
 
 
 def _lint_claim_matrix(
@@ -179,7 +186,8 @@ def _lint_claim_matrix(
     seen: set[str] = set()
     claim_ids: set[str] = set()
     claim_evidence: set[str] = set()
-    known_evidence = _known_evidence_from_state(state)
+    ledger = _ledger_from_state(state)
+    known_evidence = set(ledger)
     for index, claim in enumerate(claims):
         base = f"$.claims[{index}]"
         if not isinstance(claim, dict):
@@ -212,17 +220,44 @@ def _lint_claim_matrix(
                     f"Unknown evidence_id for this run: {evidence_id}",
                     "Use remap_agent_artifacts for reused artifacts, or rebuild from this run's evidence_ledger.jsonl.",
                 )
+        # The rules below are the ones claim_matrix submission and FA apply.
+        # Lint used to pass a matrix that both of them refuse — no primary
+        # claim, an unverified status, a claim type its evidence does not
+        # allow — so "lint ok" was followed by a stop it had not mentioned.
+        claim_type = str(claim.get("claim_type") or "factual")
+        refused = []
+        for evidence_id in evidence_ids:
+            row = ledger.get(str(evidence_id))
+            if row is not None and claim_type not in _allowed_claim_types(row):
+                refused.append(f"{evidence_id} allows {', '.join(_allowed_claim_types(row)) or 'none'}")
+        if refused:
+            _issue(
+                issues,
+                "error",
+                "claim_matrix",
+                path,
+                f"{base}.claim_type",
+                f"Claim type {claim_type!r} is not allowed by its evidence: {'; '.join(refused)}",
+                "Use a claim_type every cited evidence allows (often 'factual'), or cite different evidence.",
+            )
         status = str(claim.get("status") or "supported")
         if status in NON_PUBLISHABLE_STATUSES:
             _issue(
                 issues,
-                "warning",
+                "error",
                 "claim_matrix",
                 path,
                 f"{base}.status",
                 f"Claim status is non-publishable: {status}",
                 "Resolve the claim or remove it before publish.",
             )
+
+    try:
+        _validate_claim_matrix(json.loads(json.dumps(payload)), state.spec.get("report_profile", ""))
+    except QAHardBlockError as exc:
+        _issue(issues, "error", "claim_matrix", path, "$.claims", str(exc), "Fix the claim matrix as the message says; submit_action applies the same rule.")
+    except Exception:
+        pass
 
     return payload, claim_ids, claim_evidence
 
@@ -461,8 +496,16 @@ def lint_agent_artifacts(state: ReportState) -> dict[str, Any]:
     run_dir = run_dir_for(state)
     issues: list[ArtifactIssue] = []
     claim_matrix, claim_ids, claim_evidence = _lint_claim_matrix(state, run_dir, issues)
+    # Lint artifacts only as far as the controlled run has reached. Called at
+    # the outline stage it reported every section draft as a missing-file
+    # error — a dozen errors for files nobody was yet allowed to write.
+    reached = _stages_reached(run_dir)
+    if "outline" not in reached:
+        return _write_lint_report(state, issues, claim_matrix)
     _outline, outline_sections = _lint_outline(state, run_dir, issues, claim_ids)
     planned_sections = outline_sections or set(_required_sections(state))
+    if "drafts" not in reached:
+        return _write_lint_report(state, issues, claim_matrix)
 
     if state.spec.get("task_intent") == "revise_existing":
         _lint_revision_plan(run_dir, issues)
@@ -478,6 +521,24 @@ def lint_agent_artifacts(state: ReportState) -> dict[str, Any]:
         if not used_structured:
             _lint_canonical_drafts(run_dir, issues, claim_ids, claim_evidence, planned_sections)
 
+    return _write_lint_report(state, issues, claim_matrix)
+
+
+def _stages_reached(run_dir: Path) -> set[str]:
+    """Authoring stages the harness has opened; every stage when there is no harness."""
+    every = {"claim_matrix", "outline", "drafts", "revision_plan"}
+    try:
+        manifest = json.loads((run_dir / "harness_manifest.json").read_text(encoding="utf-8"))
+        order = list(manifest["stage_order"])
+        current = manifest["current_stage"]
+    except Exception:
+        return every
+    if current not in order:
+        return every
+    return set(order[: order.index(current) + 1])
+
+
+def _write_lint_report(state: ReportState, issues: list[ArtifactIssue], claim_matrix: dict | None) -> dict[str, Any]:
     issue_dicts = [issue.to_dict() for issue in issues]
     error_count = sum(1 for issue in issues if issue.severity == "error")
     warning_count = sum(1 for issue in issues if issue.severity == "warning")

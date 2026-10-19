@@ -11,6 +11,7 @@ from ..runtime_support import PLACEHOLDER_TEXT, load_jsonl
 # Internal alias for backward compatibility with local _load_jsonl references
 _load_jsonl = load_jsonl
 from .remediation_router import write_remediation_plan
+from .blueprint_plan import results_section_id
 
 logger = logging.getLogger(__name__)
 
@@ -121,11 +122,12 @@ def _results_section_reasons(state: ReportState) -> list[str]:
     blueprint = state.plan.get("blueprint") or {}
 
     results_mode = "empirical"  # default
-    outline_results = outline.get("sections", {}).get("results", {})
+    results_section = results_section_id(blueprint)
+    outline_results = outline.get("sections", {}).get(results_section, {})
     if outline_results and "results_mode" in outline_results:
         results_mode = outline_results.get("results_mode", "empirical")
     else:
-        blueprint_results = blueprint.get("sections", {}).get("results", {})
+        blueprint_results = blueprint.get("sections", {}).get(results_section, {})
         results_mode = blueprint_results.get("results_mode", "empirical")
 
     if results_mode == "architectural_characterization":

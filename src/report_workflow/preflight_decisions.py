@@ -151,6 +151,13 @@ def validate_preflight_decisions(
         key = preflight_item_key(item)
         decision = str(install_decisions.get(key, "")).strip().lower()
         if not decision:
+            # Same reasoning as an unasked optional feature below: an optional
+            # tool nobody chose to install is simply not installed. Requiring
+            # the word "skip" for mmdc rejected the exact record SKILL.md shows
+            # (`"install_decisions": {}`) on every machine without mermaid-cli,
+            # and taught agents to stop and ask about it before every report.
+            if item.get("severity") == "optional":
+                continue
             issues.append(f"missing install decision for {key!r}")
             continue
         if decision not in INSTALL_DECISIONS:
@@ -242,8 +249,8 @@ def evaluate_preflight_start(
             "ready": False,
             "reason": "decision_issues",
             "message": (
-                "Call check_environment(), ask the user about every pending install "
-                "and optional integration, then start again with selected feature "
+                "Call check_environment(), ask the user about each item listed in "
+                "decision_issues, then start again with selected feature "
                 "flags and a complete preflight_decisions record."
             ),
             "pending_installs": pending_installs,
