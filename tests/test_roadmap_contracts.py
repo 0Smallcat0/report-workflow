@@ -1145,6 +1145,9 @@ class ArtifactLintContractTests(unittest.TestCase):
                     "claim_id": "C001",
                     "claim_text": "The pilot enrolled 42 participants.",
                     "evidence_ids": ["E001"],
+                    # academic_paper requires a role; submit_action refuses the
+                    # matrix without one, and lint applies the same rule.
+                    "claim_role": "primary",
                 }]
             }), encoding="utf-8")
             (run_dir / "outline.json").write_text(json.dumps({

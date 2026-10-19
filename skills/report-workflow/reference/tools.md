@@ -15,14 +15,14 @@ Parameters: none.
 
 ## `start_report`
 
-Start the report generation workflow. Parses source files, builds evidence ledger, generates blueprint and task briefs for the agent. Requires check_environment first. The caller must ask the user about every pending install and optional feature, then pass preflight_confirmed=true and a complete preflight_decisions record. preflight_confirmed=true alone is rejected. Required dependencies must actually pass preflight after installation; a decision string does not override a still-missing dependency.
+Start the report generation workflow. Parses source files, builds evidence ledger, generates blueprint and task briefs for the agent. Requires check_environment first. The caller asks the user about any required or critical install and about any optional feature they may want, then passes preflight_confirmed=true and a preflight_decisions record; optional installs and features left out of the record are skipped. preflight_confirmed=true alone is rejected. Required dependencies must actually pass preflight after installation; a decision string does not override a still-missing dependency.
 
 Parameters:
 
 - `prompt` (string, required): User prompt describing the desired report
 - `source_files` (list[object], required): Source files to use. Legacy strings are accepted. Prefer structured entries when roles matter: {"path": "source.pdf", "role": "source_data"} or {"path": "base.docx", "role": "base_document"}. Valid roles are source_data and base_document. Add "citation" ({"author", "year", "title", "publisher", "container", "volume", "issue", "pages", "doi", "url", "description", "in_text", "reference"}) to a source whose publication you know; it is then cited author-year and listed in the references instead of as a project file. Add "pages" ("80-86, 90", PDF) or "lines" (text files) to read only the span a report uses; those blocks keep their real page and line numbers.
 - `output_dir` (string, required): Directory to write final output files
-- `report_profile` (string, optional): Report profile ID. Built-ins: engineering_lab_report, academic_paper, business_report, proposal, admissions_report, admissions_project_report, and custom. Defaults to profile inference from the prompt, then academic_paper.
+- `report_profile` (string, optional): Report profile ID. Built-ins: engineering_lab_report, academic_paper, business_report, proposal, admissions_report, admissions_project_report, custom, and quant_research_memo. Defaults to profile inference from the prompt, then academic_paper.
 - `task_intent` (string, optional): new_draft or revise_existing. Use revise_existing when one structured source entry has role=base_document.
 - `title` (string, optional): Structured front matter title. Strongly recommended for academic_paper.
 - `author_block` (string, optional): Structured author line for front matter.
@@ -36,8 +36,8 @@ Parameters:
 - `enable_notebook_sync` (boolean, optional): Enable NotebookLM knowledge sync. When true, the pipeline syncs context from a matching NotebookLM notebook after evidence store. Requires notebooklm-py to be installed.
 - `notebooklm_notebook_id` (string, optional): Specific NotebookLM notebook ID to sync with. If not provided, the pipeline selects a notebook matching the report topic.
 - `notebooklm_storage_path` (string, optional): Path to NotebookLM authentication storage state file. Auto-detected if not provided (searches ~/.notebooklm/ and LOCALAPPDATA).
-- `preflight_confirmed` (boolean, optional): Must be true only after the user has explicitly answered every pending install and optional feature question returned by check_environment.
-- `preflight_decisions` (object, optional): Structured record of the user's preflight choices. Required shape: confirmed_by_user=true, install_decisions keyed by pending install, and feature_decisions keyed by feature_id. Use the required_preflight_decisions value from check_environment as the template.
+- `preflight_confirmed` (boolean, optional): Must be true only after the user has answered every required or critical install question returned by check_environment, and any optional feature they chose to decide.
+- `preflight_decisions` (object, optional): Structured record of the user's preflight choices. Required shape: confirmed_by_user=true, install_decisions keyed by pending install, and feature_decisions keyed by feature_id. Use the required_preflight_decisions value from check_environment as the template; an optional install or feature left out counts as skipped.
 - `allow_degraded_render` (boolean, optional): Set true only after the user explicitly accepts degraded DOCX rendering when a critical render dependency such as pandoc is missing.
 
 ## `get_next_action`

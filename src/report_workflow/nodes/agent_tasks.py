@@ -12,6 +12,7 @@ from ..runtime_support import load_jsonl, run_dir_for
 from ..artifact_contract import make_artifact_contract
 from .corpus_build import _distinguishing_seed
 from .figure_types import SUPPORTED_FIGURE_TYPES_TEXT
+from .blueprint_plan import results_section_id
 
 
 def agent_tasks_dir(state: ReportState) -> Path:
@@ -538,7 +539,8 @@ def _claim_role_rule(report_profile: str) -> str:
     )
 
 
-_RESULTS_MODE_PATH = "`outline.json` -> `sections.results.results_mode`"
+def _results_mode_path(results_section: str = "results") -> str:
+    return f"`outline.json` -> `sections.{results_section}.results_mode`"
 
 
 _ABSTRACT_STRUCTURED = """```markdown
@@ -645,7 +647,7 @@ def outline_brief_sections_block(blueprint: dict) -> str:
     parts = []
     for sid in outline_brief_section_ids(blueprint):
         extra = ""
-        if sid == "results":
+        if sid == results_section_id(blueprint):
             extra = '\n      "results_mode": "empirical" | "architectural_characterization",'
         parts.append(
             '    "' + sid + '": {\n'
@@ -659,7 +661,7 @@ def outline_brief_sections_block(blueprint: dict) -> str:
     return ",\n".join(parts)
 
 
-def _results_mode_section(report_profile: str) -> str:
+def _results_mode_section(report_profile: str, results_section: str = "results") -> str:
     """Describe results_mode where the workflow actually reads it.
 
     The brief said "include it in outline.json at the top level" and showed it
@@ -673,11 +675,11 @@ def _results_mode_section(report_profile: str) -> str:
         return (
             "## results_mode\n\n"
             f"Not used by `{report_profile}`. If you set it anyway, it belongs in "
-            f"{_RESULTS_MODE_PATH}."
+            f"{_results_mode_path(results_section)}."
         )
     return (
         f"## results_mode Selection (required for `{report_profile}`)\n\n"
-        f"**Choose ONE and set it at {_RESULTS_MODE_PATH}.** That is where the "
+        f"**Choose ONE and set it at {_results_mode_path(results_section)}.** That is where the "
         "workflow reads it; a `results_mode` at the top level of outline.json is "
         "read by nothing and the run falls back to the blueprint default.\n\n"
         "- `empirical`: Select when your evidence contains measured/quantitative data "
@@ -693,11 +695,11 @@ def _results_mode_section(report_profile: str) -> str:
     )
 
 
-def _results_mode_rule(report_profile: str) -> str:
+def _results_mode_rule(report_profile: str, results_section: str = "results") -> str:
     if not get_policy(report_profile).results.empirical_strict:
         return f"- `results_mode` is not read for `{report_profile}`; leave it out."
     return (
-        f"- Set `results_mode` at {_RESULTS_MODE_PATH}, not at the top level of the file."
+        f"- Set `results_mode` at {_results_mode_path(results_section)}, not at the top level of the file."
     )
 
 
@@ -1177,8 +1179,9 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
     reader_rubric = _reader_rubric_section(state.spec.get("report_profile", ""))
     structure_guidance = _structure_guidance(state.spec.get("report_profile", ""))
     claim_role_rule = _claim_role_rule(state.spec.get("report_profile", ""))
-    results_mode_section = _results_mode_section(state.spec.get("report_profile", ""))
-    results_mode_rule = _results_mode_rule(state.spec.get("report_profile", ""))
+    results_section = results_section_id(state.plan.get("blueprint") or {})
+    results_mode_section = _results_mode_section(state.spec.get("report_profile", ""), results_section)
+    results_mode_rule = _results_mode_rule(state.spec.get("report_profile", ""), results_section)
     derived_stats_guidance = _derived_stats_guidance(evidence_path)
     outline_obligations = _outline_obligations(state, evidence_path)
     # The counter-evidence section is filled from the claim matrix, and the

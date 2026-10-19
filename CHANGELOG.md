@@ -95,6 +95,48 @@ at midnight UTC, and a reference with no identifier takes one or two; a free
 key in `OPENALEX_API_KEY` raises that, and a spent budget is reported as
 `unreachable`, not as a missing reference.
 
+### Fixed — three real reports written through the pipeline, and what stopped them
+
+A Chinese lab report from a CSV and notes, an English business report from a
+sales sheet and a memo, and a revision of an existing Chinese progress report,
+each driven step by step through the controlled harness on HEAD, on v4.29.1,
+and on this change. Records and deliverables:
+`benchmarks/evidence/usability_audit_2026-10-19/`.
+
+- A numeric column named `units` was read as a unit-of-measure column, the file
+  was declared mixed-unit, and every numeric summary and every auto cross-table
+  measure was dropped (`2ad0542`). A sales sheet reached the author as row
+  counts of a balanced design.
+- 「每個擺長重複 5 次」 was read as the rate 5 次/個 (`899e086`), so the claim
+  restating it was blocked by FE and FS. 每 + a counting classifier followed by
+  its noun no longer forms a rate; 每噸, 每人 still do.
+- `7x24` lost its 24 and `7×24` in a claim was blocked; English function words
+  ("and", "with") are no longer read as units. The engineering audit folds the
+  same spellings.
+- SKILL.md's own preflight record (`"install_decisions": {}`) was refused for
+  the optional `mmdc`. Optional installs left out are skipped; the skill docs
+  no longer tell the agent to re-ask every optional question before each report.
+- The outline brief sent `engineering_lab_report` authors to
+  `sections.results.results_mode`, a section that profile does not have. The
+  brief, the outline check and QA_GATE now read the profile's results section
+  (`results_discussion`).
+- A failure routed back to an earlier stage kept the old baseline, so drafts
+  already written became a `scope_violation`, and only the earlier stage's file
+  was writable though the message named both. The repair scope now spans the
+  rewound stages, and editing after a `publish_report` failure re-opens the
+  owning stage instead of refusing.
+- `lint_artifacts` passed claim matrices that submission and FA refuse (no
+  primary claim, a non-publishable status, a claim type the evidence does not
+  allow), and reported not-yet-due drafts as missing. It now applies the same
+  rules and lints only the stages reached.
+- revise_existing: the pre-check refused the documented `retitle` and
+  `remove_section`; FA ignored the claim links in `revision_plan.json`; the
+  failure message gave counts without reasons.
+- Starter figures no section placed were still built, and POST_RENDER blocked on
+  them; an edited plan made every leftover suggestion mandatory.
+- Charts drew Chinese as boxes on Linux with WenQuanYi installed; a caption
+  written 「表 1　…」 (authoring.md's own form) was numbered twice.
+
 ### Measured — the tool arm re-records after a month in which it could not be recorded at all
 
 `e401849` added the FL checker three hours after `e496f93` recorded the tool

@@ -79,10 +79,11 @@ tools:
     description: >
       Start the report generation workflow. Parses source files, builds
       evidence ledger, generates blueprint and task briefs for the agent.
-      Requires check_environment first. The caller must ask the user about every
-      pending install and optional feature, then pass preflight_confirmed=true
-      and a complete preflight_decisions record. preflight_confirmed=true alone
-      is rejected. Required dependencies must actually pass preflight after
+      Requires check_environment first. The caller asks the user about any
+      required or critical install and about any optional feature they may want,
+      then passes preflight_confirmed=true and a preflight_decisions record;
+      optional installs and features left out of the record are skipped.
+      preflight_confirmed=true alone is rejected. Required dependencies must actually pass preflight after
       installation; a decision string does not override a still-missing
       dependency.
     parameters:
@@ -114,7 +115,7 @@ tools:
         description: >
           Report profile ID. Built-ins: engineering_lab_report,
           academic_paper, business_report, proposal, admissions_report,
-          admissions_project_report, and custom. Defaults to profile inference
+          admissions_project_report, custom, and quant_research_memo. Defaults to profile inference
           from the prompt, then academic_paper.
       - name: task_intent
         type: string
@@ -196,8 +197,9 @@ tools:
         type: boolean
         required: false
         description: >
-          Must be true only after the user has explicitly answered every
-          pending install and optional feature question returned by check_environment.
+          Must be true only after the user has answered every required or
+          critical install question returned by check_environment, and any
+          optional feature they chose to decide.
       - name: preflight_decisions
         type: object
         required: false
@@ -205,7 +207,8 @@ tools:
           Structured record of the user's preflight choices. Required shape:
           confirmed_by_user=true, install_decisions keyed by pending install,
           and feature_decisions keyed by feature_id. Use the
-          required_preflight_decisions value from check_environment as the template.
+          required_preflight_decisions value from check_environment as the template;
+          an optional install or feature left out counts as skipped.
       - name: allow_degraded_render
         type: boolean
         required: false

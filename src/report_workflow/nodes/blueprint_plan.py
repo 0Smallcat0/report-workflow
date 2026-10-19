@@ -38,3 +38,21 @@ def run_blueprint_plan(state: ReportState) -> ReportState:
     state.plan["blueprint"] = blueprint
     state.plan["blueprint_path"] = write_json_artifact(state, "blueprint.json", blueprint)
     return state
+
+
+def results_section_id(blueprint: dict | None) -> str:
+    """The blueprint section that carries `results_mode` for this profile.
+
+    The brief, the outline check and QA_GATE all said `sections.results`, but
+    `engineering_lab_report` has no `results` section — its section is
+    `results_discussion`. An author who did exactly what the brief said was
+    refused with "Outline references unknown sections: results", and one who
+    put it on `results_discussion` instead had the setting silently ignored.
+    """
+    sections = (blueprint or {}).get("sections") or {}
+    if "results" in sections or not sections:
+        return "results"
+    for section_id in (blueprint or {}).get("section_order") or list(sections):
+        if str(section_id).startswith("results"):
+            return str(section_id)
+    return "results"

@@ -121,7 +121,9 @@ def _write_claim_matrix(state: ReportState) -> str:
         "claims": [{
             "claim_id": "c1",
             "claim_text": "The pilot program enrolled 42 participants.",
-            "claim_type": "statistical",
+            # A sentence of a .txt source allows factual, not statistical; FA
+            # refuses "statistical" at publish, and lint now says so first.
+            "claim_type": "factual",
             "risk_level": "low",
             "status": "supported",
             "evidence_ids": [evidence_id],

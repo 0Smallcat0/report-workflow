@@ -405,9 +405,11 @@ def provenance_line(table: dict, language: str, pointer: str | None = None) -> s
 
 
 #: An author-written table label at the head of a caption — "表 1：", "表1.",
-#: "Table 2:" — which the renderer is about to write itself.
+#: "Table 2:" — which the renderer is about to write itself. Also with no
+#: punctuation at all, "表 2　基準情境…", which is how authoring.md's own
+#: example writes it, so following the documentation printed "表 1. 表 1 …".
 _LEADING_TABLE_LABEL_RE = re.compile(
-    r"^\s*(?:(?:表|图|圖)\s*\d+|Table\s+\d+)\s*[：:.、．]\s*",
+    r"^\s*(?:(?:表|图|圖)\s*\d+|Table\s+\d+)(?:\s*[：:.、．]\s*|\s+)",
     re.IGNORECASE,
 )
 
