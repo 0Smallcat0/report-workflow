@@ -927,6 +927,10 @@ def _bucket_groups(
                 index = position
                 break
         groups[index][1].append(row)
+    # The last edge is where the author chose to stop. An open band above it
+    # holding nothing reached the delivered table as `9+ | 0 | — | — | —`.
+    if not groups[-1][1]:
+        groups.pop()
     return groups, outside
 
 
@@ -1178,7 +1182,7 @@ def compute_group_table(frame: Dataset, request: dict, zh: bool = False) -> dict
     if grouping == "buckets":
         derivation["buckets"] = edges
         if integral:
-            derivation["band_members"] = _integer_band_members(edges, zh)
+            derivation["band_members"] = _integer_band_members(edges, zh)[: len(groups)]
     join_info = getattr(frame, "join_info", None)
     if join_info:
         derivation["join"] = join_info
