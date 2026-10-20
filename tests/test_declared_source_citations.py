@@ -227,7 +227,7 @@ class LedgerAndBindingTests(unittest.TestCase):
                 self.assertNotIn("citation", row)
                 self.assertEqual(row["source_role"], "internal_project_source")
 
-    def test_declared_rows_resolve_author_year_and_undeclared_keep_their_marker(self):
+    def test_declared_rows_resolve_author_year_and_undeclared_carry_no_label(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             _state, ledger = self._prepare(tmpdir)
             declared = next(row for row in ledger if row["source_file_name"] == "icct_excerpt.md" and "63" in row["content"])
@@ -239,11 +239,12 @@ class LedgerAndBindingTests(unittest.TestCase):
             )
             resolved, _audit, refs, _internal, sources = resolve_citations_publication(draft, ledger, [])
             self.assertIn("電動車排放低 73% (Negri & Bieker, 2025)。", resolved)
-            self.assertIn("市區行駛較省電（本研究整理，計算附件 C1）。", resolved)
+            # A note the author supplied states its figure itself; its trace
+            # is in the QA note, not a label after the sentence.
+            self.assertIn("市區行駛較省電。", resolved)
             self.assertEqual(len(refs), 1)
             self.assertTrue(refs[0].startswith("Negri, M., & Bieker, G. (2025)."))
-            self.assertEqual(len(sources), 1)
-            self.assertIn("class_notes.md", sources[0])
+            self.assertEqual(sources, [])
 
     def test_bibtex_uses_the_record_and_never_the_current_year(self):
         with tempfile.TemporaryDirectory() as tmpdir:

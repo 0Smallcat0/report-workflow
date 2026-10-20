@@ -190,6 +190,14 @@ def _sentence_text_with_citations(text: str, evidence_ids: list[str]) -> tuple[s
 
     cite_marker = " ".join(f"[CITE:{eid}]" for eid in missing)
     stripped = text.strip()
+    # A lead-in followed by its exhibit — "Figure 1 traces the median.\n\n
+    # [FIGURE:3]" — takes its citation on the lead-in. Appended after the
+    # marker, the citation shared the image's paragraph and the figure lost
+    # its caption.
+    lead_in, sep, block = stripped.partition("\n\n")
+    if sep and lead_in.strip() and _BLOCK_LINE_RE.match(block):
+        cited_lead_in, _ = _sentence_text_with_citations(lead_in, citation_ids)
+        return f"{cited_lead_in}\n\n{block}", citation_ids
     if stripped.endswith((".", "!", "?", "\u3002", "\uff01", "\uff1f")):
         return stripped[:-1].rstrip() + f" {cite_marker}" + stripped[-1], citation_ids
     return f"{stripped} {cite_marker}", citation_ids

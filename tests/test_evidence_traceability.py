@@ -269,33 +269,48 @@ class CitationRenderingTests(unittest.TestCase):
         "quote": "濕法冶金製程的鋰鈷鎳回收率可達 95% 以上",
     }]
 
-    def test_marker_is_visible_and_backed_by_a_source_entry(self):
-        resolved, _audit, _refs, _internal, source_refs = resolve_citations_publication(
+    COMPUTED = [{
+        "evidence_id": "E_D_rate",
+        "source_id": "S009",
+        "source_role": "internal_project_source",
+        "source_file_name": "recycling.csv",
+        "file_type": "csv",
+        "block_type": "derived_statistic",
+        "content": "Derived statistics from recycling.csv: the rate column has a median of 95.",
+    }]
+
+    def test_a_figure_the_note_states_carries_no_label(self):
+        # The note states the figure itself. A label after every such
+        # sentence pointed at a record the reader was never sent; which row
+        # backs the sentence is in the QA note published beside the report.
+        resolved, _audit, _refs, internal, source_refs = resolve_citations_publication(
             "濕法冶金回收率可達 95% 以上 [CITE:E_recy_001]。",
             self.EVIDENCE,
             [],
         )
-        # A bare [S1] sat beside author-year citations and read as a second
-        # citation system; the label says what the figure is and where its
-        # entry is.
-        self.assertIn("（本研究整理，計算附件 C1）", resolved)
+        self.assertEqual(resolved, "濕法冶金回收率可達 95% 以上。")
+        self.assertEqual(source_refs, [])
+        self.assertEqual(internal, ["recycling.md"])
+
+    def test_a_computed_figure_is_labelled_and_backed_by_a_record_entry(self):
+        resolved, _audit, _refs, _internal, source_refs = resolve_citations_publication(
+            "The median rate is 95 [CITE:E_D_rate].", self.COMPUTED, []
+        )
+        self.assertIn("(calculated in this study, calculation record C1)", resolved)
         self.assertNotIn("[CITE:", resolved)
         self.assertEqual(len(source_refs), 1)
-        self.assertIn("recycling.md", source_refs[0])
-        self.assertIn("line 38-43", source_refs[0])
-        self.assertIn("濕法冶金製程的鋰鈷鎳回收率", source_refs[0])
-        # The file, the line span and the quote are what a reader can check.
-        # The ledger's own handle is internal: it belongs in the audit
-        # appendix, not in the delivered source list.
-        self.assertNotIn("E_recy_001", source_refs[0])
+        self.assertIn("median of 95", source_refs[0])
+        # The ledger's own handle is internal and stays out of the record.
+        self.assertNotIn("E_D_rate", source_refs[0])
 
-    def test_repeated_citations_of_one_row_share_a_number(self):
-        _resolved, _audit, _refs, _internal, source_refs = resolve_citations_publication(
-            "A [CITE:E_recy_001]. B [CITE:E_recy_001].",
-            self.EVIDENCE,
+    def test_repeated_citations_of_one_figure_share_a_number(self):
+        resolved, _audit, _refs, _internal, source_refs = resolve_citations_publication(
+            "A [CITE:E_D_rate]. B [CITE:E_D_rate].",
+            self.COMPUTED,
             [],
         )
         self.assertEqual(len(source_refs), 1)
+        self.assertEqual(resolved.count("calculation record C1"), 2)
 
     def test_no_space_is_left_before_full_width_punctuation(self):
         resolved, _audit, _refs, _internal, _source_refs = resolve_citations_publication(
@@ -766,6 +781,14 @@ class DeliveredDocumentTests(unittest.TestCase):
             "\n".join(paragraph.text for paragraph in Document(record_path).paragraphs)
             if record_path and Path(record_path).exists() else ""
         )
+        published = rendered.output.get("published_report_path")
+        note_path = (
+            Path(published).parent / "traceability" / "client_readable_qa_note.md"
+            if published else None
+        )
+        self.qa_note_text = (
+            note_path.read_text(encoding="utf-8") if note_path and note_path.exists() else ""
+        )
         return rows, text, document.tables
 
     def test_the_delivered_document_carries_its_source_tables(self):
@@ -782,42 +805,28 @@ class DeliveredDocumentTests(unittest.TestCase):
     def test_the_delivered_document_carries_its_sources(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             rows, text, _tables = self._author_and_publish(tmpdir)
-            self.assertIn("計算附件 C1", text, "no citation marker survived into the DOCX")
-            record = self.record_text
-            # Either heading counts. The requirement is that the reader gets the
-            # record; which language its heading renders in is a separate
-            # question, and conflating the two made a CI failure unreadable —
-            # it could not say whether the record was missing or merely in
-            # English, so its opening goes into the message.
-            self.assertTrue(
-                "計算附件" in record or "Calculation Record" in record,
-                "no calculation record was published beside the report: " + repr(record[:400]),
-            )
-            self.assertIn("recycling.md", record, "the record names no file")
-            # Traceability is checked the way a reader checks it: the entry
-            # names a line span of a real file. Probing for the ledger's
-            # internal id would only pass while that id was being printed into
-            # the deliverable, which is itself the leak.
-            traced = [
-                row for row in rows
-                if str(row.get("source_span") or "") and str(row["source_span"]) in record
-            ]
-            self.assertTrue(traced, "no record entry can be traced to a ledger row")
-            leaked = [row for row in rows if row["evidence_id"] in text or row["evidence_id"] in record]
+            # Every claim here restates the author's own file, so the body
+            # carries no label: the trace ships beside the report, in the QA
+            # note, where each claim is quoted with the source it rests on.
+            self.assertNotIn("（本研究整理，", text)
+            note = self.qa_note_text
+            self.assertIn("recycling.md", note, "the QA note names no source file")
+            cited = [row for row in rows if row["content"][:40] in note]
+            self.assertTrue(cited, "no QA note entry quotes a ledger row")
+            leaked = [row for row in rows if row["evidence_id"] in text or row["evidence_id"] in self.record_text]
             self.assertFalse(leaked, "internal evidence ids reached the delivered documents")
 
-    def test_the_fallback_renderer_still_publishes_the_calculation_record(self):
+    def test_the_fallback_renderer_still_publishes_the_trace(self):
         # Without pandoc the python-docx fallback runs, and the Sources list
         # that used to close the report did not survive it — a reader without
-        # the render extra got figures that traced to nothing. The record is
-        # its own document now, rendered by whichever converter is present.
+        # the render extra got figures that traced to nothing.
         import report_workflow.nodes.docx_render as docx_render
 
         with tempfile.TemporaryDirectory() as tmpdir:
             with patch.object(docx_render, "_find_pandoc", return_value=None):
                 _rows, text, _tables = self._author_and_publish(tmpdir)
             self.assertIn("參考文獻", text, "references are dropped too now")
-            self.assertIn("recycling.md", self.record_text)
+            self.assertIn("recycling.md", self.qa_note_text)
 
     def test_no_workflow_marker_and_no_stranded_space_ship(self):
         with tempfile.TemporaryDirectory() as tmpdir:

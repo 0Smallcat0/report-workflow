@@ -38,10 +38,11 @@ paths are accepted for new drafts.
 ### Declaring what a source is a copy of
 
 A source file is not a publication, so by default a `.md`, `.txt` or `.csv`
-source is cited as the report's own material — `（本研究整理，計算附件 C3）` /
-`(compiled in this study, calculation record C3)` — and nothing is guessed from
-its file name. A figure the pipeline computed is labelled `本研究計算` /
-`calculated in this study`. Both point at an entry of the calculation record, a
+source is the report's own material: a sentence restating it carries no label in
+the text, and nothing is guessed from its file name. Which row or paragraph
+backs each sentence is in `published/traceability/client_readable_qa_note.md`.
+A figure the pipeline computed is labelled `本研究計算` /
+`calculated in this study` and points at an entry of the calculation record, a
 document published beside the report (`published/calculation_record.docx`) that
 gives the result, the formula and every input with its unit, the row it was read
 from and its source — for a formula table, each row's value of a per-row input.

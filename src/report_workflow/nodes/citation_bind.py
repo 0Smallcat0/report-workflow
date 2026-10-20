@@ -1303,8 +1303,15 @@ def resolve_citations_publication(
                     replacement = f"[{number}]"
                 else:
                     replacement = _format_in_text_citation(evidence)
+                # Only a figure the pipeline computed carries a label in the
+                # sentence. A row or a paragraph of the author's own files
+                # states its figure itself, and labelling it put
+                # "(compiled in this study, calculation record C4)" after
+                # every sentence of a business report — pointing at a file
+                # the reader was never sent, and, after an image, costing the
+                # figure its caption. Its trace stays in the QA package.
                 if not replacement:
-                    replacement = trace_marker(evidence, cite_id)
+                    replacement = trace_marker(evidence, cite_id) if _is_computed(evidence) else ""
                 elif _is_computed(evidence):
                     replacement = _with_trace_label(replacement, trace_marker(evidence, cite_id))
                 audit_entry["evidence_ids"] = [cite_id]
@@ -1355,7 +1362,7 @@ def resolve_citations_publication(
                 else:
                     replacement = _format_in_text_citation(evidence)
                 if not replacement:
-                    replacement = trace_marker(evidence, cite_id)
+                    replacement = trace_marker(evidence, cite_id) if _is_computed(evidence) else ""
                 elif _is_computed(evidence):
                     replacement = _with_trace_label(replacement, trace_marker(evidence, cite_id))
                 audit_entry["resolved"] = True
