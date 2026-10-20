@@ -97,6 +97,10 @@ def _check_structure(text: str) -> list[str]:
     for line in text.split('\n'):
         line = line.strip()
         m = re.match(r'^##\s+([^:]+?)(?:\s*:?\s*)?$', line, re.IGNORECASE)
+        # The section-draft brief shows the labels as `**Background:** text`
+        # and says to use them exactly; reading only `## Background:` lines
+        # refused that abstract with "Found: none".
+        m = m or re.match(r'^\*\*([^*:]+?)\s*:\s*\*\*', line) or re.match(r'^\*\*([^*:]+?)\*\*\s*:', line)
         if m:
             heading = m.group(1).strip().lower()
             heading = _ABSTRACT_HEADING_ALIASES.get(heading, heading)
@@ -114,7 +118,8 @@ def _check_structure(text: str) -> list[str]:
         errors.append(
             f"Abstract missing required sections: {', '.join(sorted(required))}. "
             f"Found: {', '.join(sorted(found)) or 'none'}. "
-            f"Use exactly: ## Background:, ## Objective:, ## Methods:, ## Principal Findings:, ## Significance:"
+            "Open each part with its label, as the brief shows: **Background:**, **Objective:**, "
+            "**Methods:**, **Principal Findings:**, **Significance:** (or ## Background: headings)."
         )
 
     return errors

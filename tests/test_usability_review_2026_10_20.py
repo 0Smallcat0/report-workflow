@@ -543,5 +543,46 @@ class KFrontMatterIsAskedForAtTheStartTests(unittest.TestCase):
             self.assertEqual(front["author_block"], "Lin Chen")
 
 
+class LTheAbstractTheBriefShowsIsTheOneThatPassesTests(unittest.TestCase):
+    """The abstract written exactly as the brief shows was refused at publish.
+
+    03_section_draft.md shows `**Background:** ...` and says to use those
+    headings "exactly". ABSTRACT_CHECK accepted only `## Background:` lines,
+    reported "Found: none", and the failure was routed as one no author file
+    could fix (`blocked_non_author_repair`, no write paths).
+    """
+
+    ABSTRACT = (
+        "# Abstract\n\n"
+        "**Background:** Students are told sleep matters.\n\n"
+        "**Objective:** We asked whether sleep and scores move together.\n\n"
+        "**Methods:** Forty students reported sleep.\n\n"
+        "**Principal Findings:** Longer sleepers scored 13.28 points higher.\n\n"
+        "**Significance:** Sleep belongs in study advice.\n"
+    )
+
+    def test_the_bold_labels_the_brief_shows_are_the_structure(self):
+        from report_workflow.nodes.abstract_check import _check_structure
+
+        self.assertEqual(_check_structure(self.ABSTRACT), [])
+
+    def test_the_heading_form_still_passes_and_a_missing_part_still_fails(self):
+        from report_workflow.nodes.abstract_check import _check_structure
+
+        headings = self.ABSTRACT.replace("**Background:**", "## Background:\n")
+        self.assertEqual(_check_structure(headings), [])
+        missing = self.ABSTRACT.replace("**Significance:** Sleep belongs in study advice.\n", "")
+        self.assertTrue(_check_structure(missing))
+
+    def test_an_abstract_failure_is_routed_to_the_drafts(self):
+        from report_workflow.automation_harness import _stage_from_artifact_text
+
+        order = ["claim_matrix", "outline", "drafts", "artifact_lint", "publish"]
+        self.assertEqual(_stage_from_artifact_text(
+            "METADATA_GATE/ABSTRACT_CHECK: ABSTRACT_CHECK failed: 1 issue(s)", order), "drafts")
+        self.assertEqual(_stage_from_artifact_text(
+            "PLAN_LOCK/PAPER_SCOPE_FREEZE: Academic report requires a thesis statement", order), "outline")
+
+
 if __name__ == "__main__":
     unittest.main()
