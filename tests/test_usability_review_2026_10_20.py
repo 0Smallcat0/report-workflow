@@ -698,5 +698,30 @@ class OKeywordsAreNeverAnotherProjectsTests(unittest.TestCase):
         self.assertEqual(front["keywords"], ["sleep", "exam performance", "undergraduates"])
 
 
+class PAnUnregisteredFigureIsNotAnotherRunsTests(unittest.TestCase):
+    """A claim citing a derivation that never registered was told to remap.
+
+    gap_high_low failed to register (the band label), and the claim citing
+    E_D_gap_high_low was refused with "These artifacts likely came from
+    another run. Use remap-evidence" — a run that does not exist, and a tool
+    that cannot help.
+    """
+
+    def test_a_missing_derived_id_is_called_unregistered(self):
+        from report_workflow.agent_wrapper import submit_claim_matrix
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _prepare_survey(tmpdir, profile="proposal")
+            (run_dir_for(state) / "claim_matrix.json").write_text(json.dumps({"claims": [{
+                "claim_id": "c1", "claim_text": "Evening visits are 1.57 times morning visits.",
+                "claim_type": "statistical", "evidence_ids": ["E_D_evening_ratio"],
+            }]}), encoding="utf-8")
+            result = submit_claim_matrix(state.job_id, workspace_root=state.output["workspace_root"])
+            self.assertEqual(result["status"], "validation_failed")
+            self.assertIn("E_D_evening_ratio", result["error_details"])
+            self.assertIn("register_derived_evidence", result["error_details"])
+            self.assertNotIn("another run", result["error_details"])
+
+
 if __name__ == "__main__":
     unittest.main()
