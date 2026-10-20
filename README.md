@@ -11,7 +11,7 @@ mcp-name: io.github.0Smallcat0/report-workflow
 
 [![CI](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-1260%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1284%20passing-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **繁體中文說明 → [README.zh-TW.md](README.zh-TW.md)**
@@ -75,6 +75,79 @@ close your measurements came to theory, an R², a budget total — is worked out
 the tool from your own data**, so the AI never has to make a number up. Formats,
 Chinese documents, and using your own Word template:
 **[docs/OUTPUT.md](docs/OUTPUT.md)**.
+
+## Already written? Check its references
+
+An invented citation is rarely a whole invented paper. More often it is a real
+title with the wrong authors, or a real DOI that belongs to someone else's work,
+and a DOI that resolves passes a check that only asks whether it exists. This
+command reads what each reference *says* and compares it with the record it
+names:
+
+```bash
+pip install report-workflow
+report-workflow check-references draft.docx
+```
+
+Or, with [uv](https://docs.astral.sh/uv/), one line that leaves nothing
+installed: `uvx report-workflow check-references draft.docx`.
+
+It reads `.docx`, `.md`, `.txt` and `.bib`. Each DOI is looked up at doi.org
+(which also carries retraction notices), each arXiv id at arXiv, and a reference
+with neither is searched for in Crossref and OpenAlex. No API key, no account,
+and no AI deciding anything: the same file gets the same verdicts.
+
+A five-reference draft with four errors planted in it:
+
+```text
+[1] MISMATCH: arXiv:2302.13971 is “LLaMA: Open and Efficient Foundation Language Models” by Touvron et al. (2023); Stone, Albert are not among its authors
+    Hugo Touvron, Thibaut Martin, Kevin Stone, Marie-Anne Lachaux, Timothee Albert, et al. Llama: Open and efficient foundation language models. arXiv preprint arXi...
+[2] VERIFIED: matches arXiv:1711.05101: title, authors
+    Ilya Loshchilov and Frank Hutter. Decoupled weight decay regularization. arXiv preprint arXiv:1711.05101, 2017
+[3] MISMATCH: doi:10.1145/115372.115320 is “Efficiently computing static single assignment form and the control dependence graph” by Cytron et al. (1991), which is not the work this reference names
+    Nguyen, T., & Patel, R. (2021). Adaptive caching for serverless inference pipelines. ACM TOPLAS, 13(4), 451-490. https://doi.org/10.1145/115372.115320
+[4] RETRACTED: doi:10.1016/S0140-6736(97)11096-0 was retracted (Retraction 10.1016/s0140-6736(10)60175-4 (2010)) and the reference does not say so
+    Wakefield, A. J., Murch, S. H., & Anthony, A. (1998). Ileal-lymphoid-nodular hyperplasia, non-specific colitis, and pervasive developmental disorder in children...
+[5] MISMATCH: doi:10.18653/v1/2020.emnlp-main.466 is “AmbigQA: Answering Ambiguous Open-domain Questions” by Min et al. (2020); Lewis, Jurafsky are not among its authors
+    Sewon Min, Mike Lewis, and Daniel Jurafsky. Ambigqa: Answering ambiguous open-domain questions. In Proceedings of the 2020 Conference on Empirical Methods in Na...
+
+3 mismatch, 1 retracted, 1 verified (5 references)
+```
+
+Reference 5 has no identifier at all; search found it and its real authors.
+The command exits `2` when any reference is refuted, so it can stop a CI job or
+a pre-submission hook. A reference it cannot settle — not found by search, or
+found without authors to compare — is `needs_review`: listed for you to look at,
+never counted as a failure.
+
+**Measured on references someone else checked by hand.** Badalova and Mayr
+verified 104 references from three published documents one by one and ran five
+citation checkers over them
+([dataset](https://doi.org/10.5281/zenodo.21457492), CC BY 4.0). Same 104
+references here:
+
+| Checker | Problem references caught (of 33) | Correct references flagged (of 71) |
+| --- | ---: | ---: |
+| **report-workflow** | **31** | **24** |
+| RefChecker | 32 | 36 |
+| CheckIfExist | 31 | 34 |
+| Hallucinator | 29 | 28 |
+| HalluCiteChecker | 18 | 20 |
+| HalRef | 24 | 53 |
+
+"Flagged" counts anything short of accepted — for the five tools that includes
+"requires verification", here it is every verdict except `verified`. All 24 of
+those here are `needs_review`: of the 13 references it called `mismatch`,
+`not_found` or `retracted`, every one is wrong in the hand-checked labels.
+Rerun it from the recorded registry answers, with no network:
+
+```bash
+python scripts/run_reference_benchmark.py --check
+```
+
+[Every verdict](benchmarks/evidence/reference_match_2026-10-21/summary.md). The
+104 references were also what the matcher was tuned on; no second hand-checked
+set exists yet to test it on.
 
 ## What it cannot do
 

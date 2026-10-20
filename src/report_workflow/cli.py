@@ -346,7 +346,52 @@ def build_parser() -> argparse.ArgumentParser:
              "Use to pre-check before committing changes.",
     )
 
+    refs = subcommands.add_parser(
+        "check-references",
+        help="Check every reference in a finished document (.docx, .md, .txt, .bib) against "
+             "doi.org, arXiv, Crossref and OpenAlex; no workflow run needed",
+    )
+    refs.add_argument("file", help="The document, or a file holding only the reference list")
+    refs.add_argument(
+        "--no-search",
+        action="store_true",
+        help="Check only references with a DOI or arXiv ID; do not search Crossref and OpenAlex",
+    )
+    refs.add_argument("--json", dest="json_out", help="Also write every verdict and its evidence to this JSON file")
+
     return parser
+
+
+_REFUTED = ("mismatch", "not_found", "retracted")
+
+
+def _run_check_references(path: str, search: bool, json_out: str | None) -> int:
+    """Print a verdict per reference; exit 2 when any reference is refuted."""
+
+    from collections import Counter
+
+    from .reference_list import extract_references
+    from .reference_match import check_reference
+
+    if not Path(path).is_file():
+        print(f"No such file: {path}", file=sys.stderr)
+        return 1
+    references = extract_references(path)
+    if not references:
+        print(f"No references found in {path}", file=sys.stderr)
+        return 1
+    results = []
+    for number, reference in enumerate(references, 1):
+        check = check_reference(reference, search=search)
+        results.append({"number": number, "reference": reference, **check.to_dict()})
+        print(f"[{number}] {check.status.upper()}: {check.message}")
+        print(f"    {reference[:160]}{'...' if len(reference) > 160 else ''}")
+    counts = Counter(item["status"] for item in results)
+    print("\n" + ", ".join(f"{counts[s]} {s}" for s in sorted(counts)) + f" ({len(results)} references)")
+    if json_out:
+        Path(json_out).write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
+        print(f"Wrote {json_out}")
+    return 2 if any(counts[s] for s in _REFUTED) else 0
 
 
 def _reject_invalid_reference_docx(path_str: str | None) -> bool:
@@ -857,6 +902,9 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "diagnose":
             return _run_diagnose(args.job_id, args.verbose, workspace_root=args.workspace_root)
+
+        if args.command == "check-references":
+            return _run_check_references(args.file, not args.no_search, args.json_out)
 
         if args.command == "remap-evidence":
             from .artifact_contract import remap_evidence_ids

@@ -9,6 +9,7 @@ from ..errors import QAHardBlockError
 from ..policies import get_policy
 from ..runtime_support import write_json_artifact
 from ..state import ReportState
+from .reference_verify import RECORD_CHECK_TYPES
 
 
 _BOOK_OR_PUBLISHER_RE = re.compile(
@@ -23,23 +24,25 @@ def _classify_reference(ref: dict) -> tuple[str, str]:
     status = ref.get("status", "")
     errors = "; ".join(ref.get("errors", []))
     checks = ref.get("checks", [])
-    has_verified_external_id = any(
-        check.get("type") in {"doi", "arxiv"} and check.get("verified")
-        for check in checks
-    )
-    has_failed_external_id = any(
-        check.get("type") in {"doi", "arxiv"} and not check.get("verified")
-        for check in checks
-    )
+    record_checks = [check for check in checks if check.get("type") in RECORD_CHECK_TYPES]
+    has_verified_external_id = any(check.get("verified") for check in record_checks)
+    has_failed_external_id = any(not check.get("verified") for check in record_checks)
 
     if status == "excluded":
         return "excluded_internal_or_non_publication", "Excluded by curation rules"
     if status == "project_source":
         return "project_source_reference", "Internal project source accepted for admissions project reports"
+    if status == "needs_review":
+        # The record was found and agrees only in part (or has no metadata to
+        # compare): neither verified nor refuted.
+        return "needs_human_review", errors or "Registry record agrees with the reference only in part"
     if has_failed_external_id or status == "failed":
         return "failed_external_verification", errors or "External identifier verification failed"
     if has_verified_external_id or status == "verified":
-        return "verified_external_identifier", "DOI or arXiv verification passed"
+        messages = [str(check.get("message", "")) for check in record_checks if check.get("verified")]
+        return "verified_external_identifier", "; ".join(m for m in messages if m) or (
+            "The DOI or arXiv record matches the reference"
+        )
     if _BOOK_OR_PUBLISHER_RE.search(raw):
         return "publisher_or_book_plausible", "Book/publisher-style reference; no DOI/arXiv required"
     return "needs_human_review", "No DOI/arXiv verification available"

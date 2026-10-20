@@ -1,10 +1,13 @@
-"""REFERENCE_VERIFY node - verify DOI, arXiv, and reference metadata plausibility.
+"""REFERENCE_VERIFY node - check each reference against the record it names.
 
 Position: After CITATION_BIND, before QA_GATE.
 
-For academic_paper mode, verifies:
-  - DOIs resolve (HTTP GET to doi.org)
-  - arXiv IDs exist (via arXiv API or HTTP)
+For every publication reference:
+  - a DOI or arXiv ID is looked up and its record compared with the reference
+    (title, authors, year, retraction; see ``report_workflow.reference_match``).
+    A DOI that resolves to a different work fails, where it used to pass.
+  - with web research enabled (or ``flags["reference_search"]``), a reference
+    with no identifier is searched by its text in Crossref and OpenAlex.
   - Year plausibility (not in the future, not before 1900)
   - Author names look plausible (not "Unknown" or just filenames)
 
@@ -17,72 +20,18 @@ internal trace format instead of publication-grade format."
 """
 import json
 import re
-import urllib.request
-import urllib.error
 from pathlib import Path
 
 from ..state import ReportState
 from ..errors import QAHardBlockError
 from ..runtime_support import write_json_artifact
 from ..policies import get_policy
+from ..reference_match import NEEDS_REVIEW, NOT_FOUND, UNREACHABLE, VERIFIED, check_reference
 from .citation_bind import LOCAL_ARTIFACT_LABELS, REFERENCE_LIST_HEADING
 
-
-def _verify_doi(doi: str) -> tuple[bool, str]:
-    """Verify a DOI resolves. Returns (verified, message)."""
-    if not doi:
-        return False, "Empty DOI"
-
-    # Normalize DOI
-    doi = doi.strip()
-    if not doi.startswith("https://doi.org/"):
-        doi = f"https://doi.org/{doi}"
-
-    try:
-        req = urllib.request.Request(
-            doi,
-            headers={"Accept": "application/x-bibtex, text/plain"}
-        )
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            if resp.status in (200, 302, 303):
-                return True, f"DOI resolves (status {resp.status})"
-            return False, f"DOI returned status {resp.status}"
-    except urllib.error.HTTPError as e:
-        if e.code == 404:
-            return False, "DOI not found (404)"
-        return False, f"DOI HTTP error: {e.code}"
-    except urllib.error.URLError as e:
-        return False, f"DOI network error: {e.reason}"
-    except Exception as e:
-        return False, f"DOI verification error: {e}"
-
-
-def _verify_arxiv(arxiv_id: str) -> tuple[bool, str]:
-    """Verify an arXiv ID exists. Returns (verified, message)."""
-    if not arxiv_id:
-        return False, "Empty arXiv ID"
-
-    # Normalize arXiv ID
-    arxiv_id = arxiv_id.strip()
-    # Remove URL prefix if present
-    arxiv_id = re.sub(r"https?://arxiv\.org/abs/", "", arxiv_id)
-    arxiv_id = re.sub(r"https?://arxiv\.org/pdf/", "", arxiv_id)
-    arxiv_id = arxiv_id.rstrip(".pdf")
-
-    try:
-        url = f"https://export.arxiv.org/api/query?id_list={arxiv_id}"
-        req = urllib.request.Request(url)
-        with urllib.request.urlopen(req, timeout=15) as resp:
-            content = resp.read().decode("utf-8")
-            if "<entry>" in content:
-                return True, "arXiv ID found"
-            return False, "arXiv ID not found in response"
-    except urllib.error.HTTPError as e:
-        return False, f"arXiv HTTP error: {e.code}"
-    except urllib.error.URLError as e:
-        return False, f"arXiv network error: {e.reason}"
-    except Exception as e:
-        return False, f"arXiv verification error: {e}"
+#: Checks that compared the reference with a registry record. Any one of them
+#: failing fails the reference.
+RECORD_CHECK_TYPES = ("doi", "arxiv", "identifier", "search")
 
 
 def _check_year_plausibility(year_str: str) -> tuple[bool, str]:
@@ -344,10 +293,15 @@ def run_reference_verify(state: ReportState) -> ReportState:
     For other families: logs warnings but does not block.
 
     References are checked against:
-      - DOI resolution (doi.org HTTP check)
-      - arXiv ID existence (arXiv API)
+      - the DOI or arXiv record: its title, authors, year and retraction
+        status must agree with the reference
+      - with web research enabled (or ``flags["reference_search"]``), a
+        Crossref/OpenAlex title search for references with no identifier
       - Year plausibility (1900-2030)
       - Author name plausibility
+
+    A record that agrees only in part is ``needs_review``: reported, and left
+    to REFERENCE_REALITY_CHECK's human-review policy rather than failed.
     """
     report_profile = state.spec.get("report_profile", "")
     policy = get_policy(report_profile)
@@ -371,9 +325,15 @@ def run_reference_verify(state: ReportState) -> ReportState:
         state.runtime["reference_verify_report_path"] = str(report_path)
         return state
 
+    # Title search asks Crossref and OpenAlex about every reference without an
+    # identifier, which is many requests to two outside services, so it runs
+    # when the user turned on web research (or set the flag itself).
+    search_references = bool(state.flags.get("reference_search", state.flags.get("enable_research")))
+
     # Process each reference
     verified_refs = []
     failed_refs = []
+    needs_review_refs = []
     warnings = []
 
     for ref in refs:
@@ -385,9 +345,8 @@ def run_reference_verify(state: ReportState) -> ReportState:
         verified_flag = False
         ref_status = ""
 
-        # Check for DOI or arXiv
-        doi_ok = False
-        arxiv_ok = False
+        # Whether a registry record was found that matches the reference.
+        record_ok = False
 
         raw_reference = ref.get("raw", ref_id)
         if not _is_publication_reference_candidate(raw_reference):
@@ -420,38 +379,53 @@ def run_reference_verify(state: ReportState) -> ReportState:
         if not curation_ok:
             errors.append(f"Curation: {curation_msg}")
 
-        doi_match = re.search(
-            r"(?:doi[:\s]+|https?://(?:dx\.)?doi\.org/)(10\.\S+)",
-            ref_id,
-            re.IGNORECASE,
-        )
-        if doi_match:
-            doi = doi_match.group(1).strip()
-            check_ok, msg = _verify_doi(doi)
-            checks.append({"type": "doi", "value": doi, "verified": check_ok, "message": msg})
-            if check_ok:
-                doi_ok = True
-            else:
-                errors.append(f"DOI: {msg}")
+        # A DOI that resolves only proves the DOI exists. The record behind it
+        # is compared with the reference -- title, authors, year, retraction --
+        # because a real DOI under an invented reference is the commonest way
+        # an invented reference gets past a resolve check.
+        match = check_reference(raw_reference, search=search_references)
+        if match.identifier.startswith("arXiv:"):
+            check_type = "arxiv"
+        elif match.identifier:
+            check_type = "doi"
+        elif match.status == NOT_FOUND:
+            check_type = "identifier"  # a placeholder such as arXiv:2305.XXXX
         else:
-            # Check for arXiv
-            arxiv_match = re.search(
-                r"(?:arxiv[:\s]+|https?://arxiv\.org/(?:abs|pdf)/)(\d{4}\.\d{4,5})",
-                ref_id,
-                re.IGNORECASE,
-            )
-            if arxiv_match:
-                arxiv_id = arxiv_match.group(1).strip()
-                check_ok, msg = _verify_arxiv(arxiv_id)
-                checks.append({"type": "arxiv", "value": arxiv_id, "verified": check_ok, "message": msg})
-                if check_ok:
-                    arxiv_ok = True
-                else:
-                    errors.append(f"arXiv: {msg}")
+            check_type = "search"
+        unsearched = check_type == "search" and (not search_references or match.status == UNREACHABLE)
+        record_failed = False
+        if not unsearched:
+            checks.append({
+                "type": check_type,
+                "value": match.identifier.split(":", 1)[-1],
+                "verified": match.status == VERIFIED,
+                "status": match.status,
+                "message": match.message,
+                "metadata": match.to_dict(),
+            })
+            if match.status == VERIFIED:
+                record_ok = True
+            elif match.status == NEEDS_REVIEW:
+                needs_review_refs.append({
+                    "ref_id": ref_id,
+                    "raw": raw_reference,
+                    "source": ref.get("source", ""),
+                    "checks": checks,
+                    "verified": False,
+                    "errors": [match.message],
+                    "status": "needs_review",
+                })
+                continue
+            else:
+                # mismatch, not_found, retracted -- and unreachable, which was
+                # a failure before the comparison existed and stays one: a
+                # reference nobody could check has not been checked.
+                record_failed = True
+                label = {"doi": "DOI", "arxiv": "arXiv"}.get(check_type, check_type.capitalize())
+                errors.append(f"{label}: {match.message}")
 
-        # If we couldn't extract DOI or arXiv, skip year/author plausibility checks
-        has_doi_or_arxiv = doi_ok or arxiv_ok
-        if not has_doi_or_arxiv:
+        # No identifier and no search: nothing to compare, and nothing to block on.
+        if not record_ok and not record_failed:
             # Can't verify, don't block
             checks.append({"type": "skipped", "reason": "no_doi_or_arxiv"})
             verified_flag = curation_ok
@@ -487,7 +461,7 @@ def run_reference_verify(state: ReportState) -> ReportState:
                 errors.append(msg)
 
         # Determine overall verified status
-        critical_checks = [c for c in checks if c["type"] in ("doi", "arxiv")]
+        critical_checks = [c for c in checks if c["type"] in RECORD_CHECK_TYPES]
         if critical_checks:
             verified_flag = curation_ok and all(c["verified"] for c in critical_checks)
         else:
@@ -524,7 +498,9 @@ def run_reference_verify(state: ReportState) -> ReportState:
         "total_refs": len(refs),
         "verified": len(verified_refs),
         "failed": len(failed_refs),
-        "references": verified_refs + failed_refs,
+        "needs_review": len(needs_review_refs),
+        "reference_search": search_references,
+        "references": verified_refs + failed_refs + needs_review_refs,
         "warnings": warnings,
         "status": "passed" if not failed_refs else "failed",
     }
