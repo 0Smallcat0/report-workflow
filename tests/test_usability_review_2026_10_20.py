@@ -743,5 +743,41 @@ class PAnUnregisteredFigureIsNotAnotherRunsTests(unittest.TestCase):
             self.assertNotIn("another run", result["error_details"])
 
 
+class QAChartWithNothingOnItIsStoppedTests(unittest.TestCase):
+    """The paper shipped a scatter plot with no points on it.
+
+    The author's script filled the plot from the wrong ledger field, so
+    `data.x` and `data.y` were empty lists. FIGURE_PLAN_AUDIT, the visual
+    quality check and the post-render check all passed, and the delivered
+    document carried an empty pair of axes captioned "Midterm score against
+    average nightly sleep (n = 40)".
+    """
+
+    def _audit(self, figure):
+        from report_workflow.nodes.figure_plan_audit import audit_figure_plan
+
+        state = ReportState.new("x", [], tempfile.mkdtemp())
+        state.spec["report_profile"] = "academic_paper"
+        return audit_figure_plan(state, [], {"figures": [figure]}, Path("figure_plan.json"))
+
+    def test_an_empty_scatter_is_a_hard_issue(self):
+        report = self._audit({"figure_id": "2", "figure_type": "scatter", "title": "Score against sleep",
+                              "data": {"x": [], "y": []}, "source_evidence_ids": []})
+        self.assertIn("figure_has_no_data", [issue["type"] for issue in report["hard_issues"]])
+
+    def test_an_empty_bar_chart_is_a_hard_issue(self):
+        report = self._audit({"figure_id": "1", "figure_type": "bar", "title": "Visitors",
+                              "data": {"labels": [], "series": [{"name": "v", "values": []}]}})
+        self.assertIn("figure_has_no_data", [issue["type"] for issue in report["hard_issues"]])
+
+    def test_a_chart_with_points_and_a_native_table_pass(self):
+        points = self._audit({"figure_id": "2", "figure_type": "scatter", "title": "Score against sleep",
+                              "data": {"x": [5.0, 7.5], "y": [70, 88]}})
+        table = self._audit({"figure_id": "3", "figure_type": "table", "title": "Parameters",
+                             "render_mode": "native_table", "data": {"columns": ["a", "b"], "rows": [["1", "2"]]}})
+        for report in (points, table):
+            self.assertNotIn("figure_has_no_data", [issue["type"] for issue in report["hard_issues"]])
+
+
 if __name__ == "__main__":
     unittest.main()
