@@ -404,5 +404,41 @@ class HAStarterChartDoesNotAddUpUnlikeThingsTests(unittest.TestCase):
         self.assertNotIn("All", rec["figure_plan"]["data"]["labels"])
 
 
+class IAReportWithoutATitleSaysSoTests(unittest.TestCase):
+    """The proposal shipped with no title, and nothing said so.
+
+    SKILL.md's start_report example has no `title`, so the proposal was
+    started without one. Its blueprint has no cover section to carry one, the
+    delivered DOCX opened on the table of contents, and final_qa_summary
+    reported pass. The run directory was named after the whole prompt.
+    """
+
+    def _start(self, tmpdir, **extra):
+        from report_workflow.agent_wrapper import start_report_task
+
+        src = Path(tmpdir) / "notes.md"
+        src.write_text("The library is open 09:00 to 20:00, Tuesday to Sunday.", encoding="utf-8")
+        with patch("report_workflow.preflight.importlib.util.find_spec", side_effect=_all_packages_present), \
+             patch("report_workflow.preflight._find_executable", return_value="/usr/bin/tool"):
+            return start_report_task(
+                "propose longer opening hours", [str(src)], output_dir=str(Path(tmpdir) / "out"),
+                report_profile="proposal", preflight_confirmed=True,
+                preflight_decisions={"confirmed_by_user": True, "install_decisions": {}, "feature_decisions": {}},
+                **extra,
+            )
+
+    def test_no_title_is_named_when_the_run_starts(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = self._start(tmpdir)
+            self.assertEqual(result["status"], "awaiting_agent_artifacts")
+            self.assertTrue(any("title" in warning for warning in result.get("warnings", [])), result.get("warnings"))
+            self.assertIn("title", result["message"])
+
+    def test_a_title_given_raises_nothing(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = self._start(tmpdir, title="延長社區圖書館開放時間提案")
+            self.assertFalse(any("no title" in warning for warning in result.get("warnings", [])))
+
+
 if __name__ == "__main__":
     unittest.main()

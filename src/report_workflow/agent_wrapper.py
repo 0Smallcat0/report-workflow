@@ -395,7 +395,20 @@ def start_report_task(
             notebooklm_storage_path=cfg.notebooklm_storage_path,
         )
 
-        warnings = state.runtime.get("warnings", [])
+        warnings = list(state.runtime.get("warnings", []))
+        blueprint_sections = (state.plan.get("blueprint") or {}).get("sections") or {}
+        untitled = (
+            not str(title or "").strip()
+            and task_intent == "new_draft"
+            and "cover" not in blueprint_sections
+        )
+        if untitled:
+            # Nothing else carries a title for these profiles: the document
+            # opened on its table of contents and every QA summary said pass.
+            warnings.append(
+                "no title was given, so the delivered document will have no title. "
+                "Start again with title=\"...\" (prepare is cheap; nothing is written yet)."
+            )
         controlled_action = None
         if state.status == "awaiting_agent_artifacts":
             _controlled_state, controlled_run_dir, _manifest = load_or_create_manifest(
@@ -430,6 +443,13 @@ def start_report_task(
                     "This run is outside the default workspace. Pass "
                     f'workspace_root="{workspace_root}" to get_next_action, '
                     "submit_action, and publish_report.",
+                    "",
+                ])
+
+            if untitled:
+                msg_lines.extend([
+                    "No title was given: the document will have none. Start again "
+                    'with title="..." before writing anything.',
                     "",
                 ])
 
