@@ -1,4 +1,5 @@
-SRC = "/home/user/report-workflow/benchmarks/evidence/usability_audit_2026-10-19/run2_en_business/sources"
+from pathlib import Path
+SRC = str(Path(__file__).resolve().parent.parent / "sources")
 START = dict(prompt="Write a business report for leadership on 2026 sales by region and category: should Software get more marketing budget next year, and which region is underperforming?",
     source_files=[{"path": f"{SRC}/sales_2026.csv", "role": "source_data"}, {"path": f"{SRC}/ops_memo.md", "role": "source_data"}],
     report_profile="business_report", title="2026 Channel Review: Region and Category Performance",

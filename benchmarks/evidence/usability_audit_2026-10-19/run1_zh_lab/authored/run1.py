@@ -1,4 +1,5 @@
-SRC = "/home/user/report-workflow/benchmarks/evidence/usability_audit_2026-10-19/run1_zh_lab/sources"
+from pathlib import Path
+SRC = str(Path(__file__).resolve().parent.parent / "sources")
 START = dict(prompt="寫一份普通物理實驗課的單擺實驗報告，用量測數據估算重力加速度",
     source_files=[{"path": f"{SRC}/pendulum_trials.csv", "role": "source_data"}, {"path": f"{SRC}/lab_notes.md", "role": "source_data"}],
     report_profile="engineering_lab_report", template_fields={"course_name": "普通物理實驗", "student_id": "B12345678"},

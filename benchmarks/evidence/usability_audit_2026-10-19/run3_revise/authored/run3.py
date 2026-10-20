@@ -1,6 +1,7 @@
 import json
 RETRY_FULL_DECISIONS=False
-SRC = "/home/user/report-workflow/benchmarks/evidence/usability_audit_2026-10-19/run3_revise/sources"
+from pathlib import Path
+SRC = str(Path(__file__).resolve().parent.parent / "sources")
 START = dict(prompt="把期中報告更新成 9 月底的進度：用新的安裝數、回傳成功率與告警數修正數字，其他文字盡量保留",
     source_files=[{"path": f"{SRC}/midterm_report.docx", "role": "base_document"}, {"path": f"{SRC}/september_update.csv", "role": "source_data"}, {"path": f"{SRC}/field_notes.md", "role": "source_data"}],
     report_profile="business_report", task_intent="revise_existing",
