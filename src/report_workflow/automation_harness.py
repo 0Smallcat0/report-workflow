@@ -622,6 +622,25 @@ def _open_repair_scope(manifest: dict[str, Any], run_dir: Path, routed_stage: st
     manifest["observed_hashes"] = _snapshot_author_owned(run_dir)
 
 
+def _reopenable_owner(manifest: dict[str, Any], stage: str, rel_paths: list[str]) -> str | None:
+    """The stage to re-open when every changed path belongs to a stage before this one.
+
+    A file owned by a later stage, written early, is still refused: the stage
+    that validates it has not been reached.
+    """
+    if not rel_paths:
+        return None
+    order = manifest["stage_order"]
+    current = order.index(stage)
+    owners = []
+    for rel_path in rel_paths:
+        owner = _earliest_owner(manifest, [rel_path])
+        if owner is None or order.index(owner) >= current:
+            return None
+        owners.append(order.index(owner))
+    return order[min(owners)]
+
+
 def _earliest_owner(manifest: dict[str, Any], rel_paths: list[str]) -> str | None:
     """The first stage in this run whose own write scope covers any of the paths."""
     owners = [
@@ -660,12 +679,15 @@ def _scope_violation_message(stage: str, violations: list[dict[str, str]]) -> st
     clearing out "everything I wrote" takes that with it and keeps the stage
     blocked on a file the author never meant to touch.
     """
-    named = ", ".join(
+    # One path can be reported twice — changed outside this stage's scope and
+    # changed after its own stage passed — and was named twice.
+    paths = list(dict.fromkeys(
         violation.get("relative_path") or violation.get("path", "")
-        for violation in violations[:5]
-    )
-    if len(violations) > 5:
-        named += f", and {len(violations) - 5} more"
+        for violation in violations
+    ))
+    named = ", ".join(paths[:5])
+    if len(paths) > 5:
+        named += f", and {len(paths) - 5} more"
     return (
         "Author-owned artifacts changed outside the current stage write scope: "
         f"{named}. "
@@ -832,22 +854,27 @@ def run_controlled_stage(
         }
 
     violations = _scope_violations(manifest, run_dir, stage)
-    if violations and stage in {"artifact_lint", "publish"}:
-        owner = _earliest_owner(manifest, [v["relative_path"] for v in violations])
-        if owner:
-            # Every authoring stage has passed and the author changed one of
-            # their own artifacts — almost always because publish_report said
-            # "fix claim_matrix.json" and they did, before calling
-            # submit_action to be routed. Refusing that and asking them to
-            # restore the old content (which they may no longer have) is the
-            # wrong answer: re-open the run at the stage that owns the change
-            # and validate from there, which is what routing would have done.
-            _invalidate_from(manifest, owner, {
-                "message": f"Author artifacts changed after {stage} began; re-validating from {owner}.",
-            })
-            _open_repair_scope(manifest, run_dir, owner, stage)
-            stage = owner
-            violations = []
+    note = ""
+    owner = _reopenable_owner(manifest, stage, [v["relative_path"] for v in violations])
+    if owner:
+        # The author changed an artifact a stage before this one already
+        # accepted — almost always because lint_artifacts or publish_report
+        # named it and they fixed it. Refusing that and asking them to restore
+        # the old content was the wrong answer at every stage, not only at
+        # publish: the accepted file is the one CLAIM_PLAN rewrote, so the
+        # author has no copy to restore. Re-open the run at the stage that
+        # owns the change and validate from there; every later stage is
+        # validated again when it is reached, so no check is skipped.
+        changed = sorted({v["relative_path"] for v in violations})
+        note = (
+            f"{', '.join(changed)} changed after the {owner} stage passed, so the run "
+            f"went back to {owner} and validated it again; submit again to re-validate "
+            "each later stage. Work already written for them is kept."
+        )
+        _invalidate_from(manifest, owner, {"message": note})
+        _open_repair_scope(manifest, run_dir, owner, stage)
+        stage = owner
+        violations = []
     if violations:
         return _record_scope_violation(manifest, run_dir, stage, violations)
 
@@ -858,5 +885,9 @@ def run_controlled_stage(
 
     result = validators[stage](job_id, workspace_root)
     if _result_passed(stage, result):
-        return _record_pass(manifest, run_dir, stage, result)
-    return _record_failure(manifest, run_dir, stage, result)
+        response = _record_pass(manifest, run_dir, stage, result)
+    else:
+        response = _record_failure(manifest, run_dir, stage, result)
+    if note:
+        response["note"] = note
+    return response

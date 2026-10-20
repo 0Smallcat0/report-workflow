@@ -188,5 +188,78 @@ class CTheClaimStageSaysWhatFAWillSayTests(unittest.TestCase):
         self.assertEqual(result["status"], "step_1_complete", result.get("error_details"))
 
 
+def _validators(**overrides) -> dict:
+    base = {
+        "claim_matrix": lambda _j, _w=None: {"status": "ok"},
+        "outline": lambda _j, _w=None: {"status": "ok"},
+        "drafts": lambda _j, _w=None: {"status": "ok"},
+        "revision_plan": lambda _j, _w=None: {"status": "ok"},
+        "artifact_lint": lambda _j, _w=None: {"status": "ok"},
+        "publish": lambda _j, _w=None: {"status": "completed"},
+    }
+    base.update(overrides)
+    return base
+
+
+class DAPassedArtifactCanStillBeFixedTests(unittest.TestCase):
+    """Fixing the claim matrix during the outline stage could not be undone.
+
+    lint_artifacts reported a claim type error after the claim stage had
+    passed. The author fixed claim_matrix.json, and the outline stage refused
+    with a scope violation: "restore its previous content". The previous
+    content was not the author's — CLAIM_PLAN rewrites the file it accepts —
+    so there was nothing to restore it from, and putting the author's own
+    earlier version back was refused the same way. The run was dead.
+    """
+
+    def _state(self, tmpdir):
+        state = ReportState.new("controlled report", [], str(Path(tmpdir) / "out"))
+        state.checkpoint("TEST")
+        return state, state.output["workspace_root"], run_dir_for(state)
+
+    def test_fixing_a_passed_artifact_reopens_its_stage(self):
+        from report_workflow.automation_harness import get_controlled_next_action, run_controlled_stage
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state, root, run_dir = self._state(tmpdir)
+            (run_dir / "claim_matrix.json").write_text('{"claims":[]}', encoding="utf-8")
+            run_controlled_stage(state.job_id, _validators(), workspace_root=root)
+
+            (run_dir / "claim_matrix.json").write_text('{"claims":[{"claim_id":"fixed"}]}', encoding="utf-8")
+            (run_dir / "outline.json").write_text("{}", encoding="utf-8")
+            result = run_controlled_stage(state.job_id, _validators(), workspace_root=root)
+            self.assertEqual(result["status"], "passed", result.get("error_details"))
+            self.assertEqual(result["stage"], "claim_matrix")
+            self.assertEqual(result["next_stage"], "outline")
+            self.assertIn("claim_matrix.json changed after", result["note"])
+
+            # The outline written meanwhile is kept and validated next.
+            self.assertEqual(get_controlled_next_action(state.job_id, workspace_root=root)["stage"], "outline")
+            result = run_controlled_stage(state.job_id, _validators(), workspace_root=root)
+            self.assertEqual(result["status"], "passed")
+            self.assertEqual(result["next_stage"], "drafts")
+
+    def test_a_later_stage_file_written_early_is_still_refused(self):
+        from report_workflow.automation_harness import run_controlled_stage
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state, root, run_dir = self._state(tmpdir)
+            (run_dir / "claim_matrix.json").write_text('{"claims":[]}', encoding="utf-8")
+            run_controlled_stage(state.job_id, _validators(), workspace_root=root)
+            (run_dir / "structured_drafts.json").write_text('{"sections":{}}', encoding="utf-8")
+            result = run_controlled_stage(state.job_id, _validators(), workspace_root=root)
+            self.assertEqual(result["status"], "scope_violation")
+            self.assertEqual(result["stage"], "outline")
+
+    def test_a_violation_names_each_path_once(self):
+        from report_workflow.automation_harness import _scope_violation_message
+
+        message = _scope_violation_message("outline", [
+            {"relative_path": "structured_drafts.json", "reason": "changed outside current stage write scope"},
+            {"relative_path": "structured_drafts.json", "reason": "changed after stage 'drafts' passed"},
+        ])
+        self.assertEqual(message.count("structured_drafts.json"), 1)
+
+
 if __name__ == "__main__":
     unittest.main()

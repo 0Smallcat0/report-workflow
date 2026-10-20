@@ -380,7 +380,11 @@ class AutomationHarnessTests(unittest.TestCase):
             self.assertEqual(action["stage"], "publish")
             self.assertEqual(action["allowed_write_paths"], [])
 
-    def test_scope_violation_blocks_passed_artifact_drift(self):
+    def test_passed_artifact_drift_is_validated_again_not_accepted(self):
+        # Drift on an accepted artifact used to be refused with "restore it",
+        # which the author could not do (the pipeline rewrites what it
+        # accepts). It now re-opens the owning stage, so the changed file is
+        # validated again before anything after it — never accepted unchecked.
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("controlled report", [], str(Path(tmpdir) / "out"))
             state.checkpoint("TEST")
@@ -392,11 +396,17 @@ class AutomationHarnessTests(unittest.TestCase):
             self.assertEqual(result["next_stage"], "outline")
 
             (run_dir / "claim_matrix.json").write_text('{"claims":[{"claim_id":"changed"}]}', encoding="utf-8")
-            result = run_controlled_stage(state.job_id, _fake_validators(), workspace_root=workspace_root)
+            failing = {
+                **_fake_validators(),
+                "claim_matrix": lambda _job_id, _workspace_root=None: {
+                    "status": "validation_failed", "error_details": "c1 is malformed",
+                },
+            }
+            result = run_controlled_stage(state.job_id, failing, workspace_root=workspace_root)
 
-            self.assertEqual(result["status"], "scope_violation")
-            self.assertEqual(result["stage"], "outline")
-            self.assertEqual(result["violations"][0]["relative_path"], "claim_matrix.json")
+            self.assertEqual(result["status"], "validation_failed")
+            self.assertEqual(result["stage"], "claim_matrix")
+            self.assertEqual(result["next_stage"], "claim_matrix")
 
     def test_validation_failure_stays_on_minimal_stage_with_repair_context(self):
         with tempfile.TemporaryDirectory() as tmpdir:
