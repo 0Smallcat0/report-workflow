@@ -24,6 +24,7 @@ from .preflight_decisions import (
     evaluate_preflight_start,
     feature_flags_from_decisions,
     pending_preflight_installs,
+    enabled_feature_ids,
     required_preflight_decision_shape,
 )
 
@@ -120,6 +121,7 @@ def _print_preflight_decision_block(
     pending_installs: list[dict],
     ask_user: list[dict],
     decision_issues: list[str] | None = None,
+    required_shape: dict | None = None,
 ) -> None:
     print(message, file=sys.stderr)
     if decision_issues:
@@ -129,7 +131,7 @@ def _print_preflight_decision_block(
     print("required_preflight_decisions:", file=sys.stderr)
     print(
         json.dumps(
-            required_preflight_decision_shape(pending_installs, ask_user),
+            required_shape or required_preflight_decision_shape(pending_installs, ask_user),
             indent=2,
             default=str,
         ),
@@ -740,6 +742,9 @@ def main(argv: list[str] | None = None) -> int:
                     pending_installs,
                     ask_user,
                     [f"invalid preflight_decisions file: {exc}"],
+                    required_preflight_decision_shape(
+                        pending_installs, ask_user, enabled_feature_ids(discovery)
+                    ),
                 )
                 return 3
 
@@ -771,6 +776,7 @@ def main(argv: list[str] | None = None) -> int:
                     readiness.get("pending_installs", []),
                     readiness.get("agent_should_ask_user", []),
                     readiness.get("decision_issues", []),
+                    readiness.get("required_preflight_decisions"),
                 )
                 return 3
 
