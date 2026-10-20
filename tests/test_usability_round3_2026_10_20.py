@@ -395,6 +395,97 @@ def _minimal_summary() -> dict:
     }
 
 
+_SLEEP = {
+    "sleep.csv": "student,hours,score\n"
+                 "s1,5.0,62\ns2,5.5,70\ns3,6.0,66\ns4,6.5,75\ns5,7.0,73\n"
+                 "s6,7.5,82\ns7,8.0,80\ns8,8.5,88\ns9,,90\ns10,6.2,n/a\n",
+}
+
+
+class FCorrelationAndASimpleFitAreRegistrableTests(unittest.TestCase):
+    """There was no way to cite a correlation, a slope or an R².
+
+    A paper on sleep and grades could only state group means; "r = 0.93"
+    typed into prose is the unbacked number FE exists to block, and no op
+    computed it. `pearson_r` and `linear_fit` are computed from the rows like
+    every other derivation, and the evidence text states every figure a
+    sentence may quote.
+    """
+
+    # The eight rows with both values, computed independently.
+    _N = 8
+
+    @staticmethod
+    def _reference():
+        xs = [5.0, 5.5, 6.0, 6.5, 7.0, 7.5, 8.0, 8.5]
+        ys = [62, 70, 66, 75, 73, 82, 80, 88]
+        mx, my = sum(xs) / 8, sum(ys) / 8
+        sxx = sum((x - mx) ** 2 for x in xs)
+        syy = sum((y - my) ** 2 for y in ys)
+        sxy = sum((x - mx) * (y - my) for x, y in zip(xs, ys))
+        slope = sxy / sxx
+        r = sxy / (sxx * syy) ** 0.5
+        return r, slope, my - slope * mx
+
+    def test_pearson_r_is_computed_from_rows_with_both_values(self):
+        r, _slope, _intercept = self._reference()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _prepare(tmpdir, _SLEEP, "write a short paper on sleep and scores")
+            result = _register(state, [{"id": "sleep_r", "op": "pearson_r", "source": "sleep.csv",
+                                        "x": "hours", "y": "score", "decimals": 2}])
+            self.assertEqual(result["status"], "ok", result.get("problems"))
+            content = result["evidence"][0]["content"]
+            self.assertIn(f"{r:.2f}", content)
+            self.assertIn("n = 8", content)
+
+    def test_linear_fit_states_slope_intercept_r2_and_n(self):
+        r, slope, intercept = self._reference()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _prepare(tmpdir, _SLEEP, "write a short paper on sleep and scores")
+            result = _register(state, [{"id": "sleep_fit", "op": "linear_fit", "source": "sleep.csv",
+                                        "x": "hours", "y": "score", "decimals": 2}])
+            self.assertEqual(result["status"], "ok", result.get("problems"))
+            content = result["evidence"][0]["content"]
+            for figure in (f"{slope:.2f}", f"{intercept:.2f}", f"{r * r:.2f}", "n = 8"):
+                self.assertIn(figure, content)
+
+    def test_expect_is_checked_against_the_rows(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _prepare(tmpdir, _SLEEP, "write a short paper on sleep and scores")
+            result = _register(state, [{"id": "sleep_r", "op": "pearson_r", "source": "sleep.csv",
+                                        "x": "hours", "y": "score", "decimals": 2, "expect": 0.5}])
+            self.assertEqual(result["status"], "blocked")
+
+    def test_a_column_that_is_not_numeric_or_too_few_pairs_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _prepare(tmpdir, _SLEEP, "write a short paper on sleep and scores")
+            bad = _register(state, [{"id": "a", "op": "pearson_r", "source": "sleep.csv",
+                                     "x": "student", "y": "score"}])
+            self.assertEqual(bad["status"], "blocked")
+            few = _register(state, [{"id": "b", "op": "linear_fit", "source": "sleep.csv",
+                                     "x": "hours", "y": "score", "rows": "hours>=8"}])
+            self.assertEqual(few["status"], "blocked")
+            self.assertIn("3", json.dumps(few["problems"]))
+
+    def test_fe_accepts_the_stated_r_and_blocks_a_different_one(self):
+        from report_workflow.nodes.factuality_check import _check_content_overlap
+
+        def fe(text, evidence):
+            return _check_content_overlap({"claim_id": "c1", "claim_text": text, "claim_type": "statistical"}, evidence[0])
+
+        r, _slope, _intercept = self._reference()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _prepare(tmpdir, _SLEEP, "write a short paper on sleep and scores")
+            result = _register(state, [{"id": "sleep_r", "op": "pearson_r", "source": "sleep.csv",
+                                        "x": "hours", "y": "score", "decimals": 2}])
+            evidence = [row for row in _ledger(state) if row["evidence_id"] == "E_D_sleep_r"]
+            self.assertEqual(len(evidence), 1)
+            good = fe(f"Sleep and score were strongly correlated (r = {r:.2f}, n = 8).", evidence)
+            wrong = fe("Sleep and score were strongly correlated (r = 0.71, n = 8).", evidence)
+            self.assertFalse(good, good)
+            self.assertTrue(wrong)
+
+
 class GRecordedRunsReproduceFromTheRepoTests(unittest.TestCase):
     """The recorded author scripts loaded files from another session's /tmp.
 

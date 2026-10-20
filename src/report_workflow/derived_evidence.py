@@ -110,6 +110,16 @@ SUPPORTED_OPS = (
 #: does not state.
 COMPARISON_OPS = ("ratio", "pp_diff")
 
+#: Operations over two numeric columns of the same rows: Pearson's r, and the
+#: least-squares line of y on x (slope, intercept, R², n). A paper on sleep and
+#: grades could only state group means, and "r = 0.62" typed into prose is the
+#: unbacked number FE exists to block. Rows missing either value are left out
+#: and counted, never filled.
+PAIR_OPS = ("pearson_r", "linear_fit")
+
+#: The fewest complete pairs a correlation or a fitted line is computed from.
+MIN_PAIRS = 3
+
 #: A stated arithmetic formula over figures the tool reads itself.
 #:
 #: The comparison operations cover the two shapes an argument reaches for over
@@ -493,10 +503,16 @@ def _check_op(dataset: Dataset, request: dict) -> tuple[str, str]:
             "Operation 'formula' is registered on its own rather than as a "
             "'measures' entry: give it 'expr' and 'inputs'."
         )
+    if op in PAIR_OPS:
+        raise DerivationError(
+            f"Operation {op!r} relates two columns and is registered on its own rather "
+            "than as a 'measures' entry: give it 'source', 'x' and 'y'."
+        )
     if op not in SUPPORTED_OPS:
         raise DerivationError(
             f"Operation {op!r} is not supported. Use one of: {', '.join(SUPPORTED_OPS)}"
             f" — or {', '.join(COMPARISON_OPS)} to compare two figures already computed,"
+            f" {', '.join(PAIR_OPS)} to relate two numeric columns ('x', 'y'),"
             f" or {FORMULA_OP} to compute a stated formula from figures read from the sources."
         )
     column = str(request.get("column") or "").strip()
@@ -585,12 +601,135 @@ def _op_value(
     return value, unit, detail
 
 
+def compute_pair(dataset: Dataset, request: dict) -> dict:
+    """Pearson's r, or the least-squares line of y on x, over the selected rows.
+
+    Same contract as ``compute``: the value is r (``pearson_r``) or the slope
+    (``linear_fit``), and ``fit`` carries every figure the evidence states.
+    """
+    op = str(request.get("op") or "").strip().lower()
+    names = {}
+    for axis in ("x", "y"):
+        column = str(request.get(axis) or "").strip()
+        if not column:
+            raise DerivationError(
+                f"Operation {op!r} needs 'x' and 'y', naming two numeric columns of "
+                f"{dataset.display_name}. Its columns are: {', '.join(dataset.columns[:12])}"
+            )
+        if column not in dataset.columns:
+            raise DerivationError(
+                f"Column {column!r} is not in {dataset.display_name}. Its columns are: "
+                f"{', '.join(dataset.columns[:12])}"
+            )
+        names[axis] = column
+    decimals = declared_decimals(request)
+    rows_expression = str(request.get("rows") or "")
+    rows = select_rows(dataset, rows_expression)
+    pairs = [
+        (x, y)
+        for x, y in (
+            (parse_number(row.get(names["x"])), parse_number(row.get(names["y"]))) for row in rows
+        )
+        if x is not None and y is not None
+    ]
+    if len(pairs) < MIN_PAIRS:
+        raise DerivationError(
+            f"{op} needs at least {MIN_PAIRS} rows with a number in both {names['x']!r} and "
+            f"{names['y']!r}; the {len(rows)} selected row(s) of {dataset.file_name} have {len(pairs)}"
+        )
+    n = len(pairs)
+    mean_x = statistics.fmean(x for x, _y in pairs)
+    mean_y = statistics.fmean(y for _x, y in pairs)
+    sxx = sum((x - mean_x) ** 2 for x, _y in pairs)
+    syy = sum((y - mean_y) ** 2 for _x, y in pairs)
+    sxy = sum((x - mean_x) * (y - mean_y) for x, y in pairs)
+    if sxx == 0 or syy == 0:
+        constant = names["x"] if sxx == 0 else names["y"]
+        raise DerivationError(
+            f"{constant!r} holds one value in every selected row, so it has no relation to measure"
+        )
+    r = sxy / (sxx * syy) ** 0.5
+    slope = sxy / sxx
+    fit = {"r": r, "slope": slope, "intercept": mean_y - slope * mean_x, "r_squared": r * r, "n": n}
+    if decimals is not None:
+        # Rounded before it is recorded, as for every other figure, so the
+        # text, `expect` and the author's sentence all see the same number.
+        fit = {key: (value if key == "n" else round(value, decimals)) for key, value in fit.items()}
+    value = fit["r"] if op == "pearson_r" else fit["slope"]
+    derivation = {
+        "method": op,
+        "source_file": dataset.display_name,
+        "row_filter": rows_expression or "*",
+        "rows_matched": len(rows),
+        "rows_total": len(dataset.rows),
+        "input_columns": [names["x"], names["y"]],
+        "x": names["x"],
+        "y": names["y"],
+        "pairs_used": n,
+        "fit": dict(fit),
+    }
+    if decimals is not None:
+        derivation["decimals"] = decimals
+    return {
+        "value": value,
+        "unit": "",
+        "rows_used": n,
+        "detail": f"{len(rows) - n} selected row(s) lacked a number in one of the two columns" if len(rows) > n else "",
+        "decimals": decimals,
+        "fit": fit,
+        "derivation": derivation,
+    }
+
+
+def _pair_text(request: dict, dataset: Dataset, result: dict, zh: bool) -> str:
+    """The evidence text for a correlation or a fitted line: every figure it states."""
+    op = str(request.get("op")).lower()
+    fit, derivation = result["fit"], result["derivation"]
+    x, y = derivation["x"], derivation["y"]
+    places = result.get("decimals")
+    shown = {key: format_number(value, places) for key, value in fit.items() if key != "n"}
+    n = fit["n"]
+    label = str(request.get("label") or "").strip()
+    scope = derivation["row_filter"]
+    if zh:
+        head = f"衍生統計(來源:{dataset.display_name}):{label + '。' if label else ''}"
+        if op == "pearson_r":
+            body = f"{x} 與 {y} 的皮爾森相關係數 r = {shown['r']}（n = {n}）。"
+        else:
+            body = (
+                f"以最小平方法求 {y} 對 {x} 的迴歸直線：斜率 = {shown['slope']}，"
+                f"截距 = {shown['intercept']}，R² = {shown['r_squared']}"
+                f"（r = {shown['r']}），n = {n}。"
+            )
+        method = (
+            f"計算方式:取 {'全部資料列' if scope == '*' else scope} 中兩欄皆有數值的 {n} 筆"
+            f"（全檔 {len(dataset.rows)} 筆）。"
+        )
+        return head + body + method + (f"（{result['detail']}）" if result["detail"] else "")
+    head = f"Derived statistics from {dataset.display_name}: {label + '. ' if label else ''}"
+    if op == "pearson_r":
+        body = f"Pearson correlation between {x} and {y} is r = {shown['r']} (n = {n}). "
+    else:
+        body = (
+            f"Least-squares line of {y} on {x}: slope = {shown['slope']}, "
+            f"intercept = {shown['intercept']}, R² = {shown['r_squared']} "
+            f"(r = {shown['r']}), n = {n}. "
+        )
+    method = (
+        f"Method: {op} over the {n} rows selected by {'all rows' if scope == '*' else scope} "
+        f"that carry a number in both columns, out of {len(dataset.rows)} in the file."
+    )
+    return head + body + method + (f" ({result['detail']})" if result["detail"] else "")
+
+
 def compute(dataset: Dataset, request: dict) -> dict:
     """Carry out one derivation and report how it was carried out.
 
     Returns ``{"value", "unit", "rows_used", "detail", "derivation"}``. The
     caller never supplies the value; that is the point.
     """
+    if str(request.get("op") or "").strip().lower() in PAIR_OPS:
+        return compute_pair(dataset, request)
     op, column = _check_op(dataset, request)
     decimals = declared_decimals(request)
     rows_expression = str(request.get("rows") or "")
@@ -2486,6 +2625,8 @@ def request_evidence_id(request_id: str) -> str:
 
 
 def _request_text(request: dict, dataset: Dataset, result: dict, zh: bool) -> str:
+    if result.get("fit"):
+        return _pair_text(request, dataset, result, zh)
     label = str(request.get("label") or "").strip()
     op = str(request.get("op")).lower()
     column = str(request.get("column") or "")
@@ -2563,9 +2704,10 @@ def brick_laying_problems(requests: list[dict]) -> dict[str, str]:
             continue
         op = str(request.get("op") or "").strip().lower()
         rows_expression = str(request.get("rows") or "").strip()
-        if not op or not rows_expression or op == FORMULA_OP:
+        if not op or not rows_expression or op == FORMULA_OP or op in PAIR_OPS:
             # A formula is not a statistic over a slice, so no grouped table
-            # replaces several of them.
+            # replaces several of them; a correlation per slice is not a
+            # 'measures' entry either.
             continue
         key = (_source_key(request), op, str(request.get("column") or ""))
         families.setdefault(key, []).append(request)
