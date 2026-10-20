@@ -426,7 +426,11 @@ class ProposalFigureSectionTest(unittest.TestCase):
                 }
             }
 
-        self.assertEqual(_section_for_recommendation(_State()), "budget_resources")
+        # A cost table argues the budget; any other table argues the problem.
+        cost = {"rows": [["item", "annual_cost_twd"], ["staff", "480000"]]}
+        visits = {"rows": [["slot", "visitors"], ["evening", "71"]]}
+        self.assertEqual(_section_for_recommendation(_State(), cost), "budget_resources")
+        self.assertEqual(_section_for_recommendation(_State(), visits), "problem_statement")
 
     def test_results_still_wins_when_present(self):
         from report_workflow.nodes.figure_recommend import _section_for_recommendation
