@@ -2,6 +2,40 @@
 
 ## Unreleased
 
+### Fixed — two more reports written through the pipeline, as a new user would
+
+An independent review of the 2026-10-19 audit: a Chinese proposal (visitor
+counts, a survey, a budget memo) and an English course paper (a 40-row survey
+and notes), each written from `start_report` to `publish_report`. Records,
+logs and the delivered documents: `benchmarks/evidence/usability_review_2026-10-20/`.
+
+- A derivation that failed to register stayed in `derived_evidence.json`, kept
+  its first position when registered again, and later stopped publish at
+  DERIVED_EVIDENCE from a file no stage lets the author edit. Failed requests
+  are no longer kept, and a re-registered id moves to its new position.
+- A band printed `7.50–9` refused the author's `7.5-9`.
+- The claim stage now refuses a claim type its evidence does not allow and a
+  non-publishable status, which FA used to find after the drafts.
+- Editing an accepted artifact during a later authoring stage (as lint
+  advised) was a scope violation asking for content the pipeline had
+  rewritten; the run now re-opens the owning stage and validates again.
+- Heading numbers skipped an omitted optional section (5, then 7).
+- The drafts brief shows `structured_drafts.json` first.
+- `check_environment`'s `required_preflight_decisions` lists only what needs an
+  answer; optional items move to `optional_preflight_decisions`.
+- Starter charts of computed tables no longer stack counts, shares, means and
+  the total row, or read the table's own label as a composition.
+- A new draft with no title and no cover section is named at start.
+- academic_paper: the thesis is checked at the outline stage and
+  `paper_spine.contribution` counts as it; missing author metadata is named at
+  start and can be supplied as `front_matter` in `outline.json`; the abstract
+  labels the brief shows (`**Background:**`) pass; a sentence may open with a
+  spelled-out number; keywords are never filled from another project's list.
+- FIGURE_QUALITY accepts the figure number the document prints, counts a
+  titled plan entry as captioned, and names its issues instead of `[None]`.
+- A chart with no values to plot is stopped at FIGURE_PLAN_AUDIT.
+- A claim citing an unregistered `E_D_` id is told so, not sent to remap.
+
 ### Fixed — three real reports written through the pipeline, and what stopped them
 
 A Chinese lab report from a CSV and notes, an English business report from a
