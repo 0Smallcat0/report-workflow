@@ -299,6 +299,102 @@ class DReusingAnEarlierRunTests(unittest.TestCase):
             self.assertEqual(result["files_deferred"].get("outline.json"), "outline")
 
 
+_NOTES = (
+    "Survey method: 40 undergraduates self-reported sleep. The survey ran from 3 to 14 March 2026.\n\n"
+    "Walker (2017, Why We Sleep) argues that sleep after learning consolidates memory.\n\n"
+    "Okano et al. (2019, npj Science of Learning) found that sleep explained about 25% of the "
+    "variance in grades of 88 MIT students.\n"
+)
+
+
+def _notes_registry(text: str = _NOTES) -> list[dict]:
+    blocks = [
+        {"block_id": f"b{i}", "block_type": "paragraph", "content": para}
+        for i, para in enumerate(p for p in text.split("\n\n") if p.strip())
+    ]
+    return [{"source_id": "notes", "file_name": "background_notes.md", "file_type": "md",
+             "parsed_content": blocks}]
+
+
+class EReferencesTheAuthorCanSeeTests(unittest.TestCase):
+    """A paper that wrote "Okano et al. (2019)" in its discussion published
+    with no reference list.
+
+    The notes named both works by author and year, and nothing read that
+    shape, so neither reached the References. The two lines the author wrote
+    under References were removed for not looking like publications (no DOI,
+    no "journal" or "press"), and the only trace was a log line nobody sees.
+    """
+
+    def test_an_author_year_mention_in_the_notes_is_a_cited_source(self):
+        from report_workflow.nodes.cited_sources import extract_cited_sources, format_reference_entry
+
+        cited = extract_cited_sources(_notes_registry())
+        entries = [format_reference_entry(c) for c in cited]
+        self.assertEqual(len(cited), 2, entries)
+        self.assertEqual(entries[0], "Walker. (2017). *Why We Sleep*.")
+        self.assertEqual(entries[1], "Okano et al. (2019). *npj Science of Learning*.")
+
+    def test_a_month_or_a_table_with_a_year_is_not_an_author(self):
+        from report_workflow.nodes.cited_sources import extract_cited_sources
+
+        cited = extract_cited_sources(_notes_registry(
+            "Data from March (2026) and Table (2025) and In (2024) were pooled.\n"
+        ))
+        self.assertEqual(cited, [])
+
+    def test_a_reference_line_the_sources_state_is_kept(self):
+        from report_workflow.nodes.docx_render import _filter_body_reference_lines
+        from report_workflow.nodes.cited_sources import reference_line_is_stated
+
+        stated = lambda line: reference_line_is_stated(line, _notes_registry())
+        kept = _filter_body_reference_lines([
+            "- Walker, M. (2017). Why We Sleep. Scribner.",
+            "- Okano, K., et al. (2019). Sleep quality and academic performance. npj Science of Learning, 4, 16.",
+            "- Smith, J. (2021). A study nobody supplied. Sleep Review.",
+            "- Walker, M. (2018). The wrong year. Scribner.",
+        ], strict=True, stated=stated)
+        self.assertEqual(len(kept), 2, kept)
+        self.assertTrue(kept[0].startswith("- Walker, M. (2017)"))
+        self.assertTrue(kept[1].startswith("- Okano"))
+
+    def test_removed_lines_are_named_where_the_author_looks(self):
+        from report_workflow.nodes.docx_render import _split_body_references
+
+        removed: list[str] = []
+        md = "# Body\n\nText.\n\n## References\n\n- Smith, J. (2021). A study nobody supplied.\n"
+        body, refs = _split_body_references(md, strict_refs=True, stated=lambda _l: False, removed=removed)
+        self.assertEqual(refs, "")
+        self.assertEqual(removed, ["Smith, J. (2021). A study nobody supplied."])
+
+    def test_the_delivery_summary_lists_author_notices(self):
+        from report_workflow.artifact_packaging.final_qa import _build_final_qa_summary_md
+
+        summary = _minimal_summary()
+        summary["author_notices"] = ["References: removed 1 line no supplied file states: Smith (2021)"]
+        md = _build_final_qa_summary_md(summary)
+        self.assertIn("## For the author", md)
+        self.assertIn("Smith (2021)", md)
+
+
+def _minimal_summary() -> dict:
+    return {
+        "overall_status": "pass", "report_profile": "academic_paper",
+        "gate_summary": {"qa_decision": "pass", "hard_fail_reasons": []},
+        "factuality": {"status": "pass", "verified_count": 1, "blocked_count": 0,
+                       "checkers_run": ["FE"], "verified_means": "x"},
+        "artifact_lint": {"status": "pass", "error_count": 0, "warning_count": 0},
+        "engineering_audit": {"status": "n/a", "warning_count": 0, "table_evidence_count": 0},
+        "template_style": {"status": "n/a", "warning_count": 0, "reference_docx_applied": False},
+        "template_field_fill": {"status": "n/a", "filled_count": 0, "warning_count": 0},
+        "figure_visual_quality": {"status": "pass", "issue_count": 0, "figure_count": 0},
+        "render": {"status": "pass", "paragraph_count": 1, "table_count": 0, "inline_shape_count": 0,
+                   "issues": [], "visual_review": {}},
+        "report": {"renderer_used": "pandoc", "published_report_path": "r.docx", "final_docx_path": ""},
+        "source_artifacts": {},
+    }
+
+
 class GRecordedRunsReproduceFromTheRepoTests(unittest.TestCase):
     """The recorded author scripts loaded files from another session's /tmp.
 

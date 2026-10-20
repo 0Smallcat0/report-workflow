@@ -104,6 +104,12 @@ def _build_final_qa_summary_md(summary: dict) -> str:
     for label, path in summary["source_artifacts"].items():
         lines.append(f"- {label}: {path or 'missing'}")
 
+    if summary.get("author_notices"):
+        # Things the run changed in what the author wrote. A log line is not a
+        # place an author looks.
+        lines.extend(["", "## For the author", ""])
+        lines.extend(f"- {notice}" for notice in summary["author_notices"])
+
     if gate["hard_fail_reasons"]:
         lines.extend(["", "## Hard Fail Reasons", ""])
         lines.extend(f"- {reason}" for reason in gate["hard_fail_reasons"])
@@ -320,6 +326,7 @@ def build_final_qa_summary(state: ReportState, run_dir: Path) -> dict[str, str]:
             "issues": render_issues,
             "post_render_layout_manifest_path": existing_path(layout_manifest_path),
         },
+        "author_notices": list(state.runtime.get("author_notices") or []),
         "source_artifacts": {
             "qa_summary": existing_path(state.qa.get("qa_summary_path")),
             "factuality_report": existing_path(state.qa.get("factuality_report_path")),
