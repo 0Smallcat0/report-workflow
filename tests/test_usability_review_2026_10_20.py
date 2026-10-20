@@ -143,5 +143,50 @@ class BBandLabelsAreReadAsNumbersTests(unittest.TestCase):
             self.assertEqual(result["status"], "ok", result["problems"])
 
 
+class CTheClaimStageSaysWhatFAWillSayTests(unittest.TestCase):
+    """A claim type the evidence does not allow passed the claim stage.
+
+    The paper's method claim cited the survey's row-count statistic and was
+    typed `methodological`. submit_action accepted the claim matrix; the
+    author wrote the outline, and only `lint_artifacts` (or, without it, FA at
+    publish) said the type was not allowed — after the stage that owns the
+    file had closed.
+    """
+
+    def _submit(self, claim_type, status="supported"):
+        from report_workflow.agent_wrapper import submit_claim_matrix
+
+        tmpdir = tempfile.mkdtemp()
+        state = _prepare_survey(tmpdir, profile="proposal")
+        run_dir = run_dir_for(state)
+        # The intake row count, as the paper's method claim cited it.
+        row = next(
+            json.loads(line)
+            for line in (run_dir / "evidence_ledger.jsonl").read_text(encoding="utf-8").splitlines()
+            if json.loads(line)["content"].startswith("Derived statistics")
+        )
+        (run_dir / "claim_matrix.json").write_text(json.dumps({"claims": [{
+            "claim_id": "c1", "claim_text": "Visitors were counted in four time slots.",
+            "claim_type": claim_type, "status": status, "evidence_ids": [row["evidence_id"]],
+        }]}), encoding="utf-8")
+        return submit_claim_matrix(state.job_id, workspace_root=state.output["workspace_root"]), row
+
+    def test_a_type_the_evidence_does_not_allow_is_refused_at_the_claim_stage(self):
+        result, row = self._submit("methodological")
+        self.assertEqual(result["status"], "validation_failed")
+        self.assertIn("c1", result["error_details"])
+        self.assertIn("'methodological'", result["error_details"])
+        self.assertIn(f"{row['evidence_id']} allows factual, statistical", result["error_details"])
+
+    def test_a_non_publishable_status_is_refused_at_the_claim_stage(self):
+        result, _row = self._submit("factual", status="unverified")
+        self.assertEqual(result["status"], "validation_failed")
+        self.assertIn("unverified", result["error_details"])
+
+    def test_an_allowed_type_still_passes(self):
+        result, _row = self._submit("statistical")
+        self.assertEqual(result["status"], "step_1_complete", result.get("error_details"))
+
+
 if __name__ == "__main__":
     unittest.main()
