@@ -107,13 +107,15 @@ Parameters:
 
 ## `remap_agent_artifacts`
 
-Remap evidence IDs in claim_matrix.json, sentence_map.jsonl, and section draft [CITE:] markers from a previous job to the current job. Defaults to dry-run; set write=true to update files and refresh artifact contracts.
+Bring an earlier job's authored files into the current job with the current job's evidence IDs. Defaults to dry-run; write=true copies the files this run does not have yet (in a controlled run, only the open stage's - call it again when each later stage opens; files_deferred names them), then rewrites evidence IDs and artifact contracts. The earlier job is looked for under previous_workspace_root, which defaults to workspace_root.
 
 Parameters:
 
 - `job_id` (string, required): Current workflow job id.
 - `previous_job_id` (string, required): Previous workflow job id whose artifacts were reused.
 - `write` (boolean, optional): Apply remap changes when true; dry-run when false.
+- `workspace_root` (string, optional): The output_dir the current job was started with.
+- `previous_workspace_root` (string, optional): Where the earlier job lives, when it is not under workspace_root.
 
 ## `submit_revision_plan`
 

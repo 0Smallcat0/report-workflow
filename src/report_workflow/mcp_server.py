@@ -412,8 +412,9 @@ def build_server():
         previous_job_id: str,
         write: bool = False,
         workspace_root: str | None = None,
+        previous_workspace_root: str | None = None,
     ) -> dict:
-        """Rewrite evidence ids in artifacts reused from an earlier run.
+        """Copy an earlier run's authored files into this run and rewrite their evidence ids.
 
         The task briefs and the artifact linter both tell an author to run
         this when they carry a claim matrix or drafts over from a previous
@@ -421,7 +422,7 @@ def build_server():
         followed. Call with `write=false` first to see the mapping.
         """
         return agent_wrapper.remap_agent_artifacts(
-            job_id, previous_job_id, write, workspace_root
+            job_id, previous_job_id, write, workspace_root, previous_workspace_root
         )
 
     @server.tool()

@@ -328,8 +328,13 @@ stage or all required artifacts are already present.
 
 If you reuse artifacts from an older run, call
 `remap_agent_artifacts(job_id=..., previous_job_id=...)` first in dry-run mode,
-then rerun with `write=True` only after the mapping is reasonable. Do not manually
-edit evidence IDs.
+then rerun with `write=True` only after the mapping is reasonable. The write
+copies the files this run does not have yet from the earlier run; under the
+controlled workflow only the open stage's files are copied, and
+`files_deferred` names the rest with the stage that accepts them - call it again
+with `write=True` when that stage opens. Pass `previous_workspace_root` when the
+earlier run was started with a different `output_dir`. Do not manually edit
+evidence IDs.
 
 ## Validation Failure Repair
 

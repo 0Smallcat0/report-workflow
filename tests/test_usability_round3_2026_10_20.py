@@ -218,6 +218,87 @@ class CStarterChartsSpeakTheReadersLanguageTests(unittest.TestCase):
         self.assertEqual(_reader_label("Revenue (USD)"), "Revenue (USD)")
 
 
+class DReusingAnEarlierRunTests(unittest.TestCase):
+    """remap_agent_artifacts could neither find nor bring over an earlier run.
+
+    The brief says "if you reuse artifacts from an older job, run
+    remap_agent_artifacts". The agent tool had no way to say where the older
+    run lives, so a run under a non-default workspace was "not found" once the
+    process that made it had exited; and when it was found, only files already
+    sitting in the new run were rewritten -- nothing was copied, so the
+    author's claim matrix stayed behind in the old directory.
+    """
+
+    def _two_runs(self, tmpdir: str):
+        from report_workflow.state import run_dir_for
+
+        old = _prepare(tmpdir, _SURVEY, "write a short report on library visitors by time slot")
+        old_dir = run_dir_for(old)
+        ids = [row["evidence_id"] for row in _ledger(old)][:2]
+        (old_dir / "claim_matrix.json").write_text(json.dumps({
+            "_contract": {"job_id": old.job_id},
+            "claims": [{"claim_id": "c1", "claim_text": "x", "evidence_ids": ids}],
+        }), encoding="utf-8")
+        (old_dir / "outline.json").write_text(json.dumps({"sections": {}}), encoding="utf-8")
+        new = _prepare(tmpdir, _SURVEY, "write a short report on library visitors by time slot")
+        return old, new, ids
+
+    def _forget_where_runs_live(self):
+        from report_workflow import state as state_module
+
+        state_module._JOB_RUN_HINTS.clear()
+
+    def test_the_earlier_run_is_found_in_the_same_workspace(self):
+        from report_workflow.agent_wrapper import remap_agent_artifacts
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            old, new, _ids = self._two_runs(tmpdir)
+            self._forget_where_runs_live()
+            result = remap_agent_artifacts(new.job_id, old.job_id, write=False,
+                                           workspace_root=new.output["workspace_root"])
+            self.assertNotEqual(result.get("status"), "failed", result)
+
+    def test_the_earlier_run_may_live_in_another_workspace(self):
+        from report_workflow.agent_wrapper import remap_agent_artifacts
+
+        with tempfile.TemporaryDirectory() as first, tempfile.TemporaryDirectory() as second:
+            old = _prepare(first, _SURVEY, "write a short report on library visitors by time slot")
+            new = _prepare(second, _SURVEY, "write a short report on library visitors by time slot")
+            self._forget_where_runs_live()
+            result = remap_agent_artifacts(new.job_id, old.job_id, write=False,
+                                           workspace_root=new.output["workspace_root"],
+                                           previous_workspace_root=old.output["workspace_root"])
+            self.assertNotEqual(result.get("status"), "failed", result)
+
+    def test_the_authors_files_are_copied_and_stamped_for_this_run(self):
+        from report_workflow.agent_wrapper import remap_agent_artifacts
+        from report_workflow.state import run_dir_for
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            old, new, ids = self._two_runs(tmpdir)
+            result = remap_agent_artifacts(new.job_id, old.job_id, write=True,
+                                           workspace_root=new.output["workspace_root"])
+            self.assertEqual(result["status"], "ok", result)
+            copied = json.loads((run_dir_for(new) / "claim_matrix.json").read_text(encoding="utf-8"))
+            self.assertEqual(copied["_contract"]["job_id"], new.job_id)
+            self.assertEqual(copied["claims"][0]["evidence_ids"], [result["mapping"].get(i, i) for i in ids])
+            self.assertIn("claim_matrix.json", result["files_copied"])
+
+    def test_a_controlled_run_receives_each_file_when_its_stage_opens(self):
+        from report_workflow.agent_wrapper import remap_agent_artifacts
+        from report_workflow.automation_harness import get_controlled_next_action
+        from report_workflow.state import run_dir_for
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            old, new, _ids = self._two_runs(tmpdir)
+            root = new.output["workspace_root"]
+            self.assertEqual(get_controlled_next_action(new.job_id, workspace_root=root)["stage"], "claim_matrix")
+            result = remap_agent_artifacts(new.job_id, old.job_id, write=True, workspace_root=root)
+            self.assertIn("claim_matrix.json", result["files_copied"])
+            self.assertFalse((run_dir_for(new) / "outline.json").exists())
+            self.assertEqual(result["files_deferred"].get("outline.json"), "outline")
+
+
 class GRecordedRunsReproduceFromTheRepoTests(unittest.TestCase):
     """The recorded author scripts loaded files from another session's /tmp.
 
