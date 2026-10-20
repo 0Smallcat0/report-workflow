@@ -261,5 +261,44 @@ class DAPassedArtifactCanStillBeFixedTests(unittest.TestCase):
         self.assertEqual(message.count("structured_drafts.json"), 1)
 
 
+class EHeadingNumbersDoNotSkipTests(unittest.TestCase):
+    """A proposal without the optional timeline went 5. → 7.
+
+    The proposal used seven of the blueprint's sections and left out the
+    optional 時程規劃. The delivered document numbered 範疇與交付項目 as 5 and
+    預算與資源 as 7: numbers were assigned from the blueprint's list, not from
+    the sections the document has.
+    """
+
+    BLUEPRINT = {
+        "section_order": ["executive_summary", "scope", "timeline", "budget", "references"],
+        "sections": {
+            "executive_summary": {"title": "Executive Summary", "required": True},
+            "scope": {"title": "Scope", "required": True},
+            "timeline": {"title": "Timeline", "required": False},
+            "budget": {"title": "Budget", "required": False},
+            "references": {"title": "References", "required": False},
+        },
+    }
+
+    def test_an_omitted_optional_section_takes_no_number(self):
+        from report_workflow.nodes.heading_contract_check import normalize_heading_contract
+
+        markdown = "# Executive Summary\n\nA.\n\n# Scope\n\nB.\n\n# Budget\n\nC.\n"
+        normalized, issues = normalize_heading_contract(markdown, self.BLUEPRINT)
+        self.assertEqual(issues, [])
+        self.assertIn("# 1. Executive Summary", normalized)
+        self.assertIn("# 2. Scope", normalized)
+        self.assertIn("# 3. Budget", normalized)
+
+    def test_every_section_present_keeps_the_blueprint_numbers(self):
+        from report_workflow.nodes.heading_contract_check import normalize_heading_contract
+
+        markdown = "# Executive Summary\n\nA.\n\n# Scope\n\nB.\n\n# Timeline\n\nT.\n\n# Budget\n\nC.\n"
+        normalized, _ = normalize_heading_contract(markdown, self.BLUEPRINT)
+        self.assertIn("# 3. Timeline", normalized)
+        self.assertIn("# 4. Budget", normalized)
+
+
 if __name__ == "__main__":
     unittest.main()
