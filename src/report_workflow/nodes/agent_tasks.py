@@ -1375,9 +1375,24 @@ the ledger and never appear in this window.)
     outline_sections_block = outline_brief_sections_block(state.plan.get("blueprint") or {})
 
     thesis_rule = (
-        "- This profile needs a thesis: set `sections.introduction.thesis_statement` "
+        "\n- This profile needs a thesis: set `sections.introduction.thesis_statement` "
         "(one sentence the paper argues), or fill `paper_spine.contribution`, which counts as it."
         if get_policy(state.spec.get("report_profile", "")).claim.thesis_required
+        else ""
+    )
+    front_matter_given = (state.spec.get("front_matter") or {}) if isinstance(state.spec.get("front_matter"), dict) else {}
+    front_matter_missing = [
+        field for field in ("title", "author_block", "affiliation_block", "correspondence")
+        if not str(front_matter_given.get(field) or "").strip()
+    ]
+    front_matter_rule = (
+        "\n- This profile will not render without "
+        + ", ".join(f"`{field}`" for field in front_matter_missing)
+        + ', which start_report was not given: add them as `"front_matter": {...}` at the top '
+        "level of outline.json, with values the user gives you."
+        if front_matter_missing
+        and get_policy(state.spec.get("report_profile", "")).front_matter.required
+        and state.spec.get("task_intent") != "revise_existing"
         else ""
     )
     outline_task = f"""# 02 Outline Plan
@@ -1440,8 +1455,7 @@ Use this deterministic chart-selection guidance when deciding `figure_ids` and f
 - Use only section IDs defined by the blueprint.
 - Use only claim IDs from `claim_matrix.json`.
 {results_mode_rule}
-- If `report_profile=academic_paper`, fill `paper_spine`; do not leave it as template text.
-{thesis_rule}
+- If `report_profile=academic_paper`, fill `paper_spine`; do not leave it as template text.{thesis_rule}{front_matter_rule}
 - If `report_profile=engineering_lab_report`, fill `lab_spine`; do not leave it as template text.
 - The outline should create a real argument path: problem/gap/objective before methods, results before interpretation, and limitations before conclusion.
 - Account for every built table listed above: place it, or waive it by name with a reason.

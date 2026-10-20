@@ -93,6 +93,10 @@ checks against.
 
 For academic-style profiles, pass structured front matter when available:
 `title`, `author_block`, `affiliation_block`, `correspondence`, and `keywords`.
+`academic_paper` does not render without the first four. A field `start_report`
+was not given can still be supplied during the run as a top-level
+`"front_matter": {"correspondence": "..."}` block in `outline.json` — values
+the user gives you, never invented; `start_report` arguments take precedence.
 For school/company fixed templates, pass `template_fields` such as `course_name`,
 `student_id`, `instructor`, `lab_section`, `date`, or `department`. Use
 `project_identity` when a report must preserve specific project terms, domain
