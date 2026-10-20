@@ -163,6 +163,61 @@ class BAnEmptyOverflowBandIsNotARowTests(unittest.TestCase):
         self.assertEqual(len(members), len(table["rows"]) - 1)
 
 
+class CStarterChartsSpeakTheReadersLanguageTests(unittest.TestCase):
+    """Starter chart titles were raw column names, and every chart a proposal
+    was offered was filed under budget_resources.
+
+    `mean weekday_visitors and 1 other measure by time_slot` and
+    `annual_cost_twd by item after sort desc` reached the caption; a table of
+    visitor counts, which is the case for the proposal, was offered to the
+    budget section beside the cost table.
+    """
+
+    _FILES = {
+        "visits.csv": "time_slot,weekday_visitors,wait_minutes\nmorning,41,3\nafternoon,51,4\n"
+                      "evening,71,6\nmorning,36,2\nafternoon,50,5\nevening,73,7\n",
+        "cost.csv": "item,annual_cost_twd\nstaff,480000\nutilities,60000\nsecurity,90000\n",
+    }
+
+    def _recommendations(self, tmpdir: str, profile: str = "proposal") -> list[dict]:
+        _prepare(tmpdir, self._FILES, "Write a proposal to extend library opening hours", profile)
+        found = list(Path(tmpdir, "out").rglob("figure_recommendations.json"))
+        self.assertEqual(len(found), 1)
+        return json.loads(found[0].read_text(encoding="utf-8"))["recommendations"]
+
+    def test_titles_carry_no_raw_column_names(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            titles = [rec["figure_plan"]["title"] for rec in self._recommendations(tmpdir)]
+        self.assertTrue(titles)
+        for title in titles:
+            self.assertNotIn("_", title)
+            self.assertNotIn("sort desc", title)
+        self.assertIn("Annual cost (TWD) by item", titles)
+
+    def test_a_proposal_files_demand_data_under_the_problem_and_costs_under_budget(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            recs = self._recommendations(tmpdir)
+        by_source = {}
+        for rec in recs:
+            by_source.setdefault(rec["source_file_name"], set()).add(rec["section_id"])
+        self.assertEqual(by_source["cost.csv"], {"budget_resources"})
+        self.assertEqual(by_source["visits.csv"], {"problem_statement"})
+
+    def test_a_profile_with_a_results_section_is_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            recs = self._recommendations(tmpdir, "academic_paper")
+        self.assertEqual({rec["section_id"] for rec in recs}, {"results"})
+
+    def test_humanized_names(self):
+        from report_workflow.nodes.figure_recommend import _reader_label
+
+        self.assertEqual(_reader_label("週期_s"), "週期 (s)")
+        self.assertEqual(_reader_label("溫度_C"), "溫度 (°C)")
+        self.assertEqual(_reader_label("mean median_processing_minutes"), "mean median processing minutes")
+        self.assertEqual(_reader_label("annual_cost_twd"), "annual cost (TWD)")
+        self.assertEqual(_reader_label("Revenue (USD)"), "Revenue (USD)")
+
+
 class GRecordedRunsReproduceFromTheRepoTests(unittest.TestCase):
     """The recorded author scripts loaded files from another session's /tmp.
 
