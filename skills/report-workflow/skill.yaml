@@ -327,7 +327,7 @@ tools:
       value is computed from the rows
       here rather than supplied by the caller, and "expect" is checked against
       it instead of trusted. A CSV source is itself a table a
-      [TABLE:<file stem>] marker can place. Returns the evidence_id to cite.
+      [TABLE:<file stem>] marker can place. A request that cannot be computed is not registered (a failed replacement keeps the previous version), so a typo never blocks publish; registering an id again moves it to its position in the new call. Returns the evidence_id to cite.
     parameters:
       - name: job_id
         type: string

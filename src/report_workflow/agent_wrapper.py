@@ -909,33 +909,79 @@ def register_derived_evidence(
 
         # Registering again replaces the entry with the same id and leaves the
         # rest alone: an author refining one figure must not silently lose the
-        # others they already cited.
-        existing = {str(item.get("id") or ""): item for item in load_requests(run_dir)}
-        for item in derivations or []:
-            if isinstance(item, dict) and str(item.get("id") or "").strip():
-                existing[str(item["id"]).strip()] = item
-        (run_dir / DERIVED_EVIDENCE_FILE).write_text(
-            json.dumps({"derivations": list(existing.values())}, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        # others they already cited. A replaced entry moves to where this call
+        # puts it, because comparisons read figures listed before them: kept
+        # at its old position, a ratio first asked for ahead of its table
+        # stayed ahead of it however the author reordered the next call.
+        previous = load_requests(run_dir)
+        submitted = [
+            item for item in derivations or []
+            if isinstance(item, dict) and str(item.get("id") or "").strip()
+        ]
+        submitted_ids = {str(item["id"]).strip() for item in submitted}
+        merged = [
+            item for item in previous if str(item.get("id") or "").strip() not in submitted_ids
+        ] + submitted
 
+        def _store(requests: list[dict]) -> None:
+            (run_dir / DERIVED_EVIDENCE_FILE).write_text(
+                json.dumps({"derivations": requests}, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+
+        _store(merged)
         report = apply_derived_evidence(state)
+        problems = report["problems"]
+        if problems:
+            # A derivation that cannot be computed is not registered. Kept on
+            # file, it was recomputed at validate time and stopped publish over
+            # a figure no sentence cited, from a file no stage lets the author
+            # edit. A failed replacement leaves the previous, working version
+            # in place, so a figure already cited does not disappear.
+            failed = {str(problem.get("id") or "").strip() for problem in problems}
+            prior = {str(item.get("id") or "").strip(): item for item in previous}
+            kept = []
+            for item in merged:
+                key = str(item.get("id") or "").strip()
+                if key not in failed:
+                    kept.append(item)
+                elif key in submitted_ids and key in prior:
+                    kept.append(prior[key])
+            _store(kept)
+            retry = apply_derived_evidence(state)
+            if retry["problems"]:
+                still = {str(problem.get("id") or "").strip() for problem in retry["problems"]}
+                _store([item for item in kept if str(item.get("id") or "").strip() not in still])
+                retry = apply_derived_evidence(state)
+            report = {**retry, "problems": problems}
         restamped = _restamp_author_artifacts(state, run_dir)
         state.checkpoint("DERIVED_EVIDENCE_REGISTERED")
+        if problems:
+            not_registered = ", ".join(
+                sorted({str(problem.get("id") or "<no id>") for problem in problems})
+            )
+            kept_previous = sorted(failed & submitted_ids & set(prior))
+            message = (
+                f"Not registered: {not_registered}. Fix the request and register it "
+                "again; everything else registered is unchanged and citable."
+                + (
+                    f" The previous version of {', '.join(kept_previous)} is still registered."
+                    if kept_previous else ""
+                )
+            )
+        else:
+            message = (
+                "Cite these evidence_ids with [CITE:<id>] in the section drafts "
+                "and list them in claim_matrix.json."
+            )
         return {
-            "status": "blocked" if report["problems"] else "ok",
+            "status": "blocked" if problems else "ok",
             "job_id": job_id,
             "registered": report["computed"],
             "evidence": report["evidence"],
-            "problems": report["problems"],
+            "problems": problems,
             "restamped_artifacts": restamped,
-            "message": (
-                "Cite these evidence_ids with [CITE:<id>] in the section drafts "
-                "and list them in claim_matrix.json."
-                if not report["problems"]
-                else "Some derivations could not be produced from the rows; fix "
-                     "them before drafting the sentences that need them."
-            ),
+            "message": message,
         }
     except Exception as e:
         return {"status": "failed", "job_id": job_id, "error": str(e)}
