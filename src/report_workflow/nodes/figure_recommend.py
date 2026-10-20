@@ -215,6 +215,15 @@ def _chartable_grid(headers: list[str], rows: list[list[str]]) -> list[list[str]
         index for index in range(1, len(headers))
         if headers[index].strip() not in _GROUP_BOOKKEEPING_HEADERS
     ]
+    # A measure repeating the one before it cell for cell — the mean and the
+    # median of groups of one row — is the same series drawn twice.
+    deduped: list[int] = []
+    for index in keep:
+        column = [line[index] if index < len(line) else "" for line in rows]
+        if any(column == [line[k] if k < len(line) else "" for line in rows] for k in deduped[1:]):
+            continue
+        deduped.append(index)
+    keep = deduped
     if len(keep) < 2 or len(keep) == len(headers):
         return [headers, *rows]
     return [[line[index] if index < len(line) else "" for index in keep] for line in [headers, *rows]]
@@ -239,7 +248,12 @@ def _table_candidates(evidence: list[dict]) -> list[dict]:
                     [str(cell) for cell in grid["headers"]],
                     [[str(cell) for cell in line] for line in grid["rows"]],
                 ),
-                "content": str(entry.get("content") or ""),
+                # No text for the keyword tests. The evidence text is the
+                # table printed again — row counts, "share of rows"
+                # percentages, and a label such as "condition breakdown" —
+                # and they read it as a composition: the mean processing
+                # minutes of two conditions became a pie chart.
+                "content": "",
                 "derived": True,
             })
             continue

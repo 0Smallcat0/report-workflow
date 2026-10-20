@@ -394,6 +394,26 @@ class HAStarterChartDoesNotAddUpUnlikeThingsTests(unittest.TestCase):
         self.assertNotIn("筆數", names)
         self.assertNotIn("佔比", names)
 
+    def test_two_conditions_of_one_row_each_are_a_bar_not_a_pie(self):
+        # The benchmark's computed table: one row per condition, so the mean
+        # and the median are the same numbers, and the label says
+        # "condition breakdown". Without the row counts, the keyword tests
+        # read "breakdown" as a composition and drew 28 and 20 minutes as a pie.
+        from report_workflow.nodes.figure_recommend import recommend_figures_from_evidence
+
+        state = ReportState.new("x", [], tempfile.mkdtemp())
+        headers = ["condition", "rows", "share of rows", "mean median_processing_minutes", "median median_processing_minutes"]
+        rows = [["baseline_manual", "1", "50.00%", "28.00", "28.00"],
+                ["structured_workflow", "1", "50.00%", "20.00", "20.00"],
+                ["All", "2", "100.00%", "24.00", "24.00"]]
+        entry = {"evidence_id": "E_c", "source_file_name": "chart_source.csv",
+                 "content": "Derived statistics from chart_source.csv: condition breakdown.\n" + " ".join("|".join(r) for r in [headers, *rows]),
+                 "table_grid": {"headers": headers, "rows": rows}}
+        rec = recommend_figures_from_evidence(state, [entry])[0]
+        self.assertEqual(rec["recommended_figure_type"], "bar")
+        series = rec["figure_plan"]["data"]["series"]
+        self.assertEqual([s["values"] for s in series], [[28.0, 20.0]])
+
     def test_a_real_composition_is_still_stacked(self):
         rec = self._recommend(
             ["region", "online %", "store %"],
