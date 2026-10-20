@@ -300,5 +300,25 @@ class EHeadingNumbersDoNotSkipTests(unittest.TestCase):
         self.assertIn("# 4. Budget", normalized)
 
 
+class FTheDraftBriefShowsThePreferredPathTests(unittest.TestCase):
+    """The drafts brief never mentioned structured_drafts.json.
+
+    SKILL.md calls it "the preferred low-drift new-draft input", and the
+    drafts stage allows writing it, but 03_section_draft.md — the file
+    get_next_action says to read — documented only hand-written Markdown
+    plus a hand-built sentence_map.jsonl. An author following the brief took
+    the longer, error-prone path.
+    """
+
+    def test_the_brief_shows_structured_drafts_with_this_runs_sections(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _prepare_survey(tmpdir, profile="proposal")
+            brief = (run_dir_for(state) / "agent_tasks" / "03_section_draft.md").read_text(encoding="utf-8")
+            self.assertIn("structured_drafts.json", brief)
+            self.assertIn('"executive_summary": {"paragraphs"', brief)
+            self.assertIn("problem_statement", brief)
+            self.assertLess(brief.index("structured_drafts.json"), brief.index("Each sentence map line"))
+
+
 if __name__ == "__main__":
     unittest.main()
