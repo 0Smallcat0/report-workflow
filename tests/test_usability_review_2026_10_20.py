@@ -630,5 +630,43 @@ class MFigureReferencesUseTheNumberTheReaderSeesTests(unittest.TestCase):
         self.assertIn("Figure '2' is not mentioned", details)
 
 
+class NASentenceMayOpenWithASpelledNumberTests(unittest.TestCase):
+    """APA spells out a number that opens a sentence; FS read it as missing.
+
+    The paper's claim says "40 first- and second-year undergraduates", the
+    evidence says 40, and the methods sentence opens "Forty first- and
+    second-year undergraduates…" because a sentence does not start with a
+    numeral. FS blocked the claim: "asserts 40first, which the drafted
+    sentences do not state".
+    """
+
+    def test_a_sentence_initial_number_word_states_the_number(self):
+        from report_workflow.nodes.factuality_check import _spell_out_sentence_numbers
+
+        self.assertEqual(
+            _spell_out_sentence_numbers("Forty first-year students replied. Twenty-five did not."),
+            "40 first-year students replied. 25 did not.",
+        )
+
+    def test_number_words_inside_a_sentence_are_left_alone(self):
+        from report_workflow.nodes.factuality_check import _spell_out_sentence_numbers
+
+        text = "Only one of them replied, and one reason was time."
+        self.assertEqual(_spell_out_sentence_numbers(text), text)
+        self.assertEqual(_spell_out_sentence_numbers("Once upon a time."), "Once upon a time.")
+
+    def test_fs_accepts_the_spelled_number_and_still_blocks_a_wrong_one(self):
+        from report_workflow.nodes.factuality_check import run_factuality_check_fs
+
+        claim = {"claims": [{"claim_id": "c3", "claim_text": "40 first- and second-year undergraduates replied.",
+                             "evidence_ids": ["E1"]}]}
+        right = "Forty first- and second-year undergraduates replied [CITE:E1]."
+        wrong = "Fifty first- and second-year undergraduates replied [CITE:E1]."
+        ok = run_factuality_check_fs(right, claim, sentence_map=[{"sentence_id": "s1", "claim_ids": ["c3"]}])
+        bad = run_factuality_check_fs(wrong, claim, sentence_map=[{"sentence_id": "s1", "claim_ids": ["c3"]}])
+        self.assertEqual(ok[0]["status"], "verified", ok)
+        self.assertEqual(bad[0]["status"], "blocked", bad)
+
+
 if __name__ == "__main__":
     unittest.main()
