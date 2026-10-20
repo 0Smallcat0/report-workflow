@@ -171,6 +171,35 @@ and on this change. Records and deliverables:
 - Charts drew Chinese as boxes on Linux with WenQuanYi installed; a caption
   written 「表 1　…」 (authoring.md's own form) was numbered twice.
 
+### Fixed — generating a report got harder, and three things were why
+
+Three reports driven end to end through the controlled harness — a business
+report, a quantitative research memo and a Chinese lab report — took 2, 4 and 3
+attempts. The causes, in the order they cost the most:
+
+- **Every sentence carried a label.** A sentence restating a row or a paragraph
+  of the author's own files ended `(compiled in this study, calculation record
+  C4)` / `（本研究整理，計算附件 C4）`: 44 labels across the three documents,
+  quoting the author's own notes as "compiled in this study" and pointing at a
+  file the reader was not sent. Appended after an image, the label also cost the
+  figure its caption, and publish stopped on "figure references without matching
+  captions". Only a computed figure is labelled now; the trace of the rest is in
+  the QA note, as before. A structured-draft lead-in followed by its
+  `[FIGURE:]` takes its citation on the lead-in.
+- **The harness refused the pipeline's own rewrite.** Publish re-stamps the
+  `_contract` of accepted artifacts; after a failed publish every later submit
+  was a scope violation, and putting the file back — the advice given — was
+  undone by the next publish. The harness hashes artifacts without the stamp.
+- **FE blocked a backtest's own vocabulary.** 「樣本內」/「樣本外」 and
+  in-sample/out-of-sample read as claims about the whole dataset, so a quant
+  memo could not cite the row it restated; and 「12 個月」 against a
+  `lookback_months` column was "a unit the evidence does not state". Durations
+  now alias across Chinese and English (個月/months, 年/years, 天/days, …).
+
+`examples/source_to_report.py`, the run the README sends a new user to, had
+failed since the business report gained its counter-evidence section; it runs
+again and CI now runs it.
+
 ### Measured — the tool arm re-records after a month in which it could not be recorded at all
 
 `e401849` added the FL checker three hours after `e496f93` recorded the tool

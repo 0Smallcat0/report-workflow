@@ -20,8 +20,8 @@ fixed text instead of a model so the example runs offline. Swap `SOURCES` and
 `PROMPT` at the top for your own material.
 
 Full fidelity needs pandoc 3.x; without it the renderer falls back to
-`python-docx` with degraded tables and layout. Unlike the gate demo below, this
-one is not run in CI — it renders a real document, which CI has no renderer for.
+`python-docx` with degraded tables and layout. CI runs it: it stopped working
+once, when the business report gained a required section, and nobody noticed.
 
 ## `output/` — what that script produced
 

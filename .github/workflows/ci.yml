@@ -40,6 +40,11 @@ jobs:
       - name: Anti-hallucination gate demo
         run: python examples/anti_hallucination_gate.py
 
+      # The run the README sends a new user to. It failed for two months
+      # without a red build because nothing ran it.
+      - name: Source-to-report example
+        run: python examples/source_to_report.py --output "$RUNNER_TEMP/example"
+
       - name: Benchmark evidence check (8 profiles)
         run: python scripts/run_report_benchmarks.py --check
 
