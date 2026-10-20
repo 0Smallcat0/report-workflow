@@ -108,12 +108,42 @@ def feature_by_id(discovery, feature_id: str):
     return None
 
 
-def required_preflight_decision_shape(pending_installs: list[dict], ask_user: list[dict]) -> dict:
+def required_preflight_decision_shape(
+    pending_installs: list[dict],
+    ask_user: list[dict],
+    enabled_feature_ids: set[str] | frozenset[str] = frozenset(),
+) -> dict:
+    """The decisions start_report cannot do without, as a template to fill in.
+
+    Only what validate_preflight_decisions requires: a non-optional install,
+    and a feature already switched on in the configuration. The template used
+    to list every optional install and every optional feature too, and the
+    documentation says to start from it, so agents stopped to ask the user
+    about mermaid-cli and NotebookLM before every report although an empty
+    answer was accepted. Those are in optional_preflight_decision_shape.
+    """
     return {
         "confirmed_by_user": True,
         "install_decisions": {
             preflight_item_key(item): "install|installed|skip|decline|accept_degraded"
             for item in pending_installs
+            if item.get("severity") != "optional"
+        },
+        "feature_decisions": {
+            str(item.get("feature_id")): "enable|disable|skip|decline"
+            for item in ask_user
+            if item.get("feature_id") and str(item.get("feature_id")) in enabled_feature_ids
+        },
+    }
+
+
+def optional_preflight_decision_shape(pending_installs: list[dict], ask_user: list[dict]) -> dict:
+    """What the user may decide but need not: left out, each counts as skipped."""
+    return {
+        "install_decisions": {
+            preflight_item_key(item): "install|installed|skip|decline"
+            for item in pending_installs
+            if item.get("severity") == "optional"
         },
         "feature_decisions": {
             str(item.get("feature_id")): "enable|disable|skip|decline"
@@ -121,6 +151,10 @@ def required_preflight_decision_shape(pending_installs: list[dict], ask_user: li
             if item.get("feature_id")
         },
     }
+
+
+def enabled_feature_ids(discovery) -> set[str]:
+    return {feature.feature_id for feature in discovery.features if feature.enabled}
 
 
 def validate_preflight_decisions(
@@ -259,6 +293,7 @@ def evaluate_preflight_start(
             "required_preflight_decisions": required_preflight_decision_shape(
                 pending_installs,
                 ask_user,
+                enabled_feature_ids(discovery),
             ),
         }
 
@@ -278,6 +313,7 @@ def evaluate_preflight_start(
             "required_preflight_decisions": required_preflight_decision_shape(
                 required_installs,
                 ask_user,
+                enabled_feature_ids(discovery),
             ),
         }
 
@@ -308,6 +344,7 @@ def evaluate_preflight_start(
             "required_preflight_decisions": required_preflight_decision_shape(
                 critical_installs,
                 ask_user,
+                enabled_feature_ids(discovery),
             ),
         }
 
@@ -322,6 +359,7 @@ def evaluate_preflight_start(
             "required_preflight_decisions": required_preflight_decision_shape(
                 pending_installs,
                 ask_user,
+                enabled_feature_ids(discovery),
             ),
         }
 
@@ -337,6 +375,7 @@ def evaluate_preflight_start(
                 "required_preflight_decisions": required_preflight_decision_shape(
                     pending_installs,
                     ask_user,
+                    enabled_feature_ids(discovery),
                 ),
             }
         if not cfg.notebooklm_notebook_id:
@@ -352,6 +391,7 @@ def evaluate_preflight_start(
                 "required_preflight_decisions": required_preflight_decision_shape(
                     pending_installs,
                     ask_user,
+                    enabled_feature_ids(discovery),
                 ),
             }
 
@@ -362,5 +402,6 @@ def evaluate_preflight_start(
         "required_preflight_decisions": required_preflight_decision_shape(
             pending_installs,
             ask_user,
+            enabled_feature_ids(discovery),
         ),
     }

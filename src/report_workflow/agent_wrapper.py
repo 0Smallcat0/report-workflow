@@ -39,6 +39,8 @@ from report_workflow.preflight import discover_features, check_preflight
 from report_workflow.preflight_decisions import (
     evaluate_preflight_start,
     feature_flags_from_decisions,
+    enabled_feature_ids,
+    optional_preflight_decision_shape,
     pending_preflight_installs,
     required_preflight_decision_shape,
 )
@@ -244,6 +246,17 @@ def check_setup() -> dict:
         else:
             lines.append("No optional feature decisions are pending.")
 
+        required_shape = required_preflight_decision_shape(
+            pending_installs, ask_user, enabled_feature_ids(discovery)
+        )
+        if not required_shape["install_decisions"] and not required_shape["feature_decisions"]:
+            # Everything listed above is optional. Say so: the list reads as
+            # a set of questions, and agents asked them before every report.
+            lines.append(
+                "Nothing above needs the user's answer to start a report: pass "
+                "required_preflight_decisions as preflight_decisions. Optional items "
+                "left out count as skipped; ask only if the user wants one turned on."
+            )
 
         return {
             "status": "ready" if preflight.ok and not manual_only else (
@@ -251,7 +264,8 @@ def check_setup() -> dict:
             ),
             "message": "\n".join(lines),
             "pending_installs": pending_installs,
-            "required_preflight_decisions": required_preflight_decision_shape(
+            "required_preflight_decisions": required_shape,
+            "optional_preflight_decisions": optional_preflight_decision_shape(
                 pending_installs, ask_user
             ),
             "feature_discovery": features_dict,

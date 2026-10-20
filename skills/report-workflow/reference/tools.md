@@ -37,7 +37,7 @@ Parameters:
 - `notebooklm_notebook_id` (string, optional): Specific NotebookLM notebook ID to sync with. If not provided, the pipeline selects a notebook matching the report topic.
 - `notebooklm_storage_path` (string, optional): Path to NotebookLM authentication storage state file. Auto-detected if not provided (searches ~/.notebooklm/ and LOCALAPPDATA).
 - `preflight_confirmed` (boolean, optional): Must be true only after the user has answered every required or critical install question returned by check_environment, and any optional feature they chose to decide.
-- `preflight_decisions` (object, optional): Structured record of the user's preflight choices. Required shape: confirmed_by_user=true, install_decisions keyed by pending install, and feature_decisions keyed by feature_id. Use the required_preflight_decisions value from check_environment as the template; an optional install or feature left out counts as skipped.
+- `preflight_decisions` (object, optional): Structured record of the user's preflight choices. Required shape: confirmed_by_user=true, install_decisions keyed by pending install, and feature_decisions keyed by feature_id. Use the required_preflight_decisions value from check_environment as the template (it lists only what needs an answer; optional items are under optional_preflight_decisions); an optional install or feature left out counts as skipped.
 - `allow_degraded_render` (boolean, optional): Set true only after the user explicitly accepts degraded DOCX rendering when a critical render dependency such as pandoc is missing.
 
 ## `get_next_action`

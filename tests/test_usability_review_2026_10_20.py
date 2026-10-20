@@ -320,5 +320,44 @@ class FTheDraftBriefShowsThePreferredPathTests(unittest.TestCase):
             self.assertLess(brief.index("structured_drafts.json"), brief.index("Each sentence map line"))
 
 
+class GTheDecisionTemplateAsksOnlyWhatIsRequiredTests(unittest.TestCase):
+    """check_environment's template still listed every optional item.
+
+    The 10-19 fix made start_report accept an empty answer for optional
+    installs, but check_environment kept returning
+    `required_preflight_decisions` with mmdc, notebook_sync and web_research
+    in it, and setup-and-preflight.md says "always start from" that template.
+    An agent following it asked the user three optional questions first.
+    """
+
+    PENDING = [
+        {"name": "mmdc", "severity": "optional"},
+        {"name": "pandoc", "severity": "critical"},
+    ]
+    ASK = [{"feature_id": "web_research"}, {"feature_id": "notebook_sync"}]
+
+    def test_optional_items_are_not_in_the_required_template(self):
+        from report_workflow.preflight_decisions import required_preflight_decision_shape
+
+        shape = required_preflight_decision_shape(self.PENDING, self.ASK)
+        self.assertEqual(list(shape["install_decisions"]), ["pandoc"])
+        self.assertEqual(shape["feature_decisions"], {})
+
+    def test_a_feature_switched_on_still_needs_its_decision(self):
+        from report_workflow.preflight_decisions import required_preflight_decision_shape
+
+        shape = required_preflight_decision_shape(self.PENDING, self.ASK, {"web_research"})
+        self.assertEqual(list(shape["feature_decisions"]), ["web_research"])
+
+    def test_check_environment_separates_the_optional_ones(self):
+        from report_workflow.agent_wrapper import check_environment
+
+        result = check_environment()
+        required = result["required_preflight_decisions"]
+        optional = result["optional_preflight_decisions"]
+        self.assertFalse(set(required["install_decisions"]) & set(optional["install_decisions"]))
+        self.assertFalse(set(required["feature_decisions"]) & set(optional["feature_decisions"]))
+
+
 if __name__ == "__main__":
     unittest.main()

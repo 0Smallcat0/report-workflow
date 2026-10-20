@@ -30,7 +30,11 @@ Optional integrations:
 
 Call `check_environment` before `start_report`. It returns the pending
 installs, the features that could be turned on, a human-readable `message`, and
-the `required_preflight_decisions` template.
+the `required_preflight_decisions` template. That template holds only what
+`start_report` needs answered — a missing required or critical dependency, a
+feature already switched on — so when nothing is missing it is complete as
+returned. Optional items are listed separately under
+`optional_preflight_decisions`.
 
 Ask the user about a pending install only when its severity is `required` or
 `critical`, and about an optional integration only when it is not yet decided

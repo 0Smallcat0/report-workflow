@@ -207,8 +207,10 @@ tools:
           Structured record of the user's preflight choices. Required shape:
           confirmed_by_user=true, install_decisions keyed by pending install,
           and feature_decisions keyed by feature_id. Use the
-          required_preflight_decisions value from check_environment as the template;
-          an optional install or feature left out counts as skipped.
+          required_preflight_decisions value from check_environment as the template
+          (it lists only what needs an answer; optional items are under
+          optional_preflight_decisions); an optional install or feature left out
+          counts as skipped.
       - name: allow_degraded_render
         type: boolean
         required: false
