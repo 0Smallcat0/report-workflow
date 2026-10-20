@@ -494,6 +494,11 @@ def _stage_from_artifact_text(text: str, order: list[str]) -> str | None:
         ("sentence_map", "drafts"),
         ("figure_plan", "drafts"),
         ("revision_plan", "revision_plan"),
+        # The abstract is a section draft and the thesis an outline field;
+        # without these a publish failure in either was routed nowhere
+        # ("blocked_non_author_repair", no write paths).
+        ("abstract", "drafts"),
+        ("thesis", "outline"),
         ("factuality", "claim_matrix"),
         ("citation", "drafts"),
         ("figure", "drafts"),
