@@ -1903,7 +1903,7 @@ def run_docx_render(state: ReportState) -> ReportState:
             f"References: removed {len(removed_refs)} line(s) you wrote that no supplied file "
             "names by first author and year"
             + (" and that carry no DOI, journal or press" if strict_refs else "")
-            + ": " + "; ".join(removed_refs[:5])
+            + ": " + "; ".join(line.rstrip("。.;； ") for line in removed_refs[:5])
             + ". Add the work to a source file (or cite it in the notes) to keep it."
         )
         for key in ("warnings", "author_notices"):
