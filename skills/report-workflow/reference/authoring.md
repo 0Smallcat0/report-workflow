@@ -298,9 +298,12 @@ Failure returns:
 
 - `validation_failed`: repair only the returned `allowed_repair_paths` using
   `repair_context`.
-- `scope_violation`: undo or isolate the out-of-scope artifact changes before
-  retrying the same stage. Do not manually advance stages by editing
-  `harness_manifest.json`.
+- `scope_violation`: a file owned by a *later* stage was written early; remove
+  it (or restore it) and retry the same stage. Do not manually advance stages by
+  editing `harness_manifest.json`. Changing a file an *earlier* stage already
+  accepted — fixing the claim matrix during the outline stage because lint
+  named it — is not a violation: the run goes back to that stage, validates it
+  again, and says so in `note`; submit again for each later stage.
 - A failure routed back to an earlier stage (a publish failure goes to the
   earliest stage that owns part of the fix) opens every artifact from that stage
   onward for repair, and keeps the later artifacts you already wrote: fix the

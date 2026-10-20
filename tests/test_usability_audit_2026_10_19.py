@@ -268,14 +268,18 @@ class FHarnessKeepsWorkAlreadyWrittenTests(unittest.TestCase):
             self.assertEqual(result["status"], "passed")
             self.assertEqual(result["stage"], "claim_matrix")
 
-    def test_drift_on_a_passed_artifact_mid_run_is_still_refused(self):
+    def test_drift_on_a_passed_artifact_mid_run_is_validated_again(self):
+        # Refused with a scope violation until 2026-10-20, which left an author
+        # who had followed lint's advice nothing to restore; it is now sent
+        # back through the stage that owns it (test_usability_review_2026_10_20).
         with tempfile.TemporaryDirectory() as tmpdir:
             state, root, run_dir = self._state(tmpdir)
             (run_dir / "claim_matrix.json").write_text('{"claims":[]}', encoding="utf-8")
             run_controlled_stage(state.job_id, _validators(), workspace_root=root)
             (run_dir / "claim_matrix.json").write_text('{"claims":[{"claim_id":"x"}]}', encoding="utf-8")
             result = run_controlled_stage(state.job_id, _validators(), workspace_root=root)
-            self.assertEqual(result["status"], "scope_violation")
+            self.assertEqual(result["stage"], "claim_matrix")
+            self.assertEqual(result["status"], "passed")
 
 
 class GLintSaysWhatSubmitWillSayTests(unittest.TestCase):
