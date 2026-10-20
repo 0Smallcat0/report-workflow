@@ -94,6 +94,54 @@ def _validate_claim_matrix(payload: dict, report_profile: str = "") -> list[dict
     return claims
 
 
+#: Statuses FA refuses to publish; the same set artifact lint reports.
+_NON_PUBLISHABLE_STATUSES = {"blocked", "unverified", "disputed"}
+
+
+def _refuse_what_fa_will_refuse(claims: list[dict], evidence_path: str) -> None:
+    """The claim-level rules FA applies at publish, applied where they can be fixed.
+
+    A claim type its evidence does not allow and a non-publishable status are
+    decided by the claim matrix alone, but they used to surface at FA — after
+    the outline and the drafts were written, and after the stage that owns
+    claim_matrix.json had closed. Every such claim is listed at once.
+    """
+    from .factuality_check import _allowed_claim_types
+
+    ledger = {
+        row.get("evidence_id"): row
+        for row in load_jsonl_without_contract(evidence_path)
+        if row.get("evidence_id")
+    }
+    problems: list[str] = []
+    for claim in claims:
+        claim_id = claim.get("claim_id")
+        status = str(claim.get("status") or "supported")
+        if status in _NON_PUBLISHABLE_STATUSES:
+            problems.append(
+                f"{claim_id}: status {status!r} is not publishable — resolve the claim "
+                "and mark it 'supported', or remove it"
+            )
+        claim_type = str(claim.get("claim_type") or "factual")
+        refused = [
+            f"{evidence_id} allows {', '.join(_allowed_claim_types(ledger[evidence_id])) or 'none'}"
+            for evidence_id in claim.get("evidence_ids", [])
+            if evidence_id in ledger and claim_type not in _allowed_claim_types(ledger[evidence_id])
+        ]
+        if refused:
+            problems.append(
+                f"{claim_id}: claim_type {claim_type!r} is not allowed by its evidence "
+                f"({'; '.join(refused)})"
+            )
+    if problems:
+        raise QAHardBlockError(
+            "claim_matrix.json has claims FA would block at publish: "
+            + "; ".join(problems)
+            + ". Use a claim_type every cited evidence allows (often 'factual'), "
+            "or cite different evidence."
+        )
+
+
 def run_claim_plan(state: ReportState) -> ReportState:
     """T8: CLAIM_PLAN - load agent-authored claim matrix."""
     path = _claim_matrix_path(state)
@@ -131,6 +179,7 @@ def run_claim_plan(state: ReportState) -> ReportState:
                 f"`report-workflow remap-evidence --from-job <old> --to-job {state.job_id} --write` "
                 "or rebuild from this run's evidence_ledger.jsonl."
             )
+        _refuse_what_fa_will_refuse(claims, evidence_path)
     validate_evidence_ledger_provenance(evidence_path)
     state.plan["claim_matrix"] = {"claims": claims}
     state.plan["claim_matrix_path"] = write_json_artifact(state, "claim_matrix.json", state.plan["claim_matrix"])
