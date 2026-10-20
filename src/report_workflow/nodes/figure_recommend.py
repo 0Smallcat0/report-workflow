@@ -195,6 +195,31 @@ def _plottable(rows: list[list[str]]) -> list[list[str]]:
     return [[row[index] if index < len(row) else "" for index in keep] for row in rows]
 
 
+#: The closing row a grouped table prints, and the two columns every intake
+#: cross table carries to describe its own design.
+_GROUP_TOTAL_LABELS = frozenset({"All", "合計", "总计", "總計", "Total"})
+_GROUP_BOOKKEEPING_HEADERS = frozenset({"rows", "share of rows", "筆數", "佔比"})
+
+
+def _chartable_grid(headers: list[str], rows: list[list[str]]) -> list[list[str]]:
+    """A grouped table without its total row and, beside real measures, its row counts.
+
+    Plotted as they were, visitors by time slot became a stacked bar of the
+    row count, the share of rows, the mean and the median, with 合計 drawn as
+    a fifth time slot: every number real, and the picture adding up things
+    that do not add.
+    """
+    if len(rows) > 2 and rows[-1] and rows[-1][0].strip() in _GROUP_TOTAL_LABELS:
+        rows = rows[:-1]
+    keep = [0] + [
+        index for index in range(1, len(headers))
+        if headers[index].strip() not in _GROUP_BOOKKEEPING_HEADERS
+    ]
+    if len(keep) < 2 or len(keep) == len(headers):
+        return [headers, *rows]
+    return [[line[index] if index < len(line) else "" for index in keep] for line in [headers, *rows]]
+
+
 def _table_candidates(evidence: list[dict]) -> list[dict]:
     full_tables: list[dict] = []
     row_groups: dict[tuple[str, str, tuple[str, ...]], dict] = {}
@@ -210,10 +235,10 @@ def _table_candidates(evidence: list[dict]) -> list[dict]:
                 "source_id": str(entry.get("source_id") or ""),
                 "source_file_name": str(entry.get("source_file_name") or ""),
                 "evidence_ids": [str(entry.get("evidence_id") or "")],
-                "rows": [
+                "rows": _chartable_grid(
                     [str(cell) for cell in grid["headers"]],
-                    *[[str(cell) for cell in line] for line in grid["rows"]],
-                ],
+                    [[str(cell) for cell in line] for line in grid["rows"]],
+                ),
                 "content": str(entry.get("content") or ""),
                 "derived": True,
             })
@@ -1189,9 +1214,13 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
             # percentage, when the trend over months is the whole point. The
             # stacked-bar branch precedes the time-series branch, so without
             # this the line chart was unreachable.
+            # A table this pipeline computed names its measures — a mean, a
+            # median, a count — and stacks only when its rows really sum to a
+            # whole. Its text says "share" and "%" about the row counts.
             or (
                 _contains_terms(headers, table.get("content", ""), STACKED_BAR_TERMS)
                 and not time_indices
+                and not table.get("derived")
             )
         )
     ):

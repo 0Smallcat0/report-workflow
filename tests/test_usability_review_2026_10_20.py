@@ -359,5 +359,50 @@ class GTheDecisionTemplateAsksOnlyWhatIsRequiredTests(unittest.TestCase):
         self.assertFalse(set(required["feature_decisions"]) & set(optional["feature_decisions"]))
 
 
+class HAStarterChartDoesNotAddUpUnlikeThingsTests(unittest.TestCase):
+    """The first chart offered for visitors by time slot was a stacked bar.
+
+    It stacked the row count, the share of rows, the mean and the median on
+    top of one another, and drew the 合計 (total) row as a fifth time slot.
+    The 佔比 column's "%" sent the table down the composition branch. The
+    numbers were real; the picture said 9 + 25% + 40.78 + 41 was a quantity.
+    """
+
+    def _recommend(self, headers, rows, total_label="合計"):
+        from report_workflow.nodes.figure_recommend import recommend_figures_from_evidence
+
+        state = ReportState.new("x", [], tempfile.mkdtemp())
+        entry = {
+            "evidence_id": "E_slot", "source_file_name": "visits.csv",
+            "content": "衍生統計:時段 分組交叉表。" + " ".join("|".join(r) for r in [headers, *rows]),
+            "table_grid": {"headers": headers, "rows": rows + [[total_label] + ["0"] * (len(headers) - 1)]},
+        }
+        recs = recommend_figures_from_evidence(state, [entry])
+        self.assertTrue(recs)
+        return recs[0]
+
+    def test_counts_shares_and_the_total_row_are_not_plotted(self):
+        rec = self._recommend(
+            ["時段", "筆數", "佔比", "平均每日入館人次 平均", "平均每日入館人次 中位數"],
+            [["09-12", "9", "25.00%", "40.78", "41.00"], ["12-15", "9", "25.00%", "51.44", "50.00"],
+             ["15-18", "9", "25.00%", "69.44", "68.00"], ["18-20", "9", "25.00%", "64.00", "66.00"]],
+        )
+        self.assertNotEqual(rec["recommended_figure_type"], "stacked_bar")
+        data = rec["figure_plan"]["data"]
+        self.assertNotIn("合計", data.get("labels", []))
+        names = [series["name"] for series in data.get("series", [])]
+        self.assertNotIn("筆數", names)
+        self.assertNotIn("佔比", names)
+
+    def test_a_real_composition_is_still_stacked(self):
+        rec = self._recommend(
+            ["region", "online %", "store %"],
+            [["North", "60", "40"], ["South", "45", "55"], ["East", "70", "30"]],
+            total_label="All",
+        )
+        self.assertEqual(rec["recommended_figure_type"], "stacked_bar")
+        self.assertNotIn("All", rec["figure_plan"]["data"]["labels"])
+
+
 if __name__ == "__main__":
     unittest.main()
