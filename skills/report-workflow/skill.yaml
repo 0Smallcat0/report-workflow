@@ -292,7 +292,14 @@ tools:
       that find no partner are counted and reported in the evidence text, and
       a column name present on both sides is renamed rather than overwritten;
       check two tables for a shared key before writing that they cannot be
-      crossed, and the task brief lists the pairs that share one. Two further
+      crossed, and the task brief lists the pairs that share one. Two ops
+      relate two numeric columns of the same rows: "pearson_r" (r) and
+      "linear_fit" (the least-squares line of y on x - slope, intercept, R²
+      and n): {"id": "sleep_score_fit", "op": "linear_fit", "source":
+      "survey.csv", "x": "sleep_hours", "y": "midterm_score", "decimals": 2}.
+      Rows missing either value are left out and counted; the evidence text
+      states every figure, so a sentence quoting r, the slope or R² cites that
+      one id. Two further
       ops, "ratio" and "pp_diff", compare figures already computed, so an
       argument can state a multiple or a gap in percentage points and cite it.
       Either read two rows of a table registered earlier, or of a table intake already built (name it by its evidence id, e.g. "source": "E_<source>_<hash>") - {"id":
