@@ -1199,7 +1199,12 @@ def _add_hanging_indent_references(doc: Document, ref_md: str) -> None:
                 para.add_run(part)
 
 
-def _split_body_references(md_content: str, strict_refs: bool = True) -> tuple[str, str]:
+def _split_body_references(
+    md_content: str,
+    strict_refs: bool = True,
+    stated=None,
+    removed: list[str] | None = None,
+) -> tuple[str, str]:
     """Remove the inline References section from body markdown.
 
     Returns ``(md_without_references, body_refs_md)`` where ``body_refs_md``
@@ -1230,7 +1235,10 @@ def _split_body_references(md_content: str, strict_refs: bool = True) -> tuple[s
         if stripped.startswith(("- ", "* ")):
             stripped = stripped[2:].strip()
         bullet_lines.append(f"- {stripped}")
-    bullet_lines = _filter_body_reference_lines(bullet_lines, strict=strict_refs)
+    authored = list(bullet_lines)
+    bullet_lines = _filter_body_reference_lines(bullet_lines, strict=strict_refs, stated=stated)
+    if removed is not None:
+        removed.extend(line[2:] for line in authored if line not in bullet_lines)
     if bullet_lines:
         # Keep the level the heading already had. Emitting a hardcoded H2
         # pushed 參考文獻 one level below its sibling sections, so Word nested
@@ -1251,6 +1259,39 @@ def _split_body_references(md_content: str, strict_refs: bool = True) -> tuple[s
         )
     md_content = md_content[:body_refs_match.start()] + md_content[body_refs_match.end():]
     return md_content, body_refs_md
+
+
+def _reference_key(line: str) -> tuple[str, str]:
+    """(first surname, year) of one reference line, for telling duplicates apart."""
+    text = re.sub(r"^\s*(?:[-*]\s+|\[\d+\]\s*)", "", line)
+    name = re.match(r"([A-Z][A-Za-z'’-]+|[\u4e00-\u9fff]{2,4})", text)
+    year = re.search(r"(?<!\d)((?:19|20)\d{2})(?!\d)", text)
+    return (name.group(1).casefold() if name else "", year.group(1) if year else "")
+
+
+def _merge_stated_references(pub_ref_md: str, body_refs_md: str, stated) -> str:
+    """The generated list plus the author's own lines a supplied file states.
+
+    The author's line is the fuller record of the same work, so it replaces
+    the generated entry built from the notes' "Walker (2017, ...)".
+    """
+    if not any(line.startswith("- ") for line in pub_ref_md.splitlines()):
+        return pub_ref_md  # a numbered (GB/T 7714) list is left as the chain built it
+    authored = [
+        line[2:] for line in body_refs_md.splitlines()
+        if line.startswith("- ") and stated(line[2:])
+    ]
+    keys = {_reference_key(line) for line in authored}
+    kept = [
+        line for line in pub_ref_md.splitlines()
+        if not (line.startswith("- ") and _reference_key(line[2:]) in keys)
+    ]
+    entries = sorted(
+        [line[2:] for line in kept if line.startswith("- ")] + authored,
+        key=str.casefold,
+    )
+    heading = next((line for line in kept if line.startswith("#")), "## References")
+    return heading + "\n\n" + "\n\n".join(f"- {entry}" for entry in entries) + "\n"
 
 
 def _localize_reference_heading(ref_md: str, body_md: str, blueprint: dict) -> str:
@@ -1462,7 +1503,7 @@ def _pre_render_sanity_check(
     return issues
 
 
-def _filter_body_reference_lines(lines: list[str], strict: bool = True) -> list[str]:
+def _filter_body_reference_lines(lines: list[str], strict: bool = True, stated=None) -> list[str]:
     """Drop obviously internal or non-publication reference entries.
 
     ``strict`` additionally requires publication-shaped entries (DOI, arXiv,
@@ -1471,6 +1512,11 @@ def _filter_body_reference_lines(lines: list[str], strict: bool = True) -> list[
     business report legitimately cites internal documents (proposals,
     monthly reports, handbooks), so non-academic profiles pass
     ``strict=False`` and keep authored entries.
+
+    ``stated`` (a line -> bool test) keeps a line whose first author and year
+    a supplied file names together, whatever its shape: "Walker, M. (2017).
+    Why We Sleep. Scribner." has no DOI and no "press", and the notes the
+    report was written from cite it.
     """
     filtered = []
     internal_patterns = [
@@ -1489,7 +1535,7 @@ def _filter_body_reference_lines(lines: list[str], strict: bool = True) -> list[
         lowered = line.lower()
         if any(re.search(pattern, lowered, re.IGNORECASE) for pattern in internal_patterns):
             continue
-        if strict and not (
+        if strict and not (stated is not None and stated(line[2:] if line.startswith("- ") else line)) and not (
             re.search(r"doi[:\s]+10\.", line, re.IGNORECASE)
             or re.search(r"arxiv[:\s]+|\d{4}\.\d{4,5}", line, re.IGNORECASE)
             or re.search(r"\b(journal|proceedings|press|wiley|springer|elsevier|cambridge|oxford|mit press)\b", line, re.IGNORECASE)
@@ -1843,11 +1889,33 @@ def run_docx_render(state: ReportState) -> ReportState:
     strict_refs = state.spec.get("report_profile", "academic_paper") in (
         "academic_paper", "admissions_report", "admissions_project_report"
     )
-    md_content, body_refs_md = _split_body_references(md_content, strict_refs=strict_refs)
+    from .cited_sources import reference_line_is_stated
+
+    registry = state.sources.get("source_registry") or []
+    stated = lambda line: reference_line_is_stated(line, registry)  # noqa: E731
+    removed_refs: list[str] = []
+    md_content, body_refs_md = _split_body_references(
+        md_content, strict_refs=strict_refs, stated=stated, removed=removed_refs
+    )
+    if removed_refs:
+        # Logged only, the author learned of the loss by reading the document.
+        notice = (
+            f"References: removed {len(removed_refs)} line(s) you wrote that no supplied file "
+            "names by first author and year"
+            + (" and that carry no DOI, journal or press" if strict_refs else "")
+            + ": " + "; ".join(removed_refs[:5])
+            + ". Add the work to a source file (or cite it in the notes) to keep it."
+        )
+        for key in ("warnings", "author_notices"):
+            if notice not in state.runtime.setdefault(key, []):
+                state.runtime[key].append(notice)
 
     curated_count = int(state.citations.get("curated_reference_count", 0) or 0)
-    if not pub_ref_md.strip() and body_refs_md.strip() and (curated_count > 0 or not strict_refs):
+    kept_stated = any(stated(line[2:]) for line in body_refs_md.splitlines() if line.startswith("- "))
+    if not pub_ref_md.strip() and body_refs_md.strip() and (curated_count > 0 or not strict_refs or kept_stated):
         pub_ref_md = body_refs_md
+    elif pub_ref_md.strip() and kept_stated:
+        pub_ref_md = _merge_stated_references(pub_ref_md, body_refs_md, stated)
 
     # Append references to the end of the markdown for pandoc. The reference
     # artifact carries an English "## References" marker; localize it to the
