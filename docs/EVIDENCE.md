@@ -113,7 +113,7 @@ Archived results ([`benchmarks/evidence/full_benchmark_2026-05-13/summary.md`](.
 | Claims verified against evidence | **80** (10 per profile, `verified_count` in each `factuality_report.json`), **0 blocked** |
 | Unresolved citation-audit entries | **0** |
 | Delivery QA decision | `pass` on every profile |
-| Unit tests at the time of the archived run | **1260 passing** (1361 today) |
+| Unit tests at the time of the archived run | **1260 passing** (1365 today) |
 
 Each report is packaged with its QA pack (`final_qa_summary`, factuality,
 figure-visual, template-style, and render-layout reports) so
