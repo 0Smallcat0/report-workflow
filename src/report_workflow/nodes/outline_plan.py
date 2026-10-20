@@ -105,6 +105,17 @@ def _planned_figure_ids(state: ReportState) -> list[str] | None:
     ]
 
 
+def _require_outline_thesis(state: ReportState, outline: dict) -> None:
+    """The thesis PAPER_SCOPE_FREEZE needs, asked for while the outline is open.
+
+    It was checked only at publish, after the outline stage had passed and the
+    drafts were written, so a missing thesis cost a rewind through every stage.
+    """
+    from .paper_scope_freeze import _require_thesis
+
+    _require_thesis(outline, state.spec.get("report_profile", ""))
+
+
 def _recommended_figure_ids(state: ReportState) -> set[str]:
     """Plan entries the pipeline proposed from figure_recommendations.json."""
     path = run_dir_for(state) / "section_drafts" / "figure_plan.json"
@@ -437,6 +448,7 @@ def run_outline_plan(state: ReportState) -> ReportState:
         assigned_claims.update(claim_ids)
 
     _validate_figure_plan_against_outline(state, sections)
+    _require_outline_thesis(state, result)
 
     claim_ids = {claim.get("claim_id") for claim in state.plan.get("claim_matrix", {}).get("claims", [])}
     missing = sorted(claim_id for claim_id in claim_ids if claim_id and claim_id not in assigned_claims)

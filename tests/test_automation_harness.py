@@ -146,7 +146,10 @@ def _write_outline(state: ReportState) -> None:
         }
         for section_id in state.plan["blueprint"]["section_order"]
     }
-    (run_dir / "outline.json").write_text(json.dumps({"sections": sections}), encoding="utf-8")
+    (run_dir / "outline.json").write_text(json.dumps({
+        "sections": sections,
+        "thesis_statement": "The pilot program enrolled 42 participants.",
+    }), encoding="utf-8")
 
 
 def _write_drafts(state: ReportState, evidence_id: str) -> None:

@@ -177,7 +177,12 @@ def _write_agent_artifacts(state: ReportState) -> None:
     for section_id in counter_sections:
         if section_id in sections:
             sections[section_id]["undermines"] = ["c1"]
-    (run_dir / "outline.json").write_text(json.dumps({"sections": sections}), encoding="utf-8")
+    # PAPER_SCOPE_FREEZE has always required a thesis for academic_paper; since
+    # 2026-10-20 the outline stage asks for it too.
+    (run_dir / "outline.json").write_text(json.dumps({
+        "sections": sections,
+        "thesis_statement": "The pilot program enrolled 42 participants.",
+    }), encoding="utf-8")
 
     section_dir = run_dir / "section_drafts"
     section_dir.mkdir(exist_ok=True)

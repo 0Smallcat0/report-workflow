@@ -63,12 +63,25 @@ def _require_thesis(outline: dict, report_profile: str) -> tuple[str, str]:
         if top_contribution:
             return top_contribution, "outline.contribution_statement"
 
+    # The outline brief asks for paper_spine and says nothing else about the
+    # thesis, so an author who filled it in had already stated the
+    # contribution — and was stopped at publish for not writing it twice.
+    spine = outline.get("paper_spine")
+    spine_contribution = str((spine or {}).get("contribution") or "").strip() if isinstance(spine, dict) else ""
+    if spine_contribution and spine_contribution != _SPINE_TEMPLATE_CONTRIBUTION:
+        return spine_contribution, "paper_spine.contribution"
+
     # For academic mode, thesis is required
     raise QAHardBlockError(
         "PAPER_SCOPE_FREEZE: Academic report requires a thesis statement in the outline. "
-        "Add 'thesis_statement' to the introduction section or to the top-level outline. "
+        "Add 'thesis_statement' to the introduction section or to the top-level outline, "
+        "or fill paper_spine.contribution. "
         "The thesis should appear in the final paragraph of the introduction."
     )
+
+
+#: The placeholder the outline brief prints for paper_spine.contribution.
+_SPINE_TEMPLATE_CONTRIBUTION = "The main contribution the report can support with evidence."
 
 
 def _require_rqs(outline: dict, blueprint: dict, report_profile: str) -> list[str]:
