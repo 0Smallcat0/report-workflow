@@ -642,6 +642,45 @@ def outline_brief_section_ids(blueprint: dict) -> list[str]:
     return sorted(required, key=lambda sid: order.index(sid) if sid in order else len(order))
 
 
+def _structured_drafts_block(blueprint: dict, run_dir: Path, contract_json: str) -> str:
+    """The structured-drafts path, shown first in the drafts brief.
+
+    SKILL.md calls structured_drafts.json the preferred new-draft input and the
+    drafts stage may write it, but this brief documented only hand-written
+    Markdown and a hand-built sentence_map.jsonl, so an author who followed
+    the file get_next_action points to took the longer path.
+    """
+    section_ids = [
+        sid for sid in outline_brief_section_ids(blueprint)
+        if sid not in {"cover", "references", "appendix"}
+    ] or ["results"]
+    first = section_ids[0]
+    return f"""### Recommended: `{run_dir / "structured_drafts.json"}`
+
+Write the sentences once, with the claims and evidence each one states; the
+pipeline writes `section_drafts/*.md`, the `[CITE:]` markers and
+`sentence_map.jsonl` from it.
+
+```json
+{{"_contract": {contract_json},
+ "sections": {{
+  "{first}": {{"paragraphs": [
+    {{"sentences": [
+      {{"text": "A sentence stating a figure from the evidence.", "claim_ids": ["c1"],
+       "evidence_ids": ["evidence id from evidence_ledger.jsonl"], "wording_strength": "hedged"}},
+      {{"text": "A connecting sentence that states no evidence needs no ids."}}
+    ]}},
+    {{"sentences": [{{"text": "[TABLE:<evidence id> caption]"}}]}}
+  ]}}
+ }}}}
+```
+
+Keys under `sections` are this run's section ids: {", ".join(f"`{sid}`" for sid in section_ids)},
+plus any optional section your outline includes. A `[TABLE:]` or `[FIGURE:]`
+marker is a paragraph of its own. Do not also write `sentence_map.jsonl` or
+the section Markdown by hand."""
+
+
 def outline_brief_sections_block(blueprint: dict) -> str:
     """The `sections` block of the brief's Required Output, one entry per section."""
     parts = []
@@ -1401,6 +1440,9 @@ Use this deterministic chart-selection guidance when deciding `figure_ids` and f
 - Account for every built table listed above: place it, or waive it by name with a reason.
 """
 
+    structured_drafts_block = _structured_drafts_block(
+        state.plan.get("blueprint") or {}, run_dir, contract_json
+    )
     section_task = f"""# 03 Section Draft
 
 ## Inputs
@@ -1411,6 +1453,11 @@ Use this deterministic chart-selection guidance when deciding `figure_ids` and f
 - Figure recommendations: `{figure_recommendations_path}`
 
 ## Required Outputs
+
+{structured_drafts_block}
+
+### Or: Markdown section files plus a sentence map
+
 - Markdown section files under `{run_dir / "section_drafts"}`
 - Sentence map: `{run_dir / "sentence_map.jsonl"}`
 
