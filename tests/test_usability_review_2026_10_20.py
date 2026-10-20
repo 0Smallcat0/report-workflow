@@ -584,5 +584,51 @@ class LTheAbstractTheBriefShowsIsTheOneThatPassesTests(unittest.TestCase):
             "PLAN_LOCK/PAPER_SCOPE_FREEZE: Academic report requires a thesis statement", order), "outline")
 
 
+class MFigureReferencesUseTheNumberTheReaderSeesTests(unittest.TestCase):
+    """The paper's only chart had id 2, was printed as Figure 1, and the gate wanted "Figure 2".
+
+    The starter plan took id 1, so the author's scatter plot was id 2. The
+    renderer numbers figures by where they are placed — it printed
+    "Figure 1." under the chart — but FIGURE_QUALITY required the prose to
+    say "Figure 2", a cross-reference to a figure the document does not
+    have. It also required a caption line in the draft, although the
+    renderer writes the caption from the plan's title. And the stop read
+    "FIGURE_QUALITY: 1 hard issue(s): [None]".
+    """
+
+    TEXT = "# Results\n\n[FIGURE:2]\n\nScores rise with sleep, as Figure 1 shows.\n"
+
+    def test_the_printed_number_is_the_reference(self):
+        from report_workflow.nodes.figure_quality import _check_figure_contract
+
+        issues = _check_figure_contract(self.TEXT, ["2"], hard_contract=True, titled_ids={"2"})
+        hard = [j for i in issues for j in i.get("issues", [i]) if j.get("severity") == "hard"]
+        self.assertEqual(hard, [])
+
+    def test_a_missing_reference_names_the_number_to_write(self):
+        from report_workflow.nodes.figure_quality import _check_figure_contract
+
+        text = "# Results\n\n[FIGURE:2]\n\nScores rise with sleep.\n"
+        issues = _check_figure_contract(text, ["2"], hard_contract=True, titled_ids={"2"})
+        details = " ".join(j["detail"] for i in issues for j in i.get("issues", []))
+        self.assertIn("Figure 1", details)
+        self.assertNotIn("missing_caption", json.dumps(issues))
+
+    def test_an_untitled_figure_still_needs_a_caption(self):
+        from report_workflow.nodes.figure_quality import _check_figure_contract
+
+        issues = _check_figure_contract(self.TEXT, ["2"], hard_contract=True, titled_ids=set())
+        self.assertIn("missing_caption", json.dumps(issues))
+
+    def test_the_stop_message_says_what_is_wrong(self):
+        from report_workflow.nodes.figure_quality import _hard_issue_details
+
+        details = _hard_issue_details([{"figure_id": "2", "issues": [
+            {"type": "missing_prose_reference", "severity": "hard", "detail": "Figure '2' is not mentioned"},
+        ]}])
+        self.assertNotIn("None", details)
+        self.assertIn("Figure '2' is not mentioned", details)
+
+
 if __name__ == "__main__":
     unittest.main()
