@@ -120,6 +120,49 @@ class AComparisonsReadTheTablesIntakeBuiltTests(unittest.TestCase):
             self.assertIn(table_id, json.dumps(result["problems"]))
 
 
+class BAnEmptyOverflowBandIsNotARowTests(unittest.TestCase):
+    """Buckets [5, 6, 7, 8, 9] over sleep hours that top out at 8.5 printed a
+    `9+ | 0 | — | — | —` row in the delivered table. The last edge the author
+    gave is where they chose to stop; an open band above it with nothing in it
+    is not a finding.
+    """
+
+    _ROWS = "hours,score\n5.5,61\n6.2,66\n6.8,70\n7.1,72\n7.6,75\n8.0,79\n8.5,80\n"
+
+    def _table(self, csv: str, buckets: list) -> dict:
+        from report_workflow.derived_evidence import Dataset, compute_group_table
+
+        lines = csv.strip().splitlines()
+        header = lines[0].split(",")
+        rows = [dict(zip(header, line.split(","))) for line in lines[1:]]
+        frame = Dataset({"file_name": "sleep.csv", "source_id": "s1", "file_type": "csv"}, rows)
+        return compute_group_table(frame, {
+            "group_by": {"column": "hours", "buckets": buckets},
+            "measures": [{"op": "count"}, {"op": "mean", "column": "score"}],
+        })
+
+    def test_an_empty_open_band_above_the_last_edge_is_dropped(self):
+        table = self._table(self._ROWS, [5, 6, 7, 8, 9])
+        labels = [row[0] for row in table["rows"]]
+        self.assertNotIn("9+", labels)
+        self.assertEqual(labels[-1], "All")
+        self.assertEqual(table["derivation"]["groups"], 4)
+
+    def test_an_open_band_holding_rows_is_kept(self):
+        table = self._table(self._ROWS + "9.5,82\n", [5, 6, 7, 8, 9])
+        self.assertIn("9+", [row[0] for row in table["rows"]])
+
+    def test_an_empty_band_between_edges_is_kept(self):
+        table = self._table(self._ROWS, [5, 6, 7, 8, 8.2, 9])
+        self.assertIn("8–8.20", [row[0] for row in table["rows"]])
+
+    def test_band_members_follow_the_rows(self):
+        csv = "stars,n\n1,1\n2,1\n3,1\n4,1\n"
+        table = self._table(csv.replace("stars", "hours").replace(",n", ",score"), [1, 3, 5])
+        members = table["derivation"]["band_members"]
+        self.assertEqual(len(members), len(table["rows"]) - 1)
+
+
 class GRecordedRunsReproduceFromTheRepoTests(unittest.TestCase):
     """The recorded author scripts loaded files from another session's /tmp.
 
