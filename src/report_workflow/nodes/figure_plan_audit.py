@@ -749,6 +749,27 @@ def audit_figure_plan(state: ReportState, recommendations: list[dict], figure_pl
             issues.append(issue)
             hard_issues.append(issue)
             continue
+        data = figure.get("data") if isinstance(figure.get("data"), dict) else {}
+        if figure_type != "table" and not _plotted_numbers(data) and _point_count(figure_type, data) == 0:
+            # A chart with nothing on it passed every check — this audit,
+            # the visual quality review and the post-render count — and a
+            # paper shipped an empty pair of axes under a real caption.
+            issue = {
+                "severity": "hard",
+                "type": "figure_has_no_data",
+                "figure_id": figure.get("figure_id", f"index_{index}"),
+                "detail": (
+                    f"Figure {figure.get('figure_id', index)} ({figure_type}) has no values to plot: "
+                    "its data is empty, so it would render as empty axes."
+                ),
+                "repair_hint": (
+                    "Fill data from the cited evidence (scatter: data.x and data.y; bar/line: "
+                    "data.labels and data.series[].values), or remove the figure and its [FIGURE:] marker."
+                ),
+            }
+            issues.append(issue)
+            hard_issues.append(issue)
+            continue
         issues.extend(_publication_text_issues(figure, index))
         semantic_issues = _chart_semantic_issues(figure, index)
         if semantic_issues:
