@@ -482,5 +482,66 @@ class JTheThesisIsAskedForWhereItIsWrittenTests(unittest.TestCase):
             self.assertIn("thesis_statement", brief)
 
 
+class KFrontMatterIsAskedForAtTheStartTests(unittest.TestCase):
+    """The course paper stopped at publish for a missing correspondence line.
+
+    academic_paper refuses to render without author, affiliation and a
+    corresponding-author contact. Those were start_report arguments only:
+    nothing an author could write mid-run supplied them, so the cure was a
+    new run. The run said nothing about it at start, passed every stage, and
+    stopped at METADATA_GATE.
+    """
+
+    def _start(self, tmpdir, **extra):
+        from report_workflow.agent_wrapper import start_report_task
+
+        src = Path(tmpdir) / "notes.md"
+        src.write_text("Forty students reported their sleep before the midterm.", encoding="utf-8")
+        with patch("report_workflow.preflight.importlib.util.find_spec", side_effect=_all_packages_present), \
+             patch("report_workflow.preflight._find_executable", return_value="/usr/bin/tool"):
+            return start_report_task(
+                "write a paper on sleep and grades", [str(src)], output_dir=str(Path(tmpdir) / "out"),
+                report_profile="academic_paper", preflight_confirmed=True,
+                preflight_decisions={"confirmed_by_user": True, "install_decisions": {}, "feature_decisions": {}},
+                title="Sleep and midterm scores", **extra,
+            )
+
+    def test_the_missing_fields_are_named_when_the_run_starts(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = self._start(tmpdir, author_block="Lin Chen", affiliation_block="Dept. of Statistics")
+            warnings = " ".join(result.get("warnings", []))
+            self.assertIn("correspondence", warnings)
+            self.assertNotIn("author_block", warnings)
+            self.assertIn("correspondence", result["message"])
+
+    def test_the_publish_stop_says_where_the_field_comes_from(self):
+        from report_workflow.errors import QAHardBlockError
+        from report_workflow.nodes.front_matter_build import run_front_matter_build
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = self._start(tmpdir, author_block="Lin Chen", affiliation_block="Dept. of Statistics")
+            state = ReportState.resume(result["job_id"], workspace_root=result["workspace_root"])
+            with self.assertRaises(QAHardBlockError) as caught:
+                run_front_matter_build(state)
+            message = str(caught.exception)
+            self.assertIn("outline.json", message)
+            self.assertIn('"front_matter"', message)
+
+    def test_front_matter_in_the_outline_fills_what_start_report_left_empty(self):
+        from report_workflow.nodes.front_matter_build import run_front_matter_build
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = self._start(tmpdir, author_block="Lin Chen", affiliation_block="Dept. of Statistics")
+            state = ReportState.resume(result["job_id"], workspace_root=result["workspace_root"])
+            state.plan["outline"] = {"sections": {}, "front_matter": {
+                "correspondence": "lin.chen@example.edu", "author_block": "Someone Else",
+            }}
+            state = run_front_matter_build(state)
+            front = state.plan["front_matter"]
+            self.assertEqual(front["correspondence"], "lin.chen@example.edu")
+            # What start_report was given still wins.
+            self.assertEqual(front["author_block"], "Lin Chen")
+
+
 if __name__ == "__main__":
     unittest.main()

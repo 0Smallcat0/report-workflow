@@ -35,6 +35,7 @@ from report_workflow.automation_harness import (
 )
 from report_workflow.engineering_audit import run_engineering_audit as run_engineering_lab_audit
 from report_workflow.config import load_config
+from report_workflow.policies import get_policy
 from report_workflow.preflight import discover_features, check_preflight
 from report_workflow.preflight_decisions import (
     evaluate_preflight_start,
@@ -409,6 +410,22 @@ def start_report_task(
                 "no title was given, so the delivered document will have no title. "
                 "Start again with title=\"...\" (prepare is cheap; nothing is written yet)."
             )
+        missing_front_matter = []
+        if task_intent == "new_draft" and get_policy(state.spec.get("report_profile", "")).front_matter.required:
+            given = {
+                "title": title, "author_block": author_block,
+                "affiliation_block": affiliation_block, "correspondence": correspondence,
+            }
+            missing_front_matter = [field for field, value in given.items() if not str(value or "").strip()]
+        if missing_front_matter:
+            # METADATA_GATE refuses to render without these, and only
+            # start_report sets them: found at publish, the cure was a new run.
+            warnings.append(
+                f"{state.spec.get('report_profile')} will not publish without "
+                f"{', '.join(missing_front_matter)}; ask the user for them and put them in "
+                "outline.json as \"front_matter\": {...} (or start again with them as "
+                "start_report arguments)."
+            )
         controlled_action = None
         if state.status == "awaiting_agent_artifacts":
             _controlled_state, controlled_run_dir, _manifest = load_or_create_manifest(
@@ -446,6 +463,12 @@ def start_report_task(
                     "",
                 ])
 
+            if missing_front_matter:
+                msg_lines.extend([
+                    f"This profile will not publish without {', '.join(missing_front_matter)}. "
+                    'Ask the user for them and add "front_matter" to outline.json.',
+                    "",
+                ])
             if untitled:
                 msg_lines.extend([
                     "No title was given: the document will have none. Start again "
