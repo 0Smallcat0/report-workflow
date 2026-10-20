@@ -462,7 +462,18 @@ def remap_evidence_ids(
     previous_workspace_root: str | Path | None = None,
 ) -> dict:
     run_dir = run_dir_for(job_id, workspace_root=workspace_root)
-    previous_by_sig = _ledger_by_signature(previous_job_id, workspace_root=previous_workspace_root)
+    # Two runs of one report usually share an output directory. Looking for
+    # the earlier one only under the default workspace meant "not found" for
+    # every run started with output_dir once its process had exited.
+    previous_dir = run_dir_for(
+        previous_job_id,
+        workspace_root=previous_workspace_root if previous_workspace_root is not None else workspace_root,
+    )
+    copied, deferred = _copy_reusable_artifacts(previous_dir, run_dir) if write else ([], {})
+    previous_by_sig = {
+        _evidence_signature(item): item
+        for item in load_jsonl_without_contract(previous_dir / "evidence_ledger.jsonl")
+    }
     current_by_sig = _ledger_by_signature(job_id, workspace_root=workspace_root)
     mapping: dict[str, str] = {}
     unmapped: list[str] = []
@@ -540,13 +551,96 @@ def remap_evidence_ids(
                     touched_files.append(str(path))
 
     unmapped = sorted(unresolved_ids)
-    return {
+    result = {
         "status": "ok" if not unmapped else "partial",
         "job_id": job_id,
         "previous_job_id": previous_job_id,
+        "previous_run_dir": str(previous_dir),
         "write": write,
         "mapped_count": len(mapping),
         "mapping": mapping,
         "unmapped_ids": unmapped,
+        "files_copied": copied,
+        "files_deferred": deferred,
         "files_touched": sorted(set(touched_files)),
     }
+    if deferred:
+        result["next_step"] = (
+            "These files belong to later stages of the controlled workflow and were "
+            "left in the earlier run: " + ", ".join(f"{path} ({stage})" for path, stage in deferred.items())
+            + ". Call remap_agent_artifacts again with write=true when each stage opens."
+        )
+    return result
+
+
+#: What an author wrote in a run, in the order the stages accept it.
+_REUSABLE_ARTIFACTS = (
+    "claim_matrix.json",
+    "outline.json",
+    "section_drafts/figure_plan.json",
+    "structured_drafts.json",
+    "section_drafts/*.md",
+    "sentence_map.jsonl",
+    "revision_plan.json",
+)
+
+
+def _is_generated_figure_plan(path: Path) -> bool:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return False
+    return isinstance(payload, dict) and str(payload.get("generated_by") or "").endswith("auto_figure_plan")
+
+
+def _copy_reusable_artifacts(previous_dir: Path, run_dir: Path) -> tuple[list[str], dict[str, str]]:
+    """Bring the author's files over from an earlier run.
+
+    Only files this run does not already have, so nothing the author wrote
+    here is overwritten. Under the controlled workflow a later stage's file
+    written early is a scope violation, so only the open stage's files are
+    copied; the rest are named with the stage that will accept them.
+    """
+    import fnmatch
+    import shutil
+
+    from .automation_harness import STAGE_DEFS, _stage_write_paths, manifest_path_for
+
+    owner: dict[str, str] = {}
+    for stage, spec in STAGE_DEFS.items():
+        for pattern in spec.get("allowed_write_paths", []):
+            owner.setdefault(pattern, stage)
+    allowed: list[str] | None = None
+    manifest_path = manifest_path_for(run_dir)
+    if manifest_path.exists():
+        try:
+            manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            manifest = {}
+        current = str(manifest.get("current_stage") or "")
+        allowed = _stage_write_paths((manifest.get("stages") or {}).get(current) or {})
+
+    copied: list[str] = []
+    deferred: dict[str, str] = {}
+    for pattern in _REUSABLE_ARTIFACTS:
+        sources = sorted(previous_dir.glob(pattern)) if "*" in pattern else [previous_dir / pattern]
+        for source in sources:
+            if not source.is_file():
+                continue
+            rel = source.relative_to(previous_dir).as_posix()
+            target = run_dir / rel
+            if target.exists() and not (
+                rel == "section_drafts/figure_plan.json"
+                and _is_generated_figure_plan(target)
+                and not _is_generated_figure_plan(source)
+            ):
+                continue
+            if allowed is not None and not any(fnmatch.fnmatch(rel, item) for item in allowed):
+                deferred[rel] = next(
+                    (stage for item, stage in owner.items() if fnmatch.fnmatch(rel, item)), "a later stage"
+                )
+                continue
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(source, target)
+            copied.append(rel)
+    return copied, deferred

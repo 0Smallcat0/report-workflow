@@ -1194,10 +1194,30 @@ def remap_agent_artifacts(
     previous_job_id: str,
     write: bool = False,
     workspace_root: str | None = None,
+    previous_workspace_root: str | None = None,
 ) -> dict:
-    """Remap evidence IDs in agent artifacts from a previous run to this run."""
+    """Bring an earlier run's authored files into this run, with this run's evidence ids.
+
+    With ``write=True`` the author's files missing here are copied from the
+    earlier run (under the controlled workflow, only the open stage's), then
+    every evidence id and ``_contract`` is rewritten for this run. The earlier
+    run is looked for under ``previous_workspace_root``, defaulting to this
+    run's ``workspace_root``.
+    """
     try:
-        return remap_evidence_ids(job_id, previous_job_id, write=write, workspace_root=workspace_root)
+        if write:
+            # The skill's runs are controlled: open the stage manifest first so
+            # a later stage's file is not copied in ahead of its stage.
+            from .automation_harness import get_controlled_next_action
+
+            get_controlled_next_action(job_id, workspace_root=workspace_root)
+        return remap_evidence_ids(
+            job_id,
+            previous_job_id,
+            write=write,
+            workspace_root=workspace_root,
+            previous_workspace_root=previous_workspace_root,
+        )
     except Exception as e:
         return {"status": "failed", "error": str(e)}
 

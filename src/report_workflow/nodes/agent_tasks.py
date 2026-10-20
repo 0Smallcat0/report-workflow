@@ -1330,7 +1330,8 @@ Write `{run_dir / "claim_matrix.json"}` with this shape:
 ## Artifact Contract
 Keep `_contract` exactly aligned with this run. If you reuse artifacts from an older job,
 run `remap_agent_artifacts(job_id="{state.job_id}", previous_job_id="<old>", write=true)`
-instead of manually copying evidence IDs.
+instead of copying files or evidence IDs by hand: it copies the files this stage accepts
+from the old run, rewrites their ids, and names the files that wait for a later stage.
 
 Do not edit `merged_draft.md`, checkpoint files, or `base_document_sections.json`.
 For `new_draft`, the editable artifacts are `claim_matrix.json`, `outline.json`,
