@@ -288,6 +288,36 @@ class EvidenceMustSupportTheClaimTests(unittest.TestCase):
         self.assertEqual(result["status"], "blocked")
         self.assertIn("single data row", result["reason"])
 
+    def test_in_and_out_of_sample_name_the_row_not_the_dataset(self):
+        # A backtest row is one partition of the sample. 「樣本外」 is the cell
+        # the claim restates, and reading its 樣本 as dataset scope blocked
+        # every result sentence of a quant memo.
+        row = _row_evidence({
+            "lookback_months": "12", "sample": "out_of_sample", "sharpe": "0.35",
+        })
+        for claim in (
+            "樣本外 12 個月回看的夏普值降為 0.35。",
+            "The out-of-sample Sharpe ratio of the 12-month lookback is 0.35.",
+        ):
+            result = _fe(claim, row)
+            self.assertEqual(result["status"], "verified", (claim, result.get("reason")))
+
+    def test_the_whole_sample_is_still_dataset_scope_beside_a_partition(self):
+        result = _fe(
+            "樣本外的平均夏普值為 0.35。",
+            _row_evidence({"lookback_months": "12", "sample": "out_of_sample", "sharpe": "0.35"}),
+        )
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn("single data row", result["reason"])
+
+    def test_a_duration_in_chinese_matches_its_english_column(self):
+        result = _fe(
+            "回看期間為 12 個月，最大回撤為 21.9%。",
+            _row_evidence({"lookback_months": "12", "max_drawdown_pct": "-21.9"}),
+        )
+        self.assertNotIn("states a unit", result.get("reason", ""))
+
+
     def test_a_price_with_a_currency_prefix_is_readable(self):
         result = _fe(
             "該商品標價為 71.99 美元。",

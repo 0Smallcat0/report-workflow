@@ -1017,6 +1017,16 @@ _UNIT_ALIASES = {
     "\u5206\u949f": "min",
     "\u5c0f\u6642": "h",
     "\u5c0f\u65f6": "h",
+    # Durations, spelled in Chinese in the prose and in English in the column
+    # header: a claim of 「12 個月」 against lookback_months = 12 is the same
+    # quantity, and was refused as a different unit.
+    "hour": "h", "hours": "h", "hr": "h", "hrs": "h",
+    "minute": "min", "minutes": "min", "mins": "min",
+    "sec": "s", "secs": "s", "second": "s", "seconds": "s",
+    "個月": "month", "个月": "month", "months": "month",
+    "年": "year", "years": "year", "yr": "year", "yrs": "year",
+    "天": "day", "日": "day", "days": "day",
+    "週": "week", "周": "week", "weeks": "week",
     "\u767e\u5206\u6bd4": "%",
     "\uff05": "%",
     # Currency, written as a symbol on one side and a word on the other. A
@@ -1294,6 +1304,13 @@ _DATASET_SCOPE_RE = re.compile(
 
 _COLUMN_BRACKET_RE = re.compile(r"[(（\[［].*?[)）\]］]")
 
+#: In-sample and out-of-sample name one partition of the rows — the very cell a
+#: backtest row is about — not the sample as a whole. Read as scope words they
+#: blocked every result sentence of a quant memo that cited the row it restates.
+_SAMPLE_PARTITION_RE = re.compile(
+    r"樣本[內内外]|样本[内外]|\b(?:in|out[- ]of)[- ]sample\b", re.IGNORECASE
+)
+
 
 def _is_dataset_scope_claim(claim_text: str, row_columns: Iterable[str] = ()) -> bool:
     """True when a scope word in the claim speaks about the whole dataset.
@@ -1311,7 +1328,7 @@ def _is_dataset_scope_claim(claim_text: str, row_columns: Iterable[str] = ()) ->
         name = _COLUMN_BRACKET_RE.sub(" ", str(column or "")).casefold()
         column_words.update(re.findall(r"[a-z][a-z0-9]*", name))
         column_words.update(re.findall(r"[㐀-鿿]+", name))
-    for match in _DATASET_SCOPE_RE.finditer(claim_text or ""):
+    for match in _DATASET_SCOPE_RE.finditer(_SAMPLE_PARTITION_RE.sub(" ", claim_text or "")):
         word = match.group(0).casefold()
         if word in column_words or any(
             re.fullmatch(r"[㐀-鿿]+", w) and word in w for w in column_words
