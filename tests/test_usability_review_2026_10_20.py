@@ -440,5 +440,47 @@ class IAReportWithoutATitleSaysSoTests(unittest.TestCase):
             self.assertFalse(any("no title" in warning for warning in result.get("warnings", [])))
 
 
+class JTheThesisIsAskedForWhereItIsWrittenTests(unittest.TestCase):
+    """The paper's outline passed; publish then wanted a thesis_statement.
+
+    The outline brief's only hard rule about framing is "fill paper_spine",
+    and the author did — problem, gap, objective, contribution. Nothing reads
+    paper_spine. PAPER_SCOPE_FREEZE, at publish, wanted `thesis_statement`
+    in the introduction, which no brief mentions, and the outline stage had
+    already passed.
+    """
+
+    def test_the_spines_contribution_is_the_thesis(self):
+        from report_workflow.nodes.paper_scope_freeze import _require_thesis
+
+        outline = {
+            "paper_spine": {"contribution": "Students sleeping 7.5-9 h scored 13.28 points higher."},
+            "sections": {"introduction": {"claim_ids": ["c1"]}},
+        }
+        thesis, where = _require_thesis(outline, "academic_paper")
+        self.assertIn("13.28", thesis)
+        self.assertEqual(where, "paper_spine.contribution")
+
+    def test_a_missing_thesis_stops_the_outline_stage(self):
+        from report_workflow.errors import QAHardBlockError
+        from report_workflow.nodes.outline_plan import _require_outline_thesis
+
+        state = ReportState.new("x", [], tempfile.mkdtemp())
+        state.spec["report_profile"] = "academic_paper"
+        with self.assertRaises(QAHardBlockError) as caught:
+            _require_outline_thesis(state, {"sections": {"introduction": {"claim_ids": ["c1"]}}})
+        self.assertIn("thesis_statement", str(caught.exception))
+        self.assertIn("paper_spine.contribution", str(caught.exception))
+
+        state.spec["report_profile"] = "proposal"
+        _require_outline_thesis(state, {"sections": {}})
+
+    def test_the_outline_brief_names_the_thesis_field(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _prepare_survey(tmpdir, profile="academic_paper")
+            brief = (run_dir_for(state) / "agent_tasks" / "02_outline_plan.md").read_text(encoding="utf-8")
+            self.assertIn("thesis_statement", brief)
+
+
 if __name__ == "__main__":
     unittest.main()

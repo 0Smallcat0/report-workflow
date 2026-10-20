@@ -1374,6 +1374,12 @@ the ledger and never appear in this window.)
 
     outline_sections_block = outline_brief_sections_block(state.plan.get("blueprint") or {})
 
+    thesis_rule = (
+        "- This profile needs a thesis: set `sections.introduction.thesis_statement` "
+        "(one sentence the paper argues), or fill `paper_spine.contribution`, which counts as it."
+        if get_policy(state.spec.get("report_profile", "")).claim.thesis_required
+        else ""
+    )
     outline_task = f"""# 02 Outline Plan
 
 ## Inputs
@@ -1435,6 +1441,7 @@ Use this deterministic chart-selection guidance when deciding `figure_ids` and f
 - Use only claim IDs from `claim_matrix.json`.
 {results_mode_rule}
 - If `report_profile=academic_paper`, fill `paper_spine`; do not leave it as template text.
+{thesis_rule}
 - If `report_profile=engineering_lab_report`, fill `lab_spine`; do not leave it as template text.
 - The outline should create a real argument path: problem/gap/objective before methods, results before interpretation, and limitations before conclusion.
 - Account for every built table listed above: place it, or waive it by name with a reason.
