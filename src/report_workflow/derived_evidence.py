@@ -1205,9 +1205,22 @@ def compute_group_table(frame: Dataset, request: dict, zh: bool = False) -> dict
 _DASH_RE = re.compile(r"[‐-―−]")
 
 
+#: A decimal written with trailing zeros: the 50 of 7.50, the .0 of 9.0.
+_TRAILING_ZEROS_RE = re.compile(r"(?<![\d.])(\d+)\.(\d*?)0+(?![\d.])")
+
+
+def _label_key(label: object) -> str:
+    text = _DASH_RE.sub("-", str(label).strip())
+    # A bucket edge given as 7.5 is printed 7.50; the author naming the band
+    # as they wrote the edge was told "7.5-9" is not a row of the table.
+    return _TRAILING_ZEROS_RE.sub(
+        lambda m: m.group(1) + ("." + m.group(2) if m.group(2) else ""), text
+    )
+
+
 def _same_label(left: object, right: object) -> str:
     """Two group labels, compared without arguing about which dash was typed."""
-    return _DASH_RE.sub("-", str(left).strip()) == _DASH_RE.sub("-", str(right).strip())
+    return _label_key(left) == _label_key(right)
 
 
 def _registered_figure(
