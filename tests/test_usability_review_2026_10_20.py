@@ -535,6 +535,7 @@ class KFrontMatterIsAskedForAtTheStartTests(unittest.TestCase):
             state = ReportState.resume(result["job_id"], workspace_root=result["workspace_root"])
             state.plan["outline"] = {"sections": {}, "front_matter": {
                 "correspondence": "lin.chen@example.edu", "author_block": "Someone Else",
+                "keywords": ["sleep", "exam performance", "undergraduates"],
             }}
             state = run_front_matter_build(state)
             front = state.plan["front_matter"]
@@ -666,6 +667,35 @@ class NASentenceMayOpenWithASpelledNumberTests(unittest.TestCase):
         bad = run_factuality_check_fs(wrong, claim, sentence_map=[{"sentence_id": "s1", "claim_ids": ["c3"]}])
         self.assertEqual(ok[0]["status"], "verified", ok)
         self.assertEqual(bad[0]["status"], "blocked", bad)
+
+
+class OKeywordsAreNeverAnotherProjectsTests(unittest.TestCase):
+    """The sleep paper was delivered with the keywords of a compiler project.
+
+    No keywords were passed, and every academic_paper new draft without them
+    received a fixed list — "deterministic compilation, StrategyIR,
+    domain-specific intermediate representation, abstract syntax tree
+    compilation…" — printed on the title page of a statistics course paper.
+    """
+
+    def _front(self, outline=None):
+        from report_workflow.nodes.front_matter_build import _build_front_matter
+
+        state = ReportState.new("write a paper on sleep and midterm scores", [], tempfile.mkdtemp())
+        state.spec["report_profile"] = "academic_paper"
+        state.spec["task_intent"] = "new_draft"
+        state.plan["outline"] = outline or {"sections": {}}
+        state.plan["blueprint"] = {}
+        return _build_front_matter(state)
+
+    def test_no_keywords_given_means_none_invented(self):
+        keywords = self._front()["keywords"]
+        self.assertNotIn("StrategyIR", keywords)
+        self.assertEqual(keywords, [])
+
+    def test_keywords_in_the_outline_are_used(self):
+        front = self._front({"sections": {}, "front_matter": {"keywords": ["sleep", "exam performance", "undergraduates"]}})
+        self.assertEqual(front["keywords"], ["sleep", "exam performance", "undergraduates"])
 
 
 if __name__ == "__main__":

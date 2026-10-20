@@ -93,7 +93,8 @@ checks against.
 
 For academic-style profiles, pass structured front matter when available:
 `title`, `author_block`, `affiliation_block`, `correspondence`, and `keywords`.
-`academic_paper` does not render without the first four. A field `start_report`
+`academic_paper` does not render without any of them, and keywords are never
+inferred for it. A field `start_report`
 was not given can still be supplied during the run as a top-level
 `"front_matter": {"correspondence": "..."}` block in `outline.json` — values
 the user gives you, never invented; `start_report` arguments take precedence.
