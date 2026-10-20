@@ -295,7 +295,7 @@ tools:
       crossed, and the task brief lists the pairs that share one. Two further
       ops, "ratio" and "pp_diff", compare figures already computed, so an
       argument can state a multiple or a gap in percentage points and cite it.
-      Either read two rows of a table registered earlier - {"id":
+      Either read two rows of a table registered earlier, or of a table intake already built (name it by its evidence id, e.g. "source": "E_<source>_<hash>") - {"id":
       "premium_vs_budget", "op": "ratio", "source": "price_band_reliability",
       "column": "Listings", "numerator_group": "200-500",
       "denominator_group": "0-30", "decimals": 1} - or name two registered

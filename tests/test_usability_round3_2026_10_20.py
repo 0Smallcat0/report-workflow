@@ -37,6 +37,89 @@ def _prepare(tmpdir: str, files: dict, prompt: str, profile: str = "custom") -> 
         return prepare_workflow(prompt, paths, str(Path(tmpdir) / "out"), report_profile=profile)
 
 
+_SURVEY = {
+    "survey.csv": "slot,visitors\n09-12,41\n12-15,51\n15-18,71\n18-20,68\n"
+                  "09-12,36\n12-15,50\n15-18,73\n18-20,59\n",
+}
+
+
+def _register(state, derivations):
+    from report_workflow.agent_wrapper import register_derived_evidence
+
+    return register_derived_evidence(
+        state.job_id, derivations, workspace_root=state.output["workspace_root"]
+    )
+
+
+def _ledger(state) -> list[dict]:
+    path = Path(state.sources["evidence_ledger_path"])
+    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
+class AComparisonsReadTheTablesIntakeBuiltTests(unittest.TestCase):
+    """`ratio` and `formula` could not name a table intake had already built.
+
+    The brief lists the auto cross tabulations as "already built", but a ratio
+    of two of its rows failed with "not a derivation computed earlier in this
+    call", so the author registered an identical table by hand and then had to
+    waive the original one in the outline.
+    """
+
+    def _auto_table(self, state) -> str:
+        tables = [row for row in _ledger(state) if row.get("table_grid") and row.get("origin") == "auto"]
+        self.assertEqual(len(tables), 1)
+        return tables[0]["evidence_id"]
+
+    def test_a_ratio_reads_two_rows_of_an_auto_table(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _prepare(tmpdir, _SURVEY, "write a short report on library visitors by time slot")
+            table_id = self._auto_table(state)
+            result = _register(state, [{
+                "id": "evening_vs_morning", "op": "ratio", "source": table_id,
+                "column": "mean visitors", "numerator_group": "18-20",
+                "denominator_group": "09-12", "decimals": 2,
+            }])
+            self.assertEqual(result["status"], "ok", result.get("problems"))
+            content = result["evidence"][0]["content"]
+            self.assertIn("1.65", content)  # 63.5 / 38.5
+
+    def test_a_formula_reads_a_cell_of_an_auto_table(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _prepare(tmpdir, _SURVEY, "write a short report on library visitors by time slot")
+            table_id = self._auto_table(state)
+            result = _register(state, [{
+                "id": "evening_gap", "op": "formula", "expr": "late - early", "decimals": 1,
+                "inputs": {
+                    "late": {"table": table_id, "column": "mean visitors", "row": "18-20"},
+                    "early": {"table": table_id, "column": "mean visitors", "row": "09-12"},
+                },
+            }])
+            self.assertEqual(result["status"], "ok", result.get("problems"))
+            self.assertIn("25", result["evidence"][0]["content"])
+
+    def test_a_wrong_expect_against_an_auto_table_still_blocks(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _prepare(tmpdir, _SURVEY, "write a short report on library visitors by time slot")
+            table_id = self._auto_table(state)
+            result = _register(state, [{
+                "id": "evening_vs_morning", "op": "ratio", "source": table_id,
+                "column": "mean visitors", "numerator_group": "18-20",
+                "denominator_group": "09-12", "decimals": 2, "expect": 2.0,
+            }])
+            self.assertEqual(result["status"], "blocked")
+
+    def test_an_unknown_source_lists_the_built_tables(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _prepare(tmpdir, _SURVEY, "write a short report on library visitors by time slot")
+            table_id = self._auto_table(state)
+            result = _register(state, [{
+                "id": "x", "op": "ratio", "source": "by_slot", "column": "mean visitors",
+                "numerator_group": "18-20", "denominator_group": "09-12",
+            }])
+            self.assertEqual(result["status"], "blocked")
+            self.assertIn(table_id, json.dumps(result["problems"]))
+
+
 class GRecordedRunsReproduceFromTheRepoTests(unittest.TestCase):
     """The recorded author scripts loaded files from another session's /tmp.
 

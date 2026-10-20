@@ -2318,20 +2318,25 @@ def dataset_summary_units(
         entries.extend(_auto_cross_tables(dataset, zh))
 
         for index, (content, derivation, table) in enumerate(entries):
-            digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
             units.append(
                 _unit_evidence(
                     dataset,
                     content,
                     derivation,
                     created_at,
-                    evidence_id=f"E_{dataset.source_id}_{digest[:10]}",
+                    evidence_id=summary_evidence_id(dataset, content),
                     block_id=f"summary_{index}",
                     origin="auto",
                     table=table,
                 )
             )
     return units
+
+
+def summary_evidence_id(dataset: Dataset, content: str) -> str:
+    """The id an intake summary gets: its source plus a digest of its text."""
+    digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
+    return f"E_{dataset.source_id}_{digest[:10]}"
 
 
 def _column_kinds(dataset: Dataset) -> tuple[list[str], list[str]]:
@@ -2668,6 +2673,22 @@ def build_requested_units(
         computed[entry["request_id"]] = entry
         computed[entry["evidence_id"]] = entry
         order.append(entry["request_id"])
+
+    # The cross tabulations intake built, recomputed from the rows the same
+    # way, so a ratio or a formula can read a cell of a table the brief listed
+    # as "already built". Without them the author registered an identical
+    # table by hand and then had to waive the original in the outline.
+    for dataset in datasets:
+        for content, derivation, table in _auto_cross_tables(dataset, zh):
+            evidence_id = summary_evidence_id(dataset, content)
+            remember({
+                "kind": "table",
+                "request_id": evidence_id,
+                "evidence_id": evidence_id,
+                "table": table,
+                "dataset": dataset,
+                "rows_matched": derivation.get("rows_matched", len(dataset.rows)),
+            })
 
     for request in requests or []:
         if not isinstance(request, dict):

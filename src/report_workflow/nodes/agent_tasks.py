@@ -836,7 +836,9 @@ def _derived_stats_guidance(evidence_path: str) -> str:
         "`[TABLE:]` marker in the paragraph that discusses it - you do not",
         "retype it, and its numbers are checked by construction. Work through",
         "this list before registering anything: a table you were about to build",
-        "cell by cell may already be here.",
+        "cell by cell may already be here. A `ratio`, `pp_diff` or `formula`",
+        "reads their cells by naming the table's evidence id as its `source`",
+        "(or `{\"table\": id}` input), so a comparison needs no copy of the table.",
         "",
     ]
     parts.extend(rendered(unit) for unit in auto_tables)
