@@ -1868,6 +1868,46 @@ def find_mangled_amounts(text: str) -> list[tuple[str, str]]:
     return findings
 
 
+_NUMBER_UNITS = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+    "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
+    "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
+    "nineteen": 19,
+}
+_NUMBER_TENS = {
+    "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60,
+    "seventy": 70, "eighty": 80, "ninety": 90,
+}
+#: A capitalised number word opening a sentence: "Forty", "Twenty-five".
+_SENTENCE_INITIAL_NUMBER_RE = re.compile(
+    r"(?P<lead>^\s*|[.!?]\s+|\n\s*)"
+    r"(?P<word>(?:Twenty|Thirty|Forty|Fifty|Sixty|Seventy|Eighty|Ninety)(?:-[a-z]+)?|"
+    r"One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Twelve|Thirteen|"
+    r"Fourteen|Fifteen|Sixteen|Seventeen|Eighteen|Nineteen)\b(?!-)"
+)
+
+
+def _spell_out_sentence_numbers(text: str) -> str:
+    """Write a sentence-opening number word as digits, for reading numbers only.
+
+    Style guides — APA among them — spell out a number that begins a sentence,
+    so a methods section opens "Forty undergraduates…" for a claim that says
+    40. FS read that as the 40 not being stated. Only a capitalised word at
+    the start of a sentence is read; "one of them" inside a sentence is not a
+    figure.
+    """
+    def replace(match: re.Match) -> str:
+        word = match.group("word").lower()
+        if "-" in word:
+            tens, _, unit = word.partition("-")
+            if tens not in _NUMBER_TENS or unit not in _NUMBER_UNITS or _NUMBER_UNITS[unit] > 9:
+                return match.group(0)
+            return match.group("lead") + str(_NUMBER_TENS[tens] + _NUMBER_UNITS[unit])
+        return match.group("lead") + str(_NUMBER_TENS.get(word) or _NUMBER_UNITS[word])
+
+    return _SENTENCE_INITIAL_NUMBER_RE.sub(replace, text or "")
+
+
 def _claim_sentences(merged_text: str, evidence_ids: set[str]) -> list[str]:
     """Sentences of the draft that cite this claim's evidence.
 
@@ -1996,7 +2036,7 @@ def run_factuality_check_fs(
             # that failure; reporting it again here would double-block it.
             continue
 
-        available = _extract_numbers_with_unit(" ".join(sentences))
+        available = _extract_numbers_with_unit(_spell_out_sentence_numbers(" ".join(sentences)))
         if state is not None and outline is not None:
             available.extend(_bound_figure_numbers(state, claim_id, outline))
 
