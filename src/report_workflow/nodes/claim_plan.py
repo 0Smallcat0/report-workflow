@@ -171,6 +171,19 @@ def run_claim_plan(state: ReportState) -> ReportState:
             for eid in claim.get("evidence_ids", [])
             if eid not in known_evidence
         })
+        unregistered = [eid for eid in unknown if str(eid).startswith("E_D_")]
+        if unregistered:
+            # An E_D_ id is this run's own derivation, named by the author. It
+            # is missing because it failed to register or was never requested
+            # — not because the file came from another run, which is what the
+            # message below said, pointing at a remap that cannot help.
+            raise QAHardBlockError(
+                "claim_matrix.json cites derived statistics this run has not registered: "
+                + ", ".join(unregistered[:12])
+                + ". Register each with register_derived_evidence (id without the E_D_ "
+                "prefix) and check the call's problems list; a request that failed "
+                "is not registered."
+            )
         if unknown:
             raise QAHardBlockError(
                 "claim_matrix.json references evidence IDs that do not exist in this run: "
