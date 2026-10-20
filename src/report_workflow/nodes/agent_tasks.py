@@ -611,7 +611,12 @@ def _abstract_section(report_profile: str, blueprint: dict, document_language: s
     return (
         f"## Abstract ({budget})\n\n"
         f"{shape}\n\n"
-        f"**Length: {budget}**, counted after removing `[CITE:]` markers.\n"
+        f"**Length: {budget}**, counted after removing `[CITE:]` markers"
+        + (
+            " (each Chinese character and each Latin word counts as one; "
+            "punctuation and spaces are not counted, so aim above the minimum).\n"
+            if document_language == "zh" else ".\n"
+        ) +
         "**No trailing ellipses (`.....`), no incomplete sentences.**\n"
         "**No `[CITE:]`, `[Source:]`, or `[graphify:]` markers in the abstract.**\n"
         "The abstract still needs `claim_ids` in `outline.json`: it declares which "
@@ -1541,8 +1546,6 @@ If `report_profile=admissions_report` or `admissions_project_report`, prefer:
 - Option B plain-paragraph abstract by default
 - project-monograph tone rather than journal-template tone
 - research narrative that foregrounds contribution, design choices, and research potential
-- deterministic compilation / StrategyIR / AST / orthogonal quality gates as the spine
-- LLM components as constrained supporting modules, not co-equal contributions
 
 ## Engineering lab reports
 

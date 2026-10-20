@@ -170,13 +170,20 @@ def _word_count_check(text: str, family: str) -> list[str]:
     minimum = policy.abstract.word_count_min * scale
     maximum = policy.abstract.word_count_max * scale
     unit = "characters" if scale > 1 else "words"
+    # The author counting 312 characters was told "287 characters" and had to
+    # guess why. Say what is counted, and the length as an editor shows it.
+    counted = (
+        f" Counted: Chinese characters plus Latin words; punctuation and spaces are "
+        f"not counted (this abstract is {len(text.strip())} characters including them)."
+        if scale > 1 else ""
+    )
     if words < minimum:
         errors.append(
-            f"Abstract too short: {words} {unit} (minimum {minimum} for {family})"
+            f"Abstract too short: {words} {unit} (minimum {minimum} for {family}).{counted}"
         )
     elif words > maximum:
         errors.append(
-            f"Abstract too long: {words} {unit} (maximum {maximum} for {family})"
+            f"Abstract too long: {words} {unit} (maximum {maximum} for {family}).{counted}"
         )
     return errors
 

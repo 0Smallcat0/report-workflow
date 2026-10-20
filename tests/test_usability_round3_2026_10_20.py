@@ -486,6 +486,52 @@ class FCorrelationAndASimpleFitAreRegistrableTests(unittest.TestCase):
             self.assertTrue(wrong)
 
 
+class IAnAbstractLengthSaysWhatItCountsTests(unittest.TestCase):
+    """The brief said "300-500 characters"; the author's abstract was 312
+    characters long and the gate answered "287 characters". It counts Chinese
+    characters and Latin words and skips punctuation, which neither the brief
+    nor the message said, so the author lengthened it by guesswork.
+    """
+
+    _TEXT = "本研究量測教室二氧化碳濃度，並記錄專注度。" * 13
+
+    def test_the_message_names_what_is_counted(self):
+        from report_workflow.nodes.abstract_check import _word_count_check
+
+        errors = _word_count_check(self._TEXT, "admissions_project_report")
+        self.assertEqual(len(errors), 1)
+        self.assertIn("punctuation", errors[0])
+        self.assertIn(str(len(self._TEXT)), errors[0])
+
+    def test_the_rule_is_unchanged(self):
+        from report_workflow.nodes.abstract_check import _word_count_check
+
+        self.assertTrue(_word_count_check(self._TEXT, "admissions_project_report"))
+        self.assertFalse(_word_count_check(self._TEXT * 2, "admissions_project_report"))
+
+    def test_the_brief_says_punctuation_is_not_counted(self):
+        from report_workflow.nodes.agent_tasks import _abstract_section
+
+        text = _abstract_section("admissions_project_report", {"sections": {"abstract": {}}}, "zh")
+        self.assertIn("punctuation", text)
+
+
+class JTheAdmissionsBriefIsAboutTheAuthorsProjectTests(unittest.TestCase):
+    """The drafts brief told a high-school CO2 project to use "deterministic
+    compilation / StrategyIR / AST / orthogonal quality gates as the spine"
+    and to treat "LLM components" as supporting modules: one earlier
+    project's outline, given to every admissions report.
+    """
+
+    def test_no_other_projects_spine_in_the_brief(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            _prepare(tmpdir, _SURVEY, "write a project report on library visitors", "admissions_project_report")
+            brief = next(Path(tmpdir, "out").rglob("03_section_draft.md")).read_text(encoding="utf-8")
+        self.assertIn("project-monograph tone", brief)
+        for leaked in ("StrategyIR", "orthogonal quality gates", "LLM components"):
+            self.assertNotIn(leaked, brief)
+
+
 class GRecordedRunsReproduceFromTheRepoTests(unittest.TestCase):
     """The recorded author scripts loaded files from another session's /tmp.
 
