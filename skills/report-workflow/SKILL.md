@@ -138,6 +138,7 @@ start_report(
     output_dir="/path/to/output",
     report_profile="engineering_lab_report",
     task_intent="new_draft",
+    title="Step response of a second-order system",  # profiles without a cover section print no title without it
     template_fields={"course_name": "Control Systems", "student_id": "S12345"},
     preflight_confirmed=True,
     preflight_decisions={
