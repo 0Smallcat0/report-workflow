@@ -105,5 +105,43 @@ class AFailedRegistrationDoesNotPoisonTheRunTests(unittest.TestCase):
             self.assertIn("E_D_by_slot", ledger)
 
 
+class BBandLabelsAreReadAsNumbersTests(unittest.TestCase):
+    """The tool prints a 7.5 bucket edge as 7.50 and then refused 7.5.
+
+    Buckets [4, 6, 7.5, 9] came back as rows 4–6, 6–7.50 and 7.50–9. A
+    comparison naming the band the way the author had just written the edge,
+    "7.5-9", was refused as "not a row" — the dash already is forgiven, the
+    trailing zero the tool added itself was not.
+    """
+
+    def test_a_trailing_zero_the_tool_printed_is_not_a_different_band(self):
+        from report_workflow.derived_evidence import _same_label
+
+        self.assertTrue(_same_label("7.50–9", "7.5-9"))
+        self.assertTrue(_same_label("6–7.50", "6-7.5"))
+        self.assertFalse(_same_label("7.50–9", "7.5-10"))
+        self.assertFalse(_same_label("North", "South"))
+
+    def test_registering_against_the_band_as_the_author_wrote_it(self):
+        from report_workflow.agent_wrapper import register_derived_evidence
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            src = Path(tmpdir) / "sleep.csv"
+            src.write_text(
+                "sleep_hours,score\n4.5,70\n5.5,74\n6.5,80\n7.0,84\n7.8,88\n8.6,90\n",
+                encoding="utf-8",
+            )
+            with patch("report_workflow.preflight.importlib.util.find_spec", side_effect=_all_packages_present):
+                state = prepare_workflow("write a paper", [str(src)], str(Path(tmpdir) / "out"), report_profile="custom")
+            result = register_derived_evidence(state.job_id, [
+                {"id": "bands", "source": "sleep.csv",
+                 "group_by": {"column": "sleep_hours", "buckets": [4, 6, 7.5, 9]},
+                 "measures": [{"op": "mean", "column": "score", "label": "Mean score"}]},
+                {"id": "gap", "op": "ratio", "source": "bands", "column": "Mean score",
+                 "numerator_group": "7.5-9", "denominator_group": "4-6", "decimals": 2},
+            ], workspace_root=state.output["workspace_root"])
+            self.assertEqual(result["status"], "ok", result["problems"])
+
+
 if __name__ == "__main__":
     unittest.main()
