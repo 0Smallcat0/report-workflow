@@ -415,6 +415,7 @@ def start_report_task(
             given = {
                 "title": title, "author_block": author_block,
                 "affiliation_block": affiliation_block, "correspondence": correspondence,
+                "keywords": keywords,
             }
             missing_front_matter = [field for field, value in given.items() if not str(value or "").strip()]
         if missing_front_matter:

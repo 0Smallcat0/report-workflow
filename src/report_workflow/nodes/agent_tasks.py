@@ -1382,8 +1382,8 @@ the ledger and never appear in this window.)
     )
     front_matter_given = (state.spec.get("front_matter") or {}) if isinstance(state.spec.get("front_matter"), dict) else {}
     front_matter_missing = [
-        field for field in ("title", "author_block", "affiliation_block", "correspondence")
-        if not str(front_matter_given.get(field) or "").strip()
+        field for field in ("title", "author_block", "affiliation_block", "correspondence", "keywords")
+        if not front_matter_given.get(field) or not str(front_matter_given.get(field)).strip()
     ]
     front_matter_rule = (
         "\n- This profile will not render without "

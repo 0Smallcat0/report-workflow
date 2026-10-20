@@ -312,16 +312,6 @@ _PROMPT_LEAK_PATTERNS = [
     re.compile(r"\bgenerate\s+an?\s+academic\s+report\b", re.IGNORECASE),
 ]
 
-_THESIS_ALIGNED_KEYWORDS = [
-    "deterministic compilation",
-    "StrategyIR",
-    "domain-specific intermediate representation",
-    "abstract syntax tree compilation",
-    "strategy verification",
-    "constrained large language models",
-]
-
-
 def _structured_front_matter_from_spec(spec: dict) -> dict:
     """Return caller-provided structured front matter fields only."""
     raw = spec.get("front_matter") or {}
@@ -364,11 +354,6 @@ def _parse_preamble_metadata_line(line: str) -> tuple[str, str] | None:
     field = match.group(1).lower()
     value = match.group(2).strip().strip("*").strip()
     return field, value
-
-
-def _select_thesis_aligned_keywords(user_prompt: str = "") -> list[str]:
-    """Select stable admissions-facing keywords from the thesis spine."""
-    return list(_THESIS_ALIGNED_KEYWORDS)
 
 
 def _enrich_keywords_to_research_level(
@@ -540,7 +525,11 @@ def _build_front_matter(state: ReportState) -> dict:
         # Extract keywords from evidence if not provided
         if not front_matter["keywords"]:
             if task_intent == "new_draft" and report_profile == "academic_paper":
-                front_matter["keywords"] = _select_thesis_aligned_keywords(user_prompt)
+                # Keywords come from the user, like the rest of a new paper's
+                # front matter. This branch used to print a fixed list from
+                # one compiler project — "StrategyIR", "abstract syntax tree
+                # compilation" — on the title page of every paper given none.
+                pass
             else:
                 raw_keywords = _extract_keywords_from_evidence(state.sources.get("evidence_ledger_path"))
                 claim_matrix = state.plan.get("claim_matrix")
@@ -745,7 +734,7 @@ def run_front_matter_build(state: ReportState) -> ReportState:
                 + "; ".join(strict_warnings)
                 + ". Supply the missing fields in outline.json as "
                 '"front_matter": {"author_block": "...", "affiliation_block": "...", '
-                '"correspondence": "..."} (values the user gave you, not invented), '
+                '"correspondence": "...", "keywords": ["...", "...", "..."]} (values the user gave you, not invented), '
                 "then call submit_action; start_report arguments, when given, take precedence."
             )
 
