@@ -22,8 +22,8 @@ delivered beside the report, which is where the derivations themselves now live;
 three of the seven cross tabulations the pipeline built at intake were waived by
 name in the outline with a reason each.
 
-Measured when recorded: 12,740 characters, 167 traceable figures, 10 tables.
-Body SHA-256: 2312200279b777e2fdf2dd31dbd67f7aa12436af65d28494133a313aaab337bf
+Measured when recorded: 12,721 characters, 167 traceable figures, 10 tables.
+Body SHA-256: 239c1b8c35f2021d6f13cda773cfc4a121255b01c6b7f7b497d5bee72a1dcdee
 -->
 
 ## 目錄
@@ -259,7 +259,7 @@ DJI 有 92 件掛牌、佔 16.91%，價格中位數 247.50 USD；第二名 Holy 
 
 CR3 的 53.62% 是以 brand 欄有值的掛牌為分母計算的。（本研究計算，計算附件 C15）換一個分母，這個數字會完全改變：以全部掛牌為分母時，前三名只佔兩成上下。報告採用有品牌標示的掛牌為分母，因此品牌集中度的結論只適用於品牌側，不適用於整個貨架。
 
-銷量欄位最高的三個級距不是無人機：10K+ 那一組唯一的一件是 Occer Compact Binoculars，35.99 USD、33,535 則評論；8K+ 是 GIGASTONE Micro SD Card，64.98 USD、8,830 則評論；6K+ 也是 GIGASTONE Micro SD Card，49.99 USD、8,639 則評論。帶銷量欄位的掛牌共 165 件、佔 30.33%。（本研究計算，表 10；本研究整理，計算附件 C19–C21）任何以銷量級距排序的需求結論，最高的一端都是這三件商品在撐。它們的數字沒有一個是錯的——交叉表把它們算對了，而它們不屬於這份報告要判斷的市場。所以銷量欄位不能用來排無人機的需求，本報告的價格帶與品類結論都不使用它；這也表示「哪一段真的走量」這個問題，這份資料回答不了，必須以第三方銷量資料補上，而那份資料若顯示低價帶的頭部規模夠大，建議一節的切點就要改。
+銷量欄位最高的三個級距不是無人機：10K+ 那一組唯一的一件是 Occer Compact Binoculars，35.99 USD、33,535 則評論；8K+ 是 GIGASTONE Micro SD Card，64.98 USD、8,830 則評論；6K+ 也是 GIGASTONE Micro SD Card，49.99 USD、8,639 則評論。帶銷量欄位的掛牌共 165 件、佔 30.33%。（本研究計算，表 10）任何以銷量級距排序的需求結論，最高的一端都是這三件商品在撐。它們的數字沒有一個是錯的——交叉表把它們算對了，而它們不屬於這份報告要判斷的市場。所以銷量欄位不能用來排無人機的需求，本報告的價格帶與品類結論都不使用它；這也表示「哪一段真的走量」這個問題，這份資料回答不了，必須以第三方銷量資料補上，而那份資料若顯示低價帶的頭部規模夠大，建議一節的切點就要改。
 
 # 4. 建議事項
 

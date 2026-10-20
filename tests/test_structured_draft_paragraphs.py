@@ -84,3 +84,26 @@ class StructuredDraftParagraphTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class CitationBesideAnExhibitTests(unittest.TestCase):
+    """A lead-in and its exhibit: the citation belongs to the lead-in.
+
+    Appended after the marker, the citation shared the image's paragraph, the
+    renderer no longer read it as a captioned figure, and publish stopped on
+    "figure references without matching captions".
+    """
+
+    def test_the_citation_lands_on_the_lead_in_not_the_figure_line(self):
+        from report_workflow.nodes.section_draft import _sentence_text_with_citations
+
+        text, _ids = _sentence_text_with_citations(
+            "Figure 1 traces the monthly median.\n\n[FIGURE:3]", ["E1"]
+        )
+        self.assertEqual(text, "Figure 1 traces the monthly median [CITE:E1].\n\n[FIGURE:3]")
+
+    def test_a_chinese_lead_in_keeps_its_full_stop_after_the_citation(self):
+        from report_workflow.nodes.section_draft import _sentence_text_with_citations
+
+        text, _ids = _sentence_text_with_citations("圖 1 並列夏普值。\n\n[FIGURE:1]", ["E1"])
+        self.assertEqual(text, "圖 1 並列夏普值 [CITE:E1]。\n\n[FIGURE:1]")
