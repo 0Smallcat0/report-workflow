@@ -396,6 +396,30 @@ class AutomationHarnessTests(unittest.TestCase):
             self.assertEqual(result["stage"], "outline")
             self.assertEqual(result["violations"][0]["relative_path"], "claim_matrix.json")
 
+    def test_a_restamped_contract_is_not_the_author_editing_the_file(self):
+        # Publish grows the ledger and re-stamps every accepted artifact's
+        # _contract. A failed publish then routed back to drafts, and the
+        # rewrite the pipeline had just made was refused as the author's.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("controlled report", [], str(Path(tmpdir) / "out"))
+            state.checkpoint("TEST")
+            workspace_root = state.output["workspace_root"]
+            run_dir = run_dir_for(state)
+            stamp = {"job_id": state.job_id, "evidence_ledger_hash": "a", "source_registry_hash": "b"}
+
+            (run_dir / "claim_matrix.json").write_text(
+                json.dumps({"_contract": stamp, "claims": []}), encoding="utf-8"
+            )
+            result = run_controlled_stage(state.job_id, _fake_validators(), workspace_root=workspace_root)
+            self.assertEqual(result["next_stage"], "outline")
+
+            restamped = {**stamp, "evidence_ledger_hash": "c"}
+            (run_dir / "claim_matrix.json").write_text(
+                json.dumps({"claims": [], "_contract": restamped}, indent=2), encoding="utf-8"
+            )
+            result = run_controlled_stage(state.job_id, _fake_validators(), workspace_root=workspace_root)
+            self.assertNotEqual(result["status"], "scope_violation", result.get("error_details"))
+
     def test_validation_failure_stays_on_minimal_stage_with_repair_context(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("controlled report", [], str(Path(tmpdir) / "out"))

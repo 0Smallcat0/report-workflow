@@ -14,6 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, Any
 
+from .artifact_contract import CONTRACT_KEY
 from .state import ReportState, run_dir_for
 
 
@@ -153,6 +154,30 @@ def _matches(rel_path: str, patterns: list[str]) -> bool:
 
 
 def _hash_file(path: Path) -> str:
+    """Hash what the author wrote, not the pipeline's stamp on it.
+
+    Validation re-stamps an accepted artifact's `_contract` whenever the ledger
+    grows, and publish grows it. Hashing the stamp too made that rewrite look
+    like the author editing a file after its stage had passed: a failed publish
+    routed back to drafts and every later submit was refused as a scope
+    violation, with advice — put the file back — that the next publish undid.
+    """
+    if path.suffix in {".json", ".jsonl"}:
+        try:
+            text = path.read_text(encoding="utf-8")
+            if path.suffix == ".json":
+                payload = json.loads(text)
+                if isinstance(payload, dict):
+                    payload.pop(CONTRACT_KEY, None)
+                rows = [payload]
+            else:
+                rows = [json.loads(line) for line in text.splitlines() if line.strip()]
+                if rows and isinstance(rows[0], dict) and set(rows[0]) == {CONTRACT_KEY}:
+                    rows = rows[1:]
+            canonical = json.dumps(rows, ensure_ascii=False, sort_keys=True)
+            return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            pass
     digest = hashlib.sha256()
     with open(path, "rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
