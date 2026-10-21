@@ -120,5 +120,35 @@ class LabSheetVocabularyTests(unittest.TestCase):
         self.assertEqual(_extract_numbers_with_unit("實驗分三組"), [("3", "組")])
 
 
+class TaskQuestionsTests(unittest.TestCase):
+    def test_the_request_before_a_colon_is_not_part_of_the_first_question(self):
+        from report_workflow.prompt_questions import extract_questions
+
+        self.assertEqual(
+            extract_questions(
+                "Write a short business report for the support operations manager: which support "
+                "channel is under the most pressure in Q2 2026, whether it is getting worse, and "
+                "whether the two agents moved to chat in June should return to email."
+            ),
+            [
+                "which support channel is under the most pressure in Q2 2026",
+                "whether it is getting worse",
+                "whether the two agents moved to chat in June should return to email",
+            ],
+        )
+        self.assertEqual(
+            extract_questions("寫一份量化研究備忘錄：低波動因子是否有效、樣本外是否成立。"),
+            ["低波動因子是否有效", "樣本外是否成立"],
+        )
+
+
+class RunDirectoryPunctuationTests(unittest.TestCase):
+    def test_a_title_comma_does_not_reach_the_directory_name(self):
+        from report_workflow.state import build_run_dir_name
+
+        name = build_run_dir_name("x", "run_1", {"title": "Support Channel Pressure, Q2 2026"})
+        self.assertEqual(name, "Support-Channel-Pressure-Q2-2026--run_1")
+
+
 if __name__ == "__main__":
     unittest.main()
