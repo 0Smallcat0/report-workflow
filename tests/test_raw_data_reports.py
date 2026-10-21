@@ -343,6 +343,36 @@ class EvidenceMustSupportTheClaimTests(unittest.TestCase):
         self.assertNotIn("states a unit", result.get("reason", ""))
 
 
+    def test_a_frequency_the_evidence_also_states_is_not_a_rate(self):
+        # 「每月…前 20%」 read as 20%/月 against the evidence's own 「每月…20%」.
+        paragraph = {
+            **_row_evidence({}),
+            "block_type": "paragraph",
+            "content": "本次回測：每月依過去報酬排序，買進前 20% 並放空後 20%，等權重持有一個月。",
+        }
+        result = _fe("本策略每月買進過去報酬前 20% 並放空後 20%。", paragraph, claim_type="factual")
+        self.assertEqual(result["status"], "verified", result.get("reason"))
+
+    def test_a_rate_the_evidence_never_states_still_blocks(self):
+        paragraph = {**_row_evidence({}), "block_type": "paragraph", "content": "該批貨物總價 500 美元。"}
+        result = _fe("每噸售價 500 美元。", paragraph, claim_type="factual")
+        self.assertEqual(result["status"], "blocked")
+
+    def test_a_paraphrase_of_a_statistic_whose_figures_all_check_passes(self):
+        # The statistic speaks in column names; the claim in a person's words.
+        statistic = {
+            **_row_evidence({}),
+            "block_type": "derived_statistic",
+            "content": (
+                "衍生統計(來源:rc.csv):error_pct 欄共 5 筆數值，最小值 2.60，第一四分位 3.50，"
+                "中位數 3.50，平均數 3.52，第三四分位 4，最大值 4。"
+            ),
+        }
+        result = _fe("五組量測的誤差介於 2.6% 至 4% 之間，平均 3.52%。", statistic)
+        self.assertEqual(result["status"], "verified", result.get("reason"))
+        wrong = _fe("五組量測的誤差介於 2.6% 至 4% 之間，平均 3.9%。", statistic)
+        self.assertEqual(wrong["status"], "blocked")
+
     def test_a_price_with_a_currency_prefix_is_readable(self):
         result = _fe(
             "該商品標價為 71.99 美元。",
