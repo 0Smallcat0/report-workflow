@@ -32,7 +32,12 @@ import re
 #: Where one clause of a task statement ends. Commas are included: a Chinese
 #: brief routinely asks two things in one sentence separated by a comma, and
 #: splitting only on full stops returns both as a single unanswerable blob.
-_CLAUSE_SPLIT_RE = re.compile(r"[。．.；;！!？?\n，,、]+")
+#: A colon too: what comes before it is the request ("寫一份備忘錄：", "Write a
+#: report for the manager:"), and it was returned glued to the first question.
+_CLAUSE_SPLIT_RE = re.compile(r"[。．.；;！!？?\n，,、：:]+")
+
+#: A conjunction left at the front of a clause by the split: "and whether…".
+_LEADING_CONJUNCTION_RE = re.compile(r"^(?:and|or|but|also|以及|及|和|與|与|並且|并且|還有|还有)\s*", re.IGNORECASE)
 
 #: Interrogative markers. A clause carrying one is a question the report owes an
 #: answer to. A written-out list rather than a derived rule: 是否 and 值不值得
@@ -75,7 +80,7 @@ def extract_questions(prompt: str) -> list[str]:
     """
     found: list[str] = []
     for raw in _CLAUSE_SPLIT_RE.split(str(prompt or "")):
-        clause = raw.strip()
+        clause = _LEADING_CONJUNCTION_RE.sub("", raw.strip()).strip()
         if not _MIN_QUESTION_CHARS <= len(clause) <= _MAX_QUESTION_CHARS:
             continue
         if not _is_question(clause):
