@@ -573,7 +573,7 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
     # series beside the returns it parameterises. Crossed with a label column
     # it names each row exactly once, which no observed quantity does.
     for column in columns:
-        if column["role"] != "numeric_measure":
+        if column["role"] not in {"numeric_measure", "time_like"}:
             continue
         values = [_clean_text(value) for value in _column_values(rows, int(column["index"]))]
         counts: dict[str, int] = {}
@@ -581,7 +581,10 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
             counts[value] = counts.get(value, 0) + 1
         if len(counts) < 2 or "" in counts or len(set(counts.values())) != 1 or min(counts.values()) < 2:
             continue
-        for other in columns:
+        # A month that repeats once per channel is still a time axis; only a
+        # grid of three or more settings makes a sorted lookback ("6, 6, 6, 6,
+        # 12, …") a label rather than a timeline.
+        for other in columns if column["role"] == "numeric_measure" else []:
             if other is column or other["role"] != "categorical":
                 continue
             other_values = [_clean_text(value) for value in _column_values(rows, int(other["index"]))]
@@ -592,6 +595,21 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
                 column["role"] = "categorical"
                 column["design_factor"] = True
                 break
+        else:
+            # 2 lookbacks × 2 sample periods × 2 portfolios: no single label
+            # column crosses the lookback into all eight rows; all of them do.
+            labels = [
+                [_clean_text(value) for value in _column_values(rows, int(other["index"]))]
+                for other in columns
+                if other is not column and other["role"] == "categorical"
+            ]
+            if len(labels) >= 2:
+                level_count = len(counts)
+                for other_values in labels:
+                    level_count *= len(set(other_values))
+                if level_count == len(data_rows) == len(set(zip(values, *labels))):
+                    column["role"] = "categorical"
+                    column["design_factor"] = True
 
     composition_total: float | None = None
     for column in columns:
@@ -876,10 +894,13 @@ def _row_totals_are_composition_like(rows: list[list[str]], numeric_indices: lis
     return all(99 <= total <= 101 or 0.99 <= total <= 1.01 for total in totals)
 
 
-def _crossed_label_pair(rows: list[list[str]], label_indices: list[int]) -> tuple[int, int] | None:
-    """Two label columns whose pairs name each row once, when no single one does.
+def _crossed_label_pair(rows: list[list[str]], label_indices: list[int]) -> tuple[list[int], int] | None:
+    """Label columns whose combinations name each row once, when no single one does.
 
-    Returned as (axis, series): the column with more values along the axis.
+    Returned as (axis columns, series column). Two columns: the one with more
+    values goes along the axis. Three or more laid out as a full grid — lookback
+    by sample period by portfolio — put the column with the fewest values in
+    the legend and the combinations of the rest along the axis.
     """
     data_rows = rows[1:]
     columns = {index: [_clean_text(row[index] if index < len(row) else "") for row in data_rows] for index in label_indices}
@@ -890,17 +911,25 @@ def _crossed_label_pair(rows: list[list[str]], label_indices: list[int]) -> tupl
         if len(pairs) == len(data_rows) and len(set(columns[left])) * len(set(columns[right])) == len(data_rows):
             if len(set(columns[right])) > len(set(columns[left])):
                 left, right = right, left
-            return left, right
+            return [left], right
+    if len(label_indices) >= 3:
+        level_count = 1
+        for index in label_indices:
+            level_count *= len(set(columns[index]))
+        if level_count == len(data_rows) == len(set(zip(*(columns[index] for index in label_indices)))):
+            fewest = min(len(set(columns[index])) for index in label_indices)
+            series = [index for index in label_indices if len(set(columns[index])) == fewest][-1]
+            return [index for index in label_indices if index != series], series
     return None
 
 
-def _pivot_payload(rows: list[list[str]], label_index: int, series_index: int, value_index: int) -> dict:
+def _pivot_payload(rows: list[list[str]], label_indices: list[int], series_index: int, value_index: int) -> dict:
     data_rows = rows[1:MAX_CHART_ROWS + 1]
     labels: list[str] = []
     series_names: list[str] = []
     cells: dict[tuple[str, str], float] = {}
     for row in data_rows:
-        label = _clean_text(row[label_index] if label_index < len(row) else "")
+        label = " / ".join(_clean_text(row[index] if index < len(row) else "") for index in label_indices)
         name = _clean_text(row[series_index] if series_index < len(row) else "")
         if label not in labels:
             labels.append(label)
@@ -1565,7 +1594,7 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
         # period — are a grid, not a list: one measure, one bar group per value
         # of the first, one series per value of the second. Drawn as a list it
         # repeated "in_sample" three times along the axis.
-        label_index, series_index = crossed
+        label_indices, series_index = crossed
         value_index = value_indices[0]
         reason = (
             "Two label columns that together identify each row compare one measure "
@@ -1580,8 +1609,8 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
             ["bar"],
             "high",
             reason,
-            _pivot_payload(rows, label_index, series_index, value_index),
-            xlabel=headers[label_index],
+            _pivot_payload(rows, label_indices, series_index, value_index),
+            xlabel=" / ".join(headers[index] for index in label_indices),
             ylabel=headers[value_index],
             data_profile=profile,
             chart_candidates=chart_candidates,
