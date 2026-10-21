@@ -32,7 +32,9 @@ Call `check_environment` before every `start_report`. It returns the pending
 installs, the features to ask the user about, a human-readable `message`, and the
 `required_preflight_decisions` template you should fill in.
 
-Then ask the user about every pending install and optional integration. After
+Then ask the user about every required or critical install. Optional tools and
+integrations (mmdc, web research, NotebookLM) need no answer: left out of the
+record, they stay off, so ask only when the user wants one. After
 installing a dependency, rerun `check_environment` to verify. Do not treat an
 `install` or `installed` decision as proof when `check_environment` still reports the
 dependency missing: required dependencies must actually pass preflight before

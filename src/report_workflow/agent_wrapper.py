@@ -228,7 +228,7 @@ def check_setup() -> dict:
 
         lines.append("")
         if ask_user:
-            lines.append("Optional feature decisions:")
+            lines.append("Optional features (off unless the user asks for one; no answer needed):")
             for i, item in enumerate(ask_user, 1):
                 lines.append(f"  {i}. {item['question']}")
                 for inp in item.get("requires_user_input", []):

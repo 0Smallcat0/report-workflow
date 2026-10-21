@@ -660,6 +660,43 @@ class OptionalConnectorDecisionTests(unittest.TestCase):
         self.assertEqual(len(issues), 1, issues)
         self.assertIn("declined by the user", issues[0])
 
+    def _install_issues(self, pending):
+        from report_workflow.preflight_decisions import validate_preflight_decisions
+
+        return validate_preflight_decisions(
+            {"confirmed_by_user": True, "install_decisions": {}, "feature_decisions": {}},
+            pending, [], cfg=self._Cfg(), allow_degraded_render=False,
+        )
+
+    def test_no_decision_for_an_optional_tool_is_not_a_blocker(self):
+        # mmdc and notebooklm-py put two unrelated questions before every report.
+        self.assertEqual(self._install_issues([{"name": "mmdc", "severity": "optional"}]), [])
+
+    def test_a_critical_or_required_install_still_needs_its_decision(self):
+        for severity in ("critical", "required"):
+            issues = self._install_issues([{"name": "pandoc", "severity": severity}])
+            self.assertEqual(len(issues), 1, (severity, issues))
+
+    def test_the_template_asks_only_what_a_start_needs(self):
+        from report_workflow.preflight_decisions import required_preflight_decision_shape
+
+        shape = required_preflight_decision_shape(
+            [{"name": "mmdc", "severity": "optional"}, {"name": "pandoc", "severity": "critical"}],
+            self.ASK,
+        )
+        self.assertEqual(list(shape["install_decisions"]), ["pandoc"])
+        self.assertEqual(shape["feature_decisions"], {})
+
+
+class RunDirectoryNameTests(unittest.TestCase):
+    def test_a_run_directory_name_has_no_spaces(self):
+        # Unquoted, "write a business report…--run_x" split into six arguments.
+        from report_workflow.state import build_run_dir_name
+
+        name = build_run_dir_name("write a business report: what changed", "run_1")
+        self.assertEqual(name, "write-a-business-report-what-changed--run_1")
+        self.assertNotIn(" ", build_run_dir_name("x", "run_2", {"title": "實驗四：RC 電路暫態響應"}))
+
 
 if __name__ == "__main__":
     unittest.main()

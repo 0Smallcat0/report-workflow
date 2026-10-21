@@ -109,17 +109,20 @@ def feature_by_id(discovery, feature_id: str):
 
 
 def required_preflight_decision_shape(pending_installs: list[dict], ask_user: list[dict]) -> dict:
+    """The decisions a start actually needs: required and critical installs.
+
+    Optional tools and connectors are listed in pending_installs and
+    agent_should_ask_user for anyone who wants them; left out of the record,
+    they stay off.
+    """
     return {
         "confirmed_by_user": True,
         "install_decisions": {
             preflight_item_key(item): "install|installed|skip|decline|accept_degraded"
             for item in pending_installs
+            if item.get("severity") != "optional"
         },
-        "feature_decisions": {
-            str(item.get("feature_id")): "enable|disable|skip|decline"
-            for item in ask_user
-            if item.get("feature_id")
-        },
+        "feature_decisions": {},
     }
 
 
@@ -151,6 +154,12 @@ def validate_preflight_decisions(
         key = preflight_item_key(item)
         decision = str(install_decisions.get(key, "")).strip().lower()
         if not decision:
+            # The same reading as for a switched-off connector below: an
+            # optional tool nobody chose to install is simply not installed.
+            # Requiring the word "skip" for mmdc and notebooklm-py put two
+            # unrelated questions in front of every report.
+            if item.get("severity") == "optional":
+                continue
             issues.append(f"missing install decision for {key!r}")
             continue
         if decision not in INSTALL_DECISIONS:

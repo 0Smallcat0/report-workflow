@@ -77,8 +77,10 @@ parameters: [reference/tools.md](reference/tools.md).
 
 Python 3.11+, `pip install -e .`, and Pandoc 3.x for high-quality DOCX rendering.
 Call `check_environment` before every `start_report`, ask the user about every
-pending install and optional integration, then pass `preflight_confirmed=True`
-with a complete `preflight_decisions` record. Required dependencies must actually
+required or critical install it reports, then pass `preflight_confirmed=True`
+with a `preflight_decisions` record. Optional tools and integrations (mmdc, web
+research, NotebookLM) stay off unless the user asks for them; leave them out of
+the record rather than asking every run. Required dependencies must actually
 pass preflight; a decision string does not override a still-missing dependency.
 Details, UTF-8 setup, and decision examples: [reference/setup-and-preflight.md](reference/setup-and-preflight.md).
 
