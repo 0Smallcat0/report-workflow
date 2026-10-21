@@ -983,6 +983,24 @@ def _paired_measure_indices(headers: list[str], indices: list[int]) -> tuple[int
     return None
 
 
+_AVERAGE_TERMS = ("平均", "均值", "mean", "average", "avg")
+
+
+def _averaged_measure_pair(headers: list[str], indices: list[int]) -> tuple[int, int] | None:
+    """The setting against the averaged reading, when the sheet has one.
+
+    A lab sheet of mass, three trials and their mean was drawn as the first
+    trial against mass. The mean is the reading the report argues from.
+    """
+    if len(indices) < 3:
+        return None
+    averaged = [
+        index for index in indices[1:]
+        if any(term in headers[index].casefold() for term in _AVERAGE_TERMS)
+    ]
+    return (indices[0], averaged[0]) if len(averaged) == 1 else None
+
+
 def _grouped_numeric_series(rows: list[list[str]], group_index: int, value_index: int) -> list[dict]:
     grouped: dict[str, list[float]] = {}
     for row in rows[1:MAX_CHART_ROWS + 1]:
@@ -1639,7 +1657,11 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
         )
 
     if len(relationship_indices) >= 2 and len(rows) - 1 >= 3:
-        x_index, y_index = _paired_measure_indices(headers, relationship_indices) or relationship_indices[:2]
+        x_index, y_index = (
+            _paired_measure_indices(headers, relationship_indices)
+            or _averaged_measure_pair(headers, relationship_indices)
+            or relationship_indices[:2]
+        )
         reason = (
             "Two numeric measurement variables across multiple observations are suited "
             "to scatter plots for relationship inspection."

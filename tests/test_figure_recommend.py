@@ -1969,6 +1969,18 @@ class DesignTableChartTests(unittest.TestCase):
         self.assertEqual([series["name"] for series in plan["data"]["series"]], ["low", "high"])
         self.assertEqual(plan["data"]["series"][1]["values"], [7.1, 8.9, 6.2, 5.0])
 
+    def test_a_sheet_of_trials_plots_their_mean_against_the_setting(self):
+        # Mass, three trials and their mean was drawn as trial 1 against mass.
+        plan = self._recommend([
+            ["砝碼質量_g", "第一次伸長_cm", "第二次伸長_cm", "第三次伸長_cm", "平均伸長_cm"],
+            ["50", "1.9", "2.1", "2.0", "2.0"],
+            ["100", "4.0", "4.1", "3.9", "4.0"],
+            ["150", "6.1", "5.9", "6.0", "6.0"],
+            ["200", "8.1", "8.0", "7.9", "8.0"],
+        ])[0]["figure_plan"]
+        self.assertEqual(plan["figure_type"], "scatter")
+        self.assertEqual(plan["ylabel"], "平均伸長_cm")
+
     def test_a_lab_sheet_plots_measured_against_theoretical(self):
         # Not capacitance against resistance: two settings, drawn as if one
         # caused the other.
