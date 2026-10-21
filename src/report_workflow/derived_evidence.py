@@ -1991,8 +1991,15 @@ def compute_formula_table(
                 value = round(value, decimals)
             cells.append(format_number(value, decimals))
         body.append(cells)
+    # A label that already names its unit — 「拉力 (N)」 — printed it twice:
+    # 「拉力 (N) (N)」.
     headers = [str(request.get("row_label_header") or label_column)] + [
-        str(item.get("label") or item["expr"]) + (f" ({unit})" if unit else "")
+        str(item.get("label") or item["expr"])
+        + (
+            f" ({unit})"
+            if unit and not re.search(rf"[(（]\s*{re.escape(unit)}\s*[)）]", str(item.get("label") or ""))
+            else ""
+        )
         for item, unit in zip(formulas, units)
     ]
     derivation = {
