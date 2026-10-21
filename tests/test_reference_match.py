@@ -224,6 +224,83 @@ class SearchTest(unittest.TestCase):
         self.assertEqual(set(check.unmatched_authors), {"Chen", "Smith"})
 
 
+KUHN = (
+    "Lorenz Kuhn, Yarin Gal, and Sebastian Farquhar. Semantic uncertainty: Linguistic "
+    "invariances for uncertainty estimation in natural language generation. In International "
+    "Conference on Learning Representations (ICLR), 2023"
+)
+
+
+class TitleSearchTest(unittest.TestCase):
+    """A conference paper with no DOI: the whole reference is a poor query, its title a good one."""
+
+    def test_the_title_is_picked_out_of_every_common_style(self):
+        cases = {
+            KUHN: "Semantic uncertainty: Linguistic invariances for uncertainty estimation in "
+            "natural language generation",
+            "Atanassova, I., & Bertin, M. (2024). Breaking Boundaries in Citation Parsing: A "
+            "Comparative Study of Generative LLMs and Traditional Out-of-the-box Citation Parsers. "
+            "Proceedings of the 14th Workshop on Mining Scientific Publications": "Breaking Boundaries "
+            "in Citation Parsing: A Comparative Study of Generative LLMs and Traditional "
+            "Out-of-the-box Citation Parsers",
+            "Caifan Du, James Howison, and Patrice Lopez. “Softcite: Automatic Extraction of "
+            "Software Mentions in Research Literature”. In: Poster abstracts of the 1st Workshop": "Softcite: "
+            "Automatic Extraction of Software Mentions in Research Literature",
+            "Andrey Malinin and Mark Gales. Predictive uncertainty estimation via prior networks. In "
+            "Advances in Neural Information Processing Systems (NeurIPS), volume 31, 2018": "Predictive "
+            "uncertainty estimation via prior networks",
+        }
+        for reference, title in cases.items():
+            with self.subTest(reference=reference[:40]):
+                self.assertEqual(rm.guess_title(reference), title)
+
+    def test_a_paper_the_full_reference_does_not_find_is_found_by_its_title(self):
+        found = {"results": [{
+            "title": "Semantic Uncertainty: Linguistic Invariances for Uncertainty Estimation in "
+            "Natural Language Generation",
+            "authorships": [
+                {"author": {"display_name": name}}
+                for name in ("Lorenz Kuhn", "Yarin Gal", "Sebastian Farquhar")
+            ],
+            "publication_year": 2023,
+            "id": "https://openalex.org/W1",
+        }]}
+        get = registry({
+            "title.search": (200, found),
+            "api.crossref.org": (200, {"message": {"items": []}}),
+            "api.openalex.org": (200, {"results": []}),
+        })
+        check = rm.check_reference(KUHN, get=get)
+        self.assertEqual(check.status, rm.VERIFIED, check.message)
+        self.assertEqual(sum("title.search" in url for url in get.calls), 1)
+
+    def test_the_title_index_is_not_asked_about_a_reference_already_verified(self):
+        crossref = {"message": {"items": [{"DOI": "10.1145/115372.115320", **SSA_CSL}]}}
+        get = registry({
+            "title.search": (200, {"results": []}),
+            "api.crossref.org": (200, crossref),
+            "api.openalex.org": (200, {"results": []}),
+        })
+        check = rm.check_reference(
+            "Cytron, R., Ferrante, J., Rosen, B. K., Wegman, M. N., & Zadeck, F. K. (1991). "
+            "Efficiently computing static single assignment form and the control dependence "
+            "graph. ACM TOPLAS, 13(4), 451-490.",
+            get=get,
+        )
+        self.assertEqual(check.status, rm.VERIFIED, check.message)
+        self.assertFalse(any("title.search" in url for url in get.calls))
+
+    def test_a_spent_budget_on_the_title_query_is_not_a_missing_reference(self):
+        get = registry({
+            "title.search": (429, ""),
+            "api.crossref.org": (200, {"message": {"items": []}}),
+            "api.openalex.org": (200, {"results": []}),
+        })
+        check = rm.check_reference(KUHN, get=get)
+        self.assertEqual(check.status, rm.UNREACHABLE)
+        self.assertIn("daily budget", check.message)
+
+
 class NameParsingTest(unittest.TestCase):
     def test_surnames_come_out_of_every_common_style(self):
         self.assertEqual(

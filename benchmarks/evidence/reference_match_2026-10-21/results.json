@@ -1,0 +1,683 @@
+{
+  "dataset": {
+    "url": "https://zenodo.org/records/21457492/files/manual_reference_verification_dataset.csv?download=1",
+    "sha256": "46bacd05613159795fc62afe51f9b66aaaee35b587fce9b820cb4740a97cd627",
+    "references": 104
+  },
+  "report_workflow": {
+    "tp": 30,
+    "fn": 3,
+    "fp": 15,
+    "tn": 56
+  },
+  "definite_verdicts": {
+    "problematic": 13,
+    "verified": 0
+  },
+  "statuses": {
+    "problematic/mismatch": 7,
+    "problematic/needs_review": 17,
+    "problematic/not_found": 6,
+    "problematic/verified": 3,
+    "verified/needs_review": 15,
+    "verified/verified": 56
+  },
+  "tools": {
+    "checkifexist": {
+      "tp": 31,
+      "fn": 2,
+      "fp": 34,
+      "tn": 37
+    },
+    "hallucitechecker": {
+      "tp": 18,
+      "fn": 15,
+      "fp": 20,
+      "tn": 51
+    },
+    "hallucinator": {
+      "tp": 29,
+      "fn": 4,
+      "fp": 28,
+      "tn": 43
+    },
+    "halref": {
+      "tp": 24,
+      "fn": 9,
+      "fp": 53,
+      "tn": 18
+    },
+    "refchecker": {
+      "tp": 32,
+      "fn": 1,
+      "fp": 36,
+      "tn": 35
+    }
+  },
+  "verdicts": [
+    {
+      "id": "P1 R1",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches arXiv:2507.19457: title, authors"
+    },
+    {
+      "id": "P1 R2",
+      "label": "verified",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P1 R3",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches https://openalex.org/W4404309352: title, authors"
+    },
+    {
+      "id": "P1 R4",
+      "label": "problematic",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P1 R5",
+      "label": "verified",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P1 R6",
+      "label": "verified",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P1 R7",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.5281/zenodo.17199853: title, authors"
+    },
+    {
+      "id": "P1 R8",
+      "label": "verified",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P1 R9",
+      "label": "verified",
+      "status": "needs_review",
+      "message": "doi:10.59350/6jqa2-n7z39 is “The XML Markup Evaluation Corpus” by Rivera (2016); Garnett is not among its authors"
+    },
+    {
+      "id": "P1 R10",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches arXiv:2503.19786: title, authors"
+    },
+    {
+      "id": "P1 R11",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches arXiv:2407.21783: title, authors"
+    },
+    {
+      "id": "P1 R12",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches https://openalex.org/W3013681456: title, authors"
+    },
+    {
+      "id": "P1 R13",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches arXiv:2310.06825: title, authors"
+    },
+    {
+      "id": "P1 R14",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.5281/zenodo.14751899: title, authors"
+    },
+    {
+      "id": "P1 R15",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.1145/2467696.2467753: title, authors"
+    },
+    {
+      "id": "P1 R16",
+      "label": "problematic",
+      "status": "verified",
+      "message": "matches doi:10.1007/978-3-642-04346-8_62: title, authors"
+    },
+    {
+      "id": "P1 R17",
+      "label": "verified",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P1 R18",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches arXiv:2508.10925: title, authors"
+    },
+    {
+      "id": "P1 R19",
+      "label": "verified",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P1 R20",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches arXiv:2505.15948: title, authors"
+    },
+    {
+      "id": "P1 R21",
+      "label": "problematic",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P1 R22",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.5281/zenodo.16325125: title, authors"
+    },
+    {
+      "id": "P1 R23",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches arXiv:2505.09388: title, authors"
+    },
+    {
+      "id": "P1 R24",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.48550/arXiv.2412.15115: title, authors"
+    },
+    {
+      "id": "P2 R1",
+      "label": "problematic",
+      "status": "mismatch",
+      "message": "doi:10.12688/f1000research.26932.2 is “Recognizing the value of software: a software citation guide” by Katz et al. (2021), which is not the work this reference names"
+    },
+    {
+      "id": "P2 R2",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.1002/asi.23538: title, authors"
+    },
+    {
+      "id": "P2 R3",
+      "label": "verified",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P2 R4",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.1002/asi.24454: title, authors"
+    },
+    {
+      "id": "P2 R5",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.5281/zenodo.7995565: title, authors"
+    },
+    {
+      "id": "P2 R6",
+      "label": "problematic",
+      "status": "not_found",
+      "message": "DOI 10.1038/s41597-022-01328-8 is not registered (doi.org 404)"
+    },
+    {
+      "id": "P2 R7",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.1371/journal.pone.0157989: title, authors"
+    },
+    {
+      "id": "P2 R8",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.48550/arXiv.2209.00693: title, authors"
+    },
+    {
+      "id": "P2 R9",
+      "label": "problematic",
+      "status": "not_found",
+      "message": "DOI 10.3233/SW-223172 is not registered (doi.org 404)"
+    },
+    {
+      "id": "P2 R10",
+      "label": "problematic",
+      "status": "verified",
+      "message": "matches https://doi.org/10.48550/arxiv.2512.00001: title, authors"
+    },
+    {
+      "id": "P2 R11",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.1038/s41597-023-02208-w: title, authors"
+    },
+    {
+      "id": "P2 R12",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.1145/3459637.3481936: title, authors"
+    },
+    {
+      "id": "P2 R13",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.26615/978-954-452-056-4_083: title, authors"
+    },
+    {
+      "id": "P2 R14",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.21954/ou.rd.30374830.v2: title, authors"
+    },
+    {
+      "id": "P2 R15",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.7717/peerj-cs.86: title, authors"
+    },
+    {
+      "id": "P3 R1",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches https://doi.org/10.48550/arxiv.2302.09664: title, authors"
+    },
+    {
+      "id": "P3 R2",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches arXiv:2406.02543: title, authors"
+    },
+    {
+      "id": "P3 R3",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches arXiv:1904.09751: title, authors"
+    },
+    {
+      "id": "P3 R4",
+      "label": "problematic",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P3 R5",
+      "label": "problematic",
+      "status": "mismatch",
+      "message": "https://doi.org/10.48550/arxiv.2210.08933 is “DiffuSeq: Sequence to Sequence Text Generation with Diffusion Models” by Gong et al. (2022); Austin is not among its authors"
+    },
+    {
+      "id": "P3 R6",
+      "label": "problematic",
+      "status": "not_found",
+      "message": "the identifier is a placeholder (XXXX), not a real one"
+    },
+    {
+      "id": "P3 R7",
+      "label": "problematic",
+      "status": "not_found",
+      "message": "the identifier is a placeholder (XXXX), not a real one"
+    },
+    {
+      "id": "P3 R8",
+      "label": "problematic",
+      "status": "not_found",
+      "message": "the identifier is a placeholder (XXXX), not a real one"
+    },
+    {
+      "id": "P3 R9",
+      "label": "problematic",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P3 R10",
+      "label": "problematic",
+      "status": "not_found",
+      "message": "the identifier is a placeholder (XXXX), not a real one"
+    },
+    {
+      "id": "P3 R11",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.18653/v1/n18-1101: title, authors"
+    },
+    {
+      "id": "P3 R12",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches https://doi.org/10.48550/arxiv.2006.03654: title, authors"
+    },
+    {
+      "id": "P3 R13",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches arXiv:1804.07461: title, authors"
+    },
+    {
+      "id": "P3 R14",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.18653/v1/p17-1147: title, authors"
+    },
+    {
+      "id": "P3 R15",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches https://doi.org/10.48550/arxiv.1506.02142: title, authors"
+    },
+    {
+      "id": "P3 R16",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches https://doi.org/10.48550/arxiv.1612.01474: title, authors"
+    },
+    {
+      "id": "P3 R17",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches https://doi.org/10.48550/arxiv.1802.10501: title, authors"
+    },
+    {
+      "id": "P3 R18",
+      "label": "verified",
+      "status": "needs_review",
+      "message": "https://doi.org/10.17863/cam.49348 is “Ensemble Distribution Distillation” by Gales et al. (2019); Uthoff, Heil, Li are not among its authors"
+    },
+    {
+      "id": "P3 R19",
+      "label": "problematic",
+      "status": "needs_review",
+      "message": "https://doi.org/10.48550/arxiv.1805.11783 is “To Trust Or Not To Trust A Classifier” by Jiang et al. (2018); Pang, Ding, Xu, Carin are not among its authors"
+    },
+    {
+      "id": "P3 R20",
+      "label": "problematic",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P3 R21",
+      "label": "problematic",
+      "status": "needs_review",
+      "message": "doi:10.18653/v1/2021.findings-emnlp carries this title, but its authors could not be compared with the reference's"
+    },
+    {
+      "id": "P3 R22",
+      "label": "problematic",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P3 R23",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.18653/v1/2023.emnlp-main.522: title, authors"
+    },
+    {
+      "id": "P3 R24",
+      "label": "problematic",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P3 R25",
+      "label": "problematic",
+      "status": "mismatch",
+      "message": "arXiv:2205.05407 is “Gamma-ray Diagnostics of r-process Nucleosynthesis in the Remnants of Galactic Binary Neutron-Star Mergers” by Terada et al. (2022), which is not the work this reference names"
+    },
+    {
+      "id": "P3 R26",
+      "label": "problematic",
+      "status": "needs_review",
+      "message": "doi:10.18653/v1/2020.findings-emnlp carries this title, but its authors could not be compared with the reference's"
+    },
+    {
+      "id": "P3 R27",
+      "label": "problematic",
+      "status": "needs_review",
+      "message": "https://doi.org/10.18653/v1/2021.emnlp-main carries this title, but its authors could not be compared with the reference's"
+    },
+    {
+      "id": "P3 R28",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.18653/v1/2023.findings-eacl.139: title, authors"
+    },
+    {
+      "id": "P3 R29",
+      "label": "verified",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P3 R30",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches https://doi.org/10.48550/arxiv.2312.09300: title, authors"
+    },
+    {
+      "id": "P3 R31",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.18653/v1/2023.emnlp-main.330: title, authors"
+    },
+    {
+      "id": "P3 R32",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.18653/v1/2024.emnlp-main.578: title, authors"
+    },
+    {
+      "id": "P3 R33",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.18653/v1/2024.acl-long.276: title, authors"
+    },
+    {
+      "id": "P3 R34",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.18653/v1/2023.emnlp-main.778: title, authors"
+    },
+    {
+      "id": "P3 R35",
+      "label": "problematic",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P3 R36",
+      "label": "problematic",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P3 R37",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches arXiv:2402.03563: title, authors"
+    },
+    {
+      "id": "P3 R38",
+      "label": "verified",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P3 R39",
+      "label": "verified",
+      "status": "needs_review",
+      "message": "https://doi.org/10.48550/arxiv.1610.02424 carries this title and authors, but its year (2016) differs"
+    },
+    {
+      "id": "P3 R40",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.18653/v1/2023.acl-long.687: title, authors"
+    },
+    {
+      "id": "P3 R41",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.18653/v1/n16-1014: title, authors"
+    },
+    {
+      "id": "P3 R42",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.1016/j.csl.2020.101094: title, authors"
+    },
+    {
+      "id": "P3 R43",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.18653/v1/D16-1250: title, authors"
+    },
+    {
+      "id": "P3 R44",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.18653/v1/p19-1365: title, authors"
+    },
+    {
+      "id": "P3 R45",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches https://openalex.org/W2621351960: title, authors"
+    },
+    {
+      "id": "P3 R46",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches https://openalex.org/W79945118: title, authors"
+    },
+    {
+      "id": "P3 R47",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.1613/jair.2985: title, authors"
+    },
+    {
+      "id": "P3 R48",
+      "label": "problematic",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P3 R49",
+      "label": "problematic",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P3 R50",
+      "label": "problematic",
+      "status": "needs_review",
+      "message": "doi:10.3115/v1/d14-1 carries this title, but its authors could not be compared with the reference's"
+    },
+    {
+      "id": "P3 R51",
+      "label": "verified",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P3 R52",
+      "label": "problematic",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P3 R53",
+      "label": "problematic",
+      "status": "mismatch",
+      "message": "arXiv:2107.13586 is “Pre-train, Prompt, and Predict: A Systematic Survey of Prompting Methods in Natural Language Processing” by Liu et al. (2021), which is not the work this reference names"
+    },
+    {
+      "id": "P3 R54",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches arXiv:2305.19187: title, authors"
+    },
+    {
+      "id": "P3 R55",
+      "label": "problematic",
+      "status": "verified",
+      "message": "matches doi:10.1162/tacl_a_00266: title, authors"
+    },
+    {
+      "id": "P3 R56",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.18653/v1/2022.acl-long.229: title, authors"
+    },
+    {
+      "id": "P3 R57",
+      "label": "problematic",
+      "status": "mismatch",
+      "message": "doi:10.18653/v1/2020.emnlp-main.466 is “AmbigQA: Answering Ambiguous Open-domain Questions” by Min et al. (2020); Lewis, Jurafsky are not among its authors"
+    },
+    {
+      "id": "P3 R58",
+      "label": "problematic",
+      "status": "mismatch",
+      "message": "arXiv:2205.01068 is “OPT: Open Pre-trained Transformer Language Models” by Zhang et al. (2022); Jiang, Kos are not among its authors"
+    },
+    {
+      "id": "P3 R59",
+      "label": "problematic",
+      "status": "mismatch",
+      "message": "arXiv:2302.13971 is “LLaMA: Open and Efficient Foundation Language Models” by Touvron et al. (2023); Stone, Albert are not among its authors"
+    },
+    {
+      "id": "P3 R60",
+      "label": "verified",
+      "status": "needs_review",
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+    },
+    {
+      "id": "P3 R61",
+      "label": "verified",
+      "status": "needs_review",
+      "message": "doi:10.1002/9781118445112.stat05402 is “Importance Sampling” by Kong (2014); note on is not among its authors"
+    },
+    {
+      "id": "P3 R62",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches doi:10.18653/v1/W19-8609: title, authors"
+    },
+    {
+      "id": "P3 R63",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches arXiv:1707.06347: title, authors"
+    },
+    {
+      "id": "P3 R64",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches arXiv:2501.12948: title, authors"
+    },
+    {
+      "id": "P3 R65",
+      "label": "verified",
+      "status": "verified",
+      "message": "matches arXiv:1711.05101: title, authors"
+    }
+  ]
+}

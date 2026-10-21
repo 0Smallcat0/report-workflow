@@ -18,7 +18,8 @@ same way a reader would:
 * **retraction** -- Crossref carries Retraction Watch's notices on the record.
 
 A reference with no identifier is searched by its text in Crossref and
-OpenAlex. Only a record whose title appears in the reference nearly whole is
+OpenAlex, and, when that settles nothing, by its likely title in OpenAlex's
+title index. Only a record whose title appears in the reference nearly whole is
 taken as the work it names, and it verifies the reference only when its
 authors agree too, since nothing but the text ties the two together.
 
@@ -474,7 +475,49 @@ def search_crossref(reference: str, get: HttpGet = _http_get) -> list[WorkRecord
 def search_openalex(reference: str, get: HttpGet = _http_get) -> list[WorkRecord]:
     # OpenAlex reads &, ?, |, ! and quotes as search syntax and answers 400.
     query = " ".join(re.sub(r"[^\w\s.,'\-]", " ", _search_text(reference)).split())
-    params = {"search": query, "per_page": "5"}
+    return _openalex_works({"search": query, "per_page": "5"}, get)
+
+
+#: Where one part of a reference ends and the next begins: a full stop, or the
+#: question mark that ends a quoted title, then a space. Not the stop after an
+#: initial ("M. Gales") or after "et al".
+_PART_SPLIT_RE = re.compile(r"(?<![\s.][A-Z])(?<!\bet al)[.?!]\s+(?=\S)")
+
+
+def guess_title(reference: str) -> str:
+    """The part of a reference that is most likely its title, or "" when none is.
+
+    Only used to ask OpenAlex's title index. What decides a verdict is still
+    where the record's title sits in the whole reference.
+    """
+
+    text = re.sub(r"https?://\S+|\bdoi:\s*\S+", " ", reference, flags=re.I)
+    parts = [part.strip(" \"'“”‘’?") for part in _PART_SPLIT_RE.split(text)]
+    for part in [part for part in parts if part][1:]:
+        # "In Proceedings of ...", "In: Poster abstracts ...", "(2025)".
+        if re.match(r"in\b", part, re.I) or re.fullmatch(r"\(?\d{4}[a-z]?\)?", part):
+            continue
+        if len(re.findall(r"[^\W\d_]{2,}", part)) >= 3:
+            return part[:200]
+    return ""
+
+
+def search_openalex_title(reference: str, get: HttpGet = _http_get) -> list[WorkRecord]:
+    """Works whose title matches the reference's guessed title.
+
+    A search on the whole reference -- authors, venue, pages and all -- often
+    misses a conference paper that has no DOI; its title alone finds it.
+    """
+
+    guess = guess_title(reference)
+    if not guess:
+        return []
+    # A comma separates filters and a pipe means "or" inside one.
+    query = " ".join(re.sub(r"[^\w\s'\-]", " ", guess).split())
+    return _openalex_works({"filter": f"title.search:{query}", "per_page": "5"}, get)
+
+
+def _openalex_works(params: dict[str, str], get: HttpGet) -> list[WorkRecord]:
     if _mailto():
         params["mailto"] = _mailto()
     headers = {}
@@ -656,19 +699,30 @@ def _check_by_search(reference: str, get: HttpGet) -> ReferenceCheck:
             candidates.extend(searcher(reference, get))
         except LookupUnavailable as exc:
             errors.append(str(exc))
-    named = [
-        (title_score(reference, record.title)[0], index, record)
-        for index, record in enumerate(candidates)
-        if len(_title_tokens(record.title)) >= 2
-    ]
-    named = [item for item in named if item[0] >= TITLE_STRONG]
-    if not named:
+    verdict = _best_search_verdict(reference, candidates)
+    if verdict is None or verdict.status != VERIFIED:
+        try:
+            candidates.extend(search_openalex_title(reference, get))
+        except LookupUnavailable as exc:
+            errors.append(str(exc))
+        verdict = _best_search_verdict(reference, candidates)
+    if verdict is None:
         if errors and not candidates:
             return ReferenceCheck(UNREACHABLE, f"could not be checked: {'; '.join(errors)}")
         return ReferenceCheck(
             NEEDS_REVIEW,
             "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title",
         )
+    return verdict
+
+
+def _best_search_verdict(reference: str, candidates: list[WorkRecord]) -> ReferenceCheck | None:
+    named = [
+        (title_score(reference, record.title)[0], index, record)
+        for index, record in enumerate(candidates)
+        if len(_title_tokens(record.title)) >= 2
+    ]
+    named = [item for item in named if item[0] >= TITLE_STRONG]
     # Prefer the closest title, and a record with authors over one without.
     best: ReferenceCheck | None = None
     for _, _, record in sorted(named, key=lambda item: (-item[0], not item[2].authors, item[1])):
@@ -677,7 +731,6 @@ def _check_by_search(reference: str, get: HttpGet) -> ReferenceCheck:
             return verdict
         if best is None:
             best = verdict
-    assert best is not None
     return best
 
 

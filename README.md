@@ -11,7 +11,7 @@ mcp-name: io.github.0Smallcat0/report-workflow
 
 [![CI](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-1284%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1288%20passing-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **繁體中文說明 → [README.zh-TW.md](README.zh-TW.md)**
@@ -128,7 +128,7 @@ references here:
 
 | Checker | Problem references caught (of 33) | Correct references flagged (of 71) |
 | --- | ---: | ---: |
-| **report-workflow** | **31** | **24** |
+| **report-workflow** | **30** | **15** |
 | RefChecker | 32 | 36 |
 | CheckIfExist | 31 | 34 |
 | Hallucinator | 29 | 28 |
@@ -136,9 +136,12 @@ references here:
 | HalRef | 24 | 53 |
 
 "Flagged" counts anything short of accepted — for the five tools that includes
-"requires verification", here it is every verdict except `verified`. All 24 of
-those here are `needs_review`: of the 13 references it called `mismatch`,
-`not_found` or `retracted`, every one is wrong in the hand-checked labels.
+"requires verification", here it is every verdict except `verified`. All 15 of
+those here are `needs_review`, and seven of them are standards, software, datasets,
+model cards and workshop pages that no bibliographic registry holds. Of the 13
+references it called `mismatch`, `not_found` or `retracted`, every one is wrong
+in the hand-checked labels. The three it passes cite the wrong venue or the
+wrong first name, which it does not compare.
 Rerun it from the recorded registry answers, with no network:
 
 ```bash

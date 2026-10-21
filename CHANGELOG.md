@@ -11,8 +11,9 @@ invented title or author list. `reference_match.py` now fetches the record
 behind each identifier — doi.org's CSL JSON, which also carries Retraction
 Watch notices in `updated-by`, and arXiv's Atom entry — and compares its title,
 authors and year with what the reference says. A reference with no identifier is
-searched for in Crossref and OpenAlex, and a hit is taken as the work only when
-its title appears in the reference nearly whole and its authors agree. Verdicts:
+searched for in Crossref and OpenAlex, and, when that settles nothing, its likely
+title is looked up in OpenAlex's title index; a hit is taken as the work only
+when its title appears in the reference nearly whole and its authors agree. Verdicts:
 `verified`, `mismatch`, `not_found`, `retracted`, `needs_review` (found, but the
 agreement is partial or cannot be checked) and `unreachable`.
 
@@ -25,17 +26,24 @@ research enabled or `flags["reference_search"]` set. Outside a run,
 `2` when any reference is refuted.
 
 Measured on Badalova and Mayr's 104 hand-checked references
-(10.5281/zenodo.21457492) beside the five checkers they ran: 31 of 33 problem
-references caught, 24 of 71 correct ones left for review, none of the 71
-accused. The two it misses are a wrong venue and a wrong first name under the
-right surname; neither field is compared. Most of the 24 are conference papers
-with no DOI that OpenAlex's search does not find from the full reference. The
-104 were also the development set. `scripts/run_reference_benchmark.py --check`
-replays the recorded registry answers in
-`benchmarks/evidence/reference_match_2026-10-21/`; `--download` and `--record`
-rebuild them. OpenAlex without a key allows about 100 searches a day per
-address, reset at midnight UTC; a free key in `OPENALEX_API_KEY` raises that,
-and a spent budget is reported as `unreachable`, not as a missing reference.
+(10.5281/zenodo.21457492) beside the five checkers they ran: 30 of 33 problem
+references caught, 15 of 71 correct ones left for review, none of the 71
+accused. The three it misses are two wrong venues — one an arXiv preprint cited
+as a JCDL 2025 paper — and a wrong first name under the right surname; neither
+field is compared. Seven of the 15 are standards, software, datasets, model
+cards and workshop pages that no bibliographic registry holds. The title-index
+lookup moved nine correct references from `needs_review` to `verified`, and the
+JCDL preprint with them: found without it, that reference was left for review
+only because nothing was found. The 104 were also the development set.
+`scripts/run_reference_benchmark.py --check` replays the recorded registry
+answers in `benchmarks/evidence/reference_match_2026-10-21/`; `--download` and
+`--record` rebuild them. The full-reference OpenAlex searches and the arXiv
+entries in that archive were recorded about four hours before the rest, the
+same day: by the second recording OpenAlex's daily budget could not cover them
+again and arXiv answered 429. OpenAlex without a key allows about 100 searches a day per address, reset
+at midnight UTC, and a reference with no identifier takes one or two; a free
+key in `OPENALEX_API_KEY` raises that, and a spent budget is reported as
+`unreachable`, not as a missing reference.
 
 ### Measured — the tool arm re-records after a month in which it could not be recorded at all
 
