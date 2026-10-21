@@ -1,0 +1,137 @@
+{
+ "derived": [
+  {
+   "sentence": "That amounts to about 43,000 GPU-days",
+   "item": "43,000",
+   "why": "380 tokens/sec/GPU x 2048 GPUs x 21 days, worked out by the writer"
+  },
+  {
+   "sentence": "a gain of 5.5 points",
+   "item": "5.5",
+   "why": "68.9 - 63.4, worked out by the writer"
+  }
+ ],
+ "planted": [
+  {
+   "type": "wrong_number",
+   "original": "which makes up 67% of the data",
+   "planted": "which makes up 76% of the data",
+   "item": "76%"
+  },
+  {
+   "type": "wrong_number",
+   "original": "84.2 on HellaSwag",
+   "planted": "82.4 on HellaSwag",
+   "item": "82.4"
+  },
+  {
+   "type": "wrong_number",
+   "original": "exact match score of 39.9",
+   "planted": "exact match score of 38.9",
+   "item": "38.9"
+  },
+  {
+   "type": "wrong_number",
+   "original": "around 380 tokens/sec/GPU",
+   "planted": "around 830 tokens/sec/GPU",
+   "item": "830"
+  },
+  {
+   "type": "wrong_number",
+   "original": "training uses 2,000 warmup steps",
+   "planted": "training uses 4,000 warmup steps",
+   "item": "4,000"
+  },
+  {
+   "type": "wrong_number",
+   "original": "LLaMA-65B averages 66.6,",
+   "planted": "LLaMA-65B averages 66.1,",
+   "item": "66.1"
+  },
+  {
+   "type": "wrong_number",
+   "original": "average toxicity score of 0.128",
+   "planted": "average toxicity score of 0.182",
+   "item": "0.182"
+  },
+  {
+   "type": "wrong_number",
+   "original": "took 1,022,362 GPU-hours",
+   "planted": "took 1,022,632 GPU-hours",
+   "item": "1,022,632"
+  },
+  {
+   "type": "wrong_number",
+   "original": "more than 10× smaller",
+   "planted": "more than 100× smaller",
+   "item": "100"
+  },
+  {
+   "type": "wrong_unit",
+   "original": "occupies 3.3 TB on disk",
+   "planted": "occupies 3.3 GB on disk",
+   "item": "3.3GB"
+  },
+  {
+   "type": "wrong_unit",
+   "original": "roughly 1.4 trillion tokens",
+   "planted": "roughly 1.4 billion tokens",
+   "item": "1.4 billion"
+  },
+  {
+   "type": "wrong_unit",
+   "original": "approximately 21 days",
+   "planted": "approximately 21 hours",
+   "item": "21 hours"
+  },
+  {
+   "type": "extra_precision",
+   "original": "about 2,638 MWh",
+   "planted": "about 2,638.4 MWh",
+   "item": "2,638.4 MWh"
+  },
+  {
+   "type": "misattributed",
+   "original": "the 13B model already scores 56.6",
+   "planted": "the 7B model already scores 56.6",
+   "item": "56.6"
+  },
+  {
+   "type": "misattributed",
+   "original": "a weight decay of 0.1 and",
+   "planted": "a weight decay of 0.95 and",
+   "item": "0.95",
+   "occurrence": 1
+  },
+  {
+   "type": "altered_quote",
+   "original": "not the fastest to train but",
+   "planted": "not the cheapest to train but",
+   "item": "the preferred model is not the cheapest to train but the fastest at inference"
+  },
+  {
+   "type": "altered_quote",
+   "original": "trained on up to 2TB of books",
+   "planted": "trained on up to 1TB of books",
+   "item": "sums up to only 177GB, while these models were trained on up to 1TB of books"
+  },
+  {
+   "type": "altered_quote",
+   "original": "models using publicly available datasets exclusively, without",
+   "planted": "models using only publicly available datasets, without",
+   "item": "it is possible to train state-of-the-art models using only publicly available datasets, without resorting to proprietary and inaccessible datasets"
+  },
+  {
+   "type": "altered_quote",
+   "original": "\"are not sufficient to fully understand",
+   "planted": "\"are sufficient to fully understand",
+   "item": "are sufficient to fully understand the risks associated with these models"
+  },
+  {
+   "type": "fabricated_quote",
+   "original": "Training is not free in carbon terms either.",
+   "planted": "Training is not free in carbon terms either, and the authors admit that \"open models will soon replace proprietary systems in every application\".",
+   "item": "open models will soon replace proprietary systems in every application"
+  }
+ ]
+}

@@ -2,18 +2,20 @@
  "derived": [
   {
    "sentence": "約為標準提示的 3 倍",
-   "item": "3",
+   "item": "3倍",
    "why": "56.9 / 17.9, worked out by the writer"
   },
   {
    "sentence": "兩者相差 39.1 個百分點",
    "item": "39.1",
    "why": "93.4 - 54.3, worked out by the writer"
-  },
+  }
+ ],
+ "not_checked": [
   {
    "sentence": "這並不能回答神經網路是否真的在推理",
    "item": "這並不能回答神經網路是否真的在推理",
-   "why": "a quotation translated into Chinese cannot appear word for word in the English paper"
+   "why": "「」 after 坦言 is not one of the reporting verbs that make 「」 a quotation, so the translated quotation is not checked at all"
   }
  ],
  "planted": [
@@ -122,7 +124,7 @@
   {
    "type": "fabricated_quote",
    "original": "on the capabilities of large language models\"。",
-   "planted": "on the capabilities of large language models\"。作者更斷言 \"chain-of-thought prompting works equally well for models of every size\"。",
+   "planted": "作者更斷言 \"chain-of-thought prompting works equally well for models of every size\"。",
    "item": "chain-of-thought prompting works equally well for models of every size"
   }
  ]

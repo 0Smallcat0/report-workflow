@@ -18,7 +18,7 @@ SCRIPT_SIZE_RATIO = 0.8
 SCRIPT_ADJACENT_GAP = 1.5
 
 
-def _page_text(page) -> str:
+def _page_text(page, **text_options) -> str:
     """The page's text with sub- and superscripts kept on their own line.
 
     pdfplumber groups characters into lines by their top edge, and a subscript
@@ -30,13 +30,17 @@ def _page_text(page) -> str:
     A small character touching a body-size character it overlaps vertically is
     placed on that character's line before the text is assembled. Anything
     else — a chart label, a rotated axis title — is left where it is.
+
+    ``text_options`` go to pdfplumber's text extraction unchanged.
+    ``check-draft`` reads a page a second way with them, in the order the PDF
+    stores its text and with a tighter gap for a space.
     """
     chars = list(getattr(page, "chars", None) or [])
     sizes = sorted(float(char.get("size") or 0) for char in chars)
     body = sizes[len(sizes) // 2] if sizes else 0
     small = [char for char in chars if float(char.get("size") or 0) < body * SCRIPT_SIZE_RATIO]
     if not body or not small:
-        return page.extract_text() or ""
+        return page.extract_text(**text_options) or ""
 
     def is_body(char: dict) -> bool:
         return float(char.get("size") or 0) >= body * SCRIPT_SIZE_RATIO and char.get("upright", True)
@@ -78,7 +82,7 @@ def _page_text(page) -> str:
 
     from pdfplumber.utils import extract_text
 
-    return extract_text(placed) or ""
+    return extract_text(placed, **text_options) or ""
 
 
 def parse_pdf(file_path: str) -> dict:

@@ -11,7 +11,7 @@ mcp-name: io.github.0Smallcat0/report-workflow
 
 [![CI](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-1288%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1305%20passing-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **繁體中文說明 → [README.zh-TW.md](README.zh-TW.md)**
@@ -151,6 +151,43 @@ python scripts/run_reference_benchmark.py --check
 [Every verdict](benchmarks/evidence/reference_match_2026-10-21/summary.md). The
 104 references were also what the matcher was tuned on; no second hand-checked
 set exists yet to test it on.
+
+## Check its numbers and quotations against the PDFs
+
+The references can all be real and the sentence citing them still wrong: 76%
+where the paper says 67.0%, "not the cheapest to train" where it says "not the
+fastest". Give the command the files the draft cites:
+
+```bash
+uvx report-workflow check-draft draft.docx --source llama.pdf --source qlora.pdf --appendix appendix.md
+```
+
+Only sentences that state a figure or quote are checked. Each figure must be
+printed on a page at the precision the draft gives, a few lines from the
+sentence's own words; each quotation must be on a page word for word. Every
+answer names the file, page and the source's own sentence:
+
+```text
+[4] NOT_FOUND: In their words, "the preferred model is not the cheapest to train but the fastest at inference".
+    "the preferred model is not the cheapest to train but the fastest at inference" — NOT FOUND: not found word for word in any source; the longest stretch that is (34 of 64 letters) is on 2302.13971v1.pdf p. 1: “…model at scale. In this context, given a target level of performance, the preferred model is not the fastest to train but the fastest at inference, and although it may be cheaper to train a large model to reach a certain level of ∗ Equal contribution.…”
+[5] NOT_FOUND: The pre-training mixture is dominated by English CommonCrawl, which makes up 76% of the data, followed by C4 at 15%.
+    76% — NOT FOUND: 76% is not stated beside these words in any source; 2302.13971v1.pdf p. 5 states 68.1 there
+    15% — 2302.13971v1.pdf p. 2: Epochs Disk size CommonCrawl 67.0% 1.10 3.3 TB C4 15.0% 1.06 783 GB Github 4.5% 0.64 328 GB Wikipedia 4.5% 2.45 83 GB Books 4.5% 2.23 85 GB ArXiv 2.5% 1.06 92 GB StackExchange 2.0% 1.03 78 GB Table 1:
+[8] FOUND: During deduplication, books with more than 90% content overlap were removed.
+    90% — 2302.13971v1.pdf p. 2: We perform deduplication at the book level, removing books with more than 90% content overlap. ArXiv [2.5%].
+```
+
+`--appendix` writes the same as a Markdown page to attach for the marker, in
+Chinese when the draft is Chinese, with a picture of each PDF page beside it and
+the match highlighted (`--no-images` leaves them out). It exits `2` when
+anything is not found. No network and no model.
+
+**Measured both ways** on two papers it was not tuned on, a correct and a
+planted draft each: 8 of 141 correct items flagged, 32 of 39 planted errors
+caught. It catches every altered or invented quotation, wrong unit and added
+decimal, and none of the figures moved to another row of the same table — those
+are still printed on the page
+([docs/EVIDENCE.md](docs/EVIDENCE.md#check-draft-false-alarms-and-planted-errors-on-three-public-papers)).
 
 ## What it cannot do
 

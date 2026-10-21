@@ -1,0 +1,4168 @@
+{
+  "run_date": "2026-10-21",
+  "cases": [
+    {
+      "name": "llama",
+      "split": "dev",
+      "source": "2302.13971v1.pdf",
+      "source_sha256": "2e663675ae36ad12adb2f5a05281bac2747ecf8d23d92bedd9f937a89fee7136",
+      "correct_draft": {
+        "correct": {
+          "items": 59,
+          "not_found": 0
+        },
+        "derived": {
+          "items": 2,
+          "not_found": 2
+        },
+        "false_alarms": []
+      },
+      "planted_draft": {
+        "by_type": {
+          "altered_quote": {
+            "planted": 4,
+            "caught": 4
+          },
+          "extra_precision": {
+            "planted": 1,
+            "caught": 1
+          },
+          "fabricated_quote": {
+            "planted": 1,
+            "caught": 1
+          },
+          "misattributed": {
+            "planted": 2,
+            "caught": 0
+          },
+          "wrong_number": {
+            "planted": 9,
+            "caught": 8
+          },
+          "wrong_unit": {
+            "planted": 3,
+            "caught": 3
+          }
+        },
+        "untouched_correct": {
+          "items": 40,
+          "not_found": 0
+        },
+        "missed": [
+          {
+            "sentence": 10,
+            "sentence_text": "The models are trained with AdamW using β1 = 0.9 and β2 = 0.95, a weight decay of 0.95 and gradient clipping of 1.0.",
+            "kind": "figure",
+            "item": "0.95",
+            "status": "found",
+            "page": 3,
+            "label": "misattributed"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "On NaturalQuestions, LLaMA-65B obtains an exact match score of 38.9 in the 64-shot setting, and on TriviaQA the 7B model already scores 56.6 zero-shot.",
+            "kind": "figure",
+            "item": "56.6",
+            "status": "found",
+            "page": 5,
+            "label": "misattributed"
+          },
+          {
+            "sentence": 22,
+            "sentence_text": "On CrowS-Pairs, LLaMA-65B averages 66.1, compared with 67.2 for GPT-3 and 69.5 for OPT, where a higher score means more bias.",
+            "kind": "figure",
+            "item": "66.1",
+            "status": "found",
+            "page": 7,
+            "label": "wrong_number"
+          }
+        ]
+      },
+      "items": {
+        "correct_draft": [
+          {
+            "sentence": 1,
+            "sentence_text": "Touvron et al. (2023) present LLaMA, a family of foundation language models that range from 7B to 65B parameters.",
+            "kind": "figure",
+            "item": "7B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 1,
+            "sentence_text": "Touvron et al. (2023) present LLaMA, a family of foundation language models that range from 7B to 65B parameters.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 2,
+            "sentence_text": "The authors state that \"it is possible to train state-of-the-art models using publicly available datasets exclusively, without resorting to proprietary and inaccessible datasets\" (Touvron et al., 2023).",
+            "kind": "quote",
+            "item": "it is possible to train state-of-the-art models using publicly available datasets exclusively, without resorting to proprietary and inaccessible datasets",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "Although Hoffmann et al. (2022) recommend training a 10B model on 200B tokens, the LLaMA team found that the performance of a 7B model continued to improve even after 1T tokens.",
+            "kind": "figure",
+            "item": "10B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "Although Hoffmann et al. (2022) recommend training a 10B model on 200B tokens, the LLaMA team found that the performance of a 7B model continued to improve even after 1T tokens.",
+            "kind": "figure",
+            "item": "200B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "Although Hoffmann et al. (2022) recommend training a 10B model on 200B tokens, the LLaMA team found that the performance of a 7B model continued to improve even after 1T tokens.",
+            "kind": "figure",
+            "item": "7B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "Although Hoffmann et al. (2022) recommend training a 10B model on 200B tokens, the LLaMA team found that the performance of a 7B model continued to improve even after 1T tokens.",
+            "kind": "figure",
+            "item": "1T",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 4,
+            "sentence_text": "In their words, \"the preferred model is not the fastest to train but the fastest at inference\".",
+            "kind": "quote",
+            "item": "the preferred model is not the fastest to train but the fastest at inference",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 5,
+            "sentence_text": "The pre-training mixture is dominated by English CommonCrawl, which makes up 67% of the data, followed by C4 at 15%.",
+            "kind": "figure",
+            "item": "67%",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 5,
+            "sentence_text": "The pre-training mixture is dominated by English CommonCrawl, which makes up 67% of the data, followed by C4 at 15%.",
+            "kind": "figure",
+            "item": "15%",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "GitHub, Wikipedia and Books each contribute 4.5% of the mixture, while ArXiv contributes 2.5% and Stack Exchange 2%.",
+            "kind": "figure",
+            "item": "4.5%",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "GitHub, Wikipedia and Books each contribute 4.5% of the mixture, while ArXiv contributes 2.5% and Stack Exchange 2%.",
+            "kind": "figure",
+            "item": "2.5%",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "GitHub, Wikipedia and Books each contribute 4.5% of the mixture, while ArXiv contributes 2.5% and Stack Exchange 2%.",
+            "kind": "figure",
+            "item": "2%",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 7,
+            "sentence_text": "The CommonCrawl portion alone occupies 3.3 TB on disk.",
+            "kind": "figure",
+            "item": "3.3TB",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "During deduplication, books with more than 90% content overlap were removed.",
+            "kind": "figure",
+            "item": "90%",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 9,
+            "sentence_text": "In total the training set holds roughly 1.4 trillion tokens after tokenization.",
+            "kind": "figure",
+            "item": "1.4 trillion",
+            "status": "found",
+            "page": 3,
+            "label": "correct"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "The models are trained with AdamW using β1 = 0.9 and β2 = 0.95, a weight decay of 0.1 and gradient clipping of 1.0.",
+            "kind": "figure",
+            "item": "0.9",
+            "status": "found",
+            "page": 3,
+            "label": "correct"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "The models are trained with AdamW using β1 = 0.9 and β2 = 0.95, a weight decay of 0.1 and gradient clipping of 1.0.",
+            "kind": "figure",
+            "item": "0.95",
+            "status": "found",
+            "page": 3,
+            "label": "correct"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "The models are trained with AdamW using β1 = 0.9 and β2 = 0.95, a weight decay of 0.1 and gradient clipping of 1.0.",
+            "kind": "figure",
+            "item": "0.1",
+            "status": "found",
+            "page": 3,
+            "label": "correct"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "The models are trained with AdamW using β1 = 0.9 and β2 = 0.95, a weight decay of 0.1 and gradient clipping of 1.0.",
+            "kind": "figure",
+            "item": "1.0",
+            "status": "found",
+            "page": 3,
+            "label": "correct"
+          },
+          {
+            "sentence": 11,
+            "sentence_text": "The cosine schedule ends at 10% of the maximal learning rate, and training uses 2,000 warmup steps.",
+            "kind": "figure",
+            "item": "10%",
+            "status": "found",
+            "page": 3,
+            "label": "correct"
+          },
+          {
+            "sentence": 11,
+            "sentence_text": "The cosine schedule ends at 10% of the maximal learning rate, and training uses 2,000 warmup steps.",
+            "kind": "figure",
+            "item": "2,000",
+            "status": "found",
+            "page": 3,
+            "label": "correct"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "When training the 65B-parameter model, the code processes around 380 tokens/sec/GPU on 2048 A100 GPUs with 80GB of RAM, so one pass over the 1.4T-token dataset takes approximately 21 days.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "When training the 65B-parameter model, the code processes around 380 tokens/sec/GPU on 2048 A100 GPUs with 80GB of RAM, so one pass over the 1.4T-token dataset takes approximately 21 days.",
+            "kind": "figure",
+            "item": "380",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "When training the 65B-parameter model, the code processes around 380 tokens/sec/GPU on 2048 A100 GPUs with 80GB of RAM, so one pass over the 1.4T-token dataset takes approximately 21 days.",
+            "kind": "figure",
+            "item": "2048",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "When training the 65B-parameter model, the code processes around 380 tokens/sec/GPU on 2048 A100 GPUs with 80GB of RAM, so one pass over the 1.4T-token dataset takes approximately 21 days.",
+            "kind": "figure",
+            "item": "80GB",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "When training the 65B-parameter model, the code processes around 380 tokens/sec/GPU on 2048 A100 GPUs with 80GB of RAM, so one pass over the 1.4T-token dataset takes approximately 21 days.",
+            "kind": "figure",
+            "item": "1.4T",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "When training the 65B-parameter model, the code processes around 380 tokens/sec/GPU on 2048 A100 GPUs with 80GB of RAM, so one pass over the 1.4T-token dataset takes approximately 21 days.",
+            "kind": "figure",
+            "item": "21 days",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 13,
+            "sentence_text": "That amounts to about 43,000 GPU-days for a single run.",
+            "kind": "figure",
+            "item": "43,000",
+            "status": "not_found",
+            "page": null,
+            "label": "derived"
+          },
+          {
+            "sentence": 14,
+            "sentence_text": "LLaMA-13B outperforms GPT-3 on most benchmarks even though it is more than 10× smaller.",
+            "kind": "figure",
+            "item": "10",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "On zero-shot common sense reasoning, LLaMA-65B reaches 85.3 on BoolQ and 84.2 on HellaSwag.",
+            "kind": "figure",
+            "item": "85.3",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "On zero-shot common sense reasoning, LLaMA-65B reaches 85.3 on BoolQ and 84.2 on HellaSwag.",
+            "kind": "figure",
+            "item": "84.2",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "On NaturalQuestions, LLaMA-65B obtains an exact match score of 39.9 in the 64-shot setting, and on TriviaQA the 13B model already scores 56.6 zero-shot.",
+            "kind": "figure",
+            "item": "39.9",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "On NaturalQuestions, LLaMA-65B obtains an exact match score of 39.9 in the 64-shot setting, and on TriviaQA the 13B model already scores 56.6 zero-shot.",
+            "kind": "figure",
+            "item": "64",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "On NaturalQuestions, LLaMA-65B obtains an exact match score of 39.9 in the 64-shot setting, and on TriviaQA the 13B model already scores 56.6 zero-shot.",
+            "kind": "figure",
+            "item": "13B",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "On NaturalQuestions, LLaMA-65B obtains an exact match score of 39.9 in the 64-shot setting, and on TriviaQA the 13B model already scores 56.6 zero-shot.",
+            "kind": "figure",
+            "item": "56.6",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 17,
+            "sentence_text": "For reading comprehension, LLaMA-65B reaches 67.9 on RACE-middle and 51.6 on RACE-high.",
+            "kind": "figure",
+            "item": "67.9",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 17,
+            "sentence_text": "For reading comprehension, LLaMA-65B reaches 67.9 on RACE-middle and 51.6 on RACE-high.",
+            "kind": "figure",
+            "item": "51.6",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 18,
+            "sentence_text": "On GSM8k it scores 50.9 without majority voting and 69.7 with maj1@k, and on HumanEval it obtains a pass@1 score of 23.7.",
+            "kind": "figure",
+            "item": "50.9",
+            "status": "found",
+            "page": 6,
+            "label": "correct"
+          },
+          {
+            "sentence": 18,
+            "sentence_text": "On GSM8k it scores 50.9 without majority voting and 69.7 with maj1@k, and on HumanEval it obtains a pass@1 score of 23.7.",
+            "kind": "figure",
+            "item": "69.7",
+            "status": "found",
+            "page": 6,
+            "label": "correct"
+          },
+          {
+            "sentence": 18,
+            "sentence_text": "On GSM8k it scores 50.9 without majority voting and 69.7 with maj1@k, and on HumanEval it obtains a pass@1 score of 23.7.",
+            "kind": "figure",
+            "item": "23.7",
+            "status": "found",
+            "page": 6,
+            "label": "correct"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "The one benchmark where the model trails is MMLU: in the 5-shot setting LLaMA-65B averages 63.4, behind Chinchilla-70B at 67.5.",
+            "kind": "figure",
+            "item": "5",
+            "status": "found",
+            "page": 6,
+            "label": "correct"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "The one benchmark where the model trails is MMLU: in the 5-shot setting LLaMA-65B averages 63.4, behind Chinchilla-70B at 67.5.",
+            "kind": "figure",
+            "item": "63.4",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "The one benchmark where the model trails is MMLU: in the 5-shot setting LLaMA-65B averages 63.4, behind Chinchilla-70B at 67.5.",
+            "kind": "figure",
+            "item": "67.5",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 20,
+            "sentence_text": "The authors attribute the gap to the small amount of books and academic papers in the pre-training data, which \"sums up to only 177GB, while these models were trained on up to 2TB of books\".",
+            "kind": "quote",
+            "item": "sums up to only 177GB, while these models were trained on up to 2TB of books",
+            "status": "found",
+            "page": 6,
+            "label": "correct"
+          },
+          {
+            "sentence": 21,
+            "sentence_text": "A brief instruction finetuning step lifts LLaMA-I to 68.9% on MMLU, a gain of 5.5 points over the base model.",
+            "kind": "figure",
+            "item": "68.9%",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 21,
+            "sentence_text": "A brief instruction finetuning step lifts LLaMA-I to 68.9% on MMLU, a gain of 5.5 points over the base model.",
+            "kind": "figure",
+            "item": "5.5",
+            "status": "not_found",
+            "page": null,
+            "label": "derived"
+          },
+          {
+            "sentence": 22,
+            "sentence_text": "On CrowS-Pairs, LLaMA-65B averages 66.6, compared with 67.2 for GPT-3 and 69.5 for OPT, where a higher score means more bias.",
+            "kind": "figure",
+            "item": "66.6",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 22,
+            "sentence_text": "On CrowS-Pairs, LLaMA-65B averages 66.6, compared with 67.2 for GPT-3 and 69.5 for OPT, where a higher score means more bias.",
+            "kind": "figure",
+            "item": "67.2",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 22,
+            "sentence_text": "On CrowS-Pairs, LLaMA-65B averages 66.6, compared with 67.2 for GPT-3 and 69.5 for OPT, where a higher score means more bias.",
+            "kind": "figure",
+            "item": "69.5",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 23,
+            "sentence_text": "The authors note that the model \"is particularly biased in the religion category (+10% compared to OPT-175B)\".",
+            "kind": "quote",
+            "item": "is particularly biased in the religion category (+10% compared to OPT-175B)",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "Over the 100k prompts of RealToxicityPrompts, the 65B model has an average toxicity score of 0.128 on basic prompts and 0.141 on respectful prompts.",
+            "kind": "figure",
+            "item": "100k",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "Over the 100k prompts of RealToxicityPrompts, the 65B model has an average toxicity score of 0.128 on basic prompts and 0.141 on respectful prompts.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "Over the 100k prompts of RealToxicityPrompts, the 65B model has an average toxicity score of 0.128 on basic prompts and 0.141 on respectful prompts.",
+            "kind": "figure",
+            "item": "0.128",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "Over the 100k prompts of RealToxicityPrompts, the 65B model has an average toxicity score of 0.128 on basic prompts and 0.141 on respectful prompts.",
+            "kind": "figure",
+            "item": "0.141",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 25,
+            "sentence_text": "The authors caution that these evaluations \"are not sufficient to fully understand the risks associated with these models\".",
+            "kind": "quote",
+            "item": "are not sufficient to fully understand the risks associated with these models",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 26,
+            "sentence_text": "The paper estimates that developing the models used 2048 A100-80GB GPUs for approximately 5 months, about 2,638 MWh, and a total emission of 1,015 tCO2eq.",
+            "kind": "figure",
+            "item": "2048",
+            "status": "found",
+            "page": 10,
+            "label": "correct"
+          },
+          {
+            "sentence": 26,
+            "sentence_text": "The paper estimates that developing the models used 2048 A100-80GB GPUs for approximately 5 months, about 2,638 MWh, and a total emission of 1,015 tCO2eq.",
+            "kind": "figure",
+            "item": "5 months",
+            "status": "found",
+            "page": 10,
+            "label": "correct"
+          },
+          {
+            "sentence": 26,
+            "sentence_text": "The paper estimates that developing the models used 2048 A100-80GB GPUs for approximately 5 months, about 2,638 MWh, and a total emission of 1,015 tCO2eq.",
+            "kind": "figure",
+            "item": "2,638 MWh",
+            "status": "found",
+            "page": 10,
+            "label": "correct"
+          },
+          {
+            "sentence": 26,
+            "sentence_text": "The paper estimates that developing the models used 2048 A100-80GB GPUs for approximately 5 months, about 2,638 MWh, and a total emission of 1,015 tCO2eq.",
+            "kind": "figure",
+            "item": "1,015",
+            "status": "found",
+            "page": 10,
+            "label": "correct"
+          },
+          {
+            "sentence": 27,
+            "sentence_text": "Training LLaMA-65B alone took 1,022,362 GPU-hours.",
+            "kind": "figure",
+            "item": "1,022,362",
+            "status": "found",
+            "page": 11,
+            "label": "correct"
+          }
+        ],
+        "planted_draft": [
+          {
+            "sentence": 1,
+            "sentence_text": "Touvron et al. (2023) present LLaMA, a family of foundation language models that range from 7B to 65B parameters.",
+            "kind": "figure",
+            "item": "7B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 1,
+            "sentence_text": "Touvron et al. (2023) present LLaMA, a family of foundation language models that range from 7B to 65B parameters.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 2,
+            "sentence_text": "The authors state that \"it is possible to train state-of-the-art models using only publicly available datasets, without resorting to proprietary and inaccessible datasets\" (Touvron et al., 2023).",
+            "kind": "quote",
+            "item": "it is possible to train state-of-the-art models using only publicly available datasets, without resorting to proprietary and inaccessible datasets",
+            "status": "not_found",
+            "page": null,
+            "label": "altered_quote"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "Although Hoffmann et al. (2022) recommend training a 10B model on 200B tokens, the LLaMA team found that the performance of a 7B model continued to improve even after 1T tokens.",
+            "kind": "figure",
+            "item": "10B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "Although Hoffmann et al. (2022) recommend training a 10B model on 200B tokens, the LLaMA team found that the performance of a 7B model continued to improve even after 1T tokens.",
+            "kind": "figure",
+            "item": "200B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "Although Hoffmann et al. (2022) recommend training a 10B model on 200B tokens, the LLaMA team found that the performance of a 7B model continued to improve even after 1T tokens.",
+            "kind": "figure",
+            "item": "7B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "Although Hoffmann et al. (2022) recommend training a 10B model on 200B tokens, the LLaMA team found that the performance of a 7B model continued to improve even after 1T tokens.",
+            "kind": "figure",
+            "item": "1T",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 4,
+            "sentence_text": "In their words, \"the preferred model is not the cheapest to train but the fastest at inference\".",
+            "kind": "quote",
+            "item": "the preferred model is not the cheapest to train but the fastest at inference",
+            "status": "not_found",
+            "page": null,
+            "label": "altered_quote"
+          },
+          {
+            "sentence": 5,
+            "sentence_text": "The pre-training mixture is dominated by English CommonCrawl, which makes up 76% of the data, followed by C4 at 15%.",
+            "kind": "figure",
+            "item": "76%",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 5,
+            "sentence_text": "The pre-training mixture is dominated by English CommonCrawl, which makes up 76% of the data, followed by C4 at 15%.",
+            "kind": "figure",
+            "item": "15%",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "GitHub, Wikipedia and Books each contribute 4.5% of the mixture, while ArXiv contributes 2.5% and Stack Exchange 2%.",
+            "kind": "figure",
+            "item": "4.5%",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "GitHub, Wikipedia and Books each contribute 4.5% of the mixture, while ArXiv contributes 2.5% and Stack Exchange 2%.",
+            "kind": "figure",
+            "item": "2.5%",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "GitHub, Wikipedia and Books each contribute 4.5% of the mixture, while ArXiv contributes 2.5% and Stack Exchange 2%.",
+            "kind": "figure",
+            "item": "2%",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 7,
+            "sentence_text": "The CommonCrawl portion alone occupies 3.3 GB on disk.",
+            "kind": "figure",
+            "item": "3.3GB",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_unit"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "During deduplication, books with more than 90% content overlap were removed.",
+            "kind": "figure",
+            "item": "90%",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 9,
+            "sentence_text": "In total the training set holds roughly 1.4 billion tokens after tokenization.",
+            "kind": "figure",
+            "item": "1.4 billion",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_unit"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "The models are trained with AdamW using β1 = 0.9 and β2 = 0.95, a weight decay of 0.95 and gradient clipping of 1.0.",
+            "kind": "figure",
+            "item": "0.9",
+            "status": "found",
+            "page": 3,
+            "label": "correct"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "The models are trained with AdamW using β1 = 0.9 and β2 = 0.95, a weight decay of 0.95 and gradient clipping of 1.0.",
+            "kind": "figure",
+            "item": "0.95",
+            "status": "found",
+            "page": 3,
+            "label": "correct"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "The models are trained with AdamW using β1 = 0.9 and β2 = 0.95, a weight decay of 0.95 and gradient clipping of 1.0.",
+            "kind": "figure",
+            "item": "0.95",
+            "status": "found",
+            "page": 3,
+            "label": "misattributed"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "The models are trained with AdamW using β1 = 0.9 and β2 = 0.95, a weight decay of 0.95 and gradient clipping of 1.0.",
+            "kind": "figure",
+            "item": "1.0",
+            "status": "found",
+            "page": 3,
+            "label": "correct"
+          },
+          {
+            "sentence": 11,
+            "sentence_text": "The cosine schedule ends at 10% of the maximal learning rate, and training uses 4,000 warmup steps.",
+            "kind": "figure",
+            "item": "10%",
+            "status": "found",
+            "page": 3,
+            "label": "correct"
+          },
+          {
+            "sentence": 11,
+            "sentence_text": "The cosine schedule ends at 10% of the maximal learning rate, and training uses 4,000 warmup steps.",
+            "kind": "figure",
+            "item": "4,000",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "When training the 65B-parameter model, the code processes around 830 tokens/sec/GPU on 2048 A100 GPUs with 80GB of RAM, so one pass over the 1.4T-token dataset takes approximately 21 hours.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "When training the 65B-parameter model, the code processes around 830 tokens/sec/GPU on 2048 A100 GPUs with 80GB of RAM, so one pass over the 1.4T-token dataset takes approximately 21 hours.",
+            "kind": "figure",
+            "item": "830",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "When training the 65B-parameter model, the code processes around 830 tokens/sec/GPU on 2048 A100 GPUs with 80GB of RAM, so one pass over the 1.4T-token dataset takes approximately 21 hours.",
+            "kind": "figure",
+            "item": "2048",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "When training the 65B-parameter model, the code processes around 830 tokens/sec/GPU on 2048 A100 GPUs with 80GB of RAM, so one pass over the 1.4T-token dataset takes approximately 21 hours.",
+            "kind": "figure",
+            "item": "80GB",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "When training the 65B-parameter model, the code processes around 830 tokens/sec/GPU on 2048 A100 GPUs with 80GB of RAM, so one pass over the 1.4T-token dataset takes approximately 21 hours.",
+            "kind": "figure",
+            "item": "1.4T",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "When training the 65B-parameter model, the code processes around 830 tokens/sec/GPU on 2048 A100 GPUs with 80GB of RAM, so one pass over the 1.4T-token dataset takes approximately 21 hours.",
+            "kind": "figure",
+            "item": "21 hours",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_unit"
+          },
+          {
+            "sentence": 13,
+            "sentence_text": "That amounts to about 43,000 GPU-days for a single run.",
+            "kind": "figure",
+            "item": "43,000",
+            "status": "not_found",
+            "page": null,
+            "label": "derived"
+          },
+          {
+            "sentence": 14,
+            "sentence_text": "LLaMA-13B outperforms GPT-3 on most benchmarks even though it is more than 100× smaller.",
+            "kind": "figure",
+            "item": "100",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "On zero-shot common sense reasoning, LLaMA-65B reaches 85.3 on BoolQ and 82.4 on HellaSwag.",
+            "kind": "figure",
+            "item": "85.3",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "On zero-shot common sense reasoning, LLaMA-65B reaches 85.3 on BoolQ and 82.4 on HellaSwag.",
+            "kind": "figure",
+            "item": "82.4",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "On NaturalQuestions, LLaMA-65B obtains an exact match score of 38.9 in the 64-shot setting, and on TriviaQA the 7B model already scores 56.6 zero-shot.",
+            "kind": "figure",
+            "item": "38.9",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "On NaturalQuestions, LLaMA-65B obtains an exact match score of 38.9 in the 64-shot setting, and on TriviaQA the 7B model already scores 56.6 zero-shot.",
+            "kind": "figure",
+            "item": "64",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "On NaturalQuestions, LLaMA-65B obtains an exact match score of 38.9 in the 64-shot setting, and on TriviaQA the 7B model already scores 56.6 zero-shot.",
+            "kind": "figure",
+            "item": "7B",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "On NaturalQuestions, LLaMA-65B obtains an exact match score of 38.9 in the 64-shot setting, and on TriviaQA the 7B model already scores 56.6 zero-shot.",
+            "kind": "figure",
+            "item": "56.6",
+            "status": "found",
+            "page": 5,
+            "label": "misattributed"
+          },
+          {
+            "sentence": 17,
+            "sentence_text": "For reading comprehension, LLaMA-65B reaches 67.9 on RACE-middle and 51.6 on RACE-high.",
+            "kind": "figure",
+            "item": "67.9",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 17,
+            "sentence_text": "For reading comprehension, LLaMA-65B reaches 67.9 on RACE-middle and 51.6 on RACE-high.",
+            "kind": "figure",
+            "item": "51.6",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 18,
+            "sentence_text": "On GSM8k it scores 50.9 without majority voting and 69.7 with maj1@k, and on HumanEval it obtains a pass@1 score of 23.7.",
+            "kind": "figure",
+            "item": "50.9",
+            "status": "found",
+            "page": 6,
+            "label": "correct"
+          },
+          {
+            "sentence": 18,
+            "sentence_text": "On GSM8k it scores 50.9 without majority voting and 69.7 with maj1@k, and on HumanEval it obtains a pass@1 score of 23.7.",
+            "kind": "figure",
+            "item": "69.7",
+            "status": "found",
+            "page": 6,
+            "label": "correct"
+          },
+          {
+            "sentence": 18,
+            "sentence_text": "On GSM8k it scores 50.9 without majority voting and 69.7 with maj1@k, and on HumanEval it obtains a pass@1 score of 23.7.",
+            "kind": "figure",
+            "item": "23.7",
+            "status": "found",
+            "page": 6,
+            "label": "correct"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "The one benchmark where the model trails is MMLU: in the 5-shot setting LLaMA-65B averages 63.4, behind Chinchilla-70B at 67.5.",
+            "kind": "figure",
+            "item": "5",
+            "status": "found",
+            "page": 6,
+            "label": "correct"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "The one benchmark where the model trails is MMLU: in the 5-shot setting LLaMA-65B averages 63.4, behind Chinchilla-70B at 67.5.",
+            "kind": "figure",
+            "item": "63.4",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "The one benchmark where the model trails is MMLU: in the 5-shot setting LLaMA-65B averages 63.4, behind Chinchilla-70B at 67.5.",
+            "kind": "figure",
+            "item": "67.5",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 20,
+            "sentence_text": "The authors attribute the gap to the small amount of books and academic papers in the pre-training data, which \"sums up to only 177GB, while these models were trained on up to 1TB of books\".",
+            "kind": "quote",
+            "item": "sums up to only 177GB, while these models were trained on up to 1TB of books",
+            "status": "not_found",
+            "page": null,
+            "label": "altered_quote"
+          },
+          {
+            "sentence": 21,
+            "sentence_text": "A brief instruction finetuning step lifts LLaMA-I to 68.9% on MMLU, a gain of 5.5 points over the base model.",
+            "kind": "figure",
+            "item": "68.9%",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 21,
+            "sentence_text": "A brief instruction finetuning step lifts LLaMA-I to 68.9% on MMLU, a gain of 5.5 points over the base model.",
+            "kind": "figure",
+            "item": "5.5",
+            "status": "not_found",
+            "page": null,
+            "label": "derived"
+          },
+          {
+            "sentence": 22,
+            "sentence_text": "On CrowS-Pairs, LLaMA-65B averages 66.1, compared with 67.2 for GPT-3 and 69.5 for OPT, where a higher score means more bias.",
+            "kind": "figure",
+            "item": "66.1",
+            "status": "found",
+            "page": 7,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 22,
+            "sentence_text": "On CrowS-Pairs, LLaMA-65B averages 66.1, compared with 67.2 for GPT-3 and 69.5 for OPT, where a higher score means more bias.",
+            "kind": "figure",
+            "item": "67.2",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 22,
+            "sentence_text": "On CrowS-Pairs, LLaMA-65B averages 66.1, compared with 67.2 for GPT-3 and 69.5 for OPT, where a higher score means more bias.",
+            "kind": "figure",
+            "item": "69.5",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 23,
+            "sentence_text": "The authors note that the model \"is particularly biased in the religion category (+10% compared to OPT-175B)\".",
+            "kind": "quote",
+            "item": "is particularly biased in the religion category (+10% compared to OPT-175B)",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "Over the 100k prompts of RealToxicityPrompts, the 65B model has an average toxicity score of 0.182 on basic prompts and 0.141 on respectful prompts.",
+            "kind": "figure",
+            "item": "100k",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "Over the 100k prompts of RealToxicityPrompts, the 65B model has an average toxicity score of 0.182 on basic prompts and 0.141 on respectful prompts.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "Over the 100k prompts of RealToxicityPrompts, the 65B model has an average toxicity score of 0.182 on basic prompts and 0.141 on respectful prompts.",
+            "kind": "figure",
+            "item": "0.182",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "Over the 100k prompts of RealToxicityPrompts, the 65B model has an average toxicity score of 0.182 on basic prompts and 0.141 on respectful prompts.",
+            "kind": "figure",
+            "item": "0.141",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 25,
+            "sentence_text": "The authors caution that these evaluations \"are sufficient to fully understand the risks associated with these models\".",
+            "kind": "quote",
+            "item": "are sufficient to fully understand the risks associated with these models",
+            "status": "not_found",
+            "page": null,
+            "label": "altered_quote"
+          },
+          {
+            "sentence": 26,
+            "sentence_text": "Training is not free in carbon terms either, and the authors admit that \"open models will soon replace proprietary systems in every application\".",
+            "kind": "quote",
+            "item": "open models will soon replace proprietary systems in every application",
+            "status": "not_found",
+            "page": null,
+            "label": "fabricated_quote"
+          },
+          {
+            "sentence": 27,
+            "sentence_text": "The paper estimates that developing the models used 2048 A100-80GB GPUs for approximately 5 months, about 2,638.4 MWh, and a total emission of 1,015 tCO2eq.",
+            "kind": "figure",
+            "item": "2048",
+            "status": "found",
+            "page": 10,
+            "label": "correct"
+          },
+          {
+            "sentence": 27,
+            "sentence_text": "The paper estimates that developing the models used 2048 A100-80GB GPUs for approximately 5 months, about 2,638.4 MWh, and a total emission of 1,015 tCO2eq.",
+            "kind": "figure",
+            "item": "5 months",
+            "status": "found",
+            "page": 10,
+            "label": "correct"
+          },
+          {
+            "sentence": 27,
+            "sentence_text": "The paper estimates that developing the models used 2048 A100-80GB GPUs for approximately 5 months, about 2,638.4 MWh, and a total emission of 1,015 tCO2eq.",
+            "kind": "figure",
+            "item": "2,638.4 MWh",
+            "status": "not_found",
+            "page": null,
+            "label": "extra_precision"
+          },
+          {
+            "sentence": 27,
+            "sentence_text": "The paper estimates that developing the models used 2048 A100-80GB GPUs for approximately 5 months, about 2,638.4 MWh, and a total emission of 1,015 tCO2eq.",
+            "kind": "figure",
+            "item": "1,015",
+            "status": "found",
+            "page": 10,
+            "label": "correct"
+          },
+          {
+            "sentence": 28,
+            "sentence_text": "Training LLaMA-65B alone took 1,022,632 GPU-hours.",
+            "kind": "figure",
+            "item": "1,022,632",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          }
+        ]
+      },
+      "_seconds": 7.0
+    },
+    {
+      "name": "qlora",
+      "split": "held_out",
+      "source": "2305.14314v1.pdf",
+      "source_sha256": "33a4e757c19d6ea8d3cca8958fce8fe405e290272e135c99ee66065c775d5bd1",
+      "correct_draft": {
+        "correct": {
+          "items": 78,
+          "not_found": 4
+        },
+        "derived": {
+          "items": 3,
+          "not_found": 3
+        },
+        "false_alarms": [
+          {
+            "sentence": 4,
+            "sentence_text": "Going from more than 780 GB to under 48 GB is a reduction of over 16 times.",
+            "kind": "figure",
+            "item": "780GB",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 4,
+            "sentence_text": "Going from more than 780 GB to under 48 GB is a reduction of over 16 times.",
+            "kind": "figure",
+            "item": "48GB",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 31,
+            "sentence_text": "On the CrowS bias benchmark, Guanaco-65B averages 43.5, well below the 66.6 of LLaMA-65B.",
+            "kind": "figure",
+            "item": "43.5",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 31,
+            "sentence_text": "On the CrowS bias benchmark, Guanaco-65B averages 43.5, well below the 66.6 of LLaMA-65B.",
+            "kind": "figure",
+            "item": "66.6",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          }
+        ]
+      },
+      "planted_draft": {
+        "by_type": {
+          "altered_quote": {
+            "planted": 4,
+            "caught": 4
+          },
+          "extra_precision": {
+            "planted": 2,
+            "caught": 2
+          },
+          "fabricated_quote": {
+            "planted": 1,
+            "caught": 1
+          },
+          "misattributed": {
+            "planted": 2,
+            "caught": 0
+          },
+          "wrong_number": {
+            "planted": 9,
+            "caught": 8
+          },
+          "wrong_unit": {
+            "planted": 3,
+            "caught": 3
+          }
+        },
+        "untouched_correct": {
+          "items": 58,
+          "not_found": 3
+        },
+        "missed": [
+          {
+            "sentence": 17,
+            "sentence_text": "The smallest Guanaco model requires just 10 GB of memory and outperforms a 26 GB Alpaca model by more than 20 percentage points.",
+            "kind": "figure",
+            "item": "10GB",
+            "status": "found",
+            "page": 2,
+            "label": "misattributed"
+          },
+          {
+            "sentence": 28,
+            "sentence_text": "At the system level the rankings agree with a Kendall Tau of 0.55 and a Spearman rank correlation of 0.43, while at the example level Fleiss κ is 0.25.",
+            "kind": "figure",
+            "item": "0.55",
+            "status": "found",
+            "page": 10,
+            "label": "misattributed"
+          },
+          {
+            "sentence": 31,
+            "sentence_text": "On the CrowS bias benchmark, Guanaco-65B averages 45.3, well below the 66.6 of LLaMA-65B.",
+            "kind": "figure",
+            "item": "45.3",
+            "status": "found",
+            "page": 15,
+            "label": "wrong_number"
+          }
+        ]
+      },
+      "items": {
+        "correct_draft": [
+          {
+            "sentence": 1,
+            "sentence_text": "Dettmers et al. (2023) introduce QLoRA, which reduces memory usage enough to finetune a 65B parameter model on a single 48GB GPU.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 1,
+            "sentence_text": "Dettmers et al. (2023) introduce QLoRA, which reduces memory usage enough to finetune a 65B parameter model on a single 48GB GPU.",
+            "kind": "figure",
+            "item": "48GB",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 2,
+            "sentence_text": "Regular 16-bit finetuning of a LLaMA 65B model requires more than 780 GB of GPU memory, so the gap is large.",
+            "kind": "figure",
+            "item": "16",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 2,
+            "sentence_text": "Regular 16-bit finetuning of a LLaMA 65B model requires more than 780 GB of GPU memory, so the gap is large.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 2,
+            "sentence_text": "Regular 16-bit finetuning of a LLaMA 65B model requires more than 780 GB of GPU memory, so the gap is large.",
+            "kind": "figure",
+            "item": "780GB",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "The method \"backpropagates gradients through a frozen, 4-bit quantized pretrained language model into Low Rank Adapters (LoRA)\".",
+            "kind": "quote",
+            "item": "backpropagates gradients through a frozen, 4-bit quantized pretrained language model into Low Rank Adapters (LoRA)",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 4,
+            "sentence_text": "Going from more than 780 GB to under 48 GB is a reduction of over 16 times.",
+            "kind": "figure",
+            "item": "780GB",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 4,
+            "sentence_text": "Going from more than 780 GB to under 48 GB is a reduction of over 16 times.",
+            "kind": "figure",
+            "item": "48GB",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 4,
+            "sentence_text": "Going from more than 780 GB to under 48 GB is a reduction of over 16 times.",
+            "kind": "figure",
+            "item": "16",
+            "status": "not_found",
+            "page": null,
+            "label": "derived"
+          },
+          {
+            "sentence": 5,
+            "sentence_text": "Three ideas make this work: a 4-bit NormalFloat data type, Double Quantization and Paged Optimizers.",
+            "kind": "figure",
+            "item": "4",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "Double Quantization saves an average of about 0.37 bits per parameter, approximately 3 GB for a 65B model.",
+            "kind": "figure",
+            "item": "0.37",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "Double Quantization saves an average of about 0.37 bits per parameter, approximately 3 GB for a 65B model.",
+            "kind": "figure",
+            "item": "3GB",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "Double Quantization saves an average of about 0.37 bits per parameter, approximately 3 GB for a 65B model.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 7,
+            "sentence_text": "With 32-bit constants and a blocksize of 64, the quantization constants cost 0.5 bits per parameter, and quantizing them a second time brings this down to 0.127 bits.",
+            "kind": "figure",
+            "item": "32",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 7,
+            "sentence_text": "With 32-bit constants and a blocksize of 64, the quantization constants cost 0.5 bits per parameter, and quantizing them a second time brings this down to 0.127 bits.",
+            "kind": "figure",
+            "item": "64",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 7,
+            "sentence_text": "With 32-bit constants and a blocksize of 64, the quantization constants cost 0.5 bits per parameter, and quantizing them a second time brings this down to 0.127 bits.",
+            "kind": "figure",
+            "item": "0.5",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 7,
+            "sentence_text": "With 32-bit constants and a blocksize of 64, the quantization constants cost 0.5 bits per parameter, and quantizing them a second time brings this down to 0.127 bits.",
+            "kind": "figure",
+            "item": "0.127",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "For a 7B LLaMA model, the LoRA input gradients take 567 MB while the LoRA parameters take only 26 MB, and the 4-bit base model consumes 5,048 MB.",
+            "kind": "figure",
+            "item": "7B",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "For a 7B LLaMA model, the LoRA input gradients take 567 MB while the LoRA parameters take only 26 MB, and the 4-bit base model consumes 5,048 MB.",
+            "kind": "figure",
+            "item": "567MB",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "For a 7B LLaMA model, the LoRA input gradients take 567 MB while the LoRA parameters take only 26 MB, and the 4-bit base model consumes 5,048 MB.",
+            "kind": "figure",
+            "item": "26MB",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "For a 7B LLaMA model, the LoRA input gradients take 567 MB while the LoRA parameters take only 26 MB, and the 4-bit base model consumes 5,048 MB.",
+            "kind": "figure",
+            "item": "4",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "For a 7B LLaMA model, the LoRA input gradients take 567 MB while the LoRA parameters take only 26 MB, and the 4-bit base model consumes 5,048 MB.",
+            "kind": "figure",
+            "item": "5,048MB",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 9,
+            "sentence_text": "Including activations, Figure 6 puts the footprint of the 65B model at 45.0 GB.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 26,
+            "label": "correct"
+          },
+          {
+            "sentence": 9,
+            "sentence_text": "Including activations, Figure 6 puts the footprint of the 65B model at 45.0 GB.",
+            "kind": "figure",
+            "item": "45.0GB",
+            "status": "found",
+            "page": 26,
+            "label": "correct"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "Across 125M to 13B models, the mean perplexity is 34.34 with Int4 and 27.41 with NFloat4 plus double quantization.",
+            "kind": "figure",
+            "item": "125M",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "Across 125M to 13B models, the mean perplexity is 34.34 with Int4 and 27.41 with NFloat4 plus double quantization.",
+            "kind": "figure",
+            "item": "13B",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "Across 125M to 13B models, the mean perplexity is 34.34 with Int4 and 27.41 with NFloat4 plus double quantization.",
+            "kind": "figure",
+            "item": "34.34",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "Across 125M to 13B models, the mean perplexity is 34.34 with Int4 and 27.41 with NFloat4 plus double quantization.",
+            "kind": "figure",
+            "item": "27.41",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 11,
+            "sentence_text": "On 5-shot MMLU, NF4 with double quantization averages 53.1 over the LLaMA sizes, compared with 53.0 for BFloat16 and 52.2 for Float4.",
+            "kind": "figure",
+            "item": "5",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 11,
+            "sentence_text": "On 5-shot MMLU, NF4 with double quantization averages 53.1 over the LLaMA sizes, compared with 53.0 for BFloat16 and 52.2 for Float4.",
+            "kind": "figure",
+            "item": "53.1",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 11,
+            "sentence_text": "On 5-shot MMLU, NF4 with double quantization averages 53.1 over the LLaMA sizes, compared with 53.0 for BFloat16 and 52.2 for Float4.",
+            "kind": "figure",
+            "item": "53.0",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 11,
+            "sentence_text": "On 5-shot MMLU, NF4 with double quantization averages 53.1 over the LLaMA sizes, compared with 53.0 for BFloat16 and 52.2 for Float4.",
+            "kind": "figure",
+            "item": "52.2",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "Float4 therefore trails by 0.8 points.",
+            "kind": "figure",
+            "item": "0.8",
+            "status": "not_found",
+            "page": null,
+            "label": "derived"
+          },
+          {
+            "sentence": 13,
+            "sentence_text": "The authors conclude that NF4 with double quantization fully recovers 16-bit LoRA performance on these benchmarks.",
+            "kind": "figure",
+            "item": "16",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 14,
+            "sentence_text": "Using QLoRA, the authors finetuned more than 1,000 models across 8 instruction datasets.",
+            "kind": "figure",
+            "item": "1,000",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 14,
+            "sentence_text": "Using QLoRA, the authors finetuned more than 1,000 models across 8 instruction datasets.",
+            "kind": "figure",
+            "item": "8",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "Their best model, Guanaco 65B, reaches 99.3% of the performance level of ChatGPT on the Vicuna benchmark while only requiring 24 hours of finetuning on a single GPU.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "Their best model, Guanaco 65B, reaches 99.3% of the performance level of ChatGPT on the Vicuna benchmark while only requiring 24 hours of finetuning on a single GPU.",
+            "kind": "figure",
+            "item": "99.3%",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "Their best model, Guanaco 65B, reaches 99.3% of the performance level of ChatGPT on the Vicuna benchmark while only requiring 24 hours of finetuning on a single GPU.",
+            "kind": "figure",
+            "item": "24 hours",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "The second best, Guanaco 33B, reaches 97.8% and can be trained in less than 12 hours on a single consumer GPU.",
+            "kind": "figure",
+            "item": "33B",
+            "status": "found",
+            "page": 10,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "The second best, Guanaco 33B, reaches 97.8% and can be trained in less than 12 hours on a single consumer GPU.",
+            "kind": "figure",
+            "item": "97.8%",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "The second best, Guanaco 33B, reaches 97.8% and can be trained in less than 12 hours on a single consumer GPU.",
+            "kind": "figure",
+            "item": "12 hours",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 17,
+            "sentence_text": "The smallest Guanaco model requires just 5 GB of memory and outperforms a 26 GB Alpaca model by more than 20 percentage points.",
+            "kind": "figure",
+            "item": "5GB",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 17,
+            "sentence_text": "The smallest Guanaco model requires just 5 GB of memory and outperforms a 26 GB Alpaca model by more than 20 percentage points.",
+            "kind": "figure",
+            "item": "26GB",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 17,
+            "sentence_text": "The smallest Guanaco model requires just 5 GB of memory and outperforms a 26 GB Alpaca model by more than 20 percentage points.",
+            "kind": "figure",
+            "item": "20 percentage",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 18,
+            "sentence_text": "Data quality mattered more than size: in the authors' words, \"a 9k sample dataset (OASST1) outperformed a 450k sample dataset (FLAN v2, subsampled) on chatbot performance\".",
+            "kind": "quote",
+            "item": "a 9k sample dataset (OASST1) outperformed a 450k sample dataset (FLAN v2, subsampled) on chatbot performance",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "The OASST1 data contain 161,443 messages across 66,497 conversations in 35 languages, and keeping only the top reply at each level leaves 9,209 examples.",
+            "kind": "figure",
+            "item": "161,443",
+            "status": "found",
+            "page": 22,
+            "label": "correct"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "The OASST1 data contain 161,443 messages across 66,497 conversations in 35 languages, and keeping only the top reply at each level leaves 9,209 examples.",
+            "kind": "figure",
+            "item": "66,497",
+            "status": "found",
+            "page": 22,
+            "label": "correct"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "The OASST1 data contain 161,443 messages across 66,497 conversations in 35 languages, and keeping only the top reply at each level leaves 9,209 examples.",
+            "kind": "figure",
+            "item": "35",
+            "status": "found",
+            "page": 22,
+            "label": "correct"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "The OASST1 data contain 161,443 messages across 66,497 conversations in 35 languages, and keeping only the top reply at each level leaves 9,209 examples.",
+            "kind": "figure",
+            "item": "9,209",
+            "status": "found",
+            "page": 22,
+            "label": "correct"
+          },
+          {
+            "sentence": 20,
+            "sentence_text": "The next best model trained on only open-source data, the HH-RLHF model, scores 30 percentage points lower than Guanaco.",
+            "kind": "figure",
+            "item": "30 percentage",
+            "status": "found",
+            "page": 10,
+            "label": "correct"
+          },
+          {
+            "sentence": 21,
+            "sentence_text": "Training used LoRA r = 64 and α = 16 on all linear layers, with an Adam beta2 of 0.999 and a max grad norm of 0.3.",
+            "kind": "figure",
+            "item": "64",
+            "status": "found",
+            "page": 23,
+            "label": "correct"
+          },
+          {
+            "sentence": 21,
+            "sentence_text": "Training used LoRA r = 64 and α = 16 on all linear layers, with an Adam beta2 of 0.999 and a max grad norm of 0.3.",
+            "kind": "figure",
+            "item": "16",
+            "status": "found",
+            "page": 23,
+            "label": "correct"
+          },
+          {
+            "sentence": 21,
+            "sentence_text": "Training used LoRA r = 64 and α = 16 on all linear layers, with an Adam beta2 of 0.999 and a max grad norm of 0.3.",
+            "kind": "figure",
+            "item": "0.999",
+            "status": "found",
+            "page": 23,
+            "label": "correct"
+          },
+          {
+            "sentence": 21,
+            "sentence_text": "Training used LoRA r = 64 and α = 16 on all linear layers, with an Adam beta2 of 0.999 and a max grad norm of 0.3.",
+            "kind": "figure",
+            "item": "0.3",
+            "status": "found",
+            "page": 23,
+            "label": "correct"
+          },
+          {
+            "sentence": 22,
+            "sentence_text": "Generation used nucleus sampling with p = 0.9 and a temperature of 0.7.",
+            "kind": "figure",
+            "item": "0.9",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 22,
+            "sentence_text": "Generation used nucleus sampling with p = 0.9 and a temperature of 0.7.",
+            "kind": "figure",
+            "item": "0.7",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 23,
+            "sentence_text": "The Vicuna benchmark is a set of 80 prompts, and the OASST1 validation set gives 953 unique user queries.",
+            "kind": "figure",
+            "item": "80",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 23,
+            "sentence_text": "The Vicuna benchmark is a set of 80 prompts, and the OASST1 validation set gives 953 unique user queries.",
+            "kind": "figure",
+            "item": "953",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "In the GPT-4-judged tournament, GPT-4 has an Elo of 1348, Guanaco 65B 1022 and ChatGPT 966.",
+            "kind": "figure",
+            "item": "1348",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "In the GPT-4-judged tournament, GPT-4 has an Elo of 1348, Guanaco 65B 1022 and ChatGPT 966.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 11,
+            "label": "correct"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "In the GPT-4-judged tournament, GPT-4 has an Elo of 1348, Guanaco 65B 1022 and ChatGPT 966.",
+            "kind": "figure",
+            "item": "1022",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "In the GPT-4-judged tournament, GPT-4 has an Elo of 1348, Guanaco 65B 1022 and ChatGPT 966.",
+            "kind": "figure",
+            "item": "966",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 25,
+            "sentence_text": "The ratings start at 1,000 with K = 32, and the procedure is repeated 10,000 times with different random seeds.",
+            "kind": "figure",
+            "item": "1,000",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 25,
+            "sentence_text": "The ratings start at 1,000 with K = 32, and the procedure is repeated 10,000 times with different random seeds.",
+            "kind": "figure",
+            "item": "32",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 25,
+            "sentence_text": "The ratings start at 1,000 with K = 32, and the procedure is repeated 10,000 times with different random seeds.",
+            "kind": "figure",
+            "item": "10,000",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 26,
+            "sentence_text": "An Elo gap of 100 points means an expected win rate of approximately 65%.",
+            "kind": "figure",
+            "item": "100",
+            "status": "not_found",
+            "page": null,
+            "label": "derived"
+          },
+          {
+            "sentence": 26,
+            "sentence_text": "An Elo gap of 100 points means an expected win rate of approximately 65%.",
+            "kind": "figure",
+            "item": "65%",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 27,
+            "sentence_text": "The paper finds that \"GPT-4 evaluations are a cheap and reasonable alternative to human evaluation\", but the agreement is only moderate.",
+            "kind": "quote",
+            "item": "GPT-4 evaluations are a cheap and reasonable alternative to human evaluation",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 28,
+            "sentence_text": "At the system level the rankings agree with a Kendall Tau of 0.43 and a Spearman rank correlation of 0.55, while at the example level Fleiss κ is 0.25.",
+            "kind": "figure",
+            "item": "0.43",
+            "status": "found",
+            "page": 10,
+            "label": "correct"
+          },
+          {
+            "sentence": 28,
+            "sentence_text": "At the system level the rankings agree with a Kendall Tau of 0.43 and a Spearman rank correlation of 0.55, while at the example level Fleiss κ is 0.25.",
+            "kind": "figure",
+            "item": "0.55",
+            "status": "found",
+            "page": 10,
+            "label": "correct"
+          },
+          {
+            "sentence": 28,
+            "sentence_text": "At the system level the rankings agree with a Kendall Tau of 0.43 and a Spearman rank correlation of 0.55, while at the example level Fleiss κ is 0.25.",
+            "kind": "figure",
+            "item": "0.25",
+            "status": "found",
+            "page": 10,
+            "label": "correct"
+          },
+          {
+            "sentence": 29,
+            "sentence_text": "Even human annotators agree only moderately with each other, with Fleiss κ = 0.42.",
+            "kind": "figure",
+            "item": "0.42",
+            "status": "found",
+            "page": 14,
+            "label": "correct"
+          },
+          {
+            "sentence": 30,
+            "sentence_text": "GPT-4 also favours its own outputs, with an Elo of 1348 against 1176 from human raters, which the authors describe as \"an additional 20% probability of winning against an opponent\".",
+            "kind": "quote",
+            "item": "an additional 20% probability of winning against an opponent",
+            "status": "found",
+            "page": 14,
+            "label": "correct"
+          },
+          {
+            "sentence": 30,
+            "sentence_text": "GPT-4 also favours its own outputs, with an Elo of 1348 against 1176 from human raters, which the authors describe as \"an additional 20% probability of winning against an opponent\".",
+            "kind": "figure",
+            "item": "1348",
+            "status": "found",
+            "page": 14,
+            "label": "correct"
+          },
+          {
+            "sentence": 30,
+            "sentence_text": "GPT-4 also favours its own outputs, with an Elo of 1348 against 1176 from human raters, which the authors describe as \"an additional 20% probability of winning against an opponent\".",
+            "kind": "figure",
+            "item": "1176",
+            "status": "found",
+            "page": 14,
+            "label": "correct"
+          },
+          {
+            "sentence": 31,
+            "sentence_text": "On the CrowS bias benchmark, Guanaco-65B averages 43.5, well below the 66.6 of LLaMA-65B.",
+            "kind": "figure",
+            "item": "43.5",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 31,
+            "sentence_text": "On the CrowS bias benchmark, Guanaco-65B averages 43.5, well below the 66.6 of LLaMA-65B.",
+            "kind": "figure",
+            "item": "66.6",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 32,
+            "sentence_text": "The authors are candid that \"we did not establish that QLORA can match full 16-bit finetuning performance at 33B and 65B scales\".",
+            "kind": "quote",
+            "item": "we did not establish that QLORA can match full 16-bit finetuning performance at 33B and 65B scales",
+            "status": "found",
+            "page": 15,
+            "label": "correct"
+          },
+          {
+            "sentence": 33,
+            "sentence_text": "They also estimate that with an iPhone 12 Plus, QLoRA could finetune 3 million tokens per night while the phone is charging.",
+            "kind": "figure",
+            "item": "12",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          },
+          {
+            "sentence": 33,
+            "sentence_text": "They also estimate that with an iPhone 12 Plus, QLoRA could finetune 3 million tokens per night while the phone is charging.",
+            "kind": "figure",
+            "item": "3 million",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          }
+        ],
+        "planted_draft": [
+          {
+            "sentence": 1,
+            "sentence_text": "Dettmers et al. (2023) introduce QLoRA, which reduces memory usage enough to finetune a 65B parameter model on a single 48GB GPU.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 1,
+            "sentence_text": "Dettmers et al. (2023) introduce QLoRA, which reduces memory usage enough to finetune a 65B parameter model on a single 48GB GPU.",
+            "kind": "figure",
+            "item": "48GB",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 2,
+            "sentence_text": "Regular 16-bit finetuning of a LLaMA 65B model requires more than 780 MB of GPU memory, so the gap is large.",
+            "kind": "figure",
+            "item": "16",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 2,
+            "sentence_text": "Regular 16-bit finetuning of a LLaMA 65B model requires more than 780 MB of GPU memory, so the gap is large.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 2,
+            "sentence_text": "Regular 16-bit finetuning of a LLaMA 65B model requires more than 780 MB of GPU memory, so the gap is large.",
+            "kind": "figure",
+            "item": "780MB",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_unit"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "The method \"backpropagates gradients through a frozen, 8-bit quantized pretrained language model into Low Rank Adapters (LoRA)\".",
+            "kind": "quote",
+            "item": "backpropagates gradients through a frozen, 8-bit quantized pretrained language model into Low Rank Adapters (LoRA)",
+            "status": "not_found",
+            "page": null,
+            "label": "altered_quote"
+          },
+          {
+            "sentence": 4,
+            "sentence_text": "Going from more than 780 GB to under 48 GB is a reduction of over 16 times.",
+            "kind": "figure",
+            "item": "780GB",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 4,
+            "sentence_text": "Going from more than 780 GB to under 48 GB is a reduction of over 16 times.",
+            "kind": "figure",
+            "item": "48GB",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 4,
+            "sentence_text": "Going from more than 780 GB to under 48 GB is a reduction of over 16 times.",
+            "kind": "figure",
+            "item": "16",
+            "status": "not_found",
+            "page": null,
+            "label": "derived"
+          },
+          {
+            "sentence": 5,
+            "sentence_text": "Three ideas make this work: a 4-bit NormalFloat data type, Double Quantization and Paged Optimizers.",
+            "kind": "figure",
+            "item": "4",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "Double Quantization saves an average of about 0.37 bits per parameter, approximately 3 GB for a 65B model.",
+            "kind": "figure",
+            "item": "0.37",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "Double Quantization saves an average of about 0.37 bits per parameter, approximately 3 GB for a 65B model.",
+            "kind": "figure",
+            "item": "3GB",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "Double Quantization saves an average of about 0.37 bits per parameter, approximately 3 GB for a 65B model.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 7,
+            "sentence_text": "With 32-bit constants and a blocksize of 64, the quantization constants cost 0.5 bits per parameter, and quantizing them a second time brings this down to 0.172 bits.",
+            "kind": "figure",
+            "item": "32",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 7,
+            "sentence_text": "With 32-bit constants and a blocksize of 64, the quantization constants cost 0.5 bits per parameter, and quantizing them a second time brings this down to 0.172 bits.",
+            "kind": "figure",
+            "item": "64",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 7,
+            "sentence_text": "With 32-bit constants and a blocksize of 64, the quantization constants cost 0.5 bits per parameter, and quantizing them a second time brings this down to 0.172 bits.",
+            "kind": "figure",
+            "item": "0.5",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 7,
+            "sentence_text": "With 32-bit constants and a blocksize of 64, the quantization constants cost 0.5 bits per parameter, and quantizing them a second time brings this down to 0.172 bits.",
+            "kind": "figure",
+            "item": "0.172",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "For a 7B LLaMA model, the LoRA input gradients take 567 MB while the LoRA parameters take only 26 MB, and the 4-bit base model consumes 5,084 MB.",
+            "kind": "figure",
+            "item": "7B",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "For a 7B LLaMA model, the LoRA input gradients take 567 MB while the LoRA parameters take only 26 MB, and the 4-bit base model consumes 5,084 MB.",
+            "kind": "figure",
+            "item": "567MB",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "For a 7B LLaMA model, the LoRA input gradients take 567 MB while the LoRA parameters take only 26 MB, and the 4-bit base model consumes 5,084 MB.",
+            "kind": "figure",
+            "item": "26MB",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "For a 7B LLaMA model, the LoRA input gradients take 567 MB while the LoRA parameters take only 26 MB, and the 4-bit base model consumes 5,084 MB.",
+            "kind": "figure",
+            "item": "4",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "For a 7B LLaMA model, the LoRA input gradients take 567 MB while the LoRA parameters take only 26 MB, and the 4-bit base model consumes 5,084 MB.",
+            "kind": "figure",
+            "item": "5,084MB",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 9,
+            "sentence_text": "Including activations, Figure 6 puts the footprint of the 65B model at 45.0 GB.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 26,
+            "label": "correct"
+          },
+          {
+            "sentence": 9,
+            "sentence_text": "Including activations, Figure 6 puts the footprint of the 65B model at 45.0 GB.",
+            "kind": "figure",
+            "item": "45.0GB",
+            "status": "found",
+            "page": 26,
+            "label": "correct"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "Across 125M to 13B models, the mean perplexity is 33.34 with Int4 and 27.41 with NFloat4 plus double quantization.",
+            "kind": "figure",
+            "item": "125M",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "Across 125M to 13B models, the mean perplexity is 33.34 with Int4 and 27.41 with NFloat4 plus double quantization.",
+            "kind": "figure",
+            "item": "13B",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "Across 125M to 13B models, the mean perplexity is 33.34 with Int4 and 27.41 with NFloat4 plus double quantization.",
+            "kind": "figure",
+            "item": "33.34",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "Across 125M to 13B models, the mean perplexity is 33.34 with Int4 and 27.41 with NFloat4 plus double quantization.",
+            "kind": "figure",
+            "item": "27.41",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 11,
+            "sentence_text": "On 5-shot MMLU, NF4 with double quantization averages 53.12 over the LLaMA sizes, compared with 53.0 for BFloat16 and 52.2 for Float4.",
+            "kind": "figure",
+            "item": "5",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 11,
+            "sentence_text": "On 5-shot MMLU, NF4 with double quantization averages 53.12 over the LLaMA sizes, compared with 53.0 for BFloat16 and 52.2 for Float4.",
+            "kind": "figure",
+            "item": "53.12",
+            "status": "not_found",
+            "page": null,
+            "label": "extra_precision"
+          },
+          {
+            "sentence": 11,
+            "sentence_text": "On 5-shot MMLU, NF4 with double quantization averages 53.12 over the LLaMA sizes, compared with 53.0 for BFloat16 and 52.2 for Float4.",
+            "kind": "figure",
+            "item": "53.0",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 11,
+            "sentence_text": "On 5-shot MMLU, NF4 with double quantization averages 53.12 over the LLaMA sizes, compared with 53.0 for BFloat16 and 52.2 for Float4.",
+            "kind": "figure",
+            "item": "52.2",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "Float4 therefore trails by 0.8 points.",
+            "kind": "figure",
+            "item": "0.8",
+            "status": "not_found",
+            "page": null,
+            "label": "derived"
+          },
+          {
+            "sentence": 13,
+            "sentence_text": "The authors conclude that NF4 with double quantization fully recovers 16-bit LoRA performance on these benchmarks.",
+            "kind": "figure",
+            "item": "16",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 14,
+            "sentence_text": "Using QLoRA, the authors finetuned more than 1,000 models across 8 instruction datasets.",
+            "kind": "figure",
+            "item": "1,000",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 14,
+            "sentence_text": "Using QLoRA, the authors finetuned more than 1,000 models across 8 instruction datasets.",
+            "kind": "figure",
+            "item": "8",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "Their best model, Guanaco 65B, reaches 99.8% of the performance level of ChatGPT on the Vicuna benchmark while only requiring 24 minutes of finetuning on a single GPU.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "Their best model, Guanaco 65B, reaches 99.8% of the performance level of ChatGPT on the Vicuna benchmark while only requiring 24 minutes of finetuning on a single GPU.",
+            "kind": "figure",
+            "item": "99.8%",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "Their best model, Guanaco 65B, reaches 99.8% of the performance level of ChatGPT on the Vicuna benchmark while only requiring 24 minutes of finetuning on a single GPU.",
+            "kind": "figure",
+            "item": "24 minutes",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_unit"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "The second best, Guanaco 33B, reaches 97.83% and can be trained in less than 12 hours on a single consumer GPU.",
+            "kind": "figure",
+            "item": "33B",
+            "status": "found",
+            "page": 10,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "The second best, Guanaco 33B, reaches 97.83% and can be trained in less than 12 hours on a single consumer GPU.",
+            "kind": "figure",
+            "item": "97.83%",
+            "status": "not_found",
+            "page": null,
+            "label": "extra_precision"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "The second best, Guanaco 33B, reaches 97.83% and can be trained in less than 12 hours on a single consumer GPU.",
+            "kind": "figure",
+            "item": "12 hours",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 17,
+            "sentence_text": "The smallest Guanaco model requires just 10 GB of memory and outperforms a 26 GB Alpaca model by more than 20 percentage points.",
+            "kind": "figure",
+            "item": "10GB",
+            "status": "found",
+            "page": 2,
+            "label": "misattributed"
+          },
+          {
+            "sentence": 17,
+            "sentence_text": "The smallest Guanaco model requires just 10 GB of memory and outperforms a 26 GB Alpaca model by more than 20 percentage points.",
+            "kind": "figure",
+            "item": "26GB",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 17,
+            "sentence_text": "The smallest Guanaco model requires just 10 GB of memory and outperforms a 26 GB Alpaca model by more than 20 percentage points.",
+            "kind": "figure",
+            "item": "20 percentage",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 18,
+            "sentence_text": "Data quality mattered more than size: in the authors' words, \"a 9k sample dataset (OASST1) outperformed a 450k sample dataset (FLAN v2, subsampled) on chatbot performance\".",
+            "kind": "quote",
+            "item": "a 9k sample dataset (OASST1) outperformed a 450k sample dataset (FLAN v2, subsampled) on chatbot performance",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "The OASST1 data contain 161,434 messages across 66,497 conversations in 35 languages, and keeping only the top reply at each level leaves 9,209 examples.",
+            "kind": "figure",
+            "item": "161,434",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "The OASST1 data contain 161,434 messages across 66,497 conversations in 35 languages, and keeping only the top reply at each level leaves 9,209 examples.",
+            "kind": "figure",
+            "item": "66,497",
+            "status": "found",
+            "page": 22,
+            "label": "correct"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "The OASST1 data contain 161,434 messages across 66,497 conversations in 35 languages, and keeping only the top reply at each level leaves 9,209 examples.",
+            "kind": "figure",
+            "item": "35",
+            "status": "found",
+            "page": 22,
+            "label": "correct"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "The OASST1 data contain 161,434 messages across 66,497 conversations in 35 languages, and keeping only the top reply at each level leaves 9,209 examples.",
+            "kind": "figure",
+            "item": "9,209",
+            "status": "found",
+            "page": 22,
+            "label": "correct"
+          },
+          {
+            "sentence": 20,
+            "sentence_text": "The next best model trained on only open-source data, the HH-RLHF model, scores 30 percentage points lower than Guanaco.",
+            "kind": "figure",
+            "item": "30 percentage",
+            "status": "found",
+            "page": 10,
+            "label": "correct"
+          },
+          {
+            "sentence": 21,
+            "sentence_text": "Training used LoRA r = 64 and α = 16 on all linear layers, with an Adam beta2 of 0.999 and a max grad norm of 0.3.",
+            "kind": "figure",
+            "item": "64",
+            "status": "found",
+            "page": 23,
+            "label": "correct"
+          },
+          {
+            "sentence": 21,
+            "sentence_text": "Training used LoRA r = 64 and α = 16 on all linear layers, with an Adam beta2 of 0.999 and a max grad norm of 0.3.",
+            "kind": "figure",
+            "item": "16",
+            "status": "found",
+            "page": 23,
+            "label": "correct"
+          },
+          {
+            "sentence": 21,
+            "sentence_text": "Training used LoRA r = 64 and α = 16 on all linear layers, with an Adam beta2 of 0.999 and a max grad norm of 0.3.",
+            "kind": "figure",
+            "item": "0.999",
+            "status": "found",
+            "page": 23,
+            "label": "correct"
+          },
+          {
+            "sentence": 21,
+            "sentence_text": "Training used LoRA r = 64 and α = 16 on all linear layers, with an Adam beta2 of 0.999 and a max grad norm of 0.3.",
+            "kind": "figure",
+            "item": "0.3",
+            "status": "found",
+            "page": 23,
+            "label": "correct"
+          },
+          {
+            "sentence": 22,
+            "sentence_text": "Generation used nucleus sampling with p = 0.9 and a temperature of 0.7.",
+            "kind": "figure",
+            "item": "0.9",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 22,
+            "sentence_text": "Generation used nucleus sampling with p = 0.9 and a temperature of 0.7.",
+            "kind": "figure",
+            "item": "0.7",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 23,
+            "sentence_text": "The Vicuna benchmark is a set of 80 prompts, and the OASST1 validation set gives 935 unique user queries.",
+            "kind": "figure",
+            "item": "80",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 23,
+            "sentence_text": "The Vicuna benchmark is a set of 80 prompts, and the OASST1 validation set gives 935 unique user queries.",
+            "kind": "figure",
+            "item": "935",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "In the GPT-4-judged tournament, GPT-4 has an Elo of 1348, Guanaco 65B 1032 and ChatGPT 966.",
+            "kind": "figure",
+            "item": "1348",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "In the GPT-4-judged tournament, GPT-4 has an Elo of 1348, Guanaco 65B 1032 and ChatGPT 966.",
+            "kind": "figure",
+            "item": "65B",
+            "status": "found",
+            "page": 11,
+            "label": "correct"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "In the GPT-4-judged tournament, GPT-4 has an Elo of 1348, Guanaco 65B 1032 and ChatGPT 966.",
+            "kind": "figure",
+            "item": "1032",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "In the GPT-4-judged tournament, GPT-4 has an Elo of 1348, Guanaco 65B 1032 and ChatGPT 966.",
+            "kind": "figure",
+            "item": "966",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 25,
+            "sentence_text": "The ratings start at 1,000 with K = 32, and the procedure is repeated 10,000 times with different random seeds.",
+            "kind": "figure",
+            "item": "1,000",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 25,
+            "sentence_text": "The ratings start at 1,000 with K = 32, and the procedure is repeated 10,000 times with different random seeds.",
+            "kind": "figure",
+            "item": "32",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 25,
+            "sentence_text": "The ratings start at 1,000 with K = 32, and the procedure is repeated 10,000 times with different random seeds.",
+            "kind": "figure",
+            "item": "10,000",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 26,
+            "sentence_text": "An Elo gap of 100 points means an expected win rate of approximately 65%.",
+            "kind": "figure",
+            "item": "100",
+            "status": "not_found",
+            "page": null,
+            "label": "derived"
+          },
+          {
+            "sentence": 26,
+            "sentence_text": "An Elo gap of 100 points means an expected win rate of approximately 65%.",
+            "kind": "figure",
+            "item": "65%",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 27,
+            "sentence_text": "The paper finds that \"GPT-4 evaluations are a cheap and reliable alternative to human evaluation\", but the agreement is only moderate.",
+            "kind": "quote",
+            "item": "GPT-4 evaluations are a cheap and reliable alternative to human evaluation",
+            "status": "not_found",
+            "page": null,
+            "label": "altered_quote"
+          },
+          {
+            "sentence": 28,
+            "sentence_text": "At the system level the rankings agree with a Kendall Tau of 0.55 and a Spearman rank correlation of 0.43, while at the example level Fleiss κ is 0.25.",
+            "kind": "figure",
+            "item": "0.55",
+            "status": "found",
+            "page": 10,
+            "label": "misattributed"
+          },
+          {
+            "sentence": 28,
+            "sentence_text": "At the system level the rankings agree with a Kendall Tau of 0.55 and a Spearman rank correlation of 0.43, while at the example level Fleiss κ is 0.25.",
+            "kind": "figure",
+            "item": "0.43",
+            "status": "found",
+            "page": 10,
+            "label": "correct"
+          },
+          {
+            "sentence": 28,
+            "sentence_text": "At the system level the rankings agree with a Kendall Tau of 0.55 and a Spearman rank correlation of 0.43, while at the example level Fleiss κ is 0.25.",
+            "kind": "figure",
+            "item": "0.25",
+            "status": "found",
+            "page": 10,
+            "label": "correct"
+          },
+          {
+            "sentence": 29,
+            "sentence_text": "Even human annotators agree only moderately with each other, with Fleiss κ = 0.46.",
+            "kind": "figure",
+            "item": "0.46",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 30,
+            "sentence_text": "GPT-4 also favours its own outputs, with an Elo of 1348 against 1176 from human raters, which the authors describe as \"an additional 25% probability of winning against an opponent\".",
+            "kind": "quote",
+            "item": "an additional 25% probability of winning against an opponent",
+            "status": "not_found",
+            "page": null,
+            "label": "altered_quote"
+          },
+          {
+            "sentence": 30,
+            "sentence_text": "GPT-4 also favours its own outputs, with an Elo of 1348 against 1176 from human raters, which the authors describe as \"an additional 25% probability of winning against an opponent\".",
+            "kind": "figure",
+            "item": "1348",
+            "status": "found",
+            "page": 14,
+            "label": "correct"
+          },
+          {
+            "sentence": 30,
+            "sentence_text": "GPT-4 also favours its own outputs, with an Elo of 1348 against 1176 from human raters, which the authors describe as \"an additional 25% probability of winning against an opponent\".",
+            "kind": "figure",
+            "item": "1176",
+            "status": "found",
+            "page": 14,
+            "label": "correct"
+          },
+          {
+            "sentence": 31,
+            "sentence_text": "On the CrowS bias benchmark, Guanaco-65B averages 45.3, well below the 66.6 of LLaMA-65B.",
+            "kind": "figure",
+            "item": "45.3",
+            "status": "found",
+            "page": 15,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 31,
+            "sentence_text": "On the CrowS bias benchmark, Guanaco-65B averages 45.3, well below the 66.6 of LLaMA-65B.",
+            "kind": "figure",
+            "item": "66.6",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 32,
+            "sentence_text": "The authors are candid that \"we established that QLORA can match full 16-bit finetuning performance at 33B and 65B scales\".",
+            "kind": "quote",
+            "item": "we established that QLORA can match full 16-bit finetuning performance at 33B and 65B scales",
+            "status": "not_found",
+            "page": null,
+            "label": "altered_quote"
+          },
+          {
+            "sentence": 33,
+            "sentence_text": "They also estimate that with an iPhone 12 Plus, QLoRA could finetune 3 billion tokens per night while the phone is charging.",
+            "kind": "figure",
+            "item": "12",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          },
+          {
+            "sentence": 33,
+            "sentence_text": "They also estimate that with an iPhone 12 Plus, QLoRA could finetune 3 billion tokens per night while the phone is charging.",
+            "kind": "figure",
+            "item": "3 billion",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_unit"
+          },
+          {
+            "sentence": 34,
+            "sentence_text": "Whether such small models are useful in practice is left open, although the authors predict that \"4-bit finetuning will make 16-bit training obsolete for every model size\".",
+            "kind": "quote",
+            "item": "4-bit finetuning will make 16-bit training obsolete for every model size",
+            "status": "not_found",
+            "page": null,
+            "label": "fabricated_quote"
+          }
+        ]
+      },
+      "_seconds": 5.9
+    },
+    {
+      "name": "cot_zh",
+      "split": "held_out",
+      "source": "2201.11903v6.pdf",
+      "source_sha256": "7d9f878c23b460e4566aa4ec9201b1abfb3b8faefb2b1356e411cb90fef72a12",
+      "correct_draft": {
+        "correct": {
+          "items": 63,
+          "not_found": 4
+        },
+        "derived": {
+          "items": 2,
+          "not_found": 2
+        },
+        "false_alarms": [
+          {
+            "sentence": 6,
+            "sentence_text": "根據表 1，PaLM 540B 在 GSM8K 上的標準提示準確率只有 17.9%，改用思維鏈後升到 56.9%，再加上外部計算器則為 58.6%。",
+            "kind": "figure",
+            "item": "17.9%",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "根據表 1，PaLM 540B 在 GSM8K 上的標準提示準確率只有 17.9%，改用思維鏈後升到 56.9%，再加上外部計算器則為 58.6%。",
+            "kind": "figure",
+            "item": "56.9%",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "根據表 1，PaLM 540B 在 GSM8K 上的標準提示準確率只有 17.9%，改用思維鏈後升到 56.9%，再加上外部計算器則為 58.6%。",
+            "kind": "figure",
+            "item": "58.6%",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "同一資料集上，GPT-3 175B 用思維鏈可達 46.9%，Codex 則有 63.1%，而先前微調方法的最佳成績是 55%。",
+            "kind": "figure",
+            "item": "55%",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          }
+        ]
+      },
+      "planted_draft": {
+        "by_type": {
+          "altered_quote": {
+            "planted": 4,
+            "caught": 4
+          },
+          "extra_precision": {
+            "planted": 1,
+            "caught": 1
+          },
+          "fabricated_quote": {
+            "planted": 1,
+            "caught": 1
+          },
+          "misattributed": {
+            "planted": 2,
+            "caught": 0
+          },
+          "wrong_number": {
+            "planted": 8,
+            "caught": 6
+          },
+          "wrong_unit": {
+            "planted": 2,
+            "caught": 2
+          }
+        },
+        "untouched_correct": {
+          "items": 46,
+          "not_found": 2
+        },
+        "missed": [
+          {
+            "sentence": 8,
+            "sentence_text": "同一資料集上，GPT-3 175B 用思維鏈可達 63.1%，Codex 則有 46.9%，而先前微調方法的最佳成績是 55%。",
+            "kind": "figure",
+            "item": "63.1%",
+            "status": "found",
+            "page": 20,
+            "label": "misattributed"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "在答錯的 50 個例子中，64% 的思維鏈幾乎正確，只差小錯誤，其餘 54% 則有重大的語意理解或連貫性錯誤。",
+            "kind": "figure",
+            "item": "64%",
+            "status": "found",
+            "page": 30,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 13,
+            "sentence_text": "細看錯誤類型，8% 只是計算錯誤（calculator error），16% 是符號對應錯誤（symbol mapping error），27% 是少了一個步驟（one step missing）。",
+            "kind": "figure",
+            "item": "27%",
+            "status": "found",
+            "page": 27,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "常識推理方面，PaLM 540B 在 StrategyQA 上以 76.5% 超越先前最佳的 69.4%，在日期理解（date understanding）上則以 95.4% 勝過運動迷的 84%。",
+            "kind": "figure",
+            "item": "95.4%",
+            "status": "found",
+            "page": 7,
+            "label": "misattributed"
+          }
+        ]
+      },
+      "items": {
+        "correct_draft": [
+          {
+            "sentence": 1,
+            "sentence_text": "只用八個思維鏈示範，PaLM 540B 就在 GSM8K 數學應用題上達到當時最佳的準確率，甚至超過加了驗證器的微調 GPT-3。",
+            "kind": "figure",
+            "item": "540B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 2,
+            "sentence_text": "實驗涵蓋五個數學應用題資料集，其中 GSM8K 有 1,319 題、ASDiv 有 2,096 題、AQuA 有 254 題。",
+            "kind": "figure",
+            "item": "1,319",
+            "status": "found",
+            "page": 29,
+            "label": "correct"
+          },
+          {
+            "sentence": 2,
+            "sentence_text": "實驗涵蓋五個數學應用題資料集，其中 GSM8K 有 1,319 題、ASDiv 有 2,096 題、AQuA 有 254 題。",
+            "kind": "figure",
+            "item": "2,096",
+            "status": "found",
+            "page": 29,
+            "label": "correct"
+          },
+          {
+            "sentence": 2,
+            "sentence_text": "實驗涵蓋五個數學應用題資料集，其中 GSM8K 有 1,319 題、ASDiv 有 2,096 題、AQuA 有 254 題。",
+            "kind": "figure",
+            "item": "254",
+            "status": "found",
+            "page": 29,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "受測模型包括 GPT-3 的 350M、1.3B、6.7B 與 175B 四種規模，LaMDA 的 137B，以及 PaLM 的 8B、62B 與 540B。",
+            "kind": "figure",
+            "item": "350M",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "受測模型包括 GPT-3 的 350M、1.3B、6.7B 與 175B 四種規模，LaMDA 的 137B，以及 PaLM 的 8B、62B 與 540B。",
+            "kind": "figure",
+            "item": "1.3B",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "受測模型包括 GPT-3 的 350M、1.3B、6.7B 與 175B 四種規模，LaMDA 的 137B，以及 PaLM 的 8B、62B 與 540B。",
+            "kind": "figure",
+            "item": "6.7B",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "受測模型包括 GPT-3 的 350M、1.3B、6.7B 與 175B 四種規模，LaMDA 的 137B，以及 PaLM 的 8B、62B 與 540B。",
+            "kind": "figure",
+            "item": "175B",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "受測模型包括 GPT-3 的 350M、1.3B、6.7B 與 175B 四種規模，LaMDA 的 137B，以及 PaLM 的 8B、62B 與 540B。",
+            "kind": "figure",
+            "item": "137B",
+            "status": "found",
+            "page": 21,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "受測模型包括 GPT-3 的 350M、1.3B、6.7B 與 175B 四種規模，LaMDA 的 137B，以及 PaLM 的 8B、62B 與 540B。",
+            "kind": "figure",
+            "item": "8B",
+            "status": "found",
+            "page": 21,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "受測模型包括 GPT-3 的 350M、1.3B、6.7B 與 175B 四種規模，LaMDA 的 137B，以及 PaLM 的 8B、62B 與 540B。",
+            "kind": "figure",
+            "item": "62B",
+            "status": "found",
+            "page": 21,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "受測模型包括 GPT-3 的 350M、1.3B、6.7B 與 175B 四種規模，LaMDA 的 137B，以及 PaLM 的 8B、62B 與 540B。",
+            "kind": "figure",
+            "item": "540B",
+            "status": "found",
+            "page": 21,
+            "label": "correct"
+          },
+          {
+            "sentence": 4,
+            "sentence_text": "示範數固定為 8 個，受限於 1024 個 token 的輸入長度。",
+            "kind": "figure",
+            "item": "8",
+            "status": "found",
+            "page": 28,
+            "label": "correct"
+          },
+          {
+            "sentence": 4,
+            "sentence_text": "示範數固定為 8 個，受限於 1024 個 token 的輸入長度。",
+            "kind": "figure",
+            "item": "1024",
+            "status": "found",
+            "page": 28,
+            "label": "correct"
+          },
+          {
+            "sentence": 5,
+            "sentence_text": "實驗只做推論，PaLM 540B 跑在 TPU v4 上，配置為 192 顆晶片、384 個核心。",
+            "kind": "figure",
+            "item": "540B",
+            "status": "found",
+            "page": 30,
+            "label": "correct"
+          },
+          {
+            "sentence": 5,
+            "sentence_text": "實驗只做推論，PaLM 540B 跑在 TPU v4 上，配置為 192 顆晶片、384 個核心。",
+            "kind": "figure",
+            "item": "192",
+            "status": "found",
+            "page": 30,
+            "label": "correct"
+          },
+          {
+            "sentence": 5,
+            "sentence_text": "實驗只做推論，PaLM 540B 跑在 TPU v4 上，配置為 192 顆晶片、384 個核心。",
+            "kind": "figure",
+            "item": "384",
+            "status": "found",
+            "page": 30,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "根據表 1，PaLM 540B 在 GSM8K 上的標準提示準確率只有 17.9%，改用思維鏈後升到 56.9%，再加上外部計算器則為 58.6%。",
+            "kind": "figure",
+            "item": "540B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "根據表 1，PaLM 540B 在 GSM8K 上的標準提示準確率只有 17.9%，改用思維鏈後升到 56.9%，再加上外部計算器則為 58.6%。",
+            "kind": "figure",
+            "item": "17.9%",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "根據表 1，PaLM 540B 在 GSM8K 上的標準提示準確率只有 17.9%，改用思維鏈後升到 56.9%，再加上外部計算器則為 58.6%。",
+            "kind": "figure",
+            "item": "56.9%",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "根據表 1，PaLM 540B 在 GSM8K 上的標準提示準確率只有 17.9%，改用思維鏈後升到 56.9%，再加上外部計算器則為 58.6%。",
+            "kind": "figure",
+            "item": "58.6%",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 7,
+            "sentence_text": "換算下來，思維鏈的準確率約為標準提示的 3 倍。",
+            "kind": "figure",
+            "item": "3倍",
+            "status": "not_found",
+            "page": null,
+            "label": "derived"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "同一資料集上，GPT-3 175B 用思維鏈可達 46.9%，Codex 則有 63.1%，而先前微調方法的最佳成績是 55%。",
+            "kind": "figure",
+            "item": "175B",
+            "status": "found",
+            "page": 20,
+            "label": "correct"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "同一資料集上，GPT-3 175B 用思維鏈可達 46.9%，Codex 則有 63.1%，而先前微調方法的最佳成績是 55%。",
+            "kind": "figure",
+            "item": "46.9%",
+            "status": "found",
+            "page": 20,
+            "label": "correct"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "同一資料集上，GPT-3 175B 用思維鏈可達 46.9%，Codex 則有 63.1%，而先前微調方法的最佳成績是 55%。",
+            "kind": "figure",
+            "item": "63.1%",
+            "status": "found",
+            "page": 20,
+            "label": "correct"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "同一資料集上，GPT-3 175B 用思維鏈可達 46.9%，Codex 則有 63.1%，而先前微調方法的最佳成績是 55%。",
+            "kind": "figure",
+            "item": "55%",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 9,
+            "sentence_text": "作者指出，思維鏈只有在約 100B 參數以上的模型才會帶來增益。",
+            "kind": "figure",
+            "item": "100B",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "他們寫道 \"chain of thought actually hurts performance for most models smaller than 10B parameters\"。",
+            "kind": "quote",
+            "item": "chain of thought actually hurts performance for most models smaller than 10B parameters",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          },
+          {
+            "sentence": 11,
+            "sentence_text": "作者人工檢查了 LaMDA 137B 在 GSM8K 上答對的 50 個例子，除了兩個碰巧答對之外，推理過程都正確。",
+            "kind": "figure",
+            "item": "137B",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 11,
+            "sentence_text": "作者人工檢查了 LaMDA 137B 在 GSM8K 上答對的 50 個例子，除了兩個碰巧答對之外，推理過程都正確。",
+            "kind": "figure",
+            "item": "50",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "在答錯的 50 個例子中，46% 的思維鏈幾乎正確，只差小錯誤，其餘 54% 則有重大的語意理解或連貫性錯誤。",
+            "kind": "figure",
+            "item": "50",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "在答錯的 50 個例子中，46% 的思維鏈幾乎正確，只差小錯誤，其餘 54% 則有重大的語意理解或連貫性錯誤。",
+            "kind": "figure",
+            "item": "46%",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "在答錯的 50 個例子中，46% 的思維鏈幾乎正確，只差小錯誤，其餘 54% 則有重大的語意理解或連貫性錯誤。",
+            "kind": "figure",
+            "item": "54%",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 13,
+            "sentence_text": "細看錯誤類型，8% 只是計算錯誤（calculator error），16% 是符號對應錯誤（symbol mapping error），22% 是少了一個步驟（one step missing）。",
+            "kind": "figure",
+            "item": "8%",
+            "status": "found",
+            "page": 27,
+            "label": "correct"
+          },
+          {
+            "sentence": 13,
+            "sentence_text": "細看錯誤類型，8% 只是計算錯誤（calculator error），16% 是符號對應錯誤（symbol mapping error），22% 是少了一個步驟（one step missing）。",
+            "kind": "figure",
+            "item": "16%",
+            "status": "found",
+            "page": 27,
+            "label": "correct"
+          },
+          {
+            "sentence": 13,
+            "sentence_text": "細看錯誤類型，8% 只是計算錯誤（calculator error），16% 是符號對應錯誤（symbol mapping error），22% 是少了一個步驟（one step missing）。",
+            "kind": "figure",
+            "item": "22%",
+            "status": "found",
+            "page": 27,
+            "label": "correct"
+          },
+          {
+            "sentence": 14,
+            "sentence_text": "加上外部計算器後，LaMDA 137B 在 GSM8K 的解題率從 14.3% 升到 17.3%。",
+            "kind": "figure",
+            "item": "137B",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 14,
+            "sentence_text": "加上外部計算器後，LaMDA 137B 在 GSM8K 的解題率從 14.3% 升到 17.3%。",
+            "kind": "figure",
+            "item": "14.3%",
+            "status": "found",
+            "page": 20,
+            "label": "correct"
+          },
+          {
+            "sentence": 14,
+            "sentence_text": "加上外部計算器後，LaMDA 137B 在 GSM8K 的解題率從 14.3% 升到 17.3%。",
+            "kind": "figure",
+            "item": "17.3%",
+            "status": "found",
+            "page": 27,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "62B",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "45",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "20",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "18",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "7",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "540B",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "6",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "12",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "4",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "常識推理方面，PaLM 540B 在 StrategyQA 上以 75.6% 超越先前最佳的 69.4%，在運動理解（sports understanding）上則以 95.4% 勝過運動迷的 84%。",
+            "kind": "figure",
+            "item": "540B",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "常識推理方面，PaLM 540B 在 StrategyQA 上以 75.6% 超越先前最佳的 69.4%，在運動理解（sports understanding）上則以 95.4% 勝過運動迷的 84%。",
+            "kind": "figure",
+            "item": "75.6%",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "常識推理方面，PaLM 540B 在 StrategyQA 上以 75.6% 超越先前最佳的 69.4%，在運動理解（sports understanding）上則以 95.4% 勝過運動迷的 84%。",
+            "kind": "figure",
+            "item": "69.4%",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "常識推理方面，PaLM 540B 在 StrategyQA 上以 75.6% 超越先前最佳的 69.4%，在運動理解（sports understanding）上則以 95.4% 勝過運動迷的 84%。",
+            "kind": "figure",
+            "item": "95.4%",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "常識推理方面，PaLM 540B 在 StrategyQA 上以 75.6% 超越先前最佳的 69.4%，在運動理解（sports understanding）上則以 95.4% 勝過運動迷的 84%。",
+            "kind": "figure",
+            "item": "84%",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 17,
+            "sentence_text": "在符號推理上，PaLM 540B 搭配思維鏈的解題率接近 100%。",
+            "kind": "figure",
+            "item": "540B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 17,
+            "sentence_text": "在符號推理上，PaLM 540B 搭配思維鏈的解題率接近 100%。",
+            "kind": "figure",
+            "item": "100%",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 18,
+            "sentence_text": "硬幣翻轉（coin flip）任務的準確率會隨標註者（annotator）不同，從標註者 A 的 99.6% 掉到標註者 C 的 71.4%，但都高於標準提示的 50.0%。",
+            "kind": "figure",
+            "item": "99.6%",
+            "status": "found",
+            "page": 18,
+            "label": "correct"
+          },
+          {
+            "sentence": 18,
+            "sentence_text": "硬幣翻轉（coin flip）任務的準確率會隨標註者（annotator）不同，從標註者 A 的 99.6% 掉到標註者 C 的 71.4%，但都高於標準提示的 50.0%。",
+            "kind": "figure",
+            "item": "71.4%",
+            "status": "found",
+            "page": 18,
+            "label": "correct"
+          },
+          {
+            "sentence": 18,
+            "sentence_text": "硬幣翻轉（coin flip）任務的準確率會隨標註者（annotator）不同，從標註者 A 的 99.6% 掉到標註者 C 的 71.4%，但都高於標準提示的 50.0%。",
+            "kind": "figure",
+            "item": "50.0%",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "作者也引用前人結果：只改變示範順序，GPT-3 在 SST-2 上的準確率就可從 54.3% 變到 93.4%。",
+            "kind": "figure",
+            "item": "54.3%",
+            "status": "found",
+            "page": 6,
+            "label": "correct"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "作者也引用前人結果：只改變示範順序，GPT-3 在 SST-2 上的準確率就可從 54.3% 變到 93.4%。",
+            "kind": "figure",
+            "item": "93.4%",
+            "status": "found",
+            "page": 6,
+            "label": "correct"
+          },
+          {
+            "sentence": 20,
+            "sentence_text": "兩者相差 39.1 個百分點。",
+            "kind": "figure",
+            "item": "39.1",
+            "status": "not_found",
+            "page": null,
+            "label": "derived"
+          },
+          {
+            "sentence": 21,
+            "sentence_text": "結論中，作者寫道 \"chain-of-thought reasoning is an emergent property of model scale that allows sufficiently large language models to perform reasoning tasks that otherwise have flat scaling curves\"。",
+            "kind": "quote",
+            "item": "chain-of-thought reasoning is an emergent property of model scale that allows sufficiently large language models to perform reasoning tasks that otherwise have flat scaling curves",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 22,
+            "sentence_text": "他們也強調 \"No language models were finetuned in the process of writing this paper\"。",
+            "kind": "quote",
+            "item": "No language models were finetuned in the process of writing this paper",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 23,
+            "sentence_text": "作者提醒 \"standard prompting only provides a lower bound on the capabilities of large language models\"。",
+            "kind": "quote",
+            "item": "standard prompting only provides a lower bound on the capabilities of large language models",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "此外 \"there is no guarantee of correct reasoning paths\"，錯誤的推理也可能得出正確答案。",
+            "kind": "quote",
+            "item": "there is no guarantee of correct reasoning paths",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          }
+        ],
+        "planted_draft": [
+          {
+            "sentence": 1,
+            "sentence_text": "只用八個思維鏈示範，PaLM 540B 就在 GSM8K 數學應用題上達到當時最佳的準確率，甚至超過加了驗證器的微調 GPT-3。",
+            "kind": "figure",
+            "item": "540B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 2,
+            "sentence_text": "實驗涵蓋五個數學應用題資料集，其中 GSM8K 有 1,391 題、ASDiv 有 2,096 題、AQuA 有 254 題。",
+            "kind": "figure",
+            "item": "1,391",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 2,
+            "sentence_text": "實驗涵蓋五個數學應用題資料集，其中 GSM8K 有 1,391 題、ASDiv 有 2,096 題、AQuA 有 254 題。",
+            "kind": "figure",
+            "item": "2,096",
+            "status": "found",
+            "page": 29,
+            "label": "correct"
+          },
+          {
+            "sentence": 2,
+            "sentence_text": "實驗涵蓋五個數學應用題資料集，其中 GSM8K 有 1,391 題、ASDiv 有 2,096 題、AQuA 有 254 題。",
+            "kind": "figure",
+            "item": "254",
+            "status": "found",
+            "page": 29,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "受測模型包括 GPT-3 的 350M、1.3B、6.7B 與 175B 四種規模，LaMDA 的 137B，以及 PaLM 的 8B、62B 與 540B。",
+            "kind": "figure",
+            "item": "350M",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "受測模型包括 GPT-3 的 350M、1.3B、6.7B 與 175B 四種規模，LaMDA 的 137B，以及 PaLM 的 8B、62B 與 540B。",
+            "kind": "figure",
+            "item": "1.3B",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "受測模型包括 GPT-3 的 350M、1.3B、6.7B 與 175B 四種規模，LaMDA 的 137B，以及 PaLM 的 8B、62B 與 540B。",
+            "kind": "figure",
+            "item": "6.7B",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "受測模型包括 GPT-3 的 350M、1.3B、6.7B 與 175B 四種規模，LaMDA 的 137B，以及 PaLM 的 8B、62B 與 540B。",
+            "kind": "figure",
+            "item": "175B",
+            "status": "found",
+            "page": 4,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "受測模型包括 GPT-3 的 350M、1.3B、6.7B 與 175B 四種規模，LaMDA 的 137B，以及 PaLM 的 8B、62B 與 540B。",
+            "kind": "figure",
+            "item": "137B",
+            "status": "found",
+            "page": 21,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "受測模型包括 GPT-3 的 350M、1.3B、6.7B 與 175B 四種規模，LaMDA 的 137B，以及 PaLM 的 8B、62B 與 540B。",
+            "kind": "figure",
+            "item": "8B",
+            "status": "found",
+            "page": 21,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "受測模型包括 GPT-3 的 350M、1.3B、6.7B 與 175B 四種規模，LaMDA 的 137B，以及 PaLM 的 8B、62B 與 540B。",
+            "kind": "figure",
+            "item": "62B",
+            "status": "found",
+            "page": 21,
+            "label": "correct"
+          },
+          {
+            "sentence": 3,
+            "sentence_text": "受測模型包括 GPT-3 的 350M、1.3B、6.7B 與 175B 四種規模，LaMDA 的 137B，以及 PaLM 的 8B、62B 與 540B。",
+            "kind": "figure",
+            "item": "540B",
+            "status": "found",
+            "page": 21,
+            "label": "correct"
+          },
+          {
+            "sentence": 4,
+            "sentence_text": "示範數固定為 8 個，受限於 1024 個 token 的輸入長度。",
+            "kind": "figure",
+            "item": "8",
+            "status": "found",
+            "page": 28,
+            "label": "correct"
+          },
+          {
+            "sentence": 4,
+            "sentence_text": "示範數固定為 8 個，受限於 1024 個 token 的輸入長度。",
+            "kind": "figure",
+            "item": "1024",
+            "status": "found",
+            "page": 28,
+            "label": "correct"
+          },
+          {
+            "sentence": 5,
+            "sentence_text": "實驗只做推論，PaLM 540B 跑在 TPU v4 上，配置為 129 顆晶片、384 個核心。",
+            "kind": "figure",
+            "item": "540B",
+            "status": "found",
+            "page": 30,
+            "label": "correct"
+          },
+          {
+            "sentence": 5,
+            "sentence_text": "實驗只做推論，PaLM 540B 跑在 TPU v4 上，配置為 129 顆晶片、384 個核心。",
+            "kind": "figure",
+            "item": "129",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 5,
+            "sentence_text": "實驗只做推論，PaLM 540B 跑在 TPU v4 上，配置為 129 顆晶片、384 個核心。",
+            "kind": "figure",
+            "item": "384",
+            "status": "found",
+            "page": 30,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "根據表 1，PaLM 540B 在 GSM8K 上的標準提示準確率只有 17.92%，改用思維鏈後升到 57.6%，再加上外部計算器則為 58.6%。",
+            "kind": "figure",
+            "item": "540B",
+            "status": "found",
+            "page": 1,
+            "label": "correct"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "根據表 1，PaLM 540B 在 GSM8K 上的標準提示準確率只有 17.92%，改用思維鏈後升到 57.6%，再加上外部計算器則為 58.6%。",
+            "kind": "figure",
+            "item": "17.92%",
+            "status": "not_found",
+            "page": null,
+            "label": "extra_precision"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "根據表 1，PaLM 540B 在 GSM8K 上的標準提示準確率只有 17.92%，改用思維鏈後升到 57.6%，再加上外部計算器則為 58.6%。",
+            "kind": "figure",
+            "item": "57.6%",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 6,
+            "sentence_text": "根據表 1，PaLM 540B 在 GSM8K 上的標準提示準確率只有 17.92%，改用思維鏈後升到 57.6%，再加上外部計算器則為 58.6%。",
+            "kind": "figure",
+            "item": "58.6%",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 7,
+            "sentence_text": "換算下來，思維鏈的準確率約為標準提示的 3 倍。",
+            "kind": "figure",
+            "item": "3倍",
+            "status": "not_found",
+            "page": null,
+            "label": "derived"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "同一資料集上，GPT-3 175B 用思維鏈可達 63.1%，Codex 則有 46.9%，而先前微調方法的最佳成績是 55%。",
+            "kind": "figure",
+            "item": "175B",
+            "status": "found",
+            "page": 20,
+            "label": "correct"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "同一資料集上，GPT-3 175B 用思維鏈可達 63.1%，Codex 則有 46.9%，而先前微調方法的最佳成績是 55%。",
+            "kind": "figure",
+            "item": "63.1%",
+            "status": "found",
+            "page": 20,
+            "label": "misattributed"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "同一資料集上，GPT-3 175B 用思維鏈可達 63.1%，Codex 則有 46.9%，而先前微調方法的最佳成績是 55%。",
+            "kind": "figure",
+            "item": "46.9%",
+            "status": "found",
+            "page": 20,
+            "label": "correct"
+          },
+          {
+            "sentence": 8,
+            "sentence_text": "同一資料集上，GPT-3 175B 用思維鏈可達 63.1%，Codex 則有 46.9%，而先前微調方法的最佳成績是 55%。",
+            "kind": "figure",
+            "item": "55%",
+            "status": "not_found",
+            "page": null,
+            "label": "correct"
+          },
+          {
+            "sentence": 9,
+            "sentence_text": "作者指出，思維鏈只有在約 100M 參數以上的模型才會帶來增益。",
+            "kind": "figure",
+            "item": "100M",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_unit"
+          },
+          {
+            "sentence": 10,
+            "sentence_text": "他們寫道 \"chain of thought actually hurts performance for most models smaller than 100B parameters\"。",
+            "kind": "quote",
+            "item": "chain of thought actually hurts performance for most models smaller than 100B parameters",
+            "status": "not_found",
+            "page": null,
+            "label": "altered_quote"
+          },
+          {
+            "sentence": 11,
+            "sentence_text": "作者人工檢查了 LaMDA 137B 在 GSM8K 上答對的 50 個例子，除了兩個碰巧答對之外，推理過程都正確。",
+            "kind": "figure",
+            "item": "137B",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 11,
+            "sentence_text": "作者人工檢查了 LaMDA 137B 在 GSM8K 上答對的 50 個例子，除了兩個碰巧答對之外，推理過程都正確。",
+            "kind": "figure",
+            "item": "50",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "在答錯的 50 個例子中，64% 的思維鏈幾乎正確，只差小錯誤，其餘 54% 則有重大的語意理解或連貫性錯誤。",
+            "kind": "figure",
+            "item": "50",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "在答錯的 50 個例子中，64% 的思維鏈幾乎正確，只差小錯誤，其餘 54% 則有重大的語意理解或連貫性錯誤。",
+            "kind": "figure",
+            "item": "64%",
+            "status": "found",
+            "page": 30,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 12,
+            "sentence_text": "在答錯的 50 個例子中，64% 的思維鏈幾乎正確，只差小錯誤，其餘 54% 則有重大的語意理解或連貫性錯誤。",
+            "kind": "figure",
+            "item": "54%",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 13,
+            "sentence_text": "細看錯誤類型，8% 只是計算錯誤（calculator error），16% 是符號對應錯誤（symbol mapping error），27% 是少了一個步驟（one step missing）。",
+            "kind": "figure",
+            "item": "8%",
+            "status": "found",
+            "page": 27,
+            "label": "correct"
+          },
+          {
+            "sentence": 13,
+            "sentence_text": "細看錯誤類型，8% 只是計算錯誤（calculator error），16% 是符號對應錯誤（symbol mapping error），27% 是少了一個步驟（one step missing）。",
+            "kind": "figure",
+            "item": "16%",
+            "status": "found",
+            "page": 27,
+            "label": "correct"
+          },
+          {
+            "sentence": 13,
+            "sentence_text": "細看錯誤類型，8% 只是計算錯誤（calculator error），16% 是符號對應錯誤（symbol mapping error），27% 是少了一個步驟（one step missing）。",
+            "kind": "figure",
+            "item": "27%",
+            "status": "found",
+            "page": 27,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 14,
+            "sentence_text": "加上外部計算器後，LaMDA 137B 在 GSM8K 的解題率從 13.4% 升到 17.3%。",
+            "kind": "figure",
+            "item": "137B",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 14,
+            "sentence_text": "加上外部計算器後，LaMDA 137B 在 GSM8K 的解題率從 13.4% 升到 17.3%。",
+            "kind": "figure",
+            "item": "13.4%",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 14,
+            "sentence_text": "加上外部計算器後，LaMDA 137B 在 GSM8K 的解題率從 13.4% 升到 17.3%。",
+            "kind": "figure",
+            "item": "17.3%",
+            "status": "found",
+            "page": 27,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "62B",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "45",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "20",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "18",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "7",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "540B",
+            "status": "found",
+            "page": 5,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "6",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "12",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          },
+          {
+            "sentence": 15,
+            "sentence_text": "在 PaLM 62B 的 45 個錯誤中，語意理解錯誤（semantic understanding）有 20 個、少一步的有 18 個、其他 7 個；換成 540B 後分別修正了 6、12 與 4 個。",
+            "kind": "figure",
+            "item": "4",
+            "status": "found",
+            "page": 16,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "常識推理方面，PaLM 540B 在 StrategyQA 上以 76.5% 超越先前最佳的 69.4%，在日期理解（date understanding）上則以 95.4% 勝過運動迷的 84%。",
+            "kind": "figure",
+            "item": "540B",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "常識推理方面，PaLM 540B 在 StrategyQA 上以 76.5% 超越先前最佳的 69.4%，在日期理解（date understanding）上則以 95.4% 勝過運動迷的 84%。",
+            "kind": "figure",
+            "item": "76.5%",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "常識推理方面，PaLM 540B 在 StrategyQA 上以 76.5% 超越先前最佳的 69.4%，在日期理解（date understanding）上則以 95.4% 勝過運動迷的 84%。",
+            "kind": "figure",
+            "item": "69.4%",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "常識推理方面，PaLM 540B 在 StrategyQA 上以 76.5% 超越先前最佳的 69.4%，在日期理解（date understanding）上則以 95.4% 勝過運動迷的 84%。",
+            "kind": "figure",
+            "item": "95.4%",
+            "status": "found",
+            "page": 7,
+            "label": "misattributed"
+          },
+          {
+            "sentence": 16,
+            "sentence_text": "常識推理方面，PaLM 540B 在 StrategyQA 上以 76.5% 超越先前最佳的 69.4%，在日期理解（date understanding）上則以 95.4% 勝過運動迷的 84%。",
+            "kind": "figure",
+            "item": "84%",
+            "status": "found",
+            "page": 7,
+            "label": "correct"
+          },
+          {
+            "sentence": 17,
+            "sentence_text": "在符號推理上，PaLM 540M 搭配思維鏈的解題率接近 100%。",
+            "kind": "figure",
+            "item": "540M",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_unit"
+          },
+          {
+            "sentence": 17,
+            "sentence_text": "在符號推理上，PaLM 540M 搭配思維鏈的解題率接近 100%。",
+            "kind": "figure",
+            "item": "100%",
+            "status": "found",
+            "page": 2,
+            "label": "correct"
+          },
+          {
+            "sentence": 18,
+            "sentence_text": "硬幣翻轉（coin flip）任務的準確率會隨標註者（annotator）不同，從標註者 A 的 99.6% 掉到標註者 C 的 71.4%，但都高於標準提示的 50.0%。",
+            "kind": "figure",
+            "item": "99.6%",
+            "status": "found",
+            "page": 18,
+            "label": "correct"
+          },
+          {
+            "sentence": 18,
+            "sentence_text": "硬幣翻轉（coin flip）任務的準確率會隨標註者（annotator）不同，從標註者 A 的 99.6% 掉到標註者 C 的 71.4%，但都高於標準提示的 50.0%。",
+            "kind": "figure",
+            "item": "71.4%",
+            "status": "found",
+            "page": 18,
+            "label": "correct"
+          },
+          {
+            "sentence": 18,
+            "sentence_text": "硬幣翻轉（coin flip）任務的準確率會隨標註者（annotator）不同，從標註者 A 的 99.6% 掉到標註者 C 的 71.4%，但都高於標準提示的 50.0%。",
+            "kind": "figure",
+            "item": "50.0%",
+            "status": "found",
+            "page": 8,
+            "label": "correct"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "作者也引用前人結果：只改變示範順序，GPT-3 在 SST-2 上的準確率就可從 53.4% 變到 93.4%。",
+            "kind": "figure",
+            "item": "53.4%",
+            "status": "not_found",
+            "page": null,
+            "label": "wrong_number"
+          },
+          {
+            "sentence": 19,
+            "sentence_text": "作者也引用前人結果：只改變示範順序，GPT-3 在 SST-2 上的準確率就可從 53.4% 變到 93.4%。",
+            "kind": "figure",
+            "item": "93.4%",
+            "status": "found",
+            "page": 6,
+            "label": "correct"
+          },
+          {
+            "sentence": 20,
+            "sentence_text": "兩者相差 39.1 個百分點。",
+            "kind": "figure",
+            "item": "39.1",
+            "status": "not_found",
+            "page": null,
+            "label": "derived"
+          },
+          {
+            "sentence": 21,
+            "sentence_text": "結論中，作者寫道 \"chain-of-thought reasoning is an emergent property of model scale that allows sufficiently large language models to perform reasoning tasks that otherwise have steep scaling curves\"。",
+            "kind": "quote",
+            "item": "chain-of-thought reasoning is an emergent property of model scale that allows sufficiently large language models to perform reasoning tasks that otherwise have steep scaling curves",
+            "status": "not_found",
+            "page": null,
+            "label": "altered_quote"
+          },
+          {
+            "sentence": 22,
+            "sentence_text": "他們也強調 \"Several language models were finetuned in the process of writing this paper\"。",
+            "kind": "quote",
+            "item": "Several language models were finetuned in the process of writing this paper",
+            "status": "not_found",
+            "page": null,
+            "label": "altered_quote"
+          },
+          {
+            "sentence": 23,
+            "sentence_text": "作者提醒 \"standard prompting only provides an upper bound on the capabilities of large language models\"。",
+            "kind": "quote",
+            "item": "standard prompting only provides an upper bound on the capabilities of large language models",
+            "status": "not_found",
+            "page": null,
+            "label": "altered_quote"
+          },
+          {
+            "sentence": 24,
+            "sentence_text": "作者更斷言 \"chain-of-thought prompting works equally well for models of every size\"。",
+            "kind": "quote",
+            "item": "chain-of-thought prompting works equally well for models of every size",
+            "status": "not_found",
+            "page": null,
+            "label": "fabricated_quote"
+          },
+          {
+            "sentence": 25,
+            "sentence_text": "此外 \"there is no guarantee of correct reasoning paths\"，錯誤的推理也可能得出正確答案。",
+            "kind": "quote",
+            "item": "there is no guarantee of correct reasoning paths",
+            "status": "found",
+            "page": 9,
+            "label": "correct"
+          }
+        ]
+      },
+      "_seconds": 11.3
+    }
+  ],
+  "dev": {
+    "correct_items": 59,
+    "false_alarms": 0,
+    "untouched_items_in_planted": 40,
+    "untouched_false_alarms": 0,
+    "planted": 20,
+    "caught": 17,
+    "by_type": {
+      "altered_quote": {
+        "planted": 4,
+        "caught": 4
+      },
+      "extra_precision": {
+        "planted": 1,
+        "caught": 1
+      },
+      "fabricated_quote": {
+        "planted": 1,
+        "caught": 1
+      },
+      "misattributed": {
+        "planted": 2,
+        "caught": 0
+      },
+      "wrong_number": {
+        "planted": 9,
+        "caught": 8
+      },
+      "wrong_unit": {
+        "planted": 3,
+        "caught": 3
+      }
+    },
+    "derived_items": 2,
+    "derived_not_found": 2
+  },
+  "held_out": {
+    "correct_items": 141,
+    "false_alarms": 8,
+    "untouched_items_in_planted": 104,
+    "untouched_false_alarms": 5,
+    "planted": 39,
+    "caught": 32,
+    "by_type": {
+      "altered_quote": {
+        "planted": 8,
+        "caught": 8
+      },
+      "extra_precision": {
+        "planted": 3,
+        "caught": 3
+      },
+      "fabricated_quote": {
+        "planted": 2,
+        "caught": 2
+      },
+      "misattributed": {
+        "planted": 4,
+        "caught": 0
+      },
+      "wrong_number": {
+        "planted": 17,
+        "caught": 14
+      },
+      "wrong_unit": {
+        "planted": 5,
+        "caught": 5
+      }
+    },
+    "derived_items": 5,
+    "derived_not_found": 5
+  }
+}

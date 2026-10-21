@@ -359,6 +359,24 @@ def build_parser() -> argparse.ArgumentParser:
     )
     refs.add_argument("--json", dest="json_out", help="Also write every verdict and its evidence to this JSON file")
 
+    draft = subcommands.add_parser(
+        "check-draft",
+        help="Find each figure and quotation of a finished draft (.docx, .md, .txt) in the source files "
+             "it cites, with the page; no workflow run, no network",
+    )
+    draft.add_argument("file", help="The finished draft")
+    draft.add_argument(
+        "--source", action="append", required=True, dest="sources", metavar="FILE",
+        help="A source the draft cites (.pdf, .docx, .md, .txt); repeat for each",
+    )
+    draft.add_argument(
+        "--appendix", metavar="OUT.md",
+        help="Write a Markdown appendix pairing each sentence with the source page and sentence, "
+             "with the page highlighted in images under OUT_files/",
+    )
+    draft.add_argument("--no-images", action="store_true", help="Leave the page images out of the appendix")
+    draft.add_argument("--json", dest="json_out", help="Also write every verdict to this JSON file")
+
     return parser
 
 
@@ -392,6 +410,56 @@ def _run_check_references(path: str, search: bool, json_out: str | None) -> int:
         Path(json_out).write_text(json.dumps(results, indent=2, ensure_ascii=False), encoding="utf-8")
         print(f"Wrote {json_out}")
     return 2 if any(counts[s] for s in _REFUTED) else 0
+
+
+def _run_check_draft(
+    path: str, source_paths: list[str], appendix: str | None, images: bool, json_out: str | None,
+) -> int:
+    """Print where each figure and quotation was found; exit 2 when any was not."""
+
+    from .draft_check import (
+        FOUND, SourceError, check_draft, is_chinese, load_source, read_draft, result_to_dict,
+        source_sentence, write_appendix,
+    )
+
+    if not Path(path).is_file():
+        print(f"No such file: {path}", file=sys.stderr)
+        return 1
+    try:
+        sources = [load_source(source) for source in source_paths]
+    except SourceError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    paragraphs = read_draft(path)
+    if not paragraphs:
+        print(f"No text found in {path}", file=sys.stderr)
+        return 1
+    results, others = check_draft(paragraphs, sources)
+    for result in results:
+        print(f"[{result.sentence.number}] {result.status.upper()}: {result.sentence.text[:160]}"
+              f"{'...' if len(result.sentence.text) > 160 else ''}")
+        for item in result.items:
+            shown = item.text if item.kind == "figure" else f"\"{item.text[:80]}\""
+            if item.status == FOUND:
+                where = item.location.label()
+                note = " (figure only: no shared words)" if item.figure_only else ""
+                print(f"    {shown} — {where}{note}: {source_sentence(item.location)[:200]}")
+            else:
+                print(f"    {shown} — NOT FOUND: {item.message}")
+    found = sum(1 for result in results if result.status == FOUND)
+    print(f"\n{found} found, {len(results) - found} not_found ({len(results)} sentences with a figure or "
+          f"quotation; {others} other sentences not checked)")
+    if appendix:
+        written = write_appendix(appendix, path, sources, results, others,
+                                 chinese=is_chinese(paragraphs), images=images)
+        print(f"Wrote {appendix}" + (f" and {written} page image(s) beside it" if written else ""))
+    if json_out:
+        Path(json_out).write_text(
+            json.dumps([result_to_dict(result) for result in results], indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+        print(f"Wrote {json_out}")
+    return 2 if found < len(results) else 0
 
 
 def _reject_invalid_reference_docx(path_str: str | None) -> bool:
@@ -905,6 +973,9 @@ def main(argv: list[str] | None = None) -> int:
 
         if args.command == "check-references":
             return _run_check_references(args.file, not args.no_search, args.json_out)
+
+        if args.command == "check-draft":
+            return _run_check_draft(args.file, args.sources, args.appendix, not args.no_images, args.json_out)
 
         if args.command == "remap-evidence":
             from .artifact_contract import remap_evidence_ids

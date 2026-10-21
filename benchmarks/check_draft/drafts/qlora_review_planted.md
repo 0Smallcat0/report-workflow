@@ -14,7 +14,7 @@ Across 125M to 13B models, the mean perplexity is 33.34 with Int4 and 27.41 with
 
 ## The Guanaco chatbots
 
-Using QLoRA, the authors finetuned more than 1,000 models across 8 instruction datasets. Their best model, Guanaco 65B, reaches 99.8% of the performance level of ChatGPT on the Vicuna benchmark while only requiring 24 minutes of finetuning on a single GPU. The second best, Guanaco 13B, reaches 97.83% and can be trained in less than 12 hours on a single consumer GPU. The smallest Guanaco model requires just 5 GB of memory and outperforms a 26 GB Alpaca model by more than 20 percentage points.
+Using QLoRA, the authors finetuned more than 1,000 models across 8 instruction datasets. Their best model, Guanaco 65B, reaches 99.8% of the performance level of ChatGPT on the Vicuna benchmark while only requiring 24 minutes of finetuning on a single GPU. The second best, Guanaco 33B, reaches 97.83% and can be trained in less than 12 hours on a single consumer GPU. The smallest Guanaco model requires just 10 GB of memory and outperforms a 26 GB Alpaca model by more than 20 percentage points.
 
 Data quality mattered more than size: in the authors' words, "a 9k sample dataset (OASST1) outperformed a 450k sample dataset (FLAN v2, subsampled) on chatbot performance". The OASST1 data contain 161,434 messages across 66,497 conversations in 35 languages, and keeping only the top reply at each level leaves 9,209 examples. The next best model trained on only open-source data, the HH-RLHF model, scores 30 percentage points lower than Guanaco.
 

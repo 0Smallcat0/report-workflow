@@ -103,9 +103,10 @@
   },
   {
    "type": "misattributed",
-   "original": "The second best, Guanaco 33B, reaches",
-   "planted": "The second best, Guanaco 13B, reaches",
-   "item": "97.8%"
+   "original": "requires just 5 GB of memory",
+   "planted": "requires just 10 GB of memory",
+   "item": "10GB",
+   "why": "10 GB is the 13B model's footprint"
   },
   {
    "type": "misattributed",

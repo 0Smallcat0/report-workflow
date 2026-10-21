@@ -113,7 +113,7 @@ Archived results ([`benchmarks/evidence/full_benchmark_2026-05-13/summary.md`](.
 | Claims verified against evidence | **80** (10 per profile, `verified_count` in each `factuality_report.json`), **0 blocked** |
 | Unresolved citation-audit entries | **0** |
 | Delivery QA decision | `pass` on every profile |
-| Unit tests at the time of the archived run | **1260 passing** (1288 today) |
+| Unit tests at the time of the archived run | **1260 passing** (1305 today) |
 
 Each report is packaged with its QA pack (`final_qa_summary`, factuality,
 figure-visual, template-style, and render-layout reports) so
@@ -124,6 +124,59 @@ realistic hand-written case — a cantilever-beam lab report, a capstone researc
 proposal, a production-line defect analysis, a hardware selection evaluation, a
 capstone project report for graduate applications — in Chinese and English.
 Those rounds are what the recent CHANGELOG entries record.
+
+## check-draft: false alarms and planted errors, on three public papers
+
+```bash
+python scripts/run_draft_benchmark.py --check   # rerun from the PDFs, diff vs archive
+```
+
+`check-draft` was measured in both directions on three CC BY 4.0 arXiv papers
+([`benchmarks/check_draft/SOURCES.md`](../benchmarks/check_draft/SOURCES.md)).
+For each paper there are two drafts written by hand: a correct one, every figure
+and quotation copied from the paper plus a few the writer worked out (a ratio, a
+difference), and a planted one, the same text with errors put in. A correct
+item reported NOT_FOUND is a false alarm; a planted error is caught when its
+item is NOT_FOUND. LLaMA is the development case the matching rules were
+tuned on. The QLoRA draft (English) and the Chain-of-Thought draft (Chinese,
+about the English paper) were committed before check-draft was first run on
+them (`54129c2`) and are reported as they came out. Afterwards the label files
+were corrected where a label named an item the command splits differently, and
+one QLoRA plant was moved: a model swap (Guanaco 33B → 13B) sat on the same
+figure as an added decimal (97.83%), so it was replaced by 5 GB → 10 GB, the
+13B model's footprint — which is missed, like the other moved figures. One fix to the command came after that run: the year in
+「Wei 等人（2022）」 was being read as a figure. It took that one correct item
+out of the held-out count (142 to 141) and changed no verdict.
+
+| | Correct items flagged | Planted errors caught | Worked-out figures NOT_FOUND |
+| --- | ---: | ---: | ---: |
+| dev (LLaMA) | 0 / 59 | 17 / 20 | 2 / 2 |
+| held out (QLoRA, CoT in Chinese) | **8 / 141** (5.7%) | **32 / 39** (82%) | 5 / 5 |
+
+By type, held out: altered quotations 8/8, invented quotations 2/2, wrong unit
+or scale 5/5, more decimals than the paper prints 3/3, wrong digit 14/17, and a
+figure moved to another model or setting **0/4**.
+
+What it does not do, read off the misses:
+
+- **A figure moved within one table is not caught** (0/6 over both splits).
+  Swapping two models' scores, or two metrics in one sentence, leaves every
+  figure printed on the page beside the sentence's words.
+- **A wrong digit that is another figure in the same table passes** (45.3 for
+  43.5, both in QLoRA's Table 8; 64% and 27% are elsewhere in the CoT paper).
+- **The false alarms are sentences whose own words are not the page's.** Five
+  of the eight restate a table whose column header sits further from the figure
+  than the 250 characters read around it (CoT's Table 2, QLoRA's Table 8);
+  two are figures repeated in a sentence of the writer's own ("going from 780
+  GB to under 48 GB is a reduction of over 16 times"); one is a figure whose
+  sentence names other models. A NOT_FOUND says "look at this one", with the
+  nearest figure the page does print beside it.
+- **A translated quotation is not checked.** 「」 counts as quotation marks
+  only after a reporting verb (寫道, 指出…), the rule FE already uses; the CoT
+  draft's 坦言「…」 is left out and reported as neither found nor missing.
+
+Every item, page and message:
+[`benchmarks/evidence/check_draft_2026-10-21/summary.md`](../benchmarks/evidence/check_draft_2026-10-21/summary.md).
 
 ## How it relates to LLM-as-judge tools
 
@@ -190,6 +243,7 @@ python -m compileall -q src tests
 python -m unittest discover -s tests -v
 python scripts/run_report_benchmarks.py --check
 python scripts/run_adversarial_benchmark.py --check
+python scripts/run_draft_benchmark.py --check
 ```
 
 The benchmark-first optimization method and gap taxonomy are documented in

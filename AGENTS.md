@@ -71,12 +71,17 @@ report-workflow export --job-id <id> [--checkpoint <name>] [--output <file>]
 report-workflow diagnose --job-id <id> [--verbose]
 report-workflow invalidate-cache --job-id <id> [--sources] [--drafts]
 report-workflow check-references draft.docx [--no-search] [--json out.json]
+report-workflow check-draft draft.docx --source a.pdf [--source b.pdf] [--appendix out.md] [--no-images] [--json out.json]
+python scripts/run_draft_benchmark.py --check
 ```
 
 `check-references` needs no job: it reads the reference list of a finished
 `.docx`, `.md`, `.txt` or `.bib` and checks each entry against doi.org, arXiv,
 Crossref and OpenAlex (`reference_match.py`). It exits `2` when any reference is
 `mismatch`, `not_found` or `retracted`; `needs_review` does not fail it.
+`check-draft` needs no job or network either: it looks up each figure and
+quotation of a finished draft on the pages of the given sources
+(`draft_check.py`) and exits `2` when any is not found.
 
 `--source PATH:ROLE` may be repeated. Valid artifact roles are `source_data`
 and `base_document`. The role suffix is parsed only when the trailing token is

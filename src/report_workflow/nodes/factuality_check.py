@@ -710,6 +710,17 @@ def _decimal_comma_to_point(text: str) -> str:
 
 def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
     """Return list of (number_str, unit_str) from text."""
+    return [(number, unit) for number, unit, _start, _end in numbers_with_spans(text)[1]]
+
+
+def numbers_with_spans(text: str) -> tuple[str, list[tuple[str, str, int, int]]]:
+    """The text as the number reader sees it, and (number, unit, start, end) in it.
+
+    The offsets index the returned text, not the input: NFKC and the decimal
+    comma rewrite both change lengths. ``check-draft`` needs to know where in a
+    page a figure sits so it can read the words around it; FE needs only the
+    figures, and reads them through ``_extract_numbers_with_unit``.
+    """
     results = []
     normalized = _decimal_comma_to_point(_normalize_for_numbers(text))
     for m in _BARE_NUMBER_RE.finditer(normalized):
@@ -722,6 +733,8 @@ def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
         results.append((
             _with_sign(normalized, m.start(1), m.group(1).lstrip("~")),
             unit or _currency_before(normalized, m.start(1)),
+            m.start(1),
+            m.end(1),
         ))
     for m in _CJK_NUMBER_RE.finditer(normalized):
         value = _cjk_numeral_value(m.group(1))
@@ -775,8 +788,10 @@ def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
         results.append((
             f"{value:g}",
             _combined_unit(normalized, m.start(1), suffix),
+            m.start(1),
+            m.end(1),
         ))
-    return results
+    return normalized, results
 
 
 _BOUND_PREFIX_RE = re.compile(r"^(<=|>=|<|>|≤|≥|≦|≧)\s*")

@@ -1,5 +1,45 @@
 # Changelog
 
+## Unreleased
+
+### Added — `check-draft`: is each figure and quotation on a page of the sources?
+
+`report-workflow check-draft draft.docx --source a.pdf --source b.pdf` checks a
+finished draft (`.docx`, `.md`, `.txt`) against the files it cites, with no
+workflow run, no network and no model (`draft_check.py`). Only sentences that
+state a figure or quote are read. A figure is `found` when a page prints it at
+the precision the draft gives — 69% is 68.9 rounded, 68.0% is not 68.9 —
+with a measured unit that agrees (21 hours is not a bare 21.7) and within 250
+characters of at least two of the sentence's own words, leaving out words on
+more than half the source's pages (one word of any kind for a figure of four or
+more significant digits printed exactly). A quotation is `found` when a page holds it
+word for word, ellipses allowed, including across a page break. Each answer
+names the file, page and the source's sentence; a figure not found names the
+nearest one the page does print there. Citations, model names (LLaMA-65B, β1,
+pass@1) and pointers (Table 3, 第 2 章) are not taken for figures. A PDF page is
+read three ways — in stored order, one column at a time where the words leave
+a gap down the page, and as `parse_pdf` reads it — so a two-column paper's
+sentences are found whole. `--appendix out.md` writes the comparison as a page
+to hand in, in Chinese for a Chinese draft, with each PDF page cropped and the
+match highlighted under `out_files/`; `--json` writes every verdict; exit `2`
+when anything is not found.
+
+`numbers_with_spans` in `factuality_check.py` returns FE's figures with their
+offsets, and `_page_text` passes pdfplumber options through; FE and the
+pipeline read exactly as before.
+
+### Measured — `check-draft` on three CC BY 4.0 arXiv papers
+
+A correct and a planted draft for each of LLaMA (development), QLoRA and
+Chain-of-Thought (a Chinese draft about the English paper); the last two were
+committed before the command first ran on them. Held out: 8 of 141 correct
+items flagged, 32 of 39 planted errors caught — every altered and invented
+quotation, wrong unit and added decimal, 14 of 17 wrong digits, and none of the
+four figures moved to another model in the same table. Development: 0 of 59
+and 17 of 20. `scripts/run_draft_benchmark.py --check` reruns it from the PDFs
+in `benchmarks/check_draft/` against
+`benchmarks/evidence/check_draft_2026-10-21/`.
+
 ## 4.40.0 - 2026-10-21
 
 Ten weeks of work since 4.39.0. The headline is `check-references`, which asks
