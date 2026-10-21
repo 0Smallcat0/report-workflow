@@ -686,12 +686,17 @@ marker is a paragraph of its own. Do not also write `sentence_map.jsonl` or
 the section Markdown by hand."""
 
 
-def outline_brief_sections_block(blueprint: dict) -> str:
-    """The `sections` block of the brief's Required Output, one entry per section."""
+def outline_brief_sections_block(blueprint: dict, report_profile: str | None = None) -> str:
+    """The `sections` block of the brief's Required Output, one entry per section.
+
+    `results_mode` is shown only where it is read: a quant memo's brief showed
+    it in the shape and said "leave it out" a page later.
+    """
+    reads_results_mode = report_profile is None or get_policy(report_profile).results.empirical_strict
     parts = []
     for sid in outline_brief_section_ids(blueprint):
         extra = ""
-        if sid == results_section_id(blueprint):
+        if reads_results_mode and sid == results_section_id(blueprint):
             extra = '\n      "results_mode": "empirical" | "architectural_characterization",'
         parts.append(
             '    "' + sid + '": {\n'
@@ -1445,7 +1450,9 @@ the ledger and never appear in this window.)
 ```
 """
 
-    outline_sections_block = outline_brief_sections_block(state.plan.get("blueprint") or {})
+    outline_sections_block = outline_brief_sections_block(
+        state.plan.get("blueprint") or {}, state.spec.get("report_profile", "")
+    )
 
     thesis_rule = (
         "\n- This profile needs a thesis: set `sections.introduction.thesis_statement` "
