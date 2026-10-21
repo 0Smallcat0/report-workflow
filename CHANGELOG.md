@@ -1,6 +1,10 @@
 # Changelog
 
-## Unreleased
+## 4.41.0 - 2026-10-21
+
+`check-draft`: the second check for a report that is already written. Where
+`check-references` asks whether each reference is the work it names, this asks
+whether each figure and quotation is on a page of the files the draft cites.
 
 ### Added — `check-draft`: is each figure and quotation on a page of the sources?
 
