@@ -3,8 +3,7 @@
 A Chinese physics lab report from a CSV and lab notes, an English business
 report from a sales sheet and a memo, and a revision of an existing Chinese
 progress report. Each test names what the author ran into, in the author's
-words; the step-by-step records are in
-benchmarks/evidence/usability_audit_2026-10-19/.
+words; the step-by-step records are in the description of PR #1.
 """
 from __future__ import annotations
 

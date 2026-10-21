@@ -1948,7 +1948,7 @@ class DesignTableChartTests(unittest.TestCase):
             [series["name"] for series in plan["data"]["series"]], ["in_sample", "out_of_sample"]
         )
         self.assertEqual(plan["data"]["series"][1]["values"], [1.1, 4.3, 5.0])
-        self.assertEqual(plan["title"], "annual_return_pct by lookback_months and sample")
+        self.assertEqual(plan["title"], "annual return (%) by lookback months and sample")
 
     def test_a_lab_sheet_plots_measured_against_theoretical(self):
         # Not capacitance against resistance: two settings, drawn as if one

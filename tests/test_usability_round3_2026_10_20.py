@@ -7,8 +7,6 @@ check still blocks the false version of the claim.
 """
 from __future__ import annotations
 
-import ast
-import importlib.util
 import json
 import re
 import tempfile
@@ -533,11 +531,10 @@ class JTheAdmissionsBriefIsAboutTheAuthorsProjectTests(unittest.TestCase):
 
 
 class GRecordedRunsReproduceFromTheRepoTests(unittest.TestCase):
-    """The recorded author scripts loaded files from another session's /tmp.
+    """Recorded author scripts once loaded files from another session's /tmp.
 
-    `run1_after.py` and three others imported `/tmp/claude-0/rw/tasks/run1.py`
-    and the base scripts read sources from `/home/user/...`. Nobody who clones
-    the repo could rerun them.
+    Scripts that import `/tmp/...` or read sources from `/home/user/...` cannot
+    be rerun by anyone who clones the repo, and leak the recording machine.
     """
 
     def test_no_authored_script_names_a_machine_path(self):
@@ -547,35 +544,6 @@ class GRecordedRunsReproduceFromTheRepoTests(unittest.TestCase):
             if re.search(r"['\"](/tmp/|/home/|[A-Z]:\\\\)", text):
                 offenders.append(str(py.relative_to(REPO)))
         self.assertEqual(offenders, [])
-
-    def test_a_variant_script_loads_its_base_from_beside_it(self):
-        path = EVIDENCE / "usability_audit_2026-10-19" / "run1_zh_lab" / "authored" / "run1_after.py"
-        spec = importlib.util.spec_from_file_location("run1_after", path)
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        for f in mod.START["source_files"]:
-            self.assertTrue(Path(f["path"]).is_file(), f["path"])
-        self.assertNotIn("results", mod.OUTLINE)
-
-
-class HTheRepairLogShowsEachStepTests(unittest.TestCase):
-    """repair.py logged `{"step": ..., "**": {...}}`, so no status was readable."""
-
-    def _repair(self):
-        path = EVIDENCE / "usability_audit_2026-10-19" / "harness" / "repair.py"
-        tree = ast.parse(path.read_text(encoding="utf-8"))
-        for node in ast.walk(tree):
-            if isinstance(node, ast.Constant) and node.value == "**":
-                self.fail("repair.py writes a literal '**' key")
-        spec = importlib.util.spec_from_file_location("repair", path)
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        return mod
-
-    def test_each_record_carries_status_and_stage_at_top_level(self):
-        mod = self._repair()
-        rec = mod.entry("submit_action", {"status": "validation_failed", "stage": "drafts", "job_id": "x"})
-        self.assertEqual(rec, {"step": "submit_action", "status": "validation_failed", "stage": "drafts"})
 
 
 if __name__ == "__main__":
