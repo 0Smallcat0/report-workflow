@@ -676,5 +676,15 @@ class OptionalConnectorDecisionTests(unittest.TestCase):
         self.assertIn("declined by the user", issues[0])
 
 
+class RunDirectoryNameTests(unittest.TestCase):
+    def test_a_run_directory_name_has_no_spaces(self):
+        # Unquoted, "write a business report…--run_x" split into six arguments.
+        from report_workflow.state import build_run_dir_name
+
+        name = build_run_dir_name("write a business report: what changed", "run_1")
+        self.assertEqual(name, "write-a-business-report-what-changed--run_1")
+        self.assertNotIn(" ", build_run_dir_name("x", "run_2", {"title": "實驗四：RC 電路暫態響應"}))
+
+
 if __name__ == "__main__":
     unittest.main()

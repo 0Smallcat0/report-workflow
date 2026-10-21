@@ -57,10 +57,12 @@ def clear_job_run_hints() -> None:
 
 
 def _clean_slug_text(value: str) -> str:
+    # Hyphens, not spaces: "write a business report for the operations
+    # manager--run_0d8b5b3a" broke every unquoted `cd` an agent wrote into it.
     cleaned = re.sub(rf"[{re.escape(WINDOWS_FORBIDDEN_CHARS)}\x00-\x1f]", " ", value)
-    cleaned = re.sub(r"\s+", " ", cleaned).strip()
-    cleaned = cleaned.rstrip(". ")
-    return cleaned[:MAX_RUN_SLUG_LENGTH].strip()
+    cleaned = re.sub(r"\s+", "-", cleaned.strip())
+    cleaned = cleaned[:MAX_RUN_SLUG_LENGTH].strip(".-")
+    return cleaned
 
 
 def derive_run_slug(user_prompt: str, front_matter: dict[str, Any] | None = None) -> str:
