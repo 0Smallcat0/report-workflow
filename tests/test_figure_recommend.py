@@ -1913,3 +1913,54 @@ def run_figure_recommend_with_composition_data(state: ReportState) -> None:
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DesignTableChartTests(unittest.TestCase):
+    """Settings are axes, and a comparison pairs the two sides of it."""
+
+    def _recommend(self, table_data):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir, profile="quant_research_memo")
+            return recommend_figures_from_evidence(state, [{
+                "evidence_id": "E1",
+                "source_id": "bt",
+                "source_file_name": "backtest.csv",
+                "granularity": "table",
+                "content": "backtest results",
+                "table_data": table_data,
+            }])
+
+    def test_a_lookback_crossed_with_a_sample_period_is_a_grid_not_a_series(self):
+        # The lookback was drawn as a bar series beside the returns it sets,
+        # over an axis that read in_sample, in_sample, in_sample.
+        plan = self._recommend([
+            ["lookback_months", "sample", "annual_return_pct"],
+            ["3", "in_sample", "6.2"],
+            ["6", "in_sample", "8.9"],
+            ["12", "in_sample", "11.4"],
+            ["3", "out_of_sample", "1.1"],
+            ["6", "out_of_sample", "4.3"],
+            ["12", "out_of_sample", "5.0"],
+        ])[0]["figure_plan"]
+        self.assertEqual(plan["figure_type"], "bar")
+        self.assertEqual(plan["data"]["labels"], ["3", "6", "12"])
+        self.assertEqual(
+            [series["name"] for series in plan["data"]["series"]], ["in_sample", "out_of_sample"]
+        )
+        self.assertEqual(plan["data"]["series"][1]["values"], [1.1, 4.3, 5.0])
+        self.assertEqual(plan["title"], "annual_return_pct by lookback_months and sample")
+
+    def test_a_lab_sheet_plots_measured_against_theoretical(self):
+        # Not capacitance against resistance: two settings, drawn as if one
+        # caused the other.
+        plan = self._recommend([
+            ["resistance_kohm", "capacitance_uF", "theoretical_tau_ms", "measured_tau_ms"],
+            ["10", "10", "100", "104"],
+            ["20", "10", "200", "207"],
+            ["10", "47", "470", "489"],
+            ["47", "10", "470", "482"],
+            ["22", "22", "484", "501"],
+        ])[0]["figure_plan"]
+        self.assertEqual(plan["figure_type"], "scatter")
+        self.assertEqual(plan["xlabel"], "theoretical_tau_ms")
+        self.assertEqual(plan["ylabel"], "measured_tau_ms")
