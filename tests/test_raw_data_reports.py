@@ -182,6 +182,31 @@ class StatisticsAreEvidenceTests(unittest.TestCase):
                 self.assertEqual(derivation["rows_total"], 24)
                 self.assertTrue(derivation["input_columns"])
 
+    def test_two_rows_get_no_quartiles_and_no_one_row_groups(self):
+        # Quartiles of two values are the two rows read back four times, and a
+        # "breakdown" with one row per group is the file reprinted.
+        registry = _registry([
+            {"condition": "manual", "minutes": "28.0"},
+            {"condition": "structured", "minutes": "20.0"},
+        ])
+        contents = [unit["content"] for unit in dataset_summary_units(registry, CREATED_AT)]
+        self.assertFalse([c for c in contents if "quartile" in c], contents)
+        self.assertFalse([c for c in contents if "breakdown" in c], contents)
+        self.assertFalse([c for c in contents if "distinct values" in c], contents)
+
+    def test_a_trial_counter_and_a_design_setting_are_not_averaged(self):
+        rows = [
+            {"trial": str(i + 1), "lookback": lb, "sample": s, "sharpe": v}
+            for i, (lb, s, v) in enumerate([
+                ("3", "in", "0.44"), ("6", "in", "0.64"), ("12", "in", "0.84"),
+                ("3", "out", "0.07"), ("6", "out", "0.29"), ("12", "out", "0.35"),
+            ])
+        ]
+        contents = [unit["content"] for unit in dataset_summary_units(_registry(rows), CREATED_AT)]
+        self.assertFalse([c for c in contents if "the trial column" in c], contents)
+        self.assertFalse([c for c in contents if "the lookback column" in c], contents)
+        self.assertTrue([c for c in contents if "the sharpe column" in c], contents)
+
     def test_an_id_column_gets_no_statistics(self):
         joined = " ".join(
             str(unit["derivation"]["input_columns"])
