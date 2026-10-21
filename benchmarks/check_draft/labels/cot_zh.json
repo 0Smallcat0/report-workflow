@@ -1,0 +1,129 @@
+{
+ "derived": [
+  {
+   "sentence": "約為標準提示的 3 倍",
+   "item": "3",
+   "why": "56.9 / 17.9, worked out by the writer"
+  },
+  {
+   "sentence": "兩者相差 39.1 個百分點",
+   "item": "39.1",
+   "why": "93.4 - 54.3, worked out by the writer"
+  },
+  {
+   "sentence": "這並不能回答神經網路是否真的在推理",
+   "item": "這並不能回答神經網路是否真的在推理",
+   "why": "a quotation translated into Chinese cannot appear word for word in the English paper"
+  }
+ ],
+ "planted": [
+  {
+   "type": "wrong_number",
+   "original": "改用思維鏈後升到 56.9%",
+   "planted": "改用思維鏈後升到 57.6%",
+   "item": "57.6%"
+  },
+  {
+   "type": "wrong_number",
+   "original": "GSM8K 有 1,319 題",
+   "planted": "GSM8K 有 1,391 題",
+   "item": "1,391"
+  },
+  {
+   "type": "wrong_number",
+   "original": "StrategyQA 上以 75.6%",
+   "planted": "StrategyQA 上以 76.5%",
+   "item": "76.5%"
+  },
+  {
+   "type": "wrong_number",
+   "original": "解題率從 14.3% 升到",
+   "planted": "解題率從 13.4% 升到",
+   "item": "13.4%"
+  },
+  {
+   "type": "wrong_number",
+   "original": "配置為 192 顆晶片",
+   "planted": "配置為 129 顆晶片",
+   "item": "129"
+  },
+  {
+   "type": "wrong_number",
+   "original": "46% 的思維鏈幾乎正確",
+   "planted": "64% 的思維鏈幾乎正確",
+   "item": "64%"
+  },
+  {
+   "type": "wrong_number",
+   "original": "22% 是少了一個步驟",
+   "planted": "27% 是少了一個步驟",
+   "item": "27%"
+  },
+  {
+   "type": "wrong_number",
+   "original": "就可從 54.3% 變到",
+   "planted": "就可從 53.4% 變到",
+   "item": "53.4%"
+  },
+  {
+   "type": "wrong_unit",
+   "original": "約 100B 參數以上",
+   "planted": "約 100M 參數以上",
+   "item": "100M"
+  },
+  {
+   "type": "wrong_unit",
+   "original": "在符號推理上，PaLM 540B 搭配",
+   "planted": "在符號推理上，PaLM 540M 搭配",
+   "item": "540M"
+  },
+  {
+   "type": "extra_precision",
+   "original": "準確率只有 17.9%",
+   "planted": "準確率只有 17.92%",
+   "item": "17.92%"
+  },
+  {
+   "type": "misattributed",
+   "original": "GPT-3 175B 用思維鏈可達 46.9%，Codex 則有 63.1%",
+   "planted": "GPT-3 175B 用思維鏈可達 63.1%，Codex 則有 46.9%",
+   "item": "63.1%"
+  },
+  {
+   "type": "misattributed",
+   "original": "在運動理解（sports understanding）上則以 95.4%",
+   "planted": "在日期理解（date understanding）上則以 95.4%",
+   "item": "95.4%"
+  },
+  {
+   "type": "altered_quote",
+   "original": "most models smaller than 10B parameters",
+   "planted": "most models smaller than 100B parameters",
+   "item": "chain of thought actually hurts performance for most models smaller than 100B parameters"
+  },
+  {
+   "type": "altered_quote",
+   "original": "\"No language models were finetuned",
+   "planted": "\"Several language models were finetuned",
+   "item": "Several language models were finetuned in the process of writing this paper"
+  },
+  {
+   "type": "altered_quote",
+   "original": "only provides a lower bound",
+   "planted": "only provides an upper bound",
+   "item": "standard prompting only provides an upper bound on the capabilities of large language models"
+  },
+  {
+   "type": "altered_quote",
+   "original": "that otherwise have flat scaling curves",
+   "planted": "that otherwise have steep scaling curves",
+   "item": "chain-of-thought reasoning is an emergent property of model scale that allows sufficiently large language models to perform reasoning tasks that otherwise have steep scaling curves"
+  },
+  {
+   "type": "fabricated_quote",
+   "original": "on the capabilities of large language models\"。",
+   "planted": "on the capabilities of large language models\"。作者更斷言 \"chain-of-thought prompting works equally well for models of every size\"。",
+   "item": "chain-of-thought prompting works equally well for models of every size"
+  }
+ ]
+}

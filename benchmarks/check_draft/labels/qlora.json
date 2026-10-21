@@ -1,0 +1,147 @@
+{
+ "derived": [
+  {
+   "sentence": "a reduction of over 16 times",
+   "item": "16",
+   "why": "780 / 48, worked out by the writer"
+  },
+  {
+   "sentence": "Float4 therefore trails by 0.8 points",
+   "item": "0.8",
+   "why": "53.0 - 52.2, worked out by the writer"
+  },
+  {
+   "sentence": "An Elo gap of 100 points",
+   "item": "100",
+   "why": "1100 - 1000 in the paper's example, worked out by the writer"
+  }
+ ],
+ "planted": [
+  {
+   "type": "wrong_number",
+   "original": "reaches 99.3% of the performance",
+   "planted": "reaches 99.8% of the performance",
+   "item": "99.8%"
+  },
+  {
+   "type": "wrong_number",
+   "original": "base model consumes 5,048 MB",
+   "planted": "base model consumes 5,084 MB",
+   "item": "5,084MB"
+  },
+  {
+   "type": "wrong_number",
+   "original": "contain 161,443 messages",
+   "planted": "contain 161,434 messages",
+   "item": "161,434"
+  },
+  {
+   "type": "wrong_number",
+   "original": "Guanaco 65B 1022 and",
+   "planted": "Guanaco 65B 1032 and",
+   "item": "1032"
+  },
+  {
+   "type": "wrong_number",
+   "original": "down to 0.127 bits",
+   "planted": "down to 0.172 bits",
+   "item": "0.172"
+  },
+  {
+   "type": "wrong_number",
+   "original": "with Fleiss κ = 0.42",
+   "planted": "with Fleiss κ = 0.46",
+   "item": "0.46"
+  },
+  {
+   "type": "wrong_number",
+   "original": "gives 953 unique user queries",
+   "planted": "gives 935 unique user queries",
+   "item": "935"
+  },
+  {
+   "type": "wrong_number",
+   "original": "perplexity is 34.34 with Int4",
+   "planted": "perplexity is 33.34 with Int4",
+   "item": "33.34"
+  },
+  {
+   "type": "wrong_number",
+   "original": "Guanaco-65B averages 43.5,",
+   "planted": "Guanaco-65B averages 45.3,",
+   "item": "45.3"
+  },
+  {
+   "type": "wrong_unit",
+   "original": "requiring 24 hours of finetuning",
+   "planted": "requiring 24 minutes of finetuning",
+   "item": "24 minutes"
+  },
+  {
+   "type": "wrong_unit",
+   "original": "requires more than 780 GB of GPU memory",
+   "planted": "requires more than 780 MB of GPU memory",
+   "item": "780MB"
+  },
+  {
+   "type": "wrong_unit",
+   "original": "finetune 3 million tokens per night",
+   "planted": "finetune 3 billion tokens per night",
+   "item": "3 billion"
+  },
+  {
+   "type": "extra_precision",
+   "original": "reaches 97.8% and",
+   "planted": "reaches 97.83% and",
+   "item": "97.83%"
+  },
+  {
+   "type": "extra_precision",
+   "original": "averages 53.1 over the LLaMA sizes",
+   "planted": "averages 53.12 over the LLaMA sizes",
+   "item": "53.12"
+  },
+  {
+   "type": "misattributed",
+   "original": "The second best, Guanaco 33B, reaches",
+   "planted": "The second best, Guanaco 13B, reaches",
+   "item": "97.8%"
+  },
+  {
+   "type": "misattributed",
+   "original": "Kendall Tau of 0.43 and a Spearman rank correlation of 0.55",
+   "planted": "Kendall Tau of 0.55 and a Spearman rank correlation of 0.43",
+   "item": "0.55"
+  },
+  {
+   "type": "altered_quote",
+   "original": "a cheap and reasonable alternative",
+   "planted": "a cheap and reliable alternative",
+   "item": "GPT-4 evaluations are a cheap and reliable alternative to human evaluation"
+  },
+  {
+   "type": "altered_quote",
+   "original": "through a frozen, 4-bit quantized",
+   "planted": "through a frozen, 8-bit quantized",
+   "item": "backpropagates gradients through a frozen, 8-bit quantized pretrained language model into Low Rank Adapters (LoRA)"
+  },
+  {
+   "type": "altered_quote",
+   "original": "\"we did not establish that QLORA",
+   "planted": "\"we established that QLORA",
+   "item": "we established that QLORA can match full 16-bit finetuning performance at 33B and 65B scales"
+  },
+  {
+   "type": "altered_quote",
+   "original": "an additional 20% probability",
+   "planted": "an additional 25% probability",
+   "item": "an additional 25% probability of winning against an opponent"
+  },
+  {
+   "type": "fabricated_quote",
+   "original": "Whether such small models are useful in practice is left open.",
+   "planted": "Whether such small models are useful in practice is left open, although the authors predict that \"4-bit finetuning will make 16-bit training obsolete for every model size\".",
+   "item": "4-bit finetuning will make 16-bit training obsolete for every model size"
+  }
+ ]
+}
