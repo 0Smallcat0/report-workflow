@@ -349,7 +349,17 @@ def _lint_structured_drafts(
         _issue(issues, "error", "structured_drafts", path, "$.sections", "structured_drafts.json must contain a sections object or list", "Add sections keyed by planned section_id.")
         return True
 
-    for section_id in sorted(planned_sections - {str(key) for key in sections.keys()}):
+    # Cover, references and appendix are not among the keys the brief asks
+    # for; SECTION_DRAFT compiles them empty when they are left out.
+    from .nodes.section_contract import section_requires_claims
+    from .nodes.section_draft import _FRONT_AND_BACK_SECTIONS
+
+    blueprint = state.plan.get("blueprint") or {}
+    optional_here = {
+        section_id for section_id in planned_sections
+        if section_id in _FRONT_AND_BACK_SECTIONS and not section_requires_claims(blueprint, section_id)
+    }
+    for section_id in sorted(planned_sections - optional_here - {str(key) for key in sections.keys()}):
         _issue(issues, "error", "structured_drafts", path, "$.sections", f"Missing planned section: {section_id}", "Add this section or provide canonical section_drafts/*.md.")
 
     for section_id, section in sections.items():

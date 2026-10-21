@@ -203,6 +203,10 @@ def _sentence_text_with_citations(text: str, evidence_ids: list[str]) -> tuple[s
     return f"{stripped} {cite_marker}", citation_ids
 
 
+#: Sections the structured-drafts brief does not ask the author to write.
+_FRONT_AND_BACK_SECTIONS = frozenset({"cover", "references", "appendix"})
+
+
 def _compile_structured_drafts(state: ReportState, section_order: list[str]) -> None:
     """Compile structured_drafts.json into canonical section drafts and sentence_map."""
     run_dir = run_dir_for(state)
@@ -218,6 +222,17 @@ def _compile_structured_drafts(state: ReportState, section_order: list[str]) -> 
     section_drafts_dir.mkdir(exist_ok=True)
 
     sentence_rows: list[dict] = []
+    # The brief lists the keys to write and leaves out cover, references and
+    # appendix: front matter and sources are rendered from start_report and the
+    # ledger. A lab report written to that list was refused for a missing
+    # `cover`. Those sections compile empty, as an empty entry would.
+    for section_id in section_order:
+        if (
+            section_id not in sections
+            and section_id in _FRONT_AND_BACK_SECTIONS
+            and not section_requires_claims(blueprint, section_id)
+        ):
+            sections[section_id] = {"paragraphs": []}
     missing_sections = [section_id for section_id in section_order if section_id not in sections]
     if missing_sections:
         raise QAHardBlockError(

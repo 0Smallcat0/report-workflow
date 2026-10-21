@@ -90,5 +90,35 @@ class BacktestVocabularyTests(unittest.TestCase):
         self.assertEqual(_extract_numbers_with_unit("每月底依過去 6 個月的報酬排序"), [("6", "個月")])
 
 
+_LAB_ROW = {
+    "evidence_id": "E3",
+    "content": '{"砝碼質量_g": "250", "第一次伸長_cm": "10.2", "第二次伸長_cm": "9.9", '
+               '"第三次伸長_cm": "10.2", "平均伸長_cm": "10.1"}',
+    "granularity": "row",
+    "block_type": "table_row",
+    "evidence_type": "quantitative",
+}
+
+
+class LabSheetVocabularyTests(unittest.TestCase):
+    def test_a_setting_written_with_its_unit_is_read_from_its_column(self):
+        # 「負重 250 g」 names 砝碼質量_g by its unit, not by its header.
+        self.assertEqual(_fe("負重 250 g 時，平均伸長量為 10.1 cm。", _LAB_ROW), [])
+
+    def test_a_named_column_still_owns_figures_in_its_unit(self):
+        # 9.9 cm is the second trial, not the mean the claim names.
+        self.assertTrue(_fe("負重 250 g 時，平均伸長量為 9.9 cm。", _LAB_ROW))
+
+    def test_the_readings_of_a_row_do_not_name_the_third_trial(self):
+        # 「三次讀數」 is "the three readings"; it does not name 第三次伸長_cm.
+        self.assertEqual(_fe("250 g 的伸長讀數為 10.2、9.9、10.2 cm。", _LAB_ROW), [])
+
+    def test_a_numeral_pointing_into_the_table_is_not_a_count(self):
+        from report_workflow.nodes.factuality_check import _extract_numbers_with_unit
+
+        self.assertEqual(_extract_numbers_with_unit("前四組相同，最後兩組略降"), [])
+        self.assertEqual(_extract_numbers_with_unit("實驗分三組"), [("3", "組")])
+
+
 if __name__ == "__main__":
     unittest.main()

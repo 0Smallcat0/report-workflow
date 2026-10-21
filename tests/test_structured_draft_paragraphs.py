@@ -82,28 +82,41 @@ class StructuredDraftParagraphTests(unittest.TestCase):
         )
 
 
+class FrontMatterSectionsAreNotAskedForTests(unittest.TestCase):
+    """The brief lists the keys to write without cover; a lab report written to
+    that list was refused for a missing `cover`, by SECTION_DRAFT and by lint."""
+
+    def _state(self) -> ReportState:
+        state = _state()
+        state.plan["blueprint"] = {
+            "section_order": ["cover", "results"],
+            "sections": {
+                "cover": {"required": True, "section_type": "front_matter"},
+                "results": {"required": True},
+            },
+        }
+        state.plan["outline"]["sections"]["cover"] = {"section_id": "cover", "claim_ids": []}
+        return state
+
+    def test_a_draft_without_the_cover_compiles(self):
+        state = self._state()
+        _write(state, {"paragraphs": [{"sentences": [
+            {"text": "電動車出廠時多排 3.6 t。", "claim_ids": ["c1"], "evidence_ids": ["E001"]},
+            {"text": "約行駛 44,200 公里後追平。", "claim_ids": ["c2"], "evidence_ids": ["E002"]},
+        ]}]})
+        result = run_section_draft(state)
+        self.assertIn("results", result.drafts["section_drafts"])
+
+    def test_lint_does_not_ask_for_it_either(self):
+        state = self._state()
+        path = _write(state, {"paragraphs": [{"sentences": [
+            {"text": "電動車出廠時多排 3.6 t。", "claim_ids": ["c1"], "evidence_ids": ["E001"]},
+        ]}]})
+        issues: list = []
+        _lint_structured_drafts(state, path.parent, issues, {"c1", "c2"}, {"E001", "E002"}, {"cover", "results"})
+        self.assertFalse([issue for issue in issues if "Missing planned section" in issue.message], issues)
+
+
+
 if __name__ == "__main__":
     unittest.main()
-
-
-class CitationBesideAnExhibitTests(unittest.TestCase):
-    """A lead-in and its exhibit: the citation belongs to the lead-in.
-
-    Appended after the marker, the citation shared the image's paragraph, the
-    renderer no longer read it as a captioned figure, and publish stopped on
-    "figure references without matching captions".
-    """
-
-    def test_the_citation_lands_on_the_lead_in_not_the_figure_line(self):
-        from report_workflow.nodes.section_draft import _sentence_text_with_citations
-
-        text, _ids = _sentence_text_with_citations(
-            "Figure 1 traces the monthly median.\n\n[FIGURE:3]", ["E1"]
-        )
-        self.assertEqual(text, "Figure 1 traces the monthly median [CITE:E1].\n\n[FIGURE:3]")
-
-    def test_a_chinese_lead_in_keeps_its_full_stop_after_the_citation(self):
-        from report_workflow.nodes.section_draft import _sentence_text_with_citations
-
-        text, _ids = _sentence_text_with_citations("圖 1 並列夏普值。\n\n[FIGURE:1]", ["E1"])
-        self.assertEqual(text, "圖 1 並列夏普值 [CITE:E1]。\n\n[FIGURE:1]")

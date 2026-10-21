@@ -604,6 +604,7 @@ def _combined_unit(text: str, number_start: int, suffix_unit: str) -> str:
 #: category, a point in an argument, a market. Only consulted for numerals
 #: written in Chinese -- the digit form is a figure and stays checked.
 _RHETORICAL_CLASSIFIERS = frozenset({"個", "个", "項", "项", "件", "種", "种", "類", "类"})
+_POINTING_BEFORE_RE = re.compile(r"(?:前|後|后|這|这|那|其中|最後|最后|另)$")
 
 
 #: A ceiling or a floor the author chose, not a reading they took. The
@@ -824,6 +825,10 @@ def numbers_with_spans(text: str) -> tuple[str, list[tuple[str, str, int, int]]]
         # written in digits, and 「6 個價格帶」 is still checked; so is 三筆,
         # 兩年, 五家 and 三個月, whose classifiers name real things.
         if suffix in _RHETORICAL_CLASSIFIERS:
+            continue
+        # 「前四組」, 「最後兩組」, 「其中三筆」 point at items of the table the
+        # sentence is reading: positions in a list, not a count it reports.
+        if _POINTING_BEFORE_RE.search(normalized[max(0, m.start(1) - 2):m.start(1)]):
             continue
         if _is_bounded_claim_number(normalized, m.start(1), m.end(1)):
             continue
@@ -1417,6 +1422,9 @@ def _is_dataset_scope_claim(claim_text: str, row_columns: Iterable[str] = ()) ->
     return False
 
 
+_CJK_NUMERAL_CHARS_RE = re.compile(r"[第一二三四五六七八九十百兩两〇零]")
+
+
 def _claim_names_column(claim_text: str, column: str, row_text: str = "") -> bool:
     """True when the claim mentions this column by name.
 
@@ -1442,7 +1450,10 @@ def _claim_names_column(claim_text: str, column: str, row_text: str = "") -> boo
         return True
     others = (row_text or "").replace(str(column or ""), " ")
     return any(
-        token[index:index + 2] in (claim_text or "") and token[index:index + 2] not in others
+        token[index:index + 2] in (claim_text or "")
+        and token[index:index + 2] not in others
+        # 「三次伸長為 10.2、9.9…」 is "the three readings", not 第三次伸長.
+        and not _CJK_NUMERAL_CHARS_RE.search(token[index:index + 2])
         for token in tokens
         if len(token) >= 3
         for index in range(len(token) - 1)
@@ -1660,10 +1671,22 @@ def _content_overlap_findings(
         # figure out of a different cell is the same coincidence as reading a
         # sample size out of a review count, one row narrower.
         misplaced: list[str] = []
+        unit_not_named = not any(
+            _units_match(unit, ev_unit)
+            for _ev_num, ev_unit, ev_column in evidence_numbers
+            if ev_column in named_columns and ev_unit
+        )
         if named_columns:
             kept = []
             for ev_num, ev_unit, ev_column in evidence_numbers:
-                if ev_column in named_columns:
+                # 「負重 50 g」 does not write 砝碼質量_g, but a figure carrying
+                # the unit of the column it sits in is that column's figure —
+                # unless the claim named a column measured in that unit, which
+                # is then the one it is reading (平均伸長 2.1 cm is not the
+                # second trial's 2.1 cm).
+                if ev_column in named_columns or (
+                    unit and ev_unit and _units_match(unit, ev_unit) and unit_not_named
+                ):
                     kept.append((ev_num, ev_unit, ev_column))
                 elif _same_value(claim_val, ev_num) and _units_match(unit, ev_unit):
                     misplaced.append(f"{ev_column}={ev_num}")
