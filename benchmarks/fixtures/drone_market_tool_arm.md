@@ -23,7 +23,7 @@ three of the seven cross tabulations the pipeline built at intake were waived by
 name in the outline with a reason each.
 
 Measured when recorded: 12,721 characters, 167 traceable figures, 10 tables.
-Body SHA-256: 239c1b8c35f2021d6f13cda773cfc4a121255b01c6b7f7b497d5bee72a1dcdee
+Body SHA-256: 6e82cdaaad88d796088a9f698abeb6e9b938e6574689b1043dbe7ec03da7975d
 -->
 
 ## 目錄
@@ -64,7 +64,7 @@ Body SHA-256: 239c1b8c35f2021d6f13cda773cfc4a121255b01c6b7f7b497d5bee72a1dcdee
 
 表 2. 四個搜尋關鍵字各自打到的價格層
 
-| keyword | 筆數 | 佔比 | price 平均 | price 中位數 | rating 平均 | rating 中位數 | review_count 中位數 |
+| keyword | 筆數 | 佔比 | price 平均 | price 中位數 | rating 平均 | rating 中位數 | review count 中位數 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | drone | 279 | 51.29% | 1,085.70 USD | 99.97 USD | 4.27 | 4.30 | 197.00 |
 | agricultural spray drone | 111 | 20.40% | 705.99 USD | 113.29 USD | 3.77 | 3.95 | 11.50 |
@@ -146,7 +146,7 @@ DJI 有 92 件掛牌、佔 16.91%，價格中位數 247.50 USD；第二名 Holy 
 
 表 6. 品牌側的掛牌數、價格與評論分布
 
-| brand | 筆數 | 佔比 | price 平均 | price 中位數 | rating 平均 | rating 中位數 | review_count 中位數 |
+| brand | 筆數 | 佔比 | price 平均 | price 中位數 | rating 平均 | rating 中位數 | review count 中位數 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | DJI | 92 | 16.91% | 1,077.30 USD | 247.50 USD | 4.39 | 4.50 | 307.00 |
 | Holy Stone | 10 | 1.84% | 138.40 USD | 139.99 USD | 4.13 | 4.20 | 2,780.00 |
@@ -216,7 +216,7 @@ DJI 有 92 件掛牌、佔 16.91%，價格中位數 247.50 USD；第二名 Holy 
 
 表 9. 分類信心分數依品類
 
-| category | 筆數 | 佔比 | price 平均 | price 中位數 | review_count 平均 | review_count 中位數 | score 中位數 |
+| category | 筆數 | 佔比 | price 平均 | price 中位數 | review count 平均 | review count 中位數 | score 中位數 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 攝影 | 243 | 44.67% | 535.95 USD | 139.98 USD | 1,115.95 | 225.00 | 4.00 |
 | 無人機馬達 | 77 | 14.15% | 54.02 USD | 32.70 USD | 48.08 | 14.00 | 2.00 |
@@ -234,7 +234,7 @@ DJI 有 92 件掛牌、佔 16.91%，價格中位數 247.50 USD；第二名 Holy 
 
 表 10. 銷量級距與價格、累積評論的對應關係
 
-| sales | 筆數 | 佔比 | price 平均 | price 中位數 | rating 平均 | rating 中位數 | review_count 中位數 |
+| sales | 筆數 | 佔比 | price 平均 | price 中位數 | rating 平均 | rating 中位數 | review count 中位數 |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 100+ bought in past month | 46 | 8.46% | 362.10 USD | 89.99 USD | 4.22 | 4.35 | 198.00 |
 | 50+ bought in past month | 34 | 6.25% | 101.56 USD | 57.99 USD | 4.24 | 4.20 | 121.00 |

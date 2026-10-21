@@ -31,5 +31,23 @@ class OutlineShapeShowsOnlyWhatIsReadTests(unittest.TestCase):
         self.assertIn('"results_mode"', lab)
 
 
+
+class TableHeadersReadAsWordsTests(unittest.TestCase):
+    def test_a_placed_table_prints_its_headers_without_underscores(self):
+        # The quant memo's two tables printed 「年化報酬_pct 平均」 in every header.
+        from report_workflow.nodes.source_tables import render_source_table
+
+        table = {
+            "table_id": "E1",
+            "headers": ["組合", "年化報酬_pct 平均", "review_count"],
+            "rows": [["低波動", "8.53", "3"]],
+            "source_file_name": "bt.csv",
+            "computed": True,
+        }
+        rendered = render_source_table(table, number=1, caption="x", language="zh")
+        self.assertIn("| 組合 | 年化報酬 (%) 平均 | review count |", rendered)
+        self.assertNotIn("_pct", rendered)
+
+
 if __name__ == "__main__":
     unittest.main()
