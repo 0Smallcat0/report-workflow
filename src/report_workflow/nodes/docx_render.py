@@ -551,6 +551,14 @@ def _inject_toc(
             block = _toc_openxml_block(language, page_break_before=True)
             head = md_content[:idx]
             body = md_content[idx + len(separator):]
+            # The front matter is the cover. A cover section with nothing in
+            # it printed an empty 「封面」 heading as the first chapter.
+            if cover_title:
+                headings = list(re.finditer(r"^# .*$", body, flags=re.MULTILINE))
+                if headings and cover_title in headings[0].group(0) and not body[:headings[0].start()].strip():
+                    end = headings[1].start() if len(headings) >= 2 else len(body)
+                    if not body[headings[0].end():end].strip():
+                        body = body[end:]
             return head + "\n\n" + block + "\n\n" + body
     if cover_title:
         headings = list(re.finditer(r"^# .*$", md_content, flags=re.MULTILINE))
@@ -1951,7 +1959,7 @@ def run_docx_render(state: ReportState) -> ReportState:
     # title page, and the fallback converter cannot consume raw openxml.
     toc_blueprint = state.plan.get("blueprint") or {}
     cover_title = ""
-    if not has_front_matter and (toc_blueprint.get("section_order") or [])[:1] == ["cover"]:
+    if (toc_blueprint.get("section_order") or [])[:1] == ["cover"]:
         cover_title = localized_section_title(
             (toc_blueprint.get("sections") or {}).get("cover"),
             "cover",

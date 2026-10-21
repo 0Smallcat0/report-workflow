@@ -89,6 +89,19 @@ class CoverTocPlacementTest(unittest.TestCase):
         self.assertLess(out.index("本報告為"), out.index("目錄"))
         self.assertLess(out.index("目錄"), out.index("實驗目的"))
 
+    def test_an_empty_cover_after_front_matter_prints_no_heading(self):
+        # A lab report with a title and template fields opened its body with
+        # an empty 「封面」 chapter.
+        md = (
+            "# 實驗三\n\n課程：普通物理實驗\n\n---\n\n# 封面\n\n"
+            "# 1. 實驗目的\n\n量測彈簧在不同負重下的伸長量。"
+        )
+        out = _inject_toc(md, has_front_matter=True, cover_title="封面")
+        self.assertNotIn("# 封面", out)
+        self.assertLess(out.index("目錄"), out.index("實驗目的"))
+        kept = _inject_toc(md.replace("# 封面\n\n", "# 封面\n\n封面說明文字。\n\n"), has_front_matter=True, cover_title="封面")
+        self.assertIn("# 封面", kept)
+
     def test_unrelated_first_heading_keeps_toc_on_top(self):
         md = "# Introduction\n\nBody text.\n\n# Methods\n\nMore body."
         out = _inject_toc(md, has_front_matter=False, cover_title="封面")
