@@ -196,6 +196,26 @@ attempts. The causes, in the order they cost the most:
   `lookback_months` column was "a unit the evidence does not state". Durations
   now alias across Chinese and English (個月/months, 年/years, 天/days, …).
 
+What else stood between a request and a document, fixed in the same pass:
+
+- **Briefs carried every profile.** Admissions, lab, academic-methods,
+  results-mode, facts-freeze and project-identity guidance went to every
+  author, the registration guide was printed twice, and the outline asked for
+  `paper_spine`/`lab_spine`, which nothing reads. The three test reports' briefs
+  went from 57, 57 and 55 KB to 40, 45 and 45 KB.
+- **Statistics that restated rows.** Quartiles of two values, a one-row-per-group
+  table the outline then had to place or waive, a mean of a trial counter and of
+  a backtest's lookback setting, and a "joinable" pair meeting on one median.
+- **Charts of settings.** A backtest table was recommended as a bar chart with
+  the lookback as a series and `in_sample` three times on the axis; a lab sheet
+  as capacitance against resistance. Now: one bar group per lookback and one
+  series per sample period, and measured against theoretical.
+- **Two more FE misfires.** 「每月…前 20%」 against evidence that itself says
+  每月 read as 20%/月, and a paraphrase of a statistic whose figures all
+  checked failed on vocabulary. The adversarial benchmark is unchanged.
+- **Preflight and paths.** Optional tools (mmdc, notebooklm-py) no longer need
+  a "skip" before every run, and run directories use hyphens, not spaces.
+
 `examples/source_to_report.py`, the run the README sends a new user to, had
 failed since the business report gained its counter-evidence section; it runs
 again and CI now runs it.
