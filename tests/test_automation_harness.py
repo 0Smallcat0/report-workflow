@@ -552,6 +552,32 @@ class AutomationHarnessTests(unittest.TestCase):
             self.assertEqual(result["next_stage"], "completed")
 
 
+class BriefCarriesOnlyItsProfileTests(unittest.TestCase):
+    """A business report's drafting brief ran to 29 KB, much of it guidance
+    for admissions essays, lab reports and academic methods sections."""
+
+    def _briefs(self, profile: str) -> dict[str, str]:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _prepare(tmpdir, profile)
+            tasks = run_dir_for(state) / "agent_tasks"
+            return {path.name: path.read_text(encoding="utf-8") for path in tasks.glob("*.md")}
+
+    def test_a_business_brief_holds_no_other_profiles_guidance(self):
+        briefs = self._briefs("business_report")
+        text = "\n".join(briefs.values())
+        for heading in ("Admissions-facing", "Engineering lab reports", "## Methods",
+                        "## Results Mode", "## Project Identity", "paper_spine", "lab_spine"):
+            self.assertNotIn(heading, text)
+        # The registration guide is written once, in the claim brief.
+        self.assertIn("Making a statistic citable", briefs["01_claim_plan.md"])
+        self.assertNotIn("register_derived_evidence(job_id=", briefs["03_section_draft.md"])
+
+    def test_a_lab_brief_keeps_the_lab_guidance(self):
+        draft = self._briefs("engineering_lab_report")["03_section_draft.md"]
+        self.assertIn("Engineering lab reports", draft)
+        self.assertNotIn("Admissions-facing", draft)
+
+
 class FailureRoutingTests(unittest.TestCase):
     """A stage should not hold an author who cannot fix anything from there.
 

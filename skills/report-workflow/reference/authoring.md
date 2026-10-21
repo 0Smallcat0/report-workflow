@@ -264,6 +264,10 @@ contains the value, put it in the sentence ("the error rate fell from 9.0% to
 pass. A quantitative section with no numbers reads as evasive even when every
 claim is verified.
 
+Optional: a `facts_freeze.json` in the run directory (`{"total_files": "388"}`)
+lists confirmed facts; render hard-blocks if any frozen value is missing from
+the document.
+
 ## Document Language
 
 Write body prose in the language of the source evidence. When the evidence is
