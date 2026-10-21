@@ -30,8 +30,8 @@ whatever you already have. Plus one sentence, like "write a lab report on this".
 and charts drawn from your own numbers. It can follow your department's or your
 company's template. Chinese or English.
 
-It runs inside an AI agent you already use — Claude Code, Codex, Cursor. Two
-lines to install, no API key of its own, nothing to configure.
+It runs inside an AI agent you already use — Claude Code, Codex, Cursor. No API
+key of its own, nothing to configure.
 
 ## Look before you install
 
@@ -53,7 +53,15 @@ repository, so you can see the output before you run anything:
 ## Use it
 
 It starts with [uv](https://docs.astral.sh/uv/getting-started/installation/),
-so install that first. Then, in Claude Code:
+so install that first. Then download it once in a terminal: about 1 GB of
+Python packages and a pandoc binary, more than an agent waits for on a first
+start (Codex gives a new server 10 seconds). Later starts take a few seconds.
+
+```bash
+uvx --from "report-workflow[mcp,render]" report-workflow --help
+```
+
+Then, in Claude Code:
 
 ```text
 /plugin marketplace add 0Smallcat0/report-workflow
@@ -68,10 +76,6 @@ codex mcp add report-workflow -- uvx --from "report-workflow[mcp,render]" report
 
 In Cursor or any other MCP client, register that same `uvx` command; the JSON
 is in [docs/mcp.md](docs/mcp.md#register).
-
-The first start downloads its Python packages and a pandoc binary, several
-hundred MB, so on a slow connection give it a few minutes; later starts reuse
-them.
 
 Then just ask, in your own words:
 

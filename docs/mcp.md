@@ -26,8 +26,17 @@ installing this server from the registry gets the same command.
 
 ## Register
 
-The Claude Code plugin registers the server itself (see the README). Otherwise,
-with [uv](https://docs.astral.sh/uv/getting-started/installation/) installed:
+The first `uvx` start downloads about 1 GB, more than a client waits for a new
+server (Codex gives it 10 seconds), so with
+[uv](https://docs.astral.sh/uv/getting-started/installation/) installed, run it
+once in a terminal first:
+
+```bash
+uvx --from "report-workflow[mcp,render]" report-workflow --help
+```
+
+The Claude Code plugin then registers the server itself (see the README).
+Otherwise:
 
 ```bash
 # Claude Code

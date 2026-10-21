@@ -103,8 +103,9 @@ not change (`scripts/run_draft_benchmark.py --check` passes).
 - README: it says up front that it runs inside an AI agent; install uv first;
   then two lines in Claude Code, one `codex mcp add` line in Codex, and the
   same `uvx` command for Cursor or any other MCP client (JSON in
-  `docs/mcp.md`). The first start downloads several hundred MB, and the README
-  now says so.
+  `docs/mcp.md`). The first start downloads about 1 GB, longer than an agent
+  waits for a new server, so the README and `docs/mcp.md` have you download it
+  once in a terminal first.
 - `docs/mcp.md`: the server runs the whole pipeline, not only the gates; all
   fifteen tools listed in the order a run calls them; register commands for
   Claude Code, Codex and Cursor.
