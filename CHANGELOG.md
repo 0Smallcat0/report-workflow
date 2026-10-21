@@ -1,6 +1,12 @@
 # Changelog
 
-## Unreleased
+## 4.40.0 - 2026-10-21
+
+Ten weeks of work since 4.39.0. The headline is `check-references`, which asks
+of each reference whether the record its DOI or arXiv id names is the work it
+cites, and runs without a workflow. Three factuality checkers were added (FT,
+FL, FT2), and many of the fixes below came from running the pipeline on a real
+course report.
 
 ### Added — `check-references`: does each reference say what its record says?
 
