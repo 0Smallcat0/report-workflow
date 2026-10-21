@@ -1139,6 +1139,20 @@ def _normalize_unit(unit: str) -> str:
     return _UNIT_ALIASES.get(parts[0], parts[0])
 
 
+def _per_prefix_restated(claim_unit: str, evidence_unit: str, evidence_content: str) -> bool:
+    """A 「每X」 the claim moved next to a number the evidence also frames per X.
+
+    「每月依過去報酬排序，買進前 20%」 states 20% in its own clause, so the
+    evidence reads 20%; the claim 「每月買進前 20%」 joins the two and reads
+    20%/月. The rate the gate guards against — 每噸 500 美元 against a total of
+    500 美元 — still fails: there the evidence never says 每噸.
+    """
+    base, sep, per = (claim_unit or "").rpartition("/")
+    if not sep or not per:
+        return False
+    return _units_match(base, evidence_unit) and f"每{per}" in re.sub(r"\s+", "", evidence_content or "")
+
+
 def _units_match(claim_unit: str, evidence_unit: str) -> bool:
     """Do these two units agree, treating an unstated unit as unknown?
 
@@ -1636,7 +1650,9 @@ def _content_overlap_findings(
         inflated_match: tuple[str, str] | None = None
         for ev_num, ev_unit, _ev_column in evidence_numbers:
             # Units must match (after normalization)
-            if not _units_match(unit, ev_unit):
+            if not _units_match(unit, ev_unit) and not _per_prefix_restated(
+                unit, ev_unit, evidence_content
+            ):
                 continue
             try:
                 ev_val = _normalize_number_str(ev_num)
@@ -1724,7 +1740,18 @@ def _content_overlap_findings(
         row_pairs is not None
         or str(evidence.get("block_type", "")) == "derived_statistic"
     )
-    if _is_likely_non_ascii(evidence_content):
+    # A row or a computed statistic speaks in its column names — "error_pct 欄
+    # … 最小值 2.60 … 平均數 3.52" — so a claim in a person's words, 「誤差介於
+    # 2.6% 至 4% 之間，平均 3.52%」, shares almost none of its vocabulary. When
+    # two or more of the claim's figures were each found in it, the numbers
+    # have already said which cells the claim is about; the vocabulary check
+    # adds nothing and blocked the paraphrase the brief asks for.
+    numbers_checked = len(claim_numbers) >= 2 and not any(
+        key and key[0] == "number" for key, _reason in reasons
+    )
+    if row_shaped and numbers_checked:
+        term_reasons: list[str] = []
+    elif _is_likely_non_ascii(evidence_content):
         if len(_cjk_chars(claim_text)) >= 4:
             term_reasons = _check_cjk_overlap(
                 claim_text, evidence_content, row_shaped=row_shaped
