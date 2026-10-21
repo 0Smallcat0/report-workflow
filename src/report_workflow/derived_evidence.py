@@ -31,6 +31,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import itertools
+import math
 import json
 import operator
 import re
@@ -386,7 +387,23 @@ def _is_design_factor(dataset: "Dataset", column: str) -> bool:
             and len(set(zip(values, other_values))) == len(dataset.rows)
         ):
             return True
-    return False
+    # The same layout over three or more settings: 2 lookbacks × 2 sample
+    # periods × 2 portfolios is eight rows, and no single other column crosses
+    # the lookback into all eight. Every balanced column together does.
+    factors: dict[str, int] = {}
+    for other in dataset.columns:
+        other_counts = Counter(str(value).strip() for value in dataset.column_values(other))
+        if (
+            len(other_counts) >= 2
+            and "" not in other_counts
+            and len(set(other_counts.values())) == 1
+            and next(iter(other_counts.values())) >= 2
+        ):
+            factors[other] = len(other_counts)
+    if len(factors) < 3:
+        return False
+    cells = {tuple(str(row.get(other, "")).strip() for other in factors) for row in dataset.rows}
+    return math.prod(factors.values()) == len(dataset.rows) == len(cells)
 
 
 def _is_summable_measure(dataset: "Dataset", column: str, numbers: list[float]) -> bool:

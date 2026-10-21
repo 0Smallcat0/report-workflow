@@ -207,6 +207,22 @@ class StatisticsAreEvidenceTests(unittest.TestCase):
         self.assertFalse([c for c in contents if "the lookback column" in c], contents)
         self.assertTrue([c for c in contents if "the sharpe column" in c], contents)
 
+    def test_a_setting_crossed_with_two_labels_is_not_averaged_either(self):
+        # 2 lookbacks × 2 sample periods × 2 portfolios: no one other column
+        # crosses the lookback into all eight rows, and the intake tables
+        # averaged it ("回看月數 平均 9.00") in the slot the Sharpe ratio needed.
+        rows = [
+            {"lookback": lb, "sample": s, "portfolio": p, "sharpe": str(0.1 * i)}
+            for i, (lb, s, p) in enumerate(
+                (lb, s, p) for lb in ("6", "12") for s in ("in", "out") for p in ("low", "high")
+            )
+        ]
+        units = dataset_summary_units(_registry(rows), CREATED_AT)
+        contents = [unit["content"] for unit in units]
+        self.assertFalse([c for c in contents if "the lookback column" in c], contents)
+        self.assertFalse([c for c in contents if "mean lookback" in c], contents)
+        self.assertTrue([c for c in contents if "mean sharpe" in c], contents)
+
     def test_an_id_column_gets_no_statistics(self):
         joined = " ".join(
             str(unit["derivation"]["input_columns"])
