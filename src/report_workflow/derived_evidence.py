@@ -31,6 +31,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import itertools
+import math
 import json
 import operator
 import re
@@ -319,11 +320,21 @@ def _numbers(rows: list[dict], column: str) -> list[float]:
 
 
 def _mixed_unit_column(dataset: "Dataset") -> str | None:
-    """The unit column, when its rows state more than one unit."""
+    """The unit column, when its rows state more than one unit.
+
+    A unit is a word — kg, t, 公斤 — so a column named ``units`` holding
+    numbers is a count of units sold, not a unit of measure. Read as one, its
+    420, 282, 208 were "three different units", the whole file was declared
+    mixed-unit, and every numeric column lost its mean, median and range: a
+    sales sheet with revenue, units and a return rate reached the author as
+    row counts of a balanced design and nothing else.
+    """
     for column in dataset.columns[:MAX_COLUMNS_SUMMARIZED]:
         if not _UNIT_COLUMN_RE.match(str(column).strip()):
             continue
         units = {str(value).strip() for value in dataset.column_values(column) if str(value).strip()}
+        if units and sum(parse_number(unit) is not None for unit in units) > len(units) / 2:
+            continue
         if len(units) > 1:
             return column
     return None
@@ -335,17 +346,81 @@ def _is_year_column(column: str, numbers: list[float]) -> bool:
     )
 
 
+#: Fewer values than this and a column's quartiles are its rows read back:
+#: "a first quartile of 20, a median of 24 … a third quartile of 28" over two
+#: rows says 20 and 28 four times.
+MIN_SUMMARY_VALUES = 3
+
+
+def _is_row_index(numbers: list[float]) -> bool:
+    """A column counting the rows, 1..n: a trial number, not a measure.
+
+    "trial 欄平均數 3" is the middle of the sequence, not a finding.
+    """
+    return len(numbers) >= MIN_SUMMARY_VALUES and (
+        numbers == [float(n) for n in range(1, len(numbers) + 1)]
+        or numbers == [float(n) for n in range(len(numbers))]
+    )
+
+
+def _is_design_factor(dataset: "Dataset", column: str) -> bool:
+    """A setting the rows were laid out over, not something they measured.
+
+    A backtest table holds every lookback (3, 6, 12) once per sample period,
+    so lookback crossed with the period names each row exactly once. Its mean,
+    7, is the average of the settings somebody chose to try.
+    """
+    values = [str(value).strip() for value in dataset.column_values(column)]
+    counts = Counter(values)
+    if len(counts) < 2 or "" in counts or len(set(counts.values())) != 1:
+        return False
+    if next(iter(counts.values())) < 2:
+        return False
+    for other in dataset.columns:
+        if other == column:
+            continue
+        other_values = [str(value).strip() for value in dataset.column_values(other)]
+        levels = set(other_values)
+        if (
+            len(levels) >= 2
+            and len(levels) * len(counts) == len(dataset.rows)
+            and len(set(zip(values, other_values))) == len(dataset.rows)
+        ):
+            return True
+    # The same layout over three or more settings: 2 lookbacks × 2 sample
+    # periods × 2 portfolios is eight rows, and no single other column crosses
+    # the lookback into all eight. Every balanced column together does.
+    factors: dict[str, int] = {}
+    for other in dataset.columns:
+        other_counts = Counter(str(value).strip() for value in dataset.column_values(other))
+        if (
+            len(other_counts) >= 2
+            and "" not in other_counts
+            and len(set(other_counts.values())) == 1
+            and next(iter(other_counts.values())) >= 2
+        ):
+            factors[other] = len(other_counts)
+    if len(factors) < 3:
+        return False
+    cells = {tuple(str(row.get(other, "")).strip() for other in factors) for row in dataset.rows}
+    return math.prod(factors.values()) == len(dataset.rows) == len(cells)
+
+
 def _is_summable_measure(dataset: "Dataset", column: str, numbers: list[float]) -> bool:
     """Whether a numeric column's mean, median and range say anything.
 
     Not when the rows are in different units, not when the column is a year,
     and not when every row holds the same value — "最小值 2,025 … 最大值
-    2,025" is the column restated as if it varied.
+    2,025" is the column restated as if it varied. Not over fewer than three
+    values, and not for a row counter or a setting the rows were laid out over.
     """
     return (
         _mixed_unit_column(dataset) is None
         and not _is_year_column(column, numbers)
         and len(set(numbers)) > 1
+        and len(numbers) >= MIN_SUMMARY_VALUES
+        and not _is_row_index(numbers)
+        and not _is_design_factor(dataset, column)
     )
 
 
@@ -815,8 +890,16 @@ def joinable_key_report(source_registry: list[dict]) -> list[dict]:
             )
             if len(left_counts) < 2 or len(right_counts) < 2:
                 continue
+            # A measured value is not a key. Two files that both record a
+            # median of 20.0 minutes share a number, not a row.
+            if any(
+                (number := parse_number(value)) is not None and number != int(number)
+                for value in itertools.chain(left_counts, right_counts)
+            ):
+                continue
             shared = set(left_counts) & set(right_counts)
-            if not shared:
+            # One shared value joins one row: a coincidence, not a connection.
+            if len(shared) < 2:
                 continue
             overlap = len(shared) / min(len(left_counts), len(right_counts))
             uniqueness = max(
@@ -917,6 +1000,10 @@ def _bucket_groups(
                 index = position
                 break
         groups[index][1].append(row)
+    # The last edge is where the author chose to stop. An open band above it
+    # holding nothing reached the delivered table as `9+ | 0 | — | — | —`.
+    if not groups[-1][1]:
+        groups.pop()
     return groups, outside
 
 
@@ -1168,7 +1255,7 @@ def compute_group_table(frame: Dataset, request: dict, zh: bool = False) -> dict
     if grouping == "buckets":
         derivation["buckets"] = edges
         if integral:
-            derivation["band_members"] = _integer_band_members(edges, zh)
+            derivation["band_members"] = _integer_band_members(edges, zh)[: len(groups)]
     join_info = getattr(frame, "join_info", None)
     if join_info:
         derivation["join"] = join_info
@@ -1195,9 +1282,22 @@ def compute_group_table(frame: Dataset, request: dict, zh: bool = False) -> dict
 _DASH_RE = re.compile(r"[‐-―−]")
 
 
+#: A decimal written with trailing zeros: the 50 of 7.50, the .0 of 9.0.
+_TRAILING_ZEROS_RE = re.compile(r"(?<![\d.])(\d+)\.(\d*?)0+(?![\d.])")
+
+
+def _label_key(label: object) -> str:
+    text = _DASH_RE.sub("-", str(label).strip())
+    # A bucket edge given as 7.5 is printed 7.50; the author naming the band
+    # as they wrote the edge was told "7.5-9" is not a row of the table.
+    return _TRAILING_ZEROS_RE.sub(
+        lambda m: m.group(1) + ("." + m.group(2) if m.group(2) else ""), text
+    )
+
+
 def _same_label(left: object, right: object) -> str:
     """Two group labels, compared without arguing about which dash was typed."""
-    return _DASH_RE.sub("-", str(left).strip()) == _DASH_RE.sub("-", str(right).strip())
+    return _label_key(left) == _label_key(right)
 
 
 def _registered_figure(
@@ -1891,8 +1991,15 @@ def compute_formula_table(
                 value = round(value, decimals)
             cells.append(format_number(value, decimals))
         body.append(cells)
+    # A label that already names its unit — 「拉力 (N)」 — printed it twice:
+    # 「拉力 (N) (N)」.
     headers = [str(request.get("row_label_header") or label_column)] + [
-        str(item.get("label") or item["expr"]) + (f" ({unit})" if unit else "")
+        str(item.get("label") or item["expr"])
+        + (
+            f" ({unit})"
+            if unit and not re.search(rf"[(（]\s*{re.escape(unit)}\s*[)）]", str(item.get("label") or ""))
+            else ""
+        )
         for item, unit in zip(formulas, units)
     ]
     derivation = {
@@ -2284,7 +2391,9 @@ def dataset_summary_units(
             # description, not a category. Its "distribution" is the column
             # reprinted with 1 beside every line, which tells a reader
             # nothing and buries the columns that do.
-            if len(counts) > max(2, 0.9 * len(dataset.rows)):
+            if len(counts) > max(2, 0.9 * len(dataset.rows)) or all(
+                count == 1 for _value, count in counts
+            ):
                 continue
             if 2 <= len(counts) <= MAX_CATEGORY_CARDINALITY:
                 category_content, category_derivation = _category_text(
@@ -2295,20 +2404,25 @@ def dataset_summary_units(
         entries.extend(_auto_cross_tables(dataset, zh))
 
         for index, (content, derivation, table) in enumerate(entries):
-            digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
             units.append(
                 _unit_evidence(
                     dataset,
                     content,
                     derivation,
                     created_at,
-                    evidence_id=f"E_{dataset.source_id}_{digest[:10]}",
+                    evidence_id=summary_evidence_id(dataset, content),
                     block_id=f"summary_{index}",
                     origin="auto",
                     table=table,
                 )
             )
     return units
+
+
+def summary_evidence_id(dataset: Dataset, content: str) -> str:
+    """The id an intake summary gets: its source plus a digest of its text."""
+    digest = hashlib.sha256(content.encode("utf-8")).hexdigest()
+    return f"E_{dataset.source_id}_{digest[:10]}"
 
 
 def _column_kinds(dataset: Dataset) -> tuple[list[str], list[str]]:
@@ -2336,6 +2450,11 @@ def _column_kinds(dataset: Dataset) -> tuple[list[str], list[str]]:
         if not 2 <= len(counts) <= MAX_CATEGORY_CARDINALITY:
             continue
         if len(counts) > max(2, 0.5 * len(dataset.rows)):
+            continue
+        # One row per group is the file reprinted with a "share of rows" of
+        # 50% beside each line — and a table the outline must then place or
+        # waive, for nothing.
+        if all(count == 1 for _value, count in counts):
             continue
         # A column filled in for a handful of rows describes those rows, not
         # the file. Crossing `seller` — stated on 11 listings out of 544 — puts
@@ -2645,6 +2764,22 @@ def build_requested_units(
         computed[entry["request_id"]] = entry
         computed[entry["evidence_id"]] = entry
         order.append(entry["request_id"])
+
+    # The cross tabulations intake built, recomputed from the rows the same
+    # way, so a ratio or a formula can read a cell of a table the brief listed
+    # as "already built". Without them the author registered an identical
+    # table by hand and then had to waive the original in the outline.
+    for dataset in datasets:
+        for content, derivation, table in _auto_cross_tables(dataset, zh):
+            evidence_id = summary_evidence_id(dataset, content)
+            remember({
+                "kind": "table",
+                "request_id": evidence_id,
+                "evidence_id": evidence_id,
+                "table": table,
+                "dataset": dataset,
+                "rows_matched": derivation.get("rows_matched", len(dataset.rows)),
+            })
 
     for request in requests or []:
         if not isinstance(request, dict):

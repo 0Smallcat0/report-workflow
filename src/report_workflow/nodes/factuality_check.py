@@ -443,6 +443,15 @@ _CJK_UNIT_RE = re.compile(
 
 _ASCII_UNIT_RE = re.compile(r"[a-zA-Z%°]+")
 
+#: Words that follow a number in running English without measuring anything.
+#: "staffed 24/7 and answers" made "and" the unit of 7, so the same figure
+#: written "7 days" or "7×24 with" was a unit mismatch. Lower case only: "A"
+#: is still an ampere.
+_ENGLISH_FUNCTION_WORDS = frozenset({
+    "and", "or", "with", "of", "to", "the", "an", "for", "at", "on", "by",
+    "from", "as", "is", "are", "was", "were", "than", "that", "which", "while", "but",
+})
+
 #: A number, unit optional. It has to be optional: a date written "2025-06"
 #: states two numbers and no unit, and a claim saying "2025 年 6 月" cites both
 #: of them. Requiring a unit meant the evidence's 2025 was never extracted at
@@ -497,7 +506,7 @@ def _unit_after(text: str, position: int) -> str:
     if not match:
         return ""
     unit = _APOSTROPHE_SUFFIX_RE.sub("", match.group(0))
-    if not unit:
+    if not unit or unit in _ENGLISH_FUNCTION_WORDS:
         return ""
 
     after = position + offset + match.end()
@@ -544,6 +553,13 @@ _CLAUSE_BREAK_RE = re.compile(r"[，。；：！？、,;:!?\n]")
 #: combination would turn a month into a rate.
 _CALENDAR_UNITS = frozenset({"年", "月", "日", "天", "週", "周", "季", "季度", "世紀", "世纪"})
 
+#: Measure words that only count the noun after them. In 每個擺長 / 每位學生 /
+#: 每組樣本 the noun is the denominator; the classifier names nothing.
+_NOUN_CLASSIFIERS = frozenset({
+    "個", "个", "位", "名", "項", "项", "件", "組", "组", "筆", "笔", "種", "种",
+    "條", "条", "張", "张", "台", "部", "座", "家", "間", "间", "批", "次",
+})
+
 
 def _per_prefix_unit(text: str, number_start: int) -> str:
     """The "每X" denominator governing a number, or "" when none does."""
@@ -556,7 +572,21 @@ def _per_prefix_unit(text: str, number_start: int) -> str:
     between = window[match.end():]
     if len(between) > _PER_PREFIX_MAX_GAP or _CLAUSE_BREAK_RE.search(between):
         return ""
-    return match.group("unit")
+    # 「每個擺長重複 5 次」 is "for each length, 5 times": 個 is the classifier
+    # of the noun that follows it, and that noun is the denominator, not 個.
+    # Read as 5 次/個 it met a claim written 「並重複 5 次」 as a unit mismatch,
+    # and a lab report's honest procedure sentence was blocked twice — FE and
+    # FS — until it was rewritten into the source's word order. A measure
+    # word that is a unit (每噸, 每公斤) or stands alone before the number
+    # (每人 3 次) still makes a rate.
+    unit = match.group("unit")
+    if unit in _NOUN_CLASSIFIERS and re.match(r"[㐀-鿿]", between):
+        return ""
+    # 「每月底依過去 6 個月排序」 is "at each month-end", a point in time: read as
+    # 6 個月/月 it was a rate the sentence never states.
+    if unit in _CALENDAR_UNITS and re.match(r"[底初末]", between):
+        return ""
+    return unit
 
 
 def _combined_unit(text: str, number_start: int, suffix_unit: str) -> str:
@@ -574,6 +604,7 @@ def _combined_unit(text: str, number_start: int, suffix_unit: str) -> str:
 #: category, a point in an argument, a market. Only consulted for numerals
 #: written in Chinese -- the digit form is a figure and stays checked.
 _RHETORICAL_CLASSIFIERS = frozenset({"個", "个", "項", "项", "件", "種", "种", "類", "类"})
+_POINTING_BEFORE_RE = re.compile(r"(?:前|後|后|這|这|那|其中|最後|最后|另)$")
 
 
 #: A ceiling or a floor the author chose, not a reading they took. The
@@ -708,6 +739,17 @@ def _decimal_comma_to_point(text: str) -> str:
     return _DECIMAL_COMMA_RE.sub(lambda match: match.group(0).replace(",", "."), text)
 
 
+#: Two figures joined by a multiplication sign: 7×24, 7x24, 7 * 24, 1920×1080.
+#: Written with a Latin x, the x was read as the first number's unit and the
+#: lookbehind that keeps "A4" from yielding a 4 then hid the second number, so
+#: a source saying the desk is "staffed 7x24" stated a 7 and nothing else, and
+#: the claim restating it as 7×24 was blocked for a 24 "not stated in the
+#: evidence". Every spelling is folded to one before numbers are read, one
+#: character for one, so a span still points into the caller's text
+#: (check-draft reads each figure of a page by its span).
+_PRODUCT_SIGN_RE = re.compile(r"\b(\d+)(\s*)[xX×*＊](\s*)(\d+)\b")
+
+
 def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
     """Return list of (number_str, unit_str) from text."""
     return [(number, unit) for number, unit, _start, _end in numbers_with_spans(text)[1]]
@@ -723,6 +765,7 @@ def numbers_with_spans(text: str) -> tuple[str, list[tuple[str, str, int, int]]]
     """
     results = []
     normalized = _decimal_comma_to_point(_normalize_for_numbers(text))
+    normalized = _PRODUCT_SIGN_RE.sub(r"\1\2×\3\4", normalized)
     for m in _BARE_NUMBER_RE.finditer(normalized):
         suffix = _unit_after(normalized, m.end())
         unit = _combined_unit(normalized, m.start(1), suffix)
@@ -782,6 +825,10 @@ def numbers_with_spans(text: str) -> tuple[str, list[tuple[str, str, int, int]]]
         # written in digits, and 「6 個價格帶」 is still checked; so is 三筆,
         # 兩年, 五家 and 三個月, whose classifiers name real things.
         if suffix in _RHETORICAL_CLASSIFIERS:
+            continue
+        # 「前四組」, 「最後兩組」, 「其中三筆」 point at items of the table the
+        # sentence is reading: positions in a list, not a count it reports.
+        if _POINTING_BEFORE_RE.search(normalized[max(0, m.start(1) - 2):m.start(1)]):
             continue
         if _is_bounded_claim_number(normalized, m.start(1), m.end(1)):
             continue
@@ -1032,6 +1079,16 @@ _UNIT_ALIASES = {
     "\u5206\u949f": "min",
     "\u5c0f\u6642": "h",
     "\u5c0f\u65f6": "h",
+    # Durations, spelled in Chinese in the prose and in English in the column
+    # header: a claim of 「12 個月」 against lookback_months = 12 is the same
+    # quantity, and was refused as a different unit.
+    "hour": "h", "hours": "h", "hr": "h", "hrs": "h",
+    "minute": "min", "minutes": "min", "mins": "min",
+    "sec": "s", "secs": "s", "second": "s", "seconds": "s",
+    "個月": "month", "个月": "month", "months": "month",
+    "年": "year", "years": "year", "yr": "year", "yrs": "year",
+    "天": "day", "日": "day", "days": "day",
+    "週": "week", "周": "week", "weeks": "week",
     "\u767e\u5206\u6bd4": "%",
     "\uff05": "%",
     # Currency, written as a symbol on one side and a word on the other. A
@@ -1091,6 +1148,20 @@ def _normalize_unit(unit: str) -> str:
     if "/" in normalized:
         return "/".join(_UNIT_ALIASES.get(part, part) for part in parts)
     return _UNIT_ALIASES.get(parts[0], parts[0])
+
+
+def _per_prefix_restated(claim_unit: str, evidence_unit: str, evidence_content: str) -> bool:
+    """A 「每X」 the claim moved next to a number the evidence also frames per X.
+
+    「每月依過去報酬排序，買進前 20%」 states 20% in its own clause, so the
+    evidence reads 20%; the claim 「每月買進前 20%」 joins the two and reads
+    20%/月. The rate the gate guards against — 每噸 500 美元 against a total of
+    500 美元 — still fails: there the evidence never says 每噸.
+    """
+    base, sep, per = (claim_unit or "").rpartition("/")
+    if not sep or not per:
+        return False
+    return _units_match(base, evidence_unit) and f"每{per}" in re.sub(r"\s+", "", evidence_content or "")
 
 
 def _units_match(claim_unit: str, evidence_unit: str) -> bool:
@@ -1263,6 +1334,14 @@ def _is_heading_only(evidence: dict) -> bool:
     return str(evidence.get("block_type", "")) == "heading"
 
 
+#: A claim that reports the question rather than answering it: 「研究問題是…是否…」,
+#: "the review asks whether…". A question is evidence of what was asked.
+_QUESTION_FRAMING_RE = re.compile(
+    r"研究問題|問題是|要回答|探討.{0,20}是否|\bwhether\b|\bquestions? (?:is|was|asks?)\b|\basks? (?:whether|which|how|what|why)\b",
+    re.IGNORECASE,
+)
+
+
 def _is_question_only(text: str) -> bool:
     """True when the text asks something and asserts nothing.
 
@@ -1309,6 +1388,13 @@ _DATASET_SCOPE_RE = re.compile(
 
 _COLUMN_BRACKET_RE = re.compile(r"[(（\[［].*?[)）\]］]")
 
+#: In-sample and out-of-sample name one partition of the rows — the very cell a
+#: backtest row is about — not the sample as a whole. Read as scope words they
+#: blocked every result sentence of a quant memo that cited the row it restates.
+_SAMPLE_PARTITION_RE = re.compile(
+    r"樣本[內内外]|样本[内外]|\b(?:in|out[- ]of)[- ]sample\b", re.IGNORECASE
+)
+
 
 def _is_dataset_scope_claim(claim_text: str, row_columns: Iterable[str] = ()) -> bool:
     """True when a scope word in the claim speaks about the whole dataset.
@@ -1326,7 +1412,7 @@ def _is_dataset_scope_claim(claim_text: str, row_columns: Iterable[str] = ()) ->
         name = _COLUMN_BRACKET_RE.sub(" ", str(column or "")).casefold()
         column_words.update(re.findall(r"[a-z][a-z0-9]*", name))
         column_words.update(re.findall(r"[㐀-鿿]+", name))
-    for match in _DATASET_SCOPE_RE.finditer(claim_text or ""):
+    for match in _DATASET_SCOPE_RE.finditer(_SAMPLE_PARTITION_RE.sub(" ", claim_text or "")):
         word = match.group(0).casefold()
         if word in column_words or any(
             re.fullmatch(r"[㐀-鿿]+", w) and word in w for w in column_words
@@ -1336,7 +1422,10 @@ def _is_dataset_scope_claim(claim_text: str, row_columns: Iterable[str] = ()) ->
     return False
 
 
-def _claim_names_column(claim_text: str, column: str) -> bool:
+_CJK_NUMERAL_CHARS_RE = re.compile(r"[第一二三四五六七八九十百兩两〇零]")
+
+
+def _claim_names_column(claim_text: str, column: str, row_text: str = "") -> bool:
     """True when the claim mentions this column by name.
 
     Deliberately one-directional. A claim that names no column is left alone,
@@ -1344,13 +1433,31 @@ def _claim_names_column(claim_text: str, column: str) -> bool:
     Chinese and demanding a mention would block honest work. But a claim that
     *does* name one has told us which cell it is talking about, and a number
     from a different cell is then not its evidence.
+
+    A Chinese header is a compound a sentence rarely repeats whole:
+    「回看 12 個月」 names 回看月數 without writing it. Two characters of the
+    header that no other column of the row contains name it too; 年化 in
+    年化報酬 and 年化波動 names neither, and 波動 does not name 年化波動 in a row
+    whose portfolio is 低波動.
     """
     text = (claim_text or "").casefold()
     name = _COLUMN_BRACKET_RE.sub(" ", str(column or ""))
     for token in re.findall(r"[A-Za-z][A-Za-z0-9]{2,}", name):
         if token.casefold() in text:
             return True
-    return any(token in (claim_text or "") for token in re.findall(r"[㐀-鿿]{2,}", name))
+    tokens = re.findall(r"[㐀-鿿]{2,}", name)
+    if any(token in (claim_text or "") for token in tokens):
+        return True
+    others = (row_text or "").replace(str(column or ""), " ")
+    return any(
+        token[index:index + 2] in (claim_text or "")
+        and token[index:index + 2] not in others
+        # 「三次伸長為 10.2、9.9…」 is "the three readings", not 第三次伸長.
+        and not _CJK_NUMERAL_CHARS_RE.search(token[index:index + 2])
+        for token in tokens
+        if len(token) >= 3
+        for index in range(len(token) - 1)
+    )
 
 
 _LATIN_TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9²³/-]{1,}")
@@ -1483,7 +1590,7 @@ def _content_overlap_findings(
             f"{evidence_content[:60]}"
         ))]
 
-    if _is_question_only(evidence_content):
+    if _is_question_only(evidence_content) and not _QUESTION_FRAMING_RE.search(claim_text):
         return [((
             "question",
         ), (
@@ -1530,8 +1637,19 @@ def _content_overlap_findings(
             f"these rows, or register the one you need. Row: {evidence_content[:80]}"
         ))]
 
+    # A figure in a column's own name — resolved_within_24h_pct — is the
+    # definition the claim restates ("resolved within 24 hours"), not a reading.
+    header_numbers = [
+        (number, number_unit)
+        for column in {column for _n, _u, column in row_measured}
+        for number, number_unit in _extract_numbers_with_unit(str(column).replace("_", " "))
+    ]
+
     named_columns = (
-        {column for _n, _u, column in row_measured if _claim_names_column(claim_text, column)}
+        {
+            column for _n, _u, column in row_measured
+            if _claim_names_column(claim_text, column, evidence_content)
+        }
         if is_raw_row
         else set()
     )
@@ -1561,10 +1679,22 @@ def _content_overlap_findings(
         # figure out of a different cell is the same coincidence as reading a
         # sample size out of a review count, one row narrower.
         misplaced: list[str] = []
+        unit_not_named = not any(
+            _units_match(unit, ev_unit)
+            for _ev_num, ev_unit, ev_column in evidence_numbers
+            if ev_column in named_columns and ev_unit
+        )
         if named_columns:
             kept = []
             for ev_num, ev_unit, ev_column in evidence_numbers:
-                if ev_column in named_columns:
+                # 「負重 50 g」 does not write 砝碼質量_g, but a figure carrying
+                # the unit of the column it sits in is that column's figure —
+                # unless the claim named a column measured in that unit, which
+                # is then the one it is reading (平均伸長 2.1 cm is not the
+                # second trial's 2.1 cm).
+                if ev_column in named_columns or (
+                    unit and ev_unit and _units_match(unit, ev_unit) and unit_not_named
+                ):
                     kept.append((ev_num, ev_unit, ev_column))
                 elif _same_value(claim_val, ev_num) and _units_match(unit, ev_unit):
                     misplaced.append(f"{ev_column}={ev_num}")
@@ -1583,7 +1713,9 @@ def _content_overlap_findings(
         inflated_match: tuple[str, str] | None = None
         for ev_num, ev_unit, _ev_column in evidence_numbers:
             # Units must match (after normalization)
-            if not _units_match(unit, ev_unit):
+            if not _units_match(unit, ev_unit) and not _per_prefix_restated(
+                unit, ev_unit, evidence_content
+            ):
                 continue
             try:
                 ev_val = _normalize_number_str(ev_num)
@@ -1601,6 +1733,11 @@ def _content_overlap_findings(
             found = True
             break
 
+        if not found and unit and any(
+            _same_value(claim_val, number) and _units_match(unit, number_unit) and number_unit
+            for number, number_unit in header_numbers
+        ):
+            found = True
         if not found:
             number_key = ("number", num_str, unit)
             if misplaced:
@@ -1671,7 +1808,18 @@ def _content_overlap_findings(
         row_pairs is not None
         or str(evidence.get("block_type", "")) == "derived_statistic"
     )
-    if _is_likely_non_ascii(evidence_content):
+    # A row or a computed statistic speaks in its column names — "error_pct 欄
+    # … 最小值 2.60 … 平均數 3.52" — so a claim in a person's words, 「誤差介於
+    # 2.6% 至 4% 之間，平均 3.52%」, shares almost none of its vocabulary. When
+    # two or more of the claim's figures were each found in it, the numbers
+    # have already said which cells the claim is about; the vocabulary check
+    # adds nothing and blocked the paraphrase the brief asks for.
+    numbers_checked = len(claim_numbers) >= 2 and not any(
+        key and key[0] == "number" for key, _reason in reasons
+    )
+    if row_shaped and numbers_checked:
+        term_reasons: list[str] = []
+    elif _is_likely_non_ascii(evidence_content):
         if len(_cjk_chars(claim_text)) >= 4:
             term_reasons = _check_cjk_overlap(
                 claim_text, evidence_content, row_shaped=row_shaped
@@ -1847,6 +1995,46 @@ def find_mangled_amounts(text: str) -> list[tuple[str, str]]:
     return findings
 
 
+_NUMBER_UNITS = {
+    "one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7,
+    "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
+    "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17, "eighteen": 18,
+    "nineteen": 19,
+}
+_NUMBER_TENS = {
+    "twenty": 20, "thirty": 30, "forty": 40, "fifty": 50, "sixty": 60,
+    "seventy": 70, "eighty": 80, "ninety": 90,
+}
+#: A capitalised number word opening a sentence: "Forty", "Twenty-five".
+_SENTENCE_INITIAL_NUMBER_RE = re.compile(
+    r"(?P<lead>^\s*|[.!?]\s+|\n\s*)"
+    r"(?P<word>(?:Twenty|Thirty|Forty|Fifty|Sixty|Seventy|Eighty|Ninety)(?:-[a-z]+)?|"
+    r"One|Two|Three|Four|Five|Six|Seven|Eight|Nine|Ten|Eleven|Twelve|Thirteen|"
+    r"Fourteen|Fifteen|Sixteen|Seventeen|Eighteen|Nineteen)\b(?!-)"
+)
+
+
+def _spell_out_sentence_numbers(text: str) -> str:
+    """Write a sentence-opening number word as digits, for reading numbers only.
+
+    Style guides — APA among them — spell out a number that begins a sentence,
+    so a methods section opens "Forty undergraduates…" for a claim that says
+    40. FS read that as the 40 not being stated. Only a capitalised word at
+    the start of a sentence is read; "one of them" inside a sentence is not a
+    figure.
+    """
+    def replace(match: re.Match) -> str:
+        word = match.group("word").lower()
+        if "-" in word:
+            tens, _, unit = word.partition("-")
+            if tens not in _NUMBER_TENS or unit not in _NUMBER_UNITS or _NUMBER_UNITS[unit] > 9:
+                return match.group(0)
+            return match.group("lead") + str(_NUMBER_TENS[tens] + _NUMBER_UNITS[unit])
+        return match.group("lead") + str(_NUMBER_TENS.get(word) or _NUMBER_UNITS[word])
+
+    return _SENTENCE_INITIAL_NUMBER_RE.sub(replace, text or "")
+
+
 def _claim_sentences(merged_text: str, evidence_ids: set[str]) -> list[str]:
     """Sentences of the draft that cite this claim's evidence.
 
@@ -1975,7 +2163,7 @@ def run_factuality_check_fs(
             # that failure; reporting it again here would double-block it.
             continue
 
-        available = _extract_numbers_with_unit(" ".join(sentences))
+        available = _extract_numbers_with_unit(_spell_out_sentence_numbers(" ".join(sentences)))
         if state is not None and outline is not None:
             available.extend(_bound_figure_numbers(state, claim_id, outline))
 
@@ -2642,6 +2830,34 @@ def run_factuality_check_ft(
     return results
 
 
+def _revision_plan_links(state: ReportState) -> list[dict]:
+    """The claim links a revision plan makes, read as sentence-map rows for FA.
+
+    In revise_existing the document is the base document with revision_plan.json
+    applied; section drafts are not merged into it. Each change already names
+    the claims and evidence it states, which is the link FA checks, but FA read
+    only the drafts' sentence map — so a claim carried by a revision change and
+    by no draft was blocked as "does not appear in sentence_map", and the only
+    way through was to write a draft sentence that never reaches the reader.
+    """
+    if state.spec.get("task_intent") != "revise_existing":
+        return []
+    from ..state import run_dir_for
+
+    plan = _load_json(run_dir_for(state) / "revision_plan.json")
+    links = []
+    for index, change in enumerate(plan.get("changes") or []):
+        if not isinstance(change, dict) or not change.get("claim_ids"):
+            continue
+        links.append({
+            "sentence_id": f"revision_change_{index}",
+            "section_id": str(change.get("section_id") or ""),
+            "claim_ids": list(change.get("claim_ids") or []),
+            "evidence_ids": list(change.get("evidence_ids") or []),
+        })
+    return links
+
+
 def run_factuality_check(state: ReportState) -> ReportState:
     """T13: FACTUALITY_CHECK - verify claims vs evidence."""
     run_dir = WORKFLOW_RUNS_DIR / state.job_id
@@ -2657,7 +2873,9 @@ def run_factuality_check(state: ReportState) -> ReportState:
     if not claim_matrix.get("claims"):
         raise QAHardBlockError("Claim matrix is empty")
 
-    results_fa = run_factuality_check_fa(sentence_map, claim_matrix, evidence_ledger)
+    results_fa = run_factuality_check_fa(
+        sentence_map + _revision_plan_links(state), claim_matrix, evidence_ledger
+    )
     all_results = run_factuality_check_fb(results_fa, claim_matrix, evidence_ledger)
     checkers_run = ["FA", "FB"]
 

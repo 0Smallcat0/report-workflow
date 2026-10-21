@@ -121,7 +121,9 @@ def _write_claim_matrix(state: ReportState) -> str:
         "claims": [{
             "claim_id": "c1",
             "claim_text": "The pilot program enrolled 42 participants.",
-            "claim_type": "statistical",
+            # A sentence of a .txt source allows factual, not statistical; FA
+            # refuses "statistical" at publish, and lint now says so first.
+            "claim_type": "factual",
             "risk_level": "low",
             "status": "supported",
             "evidence_ids": [evidence_id],
@@ -144,7 +146,10 @@ def _write_outline(state: ReportState) -> None:
         }
         for section_id in state.plan["blueprint"]["section_order"]
     }
-    (run_dir / "outline.json").write_text(json.dumps({"sections": sections}), encoding="utf-8")
+    (run_dir / "outline.json").write_text(json.dumps({
+        "sections": sections,
+        "thesis_statement": "The pilot program enrolled 42 participants.",
+    }), encoding="utf-8")
 
 
 def _write_drafts(state: ReportState, evidence_id: str) -> None:
@@ -378,7 +383,11 @@ class AutomationHarnessTests(unittest.TestCase):
             self.assertEqual(action["stage"], "publish")
             self.assertEqual(action["allowed_write_paths"], [])
 
-    def test_scope_violation_blocks_passed_artifact_drift(self):
+    def test_passed_artifact_drift_is_validated_again_not_accepted(self):
+        # Drift on an accepted artifact used to be refused with "restore it",
+        # which the author could not do (the pipeline rewrites what it
+        # accepts). It now re-opens the owning stage, so the changed file is
+        # validated again before anything after it — never accepted unchecked.
         with tempfile.TemporaryDirectory() as tmpdir:
             state = ReportState.new("controlled report", [], str(Path(tmpdir) / "out"))
             state.checkpoint("TEST")
@@ -390,11 +399,41 @@ class AutomationHarnessTests(unittest.TestCase):
             self.assertEqual(result["next_stage"], "outline")
 
             (run_dir / "claim_matrix.json").write_text('{"claims":[{"claim_id":"changed"}]}', encoding="utf-8")
-            result = run_controlled_stage(state.job_id, _fake_validators(), workspace_root=workspace_root)
+            failing = {
+                **_fake_validators(),
+                "claim_matrix": lambda _job_id, _workspace_root=None: {
+                    "status": "validation_failed", "error_details": "c1 is malformed",
+                },
+            }
+            result = run_controlled_stage(state.job_id, failing, workspace_root=workspace_root)
 
-            self.assertEqual(result["status"], "scope_violation")
-            self.assertEqual(result["stage"], "outline")
-            self.assertEqual(result["violations"][0]["relative_path"], "claim_matrix.json")
+            self.assertEqual(result["status"], "validation_failed")
+            self.assertEqual(result["stage"], "claim_matrix")
+            self.assertEqual(result["next_stage"], "claim_matrix")
+
+    def test_a_restamped_contract_is_not_the_author_editing_the_file(self):
+        # Publish grows the ledger and re-stamps every accepted artifact's
+        # _contract. A failed publish then routed back to drafts, and the
+        # rewrite the pipeline had just made was refused as the author's.
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = ReportState.new("controlled report", [], str(Path(tmpdir) / "out"))
+            state.checkpoint("TEST")
+            workspace_root = state.output["workspace_root"]
+            run_dir = run_dir_for(state)
+            stamp = {"job_id": state.job_id, "evidence_ledger_hash": "a", "source_registry_hash": "b"}
+
+            (run_dir / "claim_matrix.json").write_text(
+                json.dumps({"_contract": stamp, "claims": []}), encoding="utf-8"
+            )
+            result = run_controlled_stage(state.job_id, _fake_validators(), workspace_root=workspace_root)
+            self.assertEqual(result["next_stage"], "outline")
+
+            restamped = {**stamp, "evidence_ledger_hash": "c"}
+            (run_dir / "claim_matrix.json").write_text(
+                json.dumps({"claims": [], "_contract": restamped}, indent=2), encoding="utf-8"
+            )
+            result = run_controlled_stage(state.job_id, _fake_validators(), workspace_root=workspace_root)
+            self.assertNotEqual(result["status"], "scope_violation", result.get("error_details"))
 
     def test_validation_failure_stays_on_minimal_stage_with_repair_context(self):
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -528,6 +567,32 @@ class AutomationHarnessTests(unittest.TestCase):
             self.assertEqual(result["next_stage"], "completed")
 
 
+class BriefCarriesOnlyItsProfileTests(unittest.TestCase):
+    """A business report's drafting brief ran to 29 KB, much of it guidance
+    for admissions essays, lab reports and academic methods sections."""
+
+    def _briefs(self, profile: str) -> dict[str, str]:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _prepare(tmpdir, profile)
+            tasks = run_dir_for(state) / "agent_tasks"
+            return {path.name: path.read_text(encoding="utf-8") for path in tasks.glob("*.md")}
+
+    def test_a_business_brief_holds_no_other_profiles_guidance(self):
+        briefs = self._briefs("business_report")
+        text = "\n".join(briefs.values())
+        for heading in ("Admissions-facing", "Engineering lab reports", "## Methods",
+                        "## Results Mode", "## Project Identity", "paper_spine", "lab_spine"):
+            self.assertNotIn(heading, text)
+        # The registration guide is written once, in the claim brief.
+        self.assertIn("Making a statistic citable", briefs["01_claim_plan.md"])
+        self.assertNotIn("register_derived_evidence(job_id=", briefs["03_section_draft.md"])
+
+    def test_a_lab_brief_keeps_the_lab_guidance(self):
+        draft = self._briefs("engineering_lab_report")["03_section_draft.md"]
+        self.assertIn("Engineering lab reports", draft)
+        self.assertNotIn("Admissions-facing", draft)
+
+
 class FailureRoutingTests(unittest.TestCase):
     """A stage should not hold an author who cannot fix anything from there.
 
@@ -609,6 +674,16 @@ class OptionalConnectorDecisionTests(unittest.TestCase):
         issues = self._issues({"notebook_sync": "skip"}, self._Cfg(notebook=True))
         self.assertEqual(len(issues), 1, issues)
         self.assertIn("declined by the user", issues[0])
+
+
+class RunDirectoryNameTests(unittest.TestCase):
+    def test_a_run_directory_name_has_no_spaces(self):
+        # Unquoted, "write a business report…--run_x" split into six arguments.
+        from report_workflow.state import build_run_dir_name
+
+        name = build_run_dir_name("write a business report: what changed", "run_1")
+        self.assertEqual(name, "write-a-business-report-what-changed--run_1")
+        self.assertNotIn(" ", build_run_dir_name("x", "run_2", {"title": "實驗四：RC 電路暫態響應"}))
 
 
 if __name__ == "__main__":

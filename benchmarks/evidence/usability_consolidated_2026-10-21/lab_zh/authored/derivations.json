@@ -1,0 +1,22 @@
+[
+ {
+  "id": "spring_k",
+  "op": "formula",
+  "source": "彈簧量測.csv",
+  "row_label": "砝碼質量_g",
+  "decimals": 2,
+  "label": "各負重下的拉力與彈簧常數",
+  "formulas": [
+   {
+    "label": "拉力 (N)",
+    "expr": "砝碼質量_g / 1000 * 9.8",
+    "unit": "N"
+   },
+   {
+    "label": "彈簧常數 k (N/m)",
+    "expr": "砝碼質量_g / 1000 * 9.8 / (平均伸長_cm / 100)",
+    "unit": "N/m"
+   }
+  ]
+ }
+]

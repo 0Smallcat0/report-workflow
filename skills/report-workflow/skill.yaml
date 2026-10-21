@@ -79,10 +79,11 @@ tools:
     description: >
       Start the report generation workflow. Parses source files, builds
       evidence ledger, generates blueprint and task briefs for the agent.
-      Requires check_environment first. The caller must ask the user about every
-      pending install and optional feature, then pass preflight_confirmed=true
-      and a complete preflight_decisions record. preflight_confirmed=true alone
-      is rejected. Required dependencies must actually pass preflight after
+      Requires check_environment first. The caller asks the user about any
+      required or critical install and about any optional feature they may want,
+      then passes preflight_confirmed=true and a preflight_decisions record;
+      optional installs and features left out of the record are skipped.
+      preflight_confirmed=true alone is rejected. Required dependencies must actually pass preflight after
       installation; a decision string does not override a still-missing
       dependency.
     parameters:
@@ -114,7 +115,7 @@ tools:
         description: >
           Report profile ID. Built-ins: engineering_lab_report,
           academic_paper, business_report, proposal, admissions_report,
-          admissions_project_report, and custom. Defaults to profile inference
+          admissions_project_report, custom, and quant_research_memo. Defaults to profile inference
           from the prompt, then academic_paper.
       - name: task_intent
         type: string
@@ -196,8 +197,9 @@ tools:
         type: boolean
         required: false
         description: >
-          Must be true only after the user has explicitly answered every
-          pending install and optional feature question returned by check_environment.
+          Must be true only after the user has answered every required or
+          critical install question returned by check_environment, and any
+          optional feature they chose to decide.
       - name: preflight_decisions
         type: object
         required: false
@@ -205,7 +207,10 @@ tools:
           Structured record of the user's preflight choices. Required shape:
           confirmed_by_user=true, install_decisions keyed by pending install,
           and feature_decisions keyed by feature_id. Use the
-          required_preflight_decisions value from check_environment as the template.
+          required_preflight_decisions value from check_environment as the template
+          (it lists only what needs an answer; optional items are under
+          optional_preflight_decisions); an optional install or feature left out
+          counts as skipped.
       - name: allow_degraded_render
         type: boolean
         required: false
@@ -290,7 +295,7 @@ tools:
       crossed, and the task brief lists the pairs that share one. Two further
       ops, "ratio" and "pp_diff", compare figures already computed, so an
       argument can state a multiple or a gap in percentage points and cite it.
-      Either read two rows of a table registered earlier - {"id":
+      Either read two rows of a table registered earlier, or of a table intake already built (name it by its evidence id, e.g. "source": "E_<source>_<hash>") - {"id":
       "premium_vs_budget", "op": "ratio", "source": "price_band_reliability",
       "column": "Listings", "numerator_group": "200-500",
       "denominator_group": "0-30", "decimals": 1} - or name two registered
@@ -324,7 +329,7 @@ tools:
       value is computed from the rows
       here rather than supplied by the caller, and "expect" is checked against
       it instead of trusted. A CSV source is itself a table a
-      [TABLE:<file stem>] marker can place. Returns the evidence_id to cite.
+      [TABLE:<file stem>] marker can place. A request that cannot be computed is not registered (a failed replacement keeps the previous version), so a typo never blocks publish; registering an id again moves it to its position in the new call. Returns the evidence_id to cite.
     parameters:
       - name: job_id
         type: string
@@ -412,9 +417,13 @@ tools:
 
   - name: remap_agent_artifacts
     description: >
-      Remap evidence IDs in claim_matrix.json, sentence_map.jsonl, and
-      section draft [CITE:] markers from a previous job to the current job.
-      Defaults to dry-run; set write=true to update files and refresh artifact contracts.
+      Bring an earlier job's authored files into the current job with the
+      current job's evidence IDs. Defaults to dry-run; write=true copies the
+      files this run does not have yet (in a controlled run, only the open
+      stage's - call it again when each later stage opens; files_deferred
+      names them), then rewrites evidence IDs and artifact contracts. The
+      earlier job is looked for under previous_workspace_root, which defaults
+      to workspace_root.
     parameters:
       - name: job_id
         type: string
@@ -428,6 +437,14 @@ tools:
         type: boolean
         required: false
         description: Apply remap changes when true; dry-run when false.
+      - name: workspace_root
+        type: string
+        required: false
+        description: The output_dir the current job was started with.
+      - name: previous_workspace_root
+        type: string
+        required: false
+        description: Where the earlier job lives, when it is not under workspace_root.
 
   # Revision workflow tools
   - name: submit_revision_plan

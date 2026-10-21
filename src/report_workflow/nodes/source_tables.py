@@ -405,9 +405,11 @@ def provenance_line(table: dict, language: str, pointer: str | None = None) -> s
 
 
 #: An author-written table label at the head of a caption — "表 1：", "表1.",
-#: "Table 2:" — which the renderer is about to write itself.
+#: "Table 2:" — which the renderer is about to write itself. Also with no
+#: punctuation at all, "表 2　基準情境…", which is how authoring.md's own
+#: example writes it, so following the documentation printed "表 1. 表 1 …".
 _LEADING_TABLE_LABEL_RE = re.compile(
-    r"^\s*(?:(?:表|图|圖)\s*\d+|Table\s+\d+)\s*[：:.、．]\s*",
+    r"^\s*(?:(?:表|图|圖)\s*\d+|Table\s+\d+)(?:\s*[：:.、．]\s*|\s+)",
     re.IGNORECASE,
 )
 
@@ -435,13 +437,19 @@ def render_source_table(
     title = _LEADING_TABLE_LABEL_RE.sub("", title).strip()
     heading = f"{label} {number}. {title}".strip() if title else f"{label} {number}."
 
-    header_row = "| " + " | ".join(_escape(cell) for cell in table["headers"]) + " |"
+    # A header is printed the way a caption writes it: 「年化報酬 (%) 平均」, not
+    # 「年化報酬_pct 平均」. Only the separators change; the words are the
+    # column's own.
+    from .figure_recommend import _reader_label
+
+    headers = [_reader_label(str(cell)) for cell in table["headers"]]
+    header_row = "| " + " | ".join(_escape(cell) for cell in headers) + " |"
     display = table.get("display_decimals") or []
     shown_rows = [
         [_shown(cell, display[index] if index < len(display) else None) for index, cell in enumerate(row)]
         for row in table["rows"]
     ]
-    separator = "|" + "|".join(f" {'-' * width} " for width in _column_dashes(table["headers"], shown_rows)) + "|"
+    separator = "|" + "|".join(f" {'-' * width} " for width in _column_dashes(headers, shown_rows)) + "|"
     body = "\n".join(
         "| " + " | ".join(_escape(cell) for cell in row) + " |" for row in shown_rows
     )

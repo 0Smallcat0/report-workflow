@@ -1,0 +1,9 @@
+{
+  "prompt": "根據回測結果與研究筆記，寫一份繁體中文量化研究備忘錄：低波動因子在台股大型股是否有效、樣本外是否成立。",
+  "source_files": [
+    {"path": "低波動回測.csv", "role": "source_data"},
+    {"path": "研究筆記.md", "role": "source_data"}
+  ],
+  "report_profile": "quant_research_memo",
+  "title": "台股大型股低波動因子回測備忘錄"
+}

@@ -78,7 +78,9 @@ def _pick(rows: list[dict[str, Any]], *terms: str) -> str:
 
 def _claims(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     measurement = _pick(rows, "Structured workflow", "20.0")
+    baseline = _pick(rows, "Manual baseline", "28.0")
     trend = _pick(rows, "28.4")
+    trend_end = _pick(rows, "2026-06", "20.0")
     method = _pick(rows, "42 client notes", "processed twice")
     cost = _pick(rows, "4,800")
     limit = _pick(rows, "supports the finding rather")
@@ -86,14 +88,14 @@ def _claims(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         {
             "claim_id": "c_measurement",
             "claim_text": (
-                "Across the same 42 notes the structured workflow cut the median from "
+                "On the same 42 notes the structured workflow cut the median from "
                 "28.0 to 20.0 minutes per note, rework from 7.5% to 4.1%, and raised "
                 "reviewer satisfaction from 71% to 84%."
             ),
             "claim_type": "statistical",
             "claim_role": "primary",
             "status": "supported",
-            "evidence_ids": [measurement],
+            "evidence_ids": [baseline, measurement],
             "topic_tags": ["pilot outcome"],
         },
         {
@@ -105,7 +107,7 @@ def _claims(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "claim_type": "statistical",
             "claim_role": "supporting",
             "status": "supported",
-            "evidence_ids": [trend],
+            "evidence_ids": [trend, trend_end],
             "topic_tags": ["rollout"],
         },
         {
@@ -144,6 +146,18 @@ def _claims(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
             "evidence_ids": [limit],
             "topic_tags": ["limitation"],
         },
+        {
+            "claim_id": "c_scope",
+            "claim_text": (
+                "One desk, one week, two reviewers, 42 notes: nothing here establishes "
+                "what happens at a desk with a different note format."
+            ),
+            "claim_type": "factual",
+            "claim_role": "background",
+            "status": "supported",
+            "evidence_ids": [limit],
+            "topic_tags": ["limitation"],
+        },
     ]
 
 
@@ -163,7 +177,7 @@ def _sentence(text: str, claim_ids: list[str], claims: list[dict[str, Any]]) -> 
 # says so in the authoring brief it writes for the business_report profile.
 PROSE: dict[str, tuple[str, list[str]]] = {
     "executive_summary": (
-        "The structured workflow is worth adopting at the intake desk. Across the "
+        "The structured workflow is worth adopting at the intake desk. On the "
         "same 42 notes the structured workflow cut the median from 28.0 to 20.0 "
         "minutes per note, rework from 7.5% to 4.1%, and raised reviewer "
         "satisfaction from 71% to 84%. Adoption costs a one-off USD 4,800 for "
@@ -175,13 +189,22 @@ PROSE: dict[str, tuple[str, list[str]]] = {
     "findings": (
         "The comparison was designed so that the workflow was the only thing that "
         "differed. The same 42 client notes were processed twice, by the same two "
-        "reviewers in the same week, with no change to the intake form. Across the "
+        "reviewers in the same week, with no change to the intake form. On the "
         "same 42 notes the structured workflow cut the median from 28.0 to 20.0 "
         "minutes per note, rework from 7.5% to 4.1%, and raised reviewer "
         "satisfaction from 71% to 84%. The time saving and the rework drop point "
         "the same way, which is what makes the result usable for a scheduling "
         "decision rather than merely encouraging.",
         ["c_method", "c_measurement"],
+    ),
+    # The business_report blueprint asks what would weaken the finding, with at
+    # least two claims of its own.
+    "limitations": (
+        "Two things limit how far this travels. One desk, one week, two reviewers, "
+        "42 notes: nothing here establishes what happens at a desk with a different "
+        "note format. Satisfaction came from the two reviewers who ran the pilot, so "
+        "it supports the finding rather than carrying it.",
+        ["c_scope", "c_limit"],
     ),
     "recommendations": (
         "Adopt the structured workflow at this desk and budget for the ramp. "

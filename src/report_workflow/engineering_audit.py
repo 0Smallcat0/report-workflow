@@ -131,8 +131,14 @@ class TableSnapshot:
         }
 
 
+#: 7x24 and 7×24 are the same two figures. With a Latin x neither number was
+#: read (the x is a word character on both sides), so a claim written 7×24
+#: against a source written 7x24 reported its 7 and 24 as unsupported.
+_LATIN_PRODUCT_RE = re.compile(r"\b(\d+)\s*[xX*]\s*(\d+)\b")
+
+
 def _normalize_text(text: str) -> str:
-    return unicodedata.normalize("NFKC", text or "")
+    return _LATIN_PRODUCT_RE.sub(r"\1×\2", unicodedata.normalize("NFKC", text or ""))
 
 
 def _normalize_unit(unit: str) -> tuple[str, str]:

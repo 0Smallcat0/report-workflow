@@ -82,5 +82,41 @@ class StructuredDraftParagraphTests(unittest.TestCase):
         )
 
 
+class FrontMatterSectionsAreNotAskedForTests(unittest.TestCase):
+    """The brief lists the keys to write without cover; a lab report written to
+    that list was refused for a missing `cover`, by SECTION_DRAFT and by lint."""
+
+    def _state(self) -> ReportState:
+        state = _state()
+        state.plan["blueprint"] = {
+            "section_order": ["cover", "results"],
+            "sections": {
+                "cover": {"required": True, "section_type": "front_matter"},
+                "results": {"required": True},
+            },
+        }
+        state.plan["outline"]["sections"]["cover"] = {"section_id": "cover", "claim_ids": []}
+        return state
+
+    def test_a_draft_without_the_cover_compiles(self):
+        state = self._state()
+        _write(state, {"paragraphs": [{"sentences": [
+            {"text": "電動車出廠時多排 3.6 t。", "claim_ids": ["c1"], "evidence_ids": ["E001"]},
+            {"text": "約行駛 44,200 公里後追平。", "claim_ids": ["c2"], "evidence_ids": ["E002"]},
+        ]}]})
+        result = run_section_draft(state)
+        self.assertIn("results", result.drafts["section_drafts"])
+
+    def test_lint_does_not_ask_for_it_either(self):
+        state = self._state()
+        path = _write(state, {"paragraphs": [{"sentences": [
+            {"text": "電動車出廠時多排 3.6 t。", "claim_ids": ["c1"], "evidence_ids": ["E001"]},
+        ]}]})
+        issues: list = []
+        _lint_structured_drafts(state, path.parent, issues, {"c1", "c2"}, {"E001", "E002"}, {"cover", "results"})
+        self.assertFalse([issue for issue in issues if "Missing planned section" in issue.message], issues)
+
+
+
 if __name__ == "__main__":
     unittest.main()

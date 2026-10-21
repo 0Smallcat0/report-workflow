@@ -14,6 +14,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable, Any
 
+from .artifact_contract import CONTRACT_KEY
 from .state import ReportState, run_dir_for
 
 
@@ -153,6 +154,30 @@ def _matches(rel_path: str, patterns: list[str]) -> bool:
 
 
 def _hash_file(path: Path) -> str:
+    """Hash what the author wrote, not the pipeline's stamp on it.
+
+    Validation re-stamps an accepted artifact's `_contract` whenever the ledger
+    grows, and publish grows it. Hashing the stamp too made that rewrite look
+    like the author editing a file after its stage had passed: a failed publish
+    routed back to drafts and every later submit was refused as a scope
+    violation, with advice — put the file back — that the next publish undid.
+    """
+    if path.suffix in {".json", ".jsonl"}:
+        try:
+            text = path.read_text(encoding="utf-8")
+            if path.suffix == ".json":
+                payload = json.loads(text)
+                if isinstance(payload, dict):
+                    payload.pop(CONTRACT_KEY, None)
+                rows = [payload]
+            else:
+                rows = [json.loads(line) for line in text.splitlines() if line.strip()]
+                if rows and isinstance(rows[0], dict) and set(rows[0]) == {CONTRACT_KEY}:
+                    rows = rows[1:]
+            canonical = json.dumps(rows, ensure_ascii=False, sort_keys=True)
+            return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        except (OSError, UnicodeDecodeError, json.JSONDecodeError):
+            pass
     digest = hashlib.sha256()
     with open(path, "rb") as f:
         for chunk in iter(lambda: f.read(1024 * 1024), b""):
@@ -349,7 +374,7 @@ def _stage_response(manifest: dict[str, Any], run_dir: Path, stage: str) -> dict
         "stage": stage,
         "task_brief_path": entry.get("task_brief_path", ""),
         "allowed_write_paths": [
-            str(run_dir / rel_path) for rel_path in entry.get("allowed_write_paths", [])
+            str(run_dir / rel_path) for rel_path in _stage_write_paths(entry)
         ],
         "read_first_paths": entry.get("read_first_paths", []),
         "validation_tool": entry.get("validation_tool", ""),
@@ -380,7 +405,7 @@ def _scope_violations(manifest: dict[str, Any], run_dir: Path, stage: str) -> li
     observed = manifest.get("observed_hashes", {})
     current = _snapshot_author_owned(run_dir)
     changed = _changed_paths(observed, current)
-    allowed = manifest["stages"][stage].get("allowed_write_paths", [])
+    allowed = _stage_write_paths(manifest["stages"][stage])
     violations: list[dict[str, str]] = []
     for rel_path in changed:
         if not _matches(rel_path, allowed):
@@ -494,6 +519,11 @@ def _stage_from_artifact_text(text: str, order: list[str]) -> str | None:
         ("sentence_map", "drafts"),
         ("figure_plan", "drafts"),
         ("revision_plan", "revision_plan"),
+        # The abstract is a section draft and the thesis an outline field;
+        # without these a publish failure in either was routed nowhere
+        # ("blocked_non_author_repair", no write paths).
+        ("abstract", "drafts"),
+        ("thesis", "outline"),
         ("factuality", "claim_matrix"),
         ("citation", "drafts"),
         ("figure", "drafts"),
@@ -578,6 +608,79 @@ def _route_failure_stage(stage: str, result: dict[str, Any], run_dir: Path, orde
     return _stage_from_artifact_text(text, order)
 
 
+def _stage_write_paths(entry: dict[str, Any]) -> list[str]:
+    """What a stage may change: its own artifacts, plus a repair scope if it was rewound to."""
+    paths = list(entry.get("allowed_write_paths", []))
+    for path in entry.get("repair_write_paths", []) or []:
+        if path not in paths:
+            paths.append(path)
+    return paths
+
+
+def _open_repair_scope(manifest: dict[str, Any], run_dir: Path, routed_stage: str, failed_stage: str) -> None:
+    """Let a rewound run repair every artifact between the two stages.
+
+    A failure found late is routed back to the earliest stage that owns part of
+    the fix, and every stage from there on is re-validated in order. Two things
+    went wrong with that. The work already written for the later stages was
+    still measured against the hashes recorded before it existed, so drafts
+    the author had written and nobody asked them to touch came back as a
+    `scope_violation` the moment they submitted the claim matrix, with the
+    instruction to delete them. And the write scope was the earlier stage's
+    alone: a publish failure naming `claim_matrix.json` *and* a sentence's
+    wording was routed to `claim_matrix`, the message said to fix both, and
+    fixing the second was refused.
+
+    The rewound stages still validate every artifact when they are reached, so
+    accepting the on-disk work as the new baseline and letting it be edited
+    from the first rewound stage loses no check.
+    """
+    order = manifest["stage_order"]
+    authoring = [name for name in order if STAGE_DEFS[name]["allowed_write_paths"]]
+    start = order.index(routed_stage)
+    end = order.index(failed_stage)
+    if failed_stage not in authoring:
+        end = max(order.index(name) for name in authoring)
+    span = [name for name in order[start:end + 1] if name in authoring]
+    for index, name in enumerate(span):
+        scope: list[str] = []
+        for later in span[index:]:
+            for path in STAGE_DEFS[later]["allowed_write_paths"]:
+                if path not in scope:
+                    scope.append(path)
+        manifest["stages"][name]["repair_write_paths"] = scope
+    manifest["observed_hashes"] = _snapshot_author_owned(run_dir)
+
+
+def _reopenable_owner(manifest: dict[str, Any], stage: str, rel_paths: list[str]) -> str | None:
+    """The stage to re-open when every changed path belongs to a stage before this one.
+
+    A file owned by a later stage, written early, is still refused: the stage
+    that validates it has not been reached.
+    """
+    if not rel_paths:
+        return None
+    order = manifest["stage_order"]
+    current = order.index(stage)
+    owners = []
+    for rel_path in rel_paths:
+        owner = _earliest_owner(manifest, [rel_path])
+        if owner is None or order.index(owner) >= current:
+            return None
+        owners.append(order.index(owner))
+    return order[min(owners)]
+
+
+def _earliest_owner(manifest: dict[str, Any], rel_paths: list[str]) -> str | None:
+    """The first stage in this run whose own write scope covers any of the paths."""
+    owners = [
+        name
+        for name in manifest["stage_order"]
+        if any(_matches(path, STAGE_DEFS[name]["allowed_write_paths"]) for path in rel_paths)
+    ]
+    return owners[0] if owners else None
+
+
 def _invalidate_from(manifest: dict[str, Any], target_stage: str, error: dict[str, Any]) -> None:
     order = manifest["stage_order"]
     start = order.index(target_stage)
@@ -585,6 +688,7 @@ def _invalidate_from(manifest: dict[str, Any], target_stage: str, error: dict[st
         entry = manifest["stages"][stage]
         entry["status"] = "pending"
         entry["passed_hashes"] = {}
+        entry.pop("repair_write_paths", None)
         if stage != target_stage:
             entry["last_error"] = None
             entry["evidence_paths"] = []
@@ -605,12 +709,15 @@ def _scope_violation_message(stage: str, violations: list[dict[str, str]]) -> st
     clearing out "everything I wrote" takes that with it and keeps the stage
     blocked on a file the author never meant to touch.
     """
-    named = ", ".join(
+    # One path can be reported twice — changed outside this stage's scope and
+    # changed after its own stage passed — and was named twice.
+    paths = list(dict.fromkeys(
         violation.get("relative_path") or violation.get("path", "")
-        for violation in violations[:5]
-    )
-    if len(violations) > 5:
-        named += f", and {len(violations) - 5} more"
+        for violation in violations
+    ))
+    named = ", ".join(paths[:5])
+    if len(paths) > 5:
+        named += f", and {len(paths) - 5} more"
     return (
         "Author-owned artifacts changed outside the current stage write scope: "
         f"{named}. "
@@ -647,7 +754,7 @@ def _record_scope_violation(
         "error_details": entry["last_error"]["message"],
         "allowed_repair_paths": [
             str(run_dir / rel_path)
-            for rel_path in entry.get("allowed_write_paths", [])
+            for rel_path in _stage_write_paths(entry)
         ],
         "evidence_paths": [str(manifest_path_for(run_dir))],
     }
@@ -663,6 +770,7 @@ def _record_pass(
     entry = manifest["stages"][stage]
     entry["status"] = "passed"
     entry["last_error"] = None
+    entry.pop("repair_write_paths", None)
     entry["evidence_paths"] = _extract_evidence_paths(result, run_dir)
     entry["passed_hashes"] = {
         rel_path: digest
@@ -730,6 +838,8 @@ def _record_failure(
         }
 
     _invalidate_from(manifest, routed_stage, error)
+    if routed_stage != stage:
+        _open_repair_scope(manifest, run_dir, routed_stage, stage)
     _save_manifest(manifest_path_for(run_dir), manifest)
 
     target = manifest["stages"][routed_stage]
@@ -742,7 +852,7 @@ def _record_failure(
         "error_details": error.get("error_details") or error.get("message", ""),
         "allowed_repair_paths": [
             str(run_dir / rel_path)
-            for rel_path in target.get("allowed_write_paths", [])
+            for rel_path in _stage_write_paths(target)
         ],
         "repair_context": target.get("last_error"),
         "validation_result": result,
@@ -774,6 +884,27 @@ def run_controlled_stage(
         }
 
     violations = _scope_violations(manifest, run_dir, stage)
+    note = ""
+    owner = _reopenable_owner(manifest, stage, [v["relative_path"] for v in violations])
+    if owner:
+        # The author changed an artifact a stage before this one already
+        # accepted — almost always because lint_artifacts or publish_report
+        # named it and they fixed it. Refusing that and asking them to restore
+        # the old content was the wrong answer at every stage, not only at
+        # publish: the accepted file is the one CLAIM_PLAN rewrote, so the
+        # author has no copy to restore. Re-open the run at the stage that
+        # owns the change and validate from there; every later stage is
+        # validated again when it is reached, so no check is skipped.
+        changed = sorted({v["relative_path"] for v in violations})
+        note = (
+            f"{', '.join(changed)} changed after the {owner} stage passed, so the run "
+            f"went back to {owner} and validated it again; submit again to re-validate "
+            "each later stage. Work already written for them is kept."
+        )
+        _invalidate_from(manifest, owner, {"message": note})
+        _open_repair_scope(manifest, run_dir, owner, stage)
+        stage = owner
+        violations = []
     if violations:
         return _record_scope_violation(manifest, run_dir, stage, violations)
 
@@ -784,5 +915,9 @@ def run_controlled_stage(
 
     result = validators[stage](job_id, workspace_root)
     if _result_passed(stage, result):
-        return _record_pass(manifest, run_dir, stage, result)
-    return _record_failure(manifest, run_dir, stage, result)
+        response = _record_pass(manifest, run_dir, stage, result)
+    else:
+        response = _record_failure(manifest, run_dir, stage, result)
+    if note:
+        response["note"] = note
+    return response

@@ -12,6 +12,7 @@ from ..runtime_support import load_jsonl, run_dir_for
 from ..artifact_contract import make_artifact_contract
 from .corpus_build import _distinguishing_seed
 from .figure_types import SUPPORTED_FIGURE_TYPES_TEXT
+from .blueprint_plan import results_section_id
 
 
 def agent_tasks_dir(state: ReportState) -> Path:
@@ -538,7 +539,8 @@ def _claim_role_rule(report_profile: str) -> str:
     )
 
 
-_RESULTS_MODE_PATH = "`outline.json` -> `sections.results.results_mode`"
+def _results_mode_path(results_section: str = "results") -> str:
+    return f"`outline.json` -> `sections.{results_section}.results_mode`"
 
 
 _ABSTRACT_STRUCTURED = """```markdown
@@ -609,7 +611,12 @@ def _abstract_section(report_profile: str, blueprint: dict, document_language: s
     return (
         f"## Abstract ({budget})\n\n"
         f"{shape}\n\n"
-        f"**Length: {budget}**, counted after removing `[CITE:]` markers.\n"
+        f"**Length: {budget}**, counted after removing `[CITE:]` markers"
+        + (
+            " (each Chinese character and each Latin word counts as one; "
+            "punctuation and spaces are not counted, so aim above the minimum).\n"
+            if document_language == "zh" else ".\n"
+        ) +
         "**No trailing ellipses (`.....`), no incomplete sentences.**\n"
         "**No `[CITE:]`, `[Source:]`, or `[graphify:]` markers in the abstract.**\n"
         "The abstract still needs `claim_ids` in `outline.json`: it declares which "
@@ -640,12 +647,56 @@ def outline_brief_section_ids(blueprint: dict) -> list[str]:
     return sorted(required, key=lambda sid: order.index(sid) if sid in order else len(order))
 
 
-def outline_brief_sections_block(blueprint: dict) -> str:
-    """The `sections` block of the brief's Required Output, one entry per section."""
+def _structured_drafts_block(blueprint: dict, run_dir: Path, contract_json: str) -> str:
+    """The structured-drafts path, shown first in the drafts brief.
+
+    SKILL.md calls structured_drafts.json the preferred new-draft input and the
+    drafts stage may write it, but this brief documented only hand-written
+    Markdown and a hand-built sentence_map.jsonl, so an author who followed
+    the file get_next_action points to took the longer path.
+    """
+    section_ids = [
+        sid for sid in outline_brief_section_ids(blueprint)
+        if sid not in {"cover", "references", "appendix"}
+    ] or ["results"]
+    first = section_ids[0]
+    return f"""### Recommended: `{run_dir / "structured_drafts.json"}`
+
+Write the sentences once, with the claims and evidence each one states; the
+pipeline writes `section_drafts/*.md`, the `[CITE:]` markers and
+`sentence_map.jsonl` from it.
+
+```json
+{{"_contract": {contract_json},
+ "sections": {{
+  "{first}": {{"paragraphs": [
+    {{"sentences": [
+      {{"text": "A sentence stating a figure from the evidence.", "claim_ids": ["c1"],
+       "evidence_ids": ["evidence id from evidence_ledger.jsonl"], "wording_strength": "hedged"}},
+      {{"text": "A connecting sentence that states no evidence needs no ids."}}
+    ]}},
+    {{"sentences": [{{"text": "[TABLE:<evidence id> caption]"}}]}}
+  ]}}
+ }}}}
+```
+
+Keys under `sections` are this run's section ids: {", ".join(f"`{sid}`" for sid in section_ids)},
+plus any optional section your outline includes. A `[TABLE:]` or `[FIGURE:]`
+marker is a paragraph of its own. Do not also write `sentence_map.jsonl` or
+the section Markdown by hand."""
+
+
+def outline_brief_sections_block(blueprint: dict, report_profile: str | None = None) -> str:
+    """The `sections` block of the brief's Required Output, one entry per section.
+
+    `results_mode` is shown only where it is read: a quant memo's brief showed
+    it in the shape and said "leave it out" a page later.
+    """
+    reads_results_mode = report_profile is None or get_policy(report_profile).results.empirical_strict
     parts = []
     for sid in outline_brief_section_ids(blueprint):
         extra = ""
-        if sid == "results":
+        if reads_results_mode and sid == results_section_id(blueprint):
             extra = '\n      "results_mode": "empirical" | "architectural_characterization",'
         parts.append(
             '    "' + sid + '": {\n'
@@ -659,7 +710,7 @@ def outline_brief_sections_block(blueprint: dict) -> str:
     return ",\n".join(parts)
 
 
-def _results_mode_section(report_profile: str) -> str:
+def _results_mode_section(report_profile: str, results_section: str = "results") -> str:
     """Describe results_mode where the workflow actually reads it.
 
     The brief said "include it in outline.json at the top level" and showed it
@@ -673,11 +724,11 @@ def _results_mode_section(report_profile: str) -> str:
         return (
             "## results_mode\n\n"
             f"Not used by `{report_profile}`. If you set it anyway, it belongs in "
-            f"{_RESULTS_MODE_PATH}."
+            f"{_results_mode_path(results_section)}."
         )
     return (
         f"## results_mode Selection (required for `{report_profile}`)\n\n"
-        f"**Choose ONE and set it at {_RESULTS_MODE_PATH}.** That is where the "
+        f"**Choose ONE and set it at {_results_mode_path(results_section)}.** That is where the "
         "workflow reads it; a `results_mode` at the top level of outline.json is "
         "read by nothing and the run falls back to the blueprint default.\n\n"
         "- `empirical`: Select when your evidence contains measured/quantitative data "
@@ -693,11 +744,11 @@ def _results_mode_section(report_profile: str) -> str:
     )
 
 
-def _results_mode_rule(report_profile: str) -> str:
+def _results_mode_rule(report_profile: str, results_section: str = "results") -> str:
     if not get_policy(report_profile).results.empirical_strict:
         return f"- `results_mode` is not read for `{report_profile}`; leave it out."
     return (
-        f"- Set `results_mode` at {_RESULTS_MODE_PATH}, not at the top level of the file."
+        f"- Set `results_mode` at {_results_mode_path(results_section)}, not at the top level of the file."
     )
 
 
@@ -795,7 +846,9 @@ def _derived_stats_guidance(evidence_path: str) -> str:
         "`[TABLE:]` marker in the paragraph that discusses it - you do not",
         "retype it, and its numbers are checked by construction. Work through",
         "this list before registering anything: a table you were about to build",
-        "cell by cell may already be here.",
+        "cell by cell may already be here. A `ratio`, `pp_diff` or `formula`",
+        "reads their cells by naming the table's evidence id as its `source`",
+        "(or `{\"table\": id}` input), so a comparison needs no copy of the table.",
         "",
     ]
     parts.extend(rendered(unit) for unit in auto_tables)
@@ -1160,6 +1213,49 @@ def _joinable_sources_note(state) -> str:
     return "\n".join(lines)
 
 
+_PROFILE_DRAFT_GUIDANCE = {
+    "admissions_report": """## Admissions-facing academic reports
+
+- Option B plain-paragraph abstract by default
+- project-monograph tone rather than journal-template tone
+- research narrative that foregrounds contribution, design choices, and research potential
+- the project's own technical spine first; supporting components as supporting, not co-equal
+
+""",
+    "engineering_lab_report": """## Engineering lab reports
+
+Preserve the lab handout contract:
+- cover experiment purpose, theory, apparatus, procedure, results, discussion,
+  conclusion/reflection, and references
+- keep formulas, variables, parameters, units, and calculation assumptions traceable
+- answer required discussion questions from the source handout
+- reference figures and tables near the relevant result text
+- avoid workflow, agent, or tool jargon in the report body
+
+""",
+}
+_PROFILE_DRAFT_GUIDANCE["admissions_project_report"] = _PROFILE_DRAFT_GUIDANCE["admissions_report"]
+
+_METHODS_GUIDANCE = """## Methods
+
+The methods section describes **procedure** (what was done), not findings, in
+the past tense: the data or source basis, the procedure, analysis parameters or
+instrument settings, and any exclusion, transformation, calibration or filter
+that affects the results. "Centrality was computed with NetworkX", not "NetworkX
+computed centrality demonstrating a hub-like structure".
+
+"""
+
+_RESULTS_MODE_GUIDANCE = """## Results Mode
+
+With `results_mode` `empirical`, present measured data, statistics and
+comparisons with numbers. With `architectural_characterization`, describe
+structure, module relationships and dependencies, and make no empirical
+performance claim the evidence does not carry.
+
+"""
+
+
 def write_agent_task_briefs(state: ReportState) -> ReportState:
     """Write all task briefs required for the external agent authoring phase.
 
@@ -1177,8 +1273,9 @@ def write_agent_task_briefs(state: ReportState) -> ReportState:
     reader_rubric = _reader_rubric_section(state.spec.get("report_profile", ""))
     structure_guidance = _structure_guidance(state.spec.get("report_profile", ""))
     claim_role_rule = _claim_role_rule(state.spec.get("report_profile", ""))
-    results_mode_section = _results_mode_section(state.spec.get("report_profile", ""))
-    results_mode_rule = _results_mode_rule(state.spec.get("report_profile", ""))
+    results_section = results_section_id(state.plan.get("blueprint") or {})
+    results_mode_section = _results_mode_section(state.spec.get("report_profile", ""), results_section)
+    results_mode_rule = _results_mode_rule(state.spec.get("report_profile", ""), results_section)
     derived_stats_guidance = _derived_stats_guidance(evidence_path)
     outline_obligations = _outline_obligations(state, evidence_path)
     # The counter-evidence section is filled from the claim matrix, and the
@@ -1232,12 +1329,34 @@ Do not mix English boilerplate sentences into the Chinese body text.
 
 """
 
+    # A brief carries what this profile's author needs and nothing else. Every
+    # brief used to carry the admissions, lab, academic-methods, results-mode,
+    # facts-freeze and project-identity guidance for every profile — a business
+    # report's drafting brief ran to 29 KB, much of it about other documents.
+    report_profile = state.spec.get("report_profile", "")
+    blueprint_section_ids = list(((state.plan.get("blueprint") or {}).get("sections") or {}).keys())
+    profile_guidance = _PROFILE_DRAFT_GUIDANCE.get(report_profile, "")
+    methods_guidance = (
+        _METHODS_GUIDANCE if any("method" in sid for sid in blueprint_section_ids) else ""
+    )
+    if get_policy(report_profile).results.empirical_strict:
+        methods_guidance += _RESULTS_MODE_GUIDANCE
+    project_identity_guidance = ""
+
     if (
         task_intent == "new_draft"
         and state.spec.get("report_profile") == "academic_paper"
         and not state.spec.get("project_identity")
     ):
         candidate_path = run_dir / "project_identity_candidate.json"
+        project_identity_guidance = f"""
+## Project Identity
+
+`{candidate_path}` is read-only drafting context that keeps the thesis from
+drifting into a topic-adjacent report. Do not write `project_identity.json`
+during controlled authoring; pass an explicit `project_identity` to
+`start_report` when a fixed identity contract is required.
+"""
         if not candidate_path.exists():
             candidate_path.write_text(
                 json.dumps({
@@ -1286,7 +1405,8 @@ Write `{run_dir / "claim_matrix.json"}` with this shape:
 ## Artifact Contract
 Keep `_contract` exactly aligned with this run. If you reuse artifacts from an older job,
 run `remap_agent_artifacts(job_id="{state.job_id}", previous_job_id="<old>", write=true)`
-instead of manually copying evidence IDs.
+instead of copying files or evidence IDs by hand: it copies the files this stage accepts
+from the old run, rewrites their ids, and names the files that wait for a later stage.
 
 Do not edit `merged_draft.md`, checkpoint files, or `base_document_sections.json`.
 For `new_draft`, the editable artifacts are `claim_matrix.json`, `outline.json`,
@@ -1330,8 +1450,31 @@ the ledger and never appear in this window.)
 ```
 """
 
-    outline_sections_block = outline_brief_sections_block(state.plan.get("blueprint") or {})
+    outline_sections_block = outline_brief_sections_block(
+        state.plan.get("blueprint") or {}, state.spec.get("report_profile", "")
+    )
 
+    thesis_rule = (
+        "\n- This profile needs a thesis: set `sections.introduction.thesis_statement` "
+        "(one sentence the paper argues)."
+        if get_policy(state.spec.get("report_profile", "")).claim.thesis_required
+        else ""
+    )
+    front_matter_given = (state.spec.get("front_matter") or {}) if isinstance(state.spec.get("front_matter"), dict) else {}
+    front_matter_missing = [
+        field for field in ("title", "author_block", "affiliation_block", "correspondence", "keywords")
+        if not front_matter_given.get(field) or not str(front_matter_given.get(field)).strip()
+    ]
+    front_matter_rule = (
+        "\n- This profile will not render without "
+        + ", ".join(f"`{field}`" for field in front_matter_missing)
+        + ', which start_report was not given: add them as `"front_matter": {...}` at the top '
+        "level of outline.json, with values the user gives you."
+        if front_matter_missing
+        and get_policy(state.spec.get("report_profile", "")).front_matter.required
+        and state.spec.get("task_intent") != "revise_existing"
+        else ""
+    )
     outline_task = f"""# 02 Outline Plan
 
 ## Inputs
@@ -1345,21 +1488,6 @@ Write `{run_dir / "outline.json"}` with this shape:
 ```json
 {{
   "_contract": {contract_json},
-  "paper_spine": {{
-    "problem": "For academic_paper: the concrete problem or phenomenon.",
-    "gap": "What prior work, current practice, or the source material leaves unresolved.",
-    "objective": "The specific aim of this paper.",
-    "contribution": "The main contribution the report can support with evidence.",
-    "method_basis": "The reproducible method or analysis basis.",
-    "main_limitation": "The main limitation that should temper the claim."
-  }},
-  "lab_spine": {{
-    "experiment_purpose": "For engineering_lab_report: what the experiment is meant to determine.",
-    "variables": "Independent/dependent/control variables and units.",
-    "apparatus_procedure_basis": "Which apparatus and procedure support the measurements.",
-    "measurement_basis": "Where measured/calculated values come from.",
-    "uncertainty_limitations": "Known uncertainty, assumptions, or measurement limits."
-  }},
   "sections": {{
 {outline_sections_block}
   }}
@@ -1391,13 +1519,14 @@ Use this deterministic chart-selection guidance when deciding `figure_ids` and f
 - Assign every claim to at least one non-reference/non-appendix section.
 - Use only section IDs defined by the blueprint.
 - Use only claim IDs from `claim_matrix.json`.
-{results_mode_rule}
-- If `report_profile=academic_paper`, fill `paper_spine`; do not leave it as template text.
-- If `report_profile=engineering_lab_report`, fill `lab_spine`; do not leave it as template text.
+{results_mode_rule}{thesis_rule}{front_matter_rule}
 - The outline should create a real argument path: problem/gap/objective before methods, results before interpretation, and limitations before conclusion.
 - Account for every built table listed above: place it, or waive it by name with a reason.
 """
 
+    structured_drafts_block = _structured_drafts_block(
+        state.plan.get("blueprint") or {}, run_dir, contract_json
+    )
     section_task = f"""# 03 Section Draft
 
 ## Inputs
@@ -1408,6 +1537,11 @@ Use this deterministic chart-selection guidance when deciding `figure_ids` and f
 - Figure recommendations: `{figure_recommendations_path}`
 
 ## Required Outputs
+
+{structured_drafts_block}
+
+### Or: Markdown section files plus a sentence map
+
 - Markdown section files under `{run_dir / "section_drafts"}`
 - Sentence map: `{run_dir / "sentence_map.jsonl"}`
 
@@ -1460,26 +1594,7 @@ in `outline.json` — they hold front matter, sources, and raw material, not
 assertions. A required `cover` section is still required in `outline.json`; it
 just carries an empty `claim_ids` list.
 
-## Admissions-facing academic reports
-
-If `report_profile=admissions_report` or `admissions_project_report`, prefer:
-- Option B plain-paragraph abstract by default
-- project-monograph tone rather than journal-template tone
-- research narrative that foregrounds contribution, design choices, and research potential
-- deterministic compilation / StrategyIR / AST / orthogonal quality gates as the spine
-- LLM components as constrained supporting modules, not co-equal contributions
-
-## Engineering lab reports
-
-If `report_profile=engineering_lab_report`, preserve the lab handout contract:
-- cover experiment purpose, theory, apparatus, procedure, results, discussion,
-  conclusion/reflection, and references
-- keep formulas, variables, parameters, units, and calculation assumptions traceable
-- answer required discussion questions from the source handout
-- reference figures and tables near the relevant result text
-- avoid workflow, agent, or tool jargon in the report body
-
-{language_guidance}{reader_rubric}{structure_guidance}{derived_stats_guidance}## Prose Quality (applies to every profile)
+{profile_guidance}{language_guidance}{reader_rubric}{structure_guidance}{derived_stats_guidance}## Prose Quality (applies to every profile)
 
 The gates check grounding; they do not fix machine-sounding prose. These rules
 keep the rendered document reading like it was written by a person:
@@ -1520,55 +1635,15 @@ query_evidence(job_id="<job_id>", offset=20, limit=20)  # page 2
 
 ## Statistics Over The Rows
 
-A ledger of one row per record cannot answer the questions a report is
-written to answer — how many rows there are, what the median is, how the
-categories split by price band, how concentrated the top names are. Every
-grouped table listed under **Derived Statistics** above is already computed
-and already citable; place it with its `[TABLE:]` marker and discuss the cells
-that carry the argument.
-
-{register_derived_evidence_guide}
+Every grouped table listed under **Derived Statistics** above is already
+computed and citable; place it with its `[TABLE:]` marker and discuss the cells
+that carry the argument. To make another statistic citable, call
+`register_derived_evidence` — the full request format is in
+`{tasks_dir / "01_claim_plan.md"}` under "Making a statistic citable".
 
 {joinable_sources}
 
-## Facts Freeze (Optional)
-
-If a `facts_freeze.json` file exists in the run directory, its key-value pairs
-are treated as **confirmed facts**. The pipeline will hard-block if any frozen
-fact value is NOT found in the final document.
-
-Example `facts_freeze.json`:
-```json
-{{
-  "total_files": "388",
-  "graph_nodes": "5,171",
-  "top_hub": "Context (226 edges)"
-}}
-```
-
-## Academic-Style Methods Protocol Guidance
-
-Methods section describes **procedure** (what was done), NOT findings. Use past tense.
-Strong scholarly methods prose should identify the data/source basis, procedure,
-analysis parameters or software/instrument settings when applicable, and any
-exclusions, transformations, calibration, or filtering that affects results.
-
-**GOOD (protocol style):**
-- "We parsed the source code using an AST builder to extract function definitions..."
-- "Centrality metrics were computed using NetworkX..."
-- "Communities were detected via the Louvain algorithm..."
-
-**BAD (results style):**
-- "The parser extracted 226 edges from 30 source files showing a modular structure..."
-- "NetworkX computed centrality metrics demonstrating the hub-like nature of..."
-
-## Academic-Style Results Mode
-
-If `results_mode` in `outline.json` is `empirical`: Present measured data, statistics, comparisons with numbers.
-
-If `results_mode` is `architectural_characterization`: Describe structural properties, module relationships, and dependency patterns. Do NOT make empirical performance claims without evidence.
-
-## Figure Guidance
+{methods_guidance}## Figure Guidance
 
 Reference figures by their number in the body text at the natural point of discussion (e.g. "as shown in Figure 2"). Do NOT dump all figures at the end of the document. The rendering pipeline will embed each figure after its first reference.
 Captions must be self-contained: a reader should understand what is plotted,
@@ -1662,15 +1737,7 @@ sequenceDiagram
 
 **FORBIDDEN:** Do NOT use ASCII art or box-drawing character diagrams.
 These render poorly in DOCX and will be **hard-blocked** by the pre-render sanity gate.
-
-## Project Identity
-
-For academic `new_draft`, if `{run_dir / "project_identity_candidate.json"}` exists,
-use it as read-only drafting context to keep the thesis from drifting into a
-topic-adjacent report. Do not write `project_identity.json` during controlled
-authoring; pass an explicit `project_identity` to `start_report` when a
-fixed identity contract is required.
-"""
+{project_identity_guidance}"""
 
     files: dict[str, str] = {
         "01_claim_plan.md": claim_task,

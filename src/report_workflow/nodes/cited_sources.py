@@ -10,11 +10,14 @@ Nothing was broken. The path did not exist — a tree-wide search for anything
 reading URLs out of ``parsed_content`` found no such code. This module is that
 path.
 
-Three shapes are read, because real documents use all three:
+Four shapes are read, because real documents use all four:
 
 * a Markdown link — ``[Black mass prices](https://fastmarkets.com/...)``
 * a bare URL on its own
 * a Chinese attribution with no URL at all — ``（來源：Fastmarkets，2026）``
+* an author and year in running prose — ``Okano et al. (2019, npj Science of
+  Learning)``. A paper whose discussion cited it published with no reference
+  list, because nothing read this shape out of the author's notes.
 
 The third is the one worth being careful about. It carries no link, so it is
 tempting to drop; but a named house and a year is exactly what a reader needs
@@ -55,6 +58,23 @@ _ATTRIBUTION_RE = re.compile(
     r"([^)）\n]{2,80})",
     re.IGNORECASE,
 )
+
+#: "Walker (2017, Why We Sleep)", "Okano et al. (2019)", "Lee and Park (2020)":
+#: a work named by author and year in running prose. What follows the year
+#: inside the parentheses is kept as the title the notes gave it.
+_AUTHOR_YEAR_RE = re.compile(
+    r"(?<![\w'’-])(?P<name>[A-Z][A-Za-z'’-]+(?:\s+(?:and|&)\s+[A-Z][A-Za-z'’-]+)?(?:\s+et\s+al\.?)?)"
+    r"\s*\((?P<year>(?:19|20)\d{2})[a-z]?(?:[,;]\s*(?P<rest>[^()\n]{2,120}))?\)"
+)
+
+#: Capitalised words that sit before a parenthesised year without being anyone.
+_NOT_AN_AUTHOR = frozenset("""
+january february march april may june july august september october november december
+jan feb mar apr jun jul aug sep sept oct nov dec monday tuesday wednesday thursday
+friday saturday sunday table figure fig section appendix chapter version edition
+year years fy in the a an since from until before after during by of on at to for
+and or as see q1 q2 q3 q4 spring summer autumn fall winter note notes source sources
+""".split())
 
 #: A year inside an attribution, so "Fastmarkets，2026" separates cleanly into
 #: a publisher and a date rather than being filed as one long name.
@@ -286,7 +306,55 @@ def extract_cited_sources(
                     block=block,
                 )
 
+            for match in _AUTHOR_YEAR_RE.finditer(content):
+                name = " ".join(match.group("name").split())
+                if name.split()[0].casefold() in _NOT_AN_AUTHOR:
+                    continue
+                year = match.group("year")
+                record(
+                    f"{name.split()[0].casefold()}|{year}",
+                    kind="author_year",
+                    title=" ".join((match.group("rest") or "").split()).strip(_TRAILING_PUNCT),
+                    url="",
+                    publisher=name,
+                    year=year,
+                    raw=match.group(0).strip(),
+                    entry=entry,
+                    block=block,
+                )
+
     return list(by_key.values())
+
+
+_LEADING_SURNAME_RE = re.compile(r"\s*(?:[-*]\s+)?([A-Z][A-Za-z'’-]+|[\u4e00-\u9fff]{2,4})")
+
+
+def reference_line_is_stated(line: str, source_registry: list[dict]) -> bool:
+    """True when a supplied file names this reference's first author and year together.
+
+    The test an author's own reference line has to pass to stay in the
+    document: the same lexical standard as everything else on the page. The
+    surname and the year must sit in one passage of prose in a supplied
+    file - "Walker (2017, ...)" in the notes keeps "Walker, M. (2017). Why
+    We Sleep." - and a line naming a work no file mentions is removed.
+    Table cells are not read, for the reason the rest of this module gives.
+    """
+    surname_match = _LEADING_SURNAME_RE.match(str(line or ""))
+    year_match = re.search(r"(?<!\d)((?:19|20)\d{2})(?!\d)", str(line or ""))
+    if not surname_match or not year_match:
+        return False
+    surname, year = surname_match.group(1), year_match.group(1)
+    if surname.casefold() in _NOT_AN_AUTHOR:
+        return False
+    surname_re = re.compile(rf"(?<![\w'’-]){re.escape(surname)}(?![\w'’-])")
+    for entry in source_registry or []:
+        for block in _blocks(entry):
+            if _is_tabular(entry, block):
+                continue
+            content = str(block.get("content") or "")
+            if year in content and surname_re.search(content):
+                return True
+    return False
 
 
 def _display_name(cited: dict) -> str:
@@ -312,7 +380,8 @@ def format_reference_entry(cited: dict) -> str:
     name = _display_name(cited)
     year = cited.get("year") or "n.d."
     title = cited.get("title") or _display_name(cited)
-    parts = [f"{name}. ({year}). *{title}*."]
+    lead = name if name.endswith(".") else f"{name}."
+    parts = [f"{lead} ({year}). *{title}*."]
     if cited.get("url"):
         parts.append(cited["url"])
     return " ".join(parts)

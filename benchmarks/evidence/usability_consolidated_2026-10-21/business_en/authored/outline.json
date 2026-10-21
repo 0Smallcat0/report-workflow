@@ -1,0 +1,73 @@
+{
+ "sections": {
+  "executive_summary": {
+   "section_id": "executive_summary",
+   "goals": "Answer the three questions up front.",
+   "claim_ids": [
+    "c3",
+    "c1",
+    "c6",
+    "c12"
+   ],
+   "paragraph_order": [
+    "email is under the most pressure",
+    "it got worse in June",
+    "move the agents back"
+   ],
+   "figure_ids": []
+  },
+  "findings": {
+   "section_id": "findings",
+   "goals": "Show where the pressure is, how it moved, and why.",
+   "claim_ids": [
+    "c3",
+    "c1",
+    "c2",
+    "c5",
+    "c4",
+    "c7",
+    "c10",
+    "c12"
+   ],
+   "paragraph_order": [
+    "channel comparison",
+    "email in June",
+    "chat absorbed growth",
+    "quarter averages hide the shape"
+   ],
+   "figure_ids": []
+  },
+  "limitations": {
+   "section_id": "limitations",
+   "goals": "What would weaken the conclusions.",
+   "claim_ids": [
+    "c8",
+    "c9",
+    "c11"
+   ],
+   "paragraph_order": [
+    "satisfaction survey coverage",
+    "new vs existing customers",
+    "illustrative data"
+   ],
+   "figure_ids": []
+  },
+  "recommendations": {
+   "section_id": "recommendations",
+   "goals": "Answer each question with the claim that carries it.",
+   "claim_ids": [
+    "c3",
+    "c1",
+    "c2",
+    "c4",
+    "c6"
+   ],
+   "paragraph_order": [
+    "question 0",
+    "question 1",
+    "question 2"
+   ],
+   "figure_ids": []
+  }
+ }
+}

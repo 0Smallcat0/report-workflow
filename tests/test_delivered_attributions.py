@@ -114,18 +114,22 @@ class InTextLabelTests(unittest.TestCase):
         resolved, *_rest = resolve_citations_publication("電池排放 4.272 t CO2e [CITE:E_D_battery_t]。", units, [])
         self.assertIn("電池排放 4.272 t CO2e（本研究計算，附錄 A.3）。", resolved)
 
-    def test_a_row_of_the_authors_sheet_is_compiled_not_a_source(self):
+    def test_a_row_of_the_authors_sheet_carries_no_label(self):
+        # The row states the figure itself. Labelling it put
+        # "(compiled in this study, calculation record Cn)" after every
+        # sentence of a report; its trace is in the QA note instead.
         resolved, _audit, _refs, _internal, entries = resolve_citations_publication(
             "汽油車保養排放為 5 g CO2e/km [CITE:E_row_maint]。", [MAINTENANCE_ROW], []
         )
-        self.assertIn("（本研究整理，計算附件 C1）", resolved)
-        self.assertEqual(entries, ["**C1**　參數：汽油車保養；數值：5；單位：g CO2e/km（本研究整理）"])
+        self.assertIn("汽油車保養排放為 5 g CO2e/km。", resolved)
+        self.assertNotIn("本研究整理", resolved)
+        self.assertEqual(entries, [])
 
-    def test_a_row_of_a_sheet_the_report_prints_points_at_that_table(self):
+    def test_a_row_of_a_sheet_the_report_prints_carries_no_label_either(self):
         resolved, *_rest = resolve_citations_publication(
             "[TABLE:lca_parameters 參數]\n\n汽油車保養排放為 5 g CO2e/km [CITE:E_row_maint]。", [SHEET_ROW], []
         )
-        self.assertIn("汽油車保養排放為 5 g CO2e/km（本研究整理，表 1）。", resolved)
+        self.assertIn("汽油車保養排放為 5 g CO2e/km。", resolved)
 
     def test_a_figure_computed_from_a_publication_names_both(self):
         derived = {

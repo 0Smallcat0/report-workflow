@@ -1,0 +1,120 @@
+{
+ "sections": {
+  "cover": {
+   "section_id": "cover",
+   "goals": "封面。",
+   "claim_ids": [],
+   "paragraph_order": [],
+   "figure_ids": []
+  },
+  "objectives": {
+   "section_id": "objectives",
+   "goals": "說明實驗目的。",
+   "claim_ids": [
+    "c5"
+   ],
+   "paragraph_order": [
+    "目的"
+   ],
+   "figure_ids": []
+  },
+  "requirements": {
+   "section_id": "requirements",
+   "goals": "列出講義要求回答的問題與本報告對應的章節。",
+   "claim_ids": [
+    "c9"
+   ],
+   "paragraph_order": [
+    "講義的兩個問題"
+   ],
+   "figure_ids": []
+  },
+  "theory": {
+   "section_id": "theory",
+   "goals": "虎克定律與拉力計算。",
+   "claim_ids": [
+    "c6"
+   ],
+   "paragraph_order": [
+    "公式"
+   ],
+   "figure_ids": []
+  },
+  "apparatus": {
+   "section_id": "apparatus",
+   "goals": "器材。",
+   "claim_ids": [
+    "c7"
+   ],
+   "paragraph_order": [
+    "器材"
+   ],
+   "figure_ids": []
+  },
+  "procedure": {
+   "section_id": "procedure",
+   "goals": "量測步驟。",
+   "claim_ids": [
+    "c8"
+   ],
+   "paragraph_order": [
+    "步驟"
+   ],
+   "figure_ids": []
+  },
+  "data": {
+   "section_id": "data",
+   "goals": "原始量測資料。",
+   "claim_ids": [
+    "c2",
+    "c4"
+   ],
+   "paragraph_order": [
+    "量測表",
+    "三次量測的差異"
+   ],
+   "figure_ids": [
+    "1"
+   ]
+  },
+  "calculations": {
+   "section_id": "calculations",
+   "goals": "由各負重計算拉力與彈簧常數。",
+   "claim_ids": [
+    "c1",
+    "c6"
+   ],
+   "paragraph_order": [
+    "計算式與結果"
+   ],
+   "figure_ids": []
+  },
+  "results_discussion": {
+   "section_id": "results_discussion",
+   "results_mode": "empirical",
+   "goals": "回答講義的兩個問題。",
+   "claim_ids": [
+    "c2",
+    "c3",
+    "c4"
+   ],
+   "paragraph_order": [
+    "是否成正比",
+    "差異來源"
+   ],
+   "figure_ids": []
+  },
+  "conclusion": {
+   "section_id": "conclusion",
+   "goals": "結論。",
+   "claim_ids": [
+    "c1",
+    "c2"
+   ],
+   "paragraph_order": [
+    "結論"
+   ],
+   "figure_ids": []
+  }
+ }
+}

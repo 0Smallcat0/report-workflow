@@ -88,6 +88,13 @@ def normalize_heading_contract(markdown: str, blueprint: dict) -> tuple[str, lis
     section_order = blueprint.get("section_order", []) or []
     language = detect_document_language(markdown)
     title_map = _blueprint_title_map(sections)
+    # Number the sections the document has. Counting every blueprint entry
+    # numbered a proposal without the optional timeline 1–5, then 7.
+    present = {
+        _section_id_for_heading(match.group(2).strip(), sections, title_map)
+        for match in _HEADING_RE.finditer(markdown)
+        if len(match.group(1)) == 1
+    }
     ordinal_by_sid: dict[str, int] = {}
     ordinal = 1
     for sid in section_order:
@@ -95,7 +102,7 @@ def normalize_heading_contract(markdown: str, blueprint: dict) -> tuple[str, lis
         # title page, not a numbered body section — the renderer promotes it
         # to a centered cover block, so numbering starts at the first real
         # section.
-        if sid in _UNNUMBERED_SECTIONS:
+        if sid in _UNNUMBERED_SECTIONS or sid not in present:
             continue
         ordinal_by_sid[sid] = ordinal
         ordinal += 1

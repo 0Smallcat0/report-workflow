@@ -4,7 +4,7 @@ Rerun: `python scripts/run_draft_benchmark.py --check` (no network, no model).
 
 | split | correct items falsely flagged | planted errors caught | worked-out figures NOT_FOUND |
 |---|---|---|---|
-| dev | 0/59 (0%) (+0/40 in the planted drafts) | 17/20 (85%) | 2/2 (100%) |
+| dev | 0/59 (0%) (+0/39 in the planted drafts) | 17/20 (85%) | 2/2 (100%) |
 | held_out | 8/141 (6%) (+5/104 in the planted drafts) | 32/39 (82%) | 5/5 (100%) |
 
 ## Planted errors by type

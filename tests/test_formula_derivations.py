@@ -165,6 +165,25 @@ class FormulaTableTests(unittest.TestCase):
         self.assertEqual(rows["A"], [f"{0.534 * 467:,.1f}", f"{0.8 * 2.2906 * 1000:,.1f}"])
         self.assertEqual(unit["table_id"], "E_D_use_phase")
 
+    def test_a_label_that_names_its_unit_does_not_print_it_twice(self):
+        # A lab report's 「拉力 (N)」 came back as the header 「拉力 (N) (N)」.
+        units, problems = build_requested_units(
+            [{
+                "id": "use_phase_labelled",
+                "op": "formula",
+                "source": "scenarios.csv",
+                "row_label": "情境",
+                "formulas": [{"label": "電動車 (g/km)", "expr": "kwh100 / 100 * grid", "unit": "g/km"}],
+                "inputs": {"kwh100": {"source": "lca_parameters.csv", "rows": "參數=電池容量", "column": "數值"}},
+                "decimals": 1,
+            }],
+            REGISTRY,
+            CREATED_AT,
+        )
+        self.assertEqual(problems, [])
+        grid = _only(units, "E_D_use_phase_labelled")["table_grid"]
+        self.assertEqual(grid["headers"], ["情境", "電動車 (g/km)"])
+
     def test_a_second_table_reads_the_same_row_of_the_first(self):
         units, problems = build_requested_units(
             [

@@ -1913,3 +1913,85 @@ def run_figure_recommend_with_composition_data(state: ReportState) -> None:
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class DesignTableChartTests(unittest.TestCase):
+    """Settings are axes, and a comparison pairs the two sides of it."""
+
+    def _recommend(self, table_data):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir, profile="quant_research_memo")
+            return recommend_figures_from_evidence(state, [{
+                "evidence_id": "E1",
+                "source_id": "bt",
+                "source_file_name": "backtest.csv",
+                "granularity": "table",
+                "content": "backtest results",
+                "table_data": table_data,
+            }])
+
+    def test_a_lookback_crossed_with_a_sample_period_is_a_grid_not_a_series(self):
+        # The lookback was drawn as a bar series beside the returns it sets,
+        # over an axis that read in_sample, in_sample, in_sample.
+        plan = self._recommend([
+            ["lookback_months", "sample", "annual_return_pct"],
+            ["3", "in_sample", "6.2"],
+            ["6", "in_sample", "8.9"],
+            ["12", "in_sample", "11.4"],
+            ["3", "out_of_sample", "1.1"],
+            ["6", "out_of_sample", "4.3"],
+            ["12", "out_of_sample", "5.0"],
+        ])[0]["figure_plan"]
+        self.assertEqual(plan["figure_type"], "bar")
+        self.assertEqual(plan["data"]["labels"], ["3", "6", "12"])
+        self.assertEqual(
+            [series["name"] for series in plan["data"]["series"]], ["in_sample", "out_of_sample"]
+        )
+        self.assertEqual(plan["data"]["series"][1]["values"], [1.1, 4.3, 5.0])
+        self.assertEqual(plan["title"], "annual return (%) by lookback months and sample")
+
+    def test_three_crossed_labels_put_two_on_the_axis_and_one_in_the_legend(self):
+        # 2 lookbacks × 2 sample periods × 2 portfolios was drawn over an axis
+        # reading 6, 6, 6, 6, 12, 12, 12, 12, with the lookback as a series.
+        plan = self._recommend([
+            ["lookback_months", "sample", "portfolio", "annual_return_pct", "sharpe"],
+            ["6", "in", "low", "9.8", "0.71"],
+            ["6", "in", "high", "7.1", "0.21"],
+            ["6", "out", "low", "6.4", "0.38"],
+            ["6", "out", "high", "8.9", "0.25"],
+            ["12", "in", "low", "10.6", "0.81"],
+            ["12", "in", "high", "6.2", "0.17"],
+            ["12", "out", "low", "7.3", "0.48"],
+            ["12", "out", "high", "5.0", "0.11"],
+        ])[0]["figure_plan"]
+        self.assertEqual(plan["figure_type"], "bar")
+        self.assertEqual(plan["data"]["labels"], ["6 / in", "6 / out", "12 / in", "12 / out"])
+        self.assertEqual([series["name"] for series in plan["data"]["series"]], ["low", "high"])
+        self.assertEqual(plan["data"]["series"][1]["values"], [7.1, 8.9, 6.2, 5.0])
+
+    def test_a_sheet_of_trials_plots_their_mean_against_the_setting(self):
+        # Mass, three trials and their mean was drawn as trial 1 against mass.
+        plan = self._recommend([
+            ["砝碼質量_g", "第一次伸長_cm", "第二次伸長_cm", "第三次伸長_cm", "平均伸長_cm"],
+            ["50", "1.9", "2.1", "2.0", "2.0"],
+            ["100", "4.0", "4.1", "3.9", "4.0"],
+            ["150", "6.1", "5.9", "6.0", "6.0"],
+            ["200", "8.1", "8.0", "7.9", "8.0"],
+        ])[0]["figure_plan"]
+        self.assertEqual(plan["figure_type"], "scatter")
+        self.assertEqual(plan["ylabel"], "平均伸長_cm")
+
+    def test_a_lab_sheet_plots_measured_against_theoretical(self):
+        # Not capacitance against resistance: two settings, drawn as if one
+        # caused the other.
+        plan = self._recommend([
+            ["resistance_kohm", "capacitance_uF", "theoretical_tau_ms", "measured_tau_ms"],
+            ["10", "10", "100", "104"],
+            ["20", "10", "200", "207"],
+            ["10", "47", "470", "489"],
+            ["47", "10", "470", "482"],
+            ["22", "22", "484", "501"],
+        ])[0]["figure_plan"]
+        self.assertEqual(plan["figure_type"], "scatter")
+        self.assertEqual(plan["xlabel"], "theoretical_tau_ms")
+        self.assertEqual(plan["ylabel"], "measured_tau_ms")

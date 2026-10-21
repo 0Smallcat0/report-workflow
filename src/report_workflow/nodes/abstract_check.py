@@ -97,6 +97,10 @@ def _check_structure(text: str) -> list[str]:
     for line in text.split('\n'):
         line = line.strip()
         m = re.match(r'^##\s+([^:]+?)(?:\s*:?\s*)?$', line, re.IGNORECASE)
+        # The section-draft brief shows the labels as `**Background:** text`
+        # and says to use them exactly; reading only `## Background:` lines
+        # refused that abstract with "Found: none".
+        m = m or re.match(r'^\*\*([^*:]+?)\s*:\s*\*\*', line) or re.match(r'^\*\*([^*:]+?)\*\*\s*:', line)
         if m:
             heading = m.group(1).strip().lower()
             heading = _ABSTRACT_HEADING_ALIASES.get(heading, heading)
@@ -114,7 +118,8 @@ def _check_structure(text: str) -> list[str]:
         errors.append(
             f"Abstract missing required sections: {', '.join(sorted(required))}. "
             f"Found: {', '.join(sorted(found)) or 'none'}. "
-            f"Use exactly: ## Background:, ## Objective:, ## Methods:, ## Principal Findings:, ## Significance:"
+            "Open each part with its label, as the brief shows: **Background:**, **Objective:**, "
+            "**Methods:**, **Principal Findings:**, **Significance:** (or ## Background: headings)."
         )
 
     return errors
@@ -165,13 +170,20 @@ def _word_count_check(text: str, family: str) -> list[str]:
     minimum = policy.abstract.word_count_min * scale
     maximum = policy.abstract.word_count_max * scale
     unit = "characters" if scale > 1 else "words"
+    # The author counting 312 characters was told "287 characters" and had to
+    # guess why. Say what is counted, and the length as an editor shows it.
+    counted = (
+        f" Counted: Chinese characters plus Latin words; punctuation and spaces are "
+        f"not counted (this abstract is {len(text.strip())} characters including them)."
+        if scale > 1 else ""
+    )
     if words < minimum:
         errors.append(
-            f"Abstract too short: {words} {unit} (minimum {minimum} for {family})"
+            f"Abstract too short: {words} {unit} (minimum {minimum} for {family}).{counted}"
         )
     elif words > maximum:
         errors.append(
-            f"Abstract too long: {words} {unit} (maximum {maximum} for {family})"
+            f"Abstract too long: {words} {unit} (maximum {maximum} for {family}).{counted}"
         )
     return errors
 

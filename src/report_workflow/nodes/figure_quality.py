@@ -301,22 +301,48 @@ def _check_no_audit_tables_in_main_text(merged_text: str, report_profile: str) -
     return issues
 
 
+def _display_numbers(merged_text: str, skip_ids: set[str] | None = None) -> dict[str, str]:
+    """The number DOCX_RENDER prints for each placed figure: its order of placement.
+
+    A figure_id is the plan's identity, not what the reader sees. A paper whose
+    only chart had id 2 was printed "Figure 1", and requiring the prose to say
+    "Figure 2" required a cross-reference to a figure the document lacks.
+    Plan entries rendered as native tables are numbered as tables and skipped.
+    """
+    numbers: dict[str, str] = {}
+    for match in _FIGURE_PLACEHOLDER_RE.finditer(merged_text):
+        figure_id = match.group(1).lower()
+        if figure_id in numbers or figure_id in (skip_ids or set()):
+            continue
+        numbers[figure_id] = str(len(numbers) + 1)
+    return numbers
+
+
 def _check_figure_contract(
     merged_text: str,
     outline_figure_ids: list[str],
     hard_contract: bool = False,
+    titled_ids: set[str] | None = None,
+    native_table_ids: set[str] | None = None,
 ) -> list[dict]:
-    """Check figure contract and return list of issues."""
+    """Check figure contract and return list of issues.
+
+    ``titled_ids`` are plan entries with a title: DOCX_RENDER writes their
+    caption from it, so the draft needs no caption line of its own.
+    """
     issues = []
 
     placeholders = _extract_figure_placeholders(merged_text)
     outline_ids = {str(fid).lower() for fid in outline_figure_ids}
-    prose_refs = _extract_known_prose_refs(merged_text, placeholders | outline_ids)
+    display = _display_numbers(merged_text, {str(i).lower() for i in native_table_ids or set()})
+    printed = set(display.values())
+    prose_refs = _extract_known_prose_refs(merged_text, placeholders | outline_ids | printed)
     captions = _extract_known_captions(merged_text, placeholders | outline_ids)
+    captions |= {str(i).lower() for i in titled_ids or set()}
     all_fig_ids = placeholders | outline_ids
     issue_severity = "hard" if hard_contract else "soft"
 
-    for fig_id in sorted(prose_refs - all_fig_ids):
+    for fig_id in sorted(prose_refs - all_fig_ids - printed):
         issues.append({
             "figure_id": fig_id,
             "issues": [{
@@ -340,8 +366,19 @@ def _check_figure_contract(
                 "detail": f"Figure '{fig_id}' is in outline but has no [FIGURE:{fig_id}] placeholder",
             })
 
-        # Check 2: prose reference exists
-        if fig_id not in prose_refs:
+        # Check 2: prose reference exists, by the number the reader sees
+        shown = display.get(fig_id)
+        if shown and shown not in prose_refs and fig_id not in prose_refs:
+            issues_dict["issues"].append({
+                "type": "missing_prose_reference",
+                "severity": issue_severity,
+                "detail": (
+                    f"[FIGURE:{fig_id}] is not mentioned in prose. It is figure number {shown} "
+                    f"in the document, so write 'Figure {shown}' (圖 {shown}) in the sentence "
+                    "that discusses it."
+                ),
+            })
+        elif not shown and fig_id not in prose_refs:
             issues_dict["issues"].append({
                 "type": "missing_prose_reference",
                 "severity": issue_severity,
@@ -360,6 +397,21 @@ def _check_figure_contract(
             issues.append(issues_dict)
 
     return issues
+
+
+def _hard_issue_details(hard_issues: list[dict]) -> str:
+    """Name each hard issue. Nested per-figure entries printed as "[None]"."""
+    details = []
+    for issue in hard_issues[:3]:
+        if "issues" in issue:
+            details.extend(
+                f"[{inner.get('type')}] {inner.get('detail', '')}"
+                for inner in issue.get("issues", [])
+                if inner.get("severity") == "hard"
+            )
+        else:
+            details.append(f"[{issue.get('type')}] {issue.get('detail', '')}")
+    return "; ".join(details)
 
 
 def run_figure_quality(state: ReportState) -> ReportState:
@@ -406,10 +458,21 @@ def run_figure_quality(state: ReportState) -> ReportState:
         all_issues.extend(audit_issues)
 
     # 2. Figure contract checks (placeholder, prose reference, caption)
+    planned = _planned_figures(state)
     contract_issues = _check_figure_contract(
         merged_text,
         outline_figure_ids,
         hard_contract=policy.figure.figure_contract_required,
+        titled_ids={
+            str(figure.get("figure_id") or "").lower()
+            for figure in planned
+            if str(figure.get("title") or "").strip()
+        },
+        native_table_ids={
+            str(figure.get("figure_id") or "").lower()
+            for figure in planned
+            if str(figure.get("render_mode") or "") == "native_table"
+        },
     )
     if contract_issues:
         all_issues.extend(contract_issues)
@@ -480,9 +543,8 @@ def run_figure_quality(state: ReportState) -> ReportState:
 
     # Hard block if audit tables in main text (per policy)
     if policy.figure.audit_table_hard_block and hard_issues:
-        hard_details = [f"[{h.get('type')}] {h.get('detail', '')}" for h in hard_issues[:3]]
         raise QAHardBlockError(
-            f"FIGURE_QUALITY: {len(hard_issues)} hard issue(s): {'; '.join(hard_details)}"
+            f"FIGURE_QUALITY: {len(hard_issues)} hard issue(s): {_hard_issue_details(hard_issues)}"
         )
 
     return state

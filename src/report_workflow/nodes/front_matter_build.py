@@ -312,16 +312,6 @@ _PROMPT_LEAK_PATTERNS = [
     re.compile(r"\bgenerate\s+an?\s+academic\s+report\b", re.IGNORECASE),
 ]
 
-_THESIS_ALIGNED_KEYWORDS = [
-    "deterministic compilation",
-    "StrategyIR",
-    "domain-specific intermediate representation",
-    "abstract syntax tree compilation",
-    "strategy verification",
-    "constrained large language models",
-]
-
-
 def _structured_front_matter_from_spec(spec: dict) -> dict:
     """Return caller-provided structured front matter fields only."""
     raw = spec.get("front_matter") or {}
@@ -364,11 +354,6 @@ def _parse_preamble_metadata_line(line: str) -> tuple[str, str] | None:
     field = match.group(1).lower()
     value = match.group(2).strip().strip("*").strip()
     return field, value
-
-
-def _select_thesis_aligned_keywords(user_prompt: str = "") -> list[str]:
-    """Select stable admissions-facing keywords from the thesis spine."""
-    return list(_THESIS_ALIGNED_KEYWORDS)
 
 
 def _enrich_keywords_to_research_level(
@@ -452,6 +437,20 @@ def _build_front_matter(state: ReportState) -> dict:
         "conflict_note": blueprint_fm.get("conflict_note", ""),
     }
     structured_front_matter = _structured_front_matter_from_spec(spec)
+    # Fields start_report was not given may come from the outline, which the
+    # author can still edit. Only start_report could set them before, so a
+    # paper missing a correspondence line was found at publish and the cure
+    # was a new run.
+    outline_front_matter = (state.plan.get("outline") or {}).get("front_matter")
+    if isinstance(outline_front_matter, dict):
+        for field in ("title", "author_block", "affiliation_block", "correspondence", "keywords"):
+            value = outline_front_matter.get(field)
+            if value and not structured_front_matter.get(field):
+                structured_front_matter[field] = (
+                    [str(item).strip() for item in value if str(item).strip()]
+                    if field == "keywords" and isinstance(value, list)
+                    else str(value).strip()
+                )
     front_matter.update(structured_front_matter)
 
     # For academic_paper: ensure required fields
@@ -526,7 +525,11 @@ def _build_front_matter(state: ReportState) -> dict:
         # Extract keywords from evidence if not provided
         if not front_matter["keywords"]:
             if task_intent == "new_draft" and report_profile == "academic_paper":
-                front_matter["keywords"] = _select_thesis_aligned_keywords(user_prompt)
+                # Keywords come from the user, like the rest of a new paper's
+                # front matter. This branch used to print a fixed list from
+                # one compiler project — "StrategyIR", "abstract syntax tree
+                # compilation" — on the title page of every paper given none.
+                pass
             else:
                 raw_keywords = _extract_keywords_from_evidence(state.sources.get("evidence_ledger_path"))
                 claim_matrix = state.plan.get("claim_matrix")
@@ -723,9 +726,16 @@ def run_front_matter_build(state: ReportState) -> ReportState:
     if policy.front_matter.required:
         strict_warnings = _validate_front_matter(front_matter, report_profile)
         if strict_warnings:
+            # These fields come from start_report and nothing written during
+            # the run supplies them; saying only "missing" left the author
+            # editing artifacts that cannot fix it.
             raise QAHardBlockError(
                 "FRONT_MATTER_BUILD failed strict metadata policy: "
                 + "; ".join(strict_warnings)
+                + ". Supply the missing fields in outline.json as "
+                '"front_matter": {"author_block": "...", "affiliation_block": "...", '
+                '"correspondence": "...", "keywords": ["...", "...", "..."]} (values the user gave you, not invented), '
+                "then call submit_action; start_report arguments, when given, take precedence."
             )
 
     # Format as markdown for document injection

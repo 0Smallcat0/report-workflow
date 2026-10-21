@@ -28,12 +28,21 @@ Optional integrations:
 
 ## Run `check_environment` First
 
-Call `check_environment` before every `start_report`. It returns the pending
-installs, the features to ask the user about, a human-readable `message`, and the
-`required_preflight_decisions` template you should fill in.
+Call `check_environment` before `start_report`. It returns the pending
+installs, the features that could be turned on, a human-readable `message`, and
+the `required_preflight_decisions` template. That template holds only what
+`start_report` needs answered — a missing required or critical dependency, a
+feature already switched on — so when nothing is missing it is complete as
+returned. Optional items are listed separately under
+`optional_preflight_decisions`.
 
-Then ask the user about every pending install and optional integration. After
-installing a dependency, rerun `check_environment` to verify. Do not treat an
+Ask the user about a pending install only when its severity is `required` or
+`critical`, and about an optional integration only when it is not yet decided
+and the user might want it (web research, NotebookLM). Optional installs such as
+`mmdc` and optional features left out of the record are treated as skipped, so
+`"install_decisions": {}` is a complete answer when nothing required is
+missing — do not stop a long task to re-ask the same optional questions before
+every report. After installing a dependency, rerun `check_environment` to verify. Do not treat an
 `install` or `installed` decision as proof when `check_environment` still reports the
 dependency missing: required dependencies must actually pass preflight before
 start.

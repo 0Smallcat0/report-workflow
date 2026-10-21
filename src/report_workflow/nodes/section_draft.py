@@ -190,9 +190,21 @@ def _sentence_text_with_citations(text: str, evidence_ids: list[str]) -> tuple[s
 
     cite_marker = " ".join(f"[CITE:{eid}]" for eid in missing)
     stripped = text.strip()
+    # A lead-in followed by its exhibit — "Figure 1 traces the median.\n\n
+    # [FIGURE:3]" — takes its citation on the lead-in. Appended after the
+    # marker, the citation shared the image's paragraph and the figure lost
+    # its caption.
+    lead_in, sep, block = stripped.partition("\n\n")
+    if sep and lead_in.strip() and _BLOCK_LINE_RE.match(block):
+        cited_lead_in, _ = _sentence_text_with_citations(lead_in, citation_ids)
+        return f"{cited_lead_in}\n\n{block}", citation_ids
     if stripped.endswith((".", "!", "?", "\u3002", "\uff01", "\uff1f")):
         return stripped[:-1].rstrip() + f" {cite_marker}" + stripped[-1], citation_ids
     return f"{stripped} {cite_marker}", citation_ids
+
+
+#: Sections the structured-drafts brief does not ask the author to write.
+_FRONT_AND_BACK_SECTIONS = frozenset({"cover", "references", "appendix"})
 
 
 def _compile_structured_drafts(state: ReportState, section_order: list[str]) -> None:
@@ -210,6 +222,17 @@ def _compile_structured_drafts(state: ReportState, section_order: list[str]) -> 
     section_drafts_dir.mkdir(exist_ok=True)
 
     sentence_rows: list[dict] = []
+    # The brief lists the keys to write and leaves out cover, references and
+    # appendix: front matter and sources are rendered from start_report and the
+    # ledger. A lab report written to that list was refused for a missing
+    # `cover`. Those sections compile empty, as an empty entry would.
+    for section_id in section_order:
+        if (
+            section_id not in sections
+            and section_id in _FRONT_AND_BACK_SECTIONS
+            and not section_requires_claims(blueprint, section_id)
+        ):
+            sections[section_id] = {"paragraphs": []}
     missing_sections = [section_id for section_id in section_order if section_id not in sections]
     if missing_sections:
         raise QAHardBlockError(

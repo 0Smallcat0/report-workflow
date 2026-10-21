@@ -182,6 +182,47 @@ class StatisticsAreEvidenceTests(unittest.TestCase):
                 self.assertEqual(derivation["rows_total"], 24)
                 self.assertTrue(derivation["input_columns"])
 
+    def test_two_rows_get_no_quartiles_and_no_one_row_groups(self):
+        # Quartiles of two values are the two rows read back four times, and a
+        # "breakdown" with one row per group is the file reprinted.
+        registry = _registry([
+            {"condition": "manual", "minutes": "28.0"},
+            {"condition": "structured", "minutes": "20.0"},
+        ])
+        contents = [unit["content"] for unit in dataset_summary_units(registry, CREATED_AT)]
+        self.assertFalse([c for c in contents if "quartile" in c], contents)
+        self.assertFalse([c for c in contents if "breakdown" in c], contents)
+        self.assertFalse([c for c in contents if "distinct values" in c], contents)
+
+    def test_a_trial_counter_and_a_design_setting_are_not_averaged(self):
+        rows = [
+            {"trial": str(i + 1), "lookback": lb, "sample": s, "sharpe": v}
+            for i, (lb, s, v) in enumerate([
+                ("3", "in", "0.44"), ("6", "in", "0.64"), ("12", "in", "0.84"),
+                ("3", "out", "0.07"), ("6", "out", "0.29"), ("12", "out", "0.35"),
+            ])
+        ]
+        contents = [unit["content"] for unit in dataset_summary_units(_registry(rows), CREATED_AT)]
+        self.assertFalse([c for c in contents if "the trial column" in c], contents)
+        self.assertFalse([c for c in contents if "the lookback column" in c], contents)
+        self.assertTrue([c for c in contents if "the sharpe column" in c], contents)
+
+    def test_a_setting_crossed_with_two_labels_is_not_averaged_either(self):
+        # 2 lookbacks × 2 sample periods × 2 portfolios: no one other column
+        # crosses the lookback into all eight rows, and the intake tables
+        # averaged it ("回看月數 平均 9.00") in the slot the Sharpe ratio needed.
+        rows = [
+            {"lookback": lb, "sample": s, "portfolio": p, "sharpe": str(0.1 * i)}
+            for i, (lb, s, p) in enumerate(
+                (lb, s, p) for lb in ("6", "12") for s in ("in", "out") for p in ("low", "high")
+            )
+        ]
+        units = dataset_summary_units(_registry(rows), CREATED_AT)
+        contents = [unit["content"] for unit in units]
+        self.assertFalse([c for c in contents if "the lookback column" in c], contents)
+        self.assertFalse([c for c in contents if "mean lookback" in c], contents)
+        self.assertTrue([c for c in contents if "mean sharpe" in c], contents)
+
     def test_an_id_column_gets_no_statistics(self):
         joined = " ".join(
             str(unit["derivation"]["input_columns"])
@@ -287,6 +328,66 @@ class EvidenceMustSupportTheClaimTests(unittest.TestCase):
         )
         self.assertEqual(result["status"], "blocked")
         self.assertIn("single data row", result["reason"])
+
+    def test_in_and_out_of_sample_name_the_row_not_the_dataset(self):
+        # A backtest row is one partition of the sample. 「樣本外」 is the cell
+        # the claim restates, and reading its 樣本 as dataset scope blocked
+        # every result sentence of a quant memo.
+        row = _row_evidence({
+            "lookback_months": "12", "sample": "out_of_sample", "sharpe": "0.35",
+        })
+        for claim in (
+            "樣本外 12 個月回看的夏普值降為 0.35。",
+            "The out-of-sample Sharpe ratio of the 12-month lookback is 0.35.",
+        ):
+            result = _fe(claim, row)
+            self.assertEqual(result["status"], "verified", (claim, result.get("reason")))
+
+    def test_the_whole_sample_is_still_dataset_scope_beside_a_partition(self):
+        result = _fe(
+            "樣本外的平均夏普值為 0.35。",
+            _row_evidence({"lookback_months": "12", "sample": "out_of_sample", "sharpe": "0.35"}),
+        )
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn("single data row", result["reason"])
+
+    def test_a_duration_in_chinese_matches_its_english_column(self):
+        result = _fe(
+            "回看期間為 12 個月，最大回撤為 21.9%。",
+            _row_evidence({"lookback_months": "12", "max_drawdown_pct": "-21.9"}),
+        )
+        self.assertNotIn("states a unit", result.get("reason", ""))
+
+
+    def test_a_frequency_the_evidence_also_states_is_not_a_rate(self):
+        # 「每月…前 20%」 read as 20%/月 against the evidence's own 「每月…20%」.
+        paragraph = {
+            **_row_evidence({}),
+            "block_type": "paragraph",
+            "content": "本次回測：每月依過去報酬排序，買進前 20% 並放空後 20%，等權重持有一個月。",
+        }
+        result = _fe("本策略每月買進過去報酬前 20% 並放空後 20%。", paragraph, claim_type="factual")
+        self.assertEqual(result["status"], "verified", result.get("reason"))
+
+    def test_a_rate_the_evidence_never_states_still_blocks(self):
+        paragraph = {**_row_evidence({}), "block_type": "paragraph", "content": "該批貨物總價 500 美元。"}
+        result = _fe("每噸售價 500 美元。", paragraph, claim_type="factual")
+        self.assertEqual(result["status"], "blocked")
+
+    def test_a_paraphrase_of_a_statistic_whose_figures_all_check_passes(self):
+        # The statistic speaks in column names; the claim in a person's words.
+        statistic = {
+            **_row_evidence({}),
+            "block_type": "derived_statistic",
+            "content": (
+                "衍生統計(來源:rc.csv):error_pct 欄共 5 筆數值，最小值 2.60，第一四分位 3.50，"
+                "中位數 3.50，平均數 3.52，第三四分位 4，最大值 4。"
+            ),
+        }
+        result = _fe("五組量測的誤差介於 2.6% 至 4% 之間，平均 3.52%。", statistic)
+        self.assertEqual(result["status"], "verified", result.get("reason"))
+        wrong = _fe("五組量測的誤差介於 2.6% 至 4% 之間，平均 3.9%。", statistic)
+        self.assertEqual(wrong["status"], "blocked")
 
     def test_a_price_with_a_currency_prefix_is_readable(self):
         result = _fe(

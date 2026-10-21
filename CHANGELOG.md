@@ -1,5 +1,103 @@
 # Changelog
 
+## Unreleased
+
+Three usability passes on the same question — what stops an author between
+`start_report` and a document they can hand in — consolidated into one change,
+then checked by writing three new reports end to end on the result: a
+quantitative research memo (Chinese), an engineering lab report (Chinese) and a
+business report (English). On master, on the head of the first two passes and
+on the head of the third, none of the three publishes from the same authored
+files; here all three publish on the first pass with no refusal. Nothing here
+adds a gate, a profile or a public option, and the adversarial benchmark's
+verdicts are unchanged. Run record:
+`benchmarks/evidence/usability_consolidated_2026-10-21/`.
+
+### Fixed — what stopped a report
+
+- A numeric column named `units` marked a file mixed-unit and dropped every
+  numeric summary. 「每個擺長重複 5 次」 read as the rate 5 次/個, 「每月底依過去
+  6 個月」 as 6 個月/月, and `7x24` lost its 24; English function words ("and")
+  were read as units. Folding `7x24` now keeps every character offset, so
+  `check-draft` finds the same figures it did before.
+- FE misread a backtest's and a lab sheet's own vocabulary. 「樣本內」/「樣本外」
+  read as dataset scope; 「12 個月」 against `lookback_months` as a different
+  unit; 「回看 12 個月」 as not naming 回看月數, so the 12 had to come from the
+  Sharpe column; 「負重 50 g」 as not naming 砝碼質量_g; 「前四組」 as a count of
+  4; "resolved within 24 hours" as a 24 the row does not state, although the
+  column is `resolved_within_24h_pct`; a claim reporting the research question
+  as answered by nothing. Each still blocks its false twin: 年化報酬 10.8%
+  against a volatility of 10.8, 平均伸長 9.9 cm against the second trial's
+  9.9 cm, 48 hours, 24%, 實驗分三組.
+- 「每月…20%」 against evidence that itself says 每月 read as 20%/月, and a
+  paraphrase of a statistic whose figures all checked failed on vocabulary.
+- A failure routed back to an earlier stage kept the old baseline, so work
+  already written became a `scope_violation`; publish re-stamping `_contract`
+  was taken for the author editing a file. The repair scope spans the rewound
+  stages, editing an accepted artifact re-opens its stage, and the harness
+  hashes artifacts without the stamp.
+- `lint_artifacts` passed claim matrices that submission and FA refuse, and
+  the claim stage now refuses them too; revise_existing's pre-check refused
+  the documented `retitle`/`remove_section`, and FA ignored revision-plan
+  claim links.
+- The structured-drafts brief lists the sections to write without `cover`,
+  and SECTION_DRAFT and lint refused the draft for a missing `cover`.
+- academic_paper: the thesis is checked at the outline stage, missing author
+  metadata is named at start and can be supplied in `outline.json`, the
+  abstract labels the brief shows pass, keywords never come from another
+  project, a sentence may open with a spelled-out number.
+- A derivation that failed to register stayed in `derived_evidence.json` and
+  later stopped publish; a band printed `7.50–9` refused the author's `7.5-9`;
+  ratio and formula can read the cross tables intake built; a claim citing an
+  unregistered `E_D_` id is told so.
+- `remap_agent_artifacts` finds an earlier run in another workspace and copies
+  the files the current stage may write.
+- `check_environment`'s `required_preflight_decisions` lists only what needs
+  an answer; optional tools left out are skipped instead of refusing the start.
+
+### Fixed — what made the document worse than its sources
+
+- Every sentence restating the author's own files ended 「（本研究整理，計算附件
+  C4）」/"(compiled in this study, …)", pointing at a file the reader was not
+  sent and, after an image, costing the figure its caption. Only computed
+  figures carry a label now.
+- Placed tables printed raw headers (「年化報酬_pct 平均」, `review_count`);
+  chart titles did too. Both use the reader's words; the evidence keeps the
+  column names, so no id moves. A formula label naming its unit printed it
+  twice (「拉力 (N) (N)」).
+- An empty cover section after the front matter printed a 「封面」 chapter.
+- Starter figures: unplaced ones are neither demanded nor built; a computed
+  table's counts, shares and total row are not stacked; a chart with no values
+  is stopped; two or three crossed label columns (lookback × sample ×
+  portfolio) are a grid with one series per value, not an axis reading 6, 6, 6,
+  6, 12, …; a lab sheet plots measured against theory, or the mean of its
+  trials against the setting; Chinese renders on Linux.
+- Intake statistics that restated rows are gone: quartiles of two values,
+  one-row-per-group tables the outline then had to waive, the mean of a row
+  counter or of a design setting — including a setting crossed with two label
+  columns, which took the Sharpe ratio's slot in both memo tables — and a
+  "joinable" pair meeting on one median. An empty open band above the last
+  bucket edge is not a row.
+- Briefs carry their own profile's guidance only (a business report's
+  drafting brief 29 → 20 KB); `paper_spine`/`lab_spine` are no longer asked
+  for (a `paper_spine.contribution` already written still counts as the
+  thesis), and `results_mode` is shown only where it is read.
+  The questions a task asks start after the request's colon and lose a leading
+  "and". Heading numbers count the sections the document has.
+- Run directories use hyphens and no commas, so unquoted paths work.
+- `examples/source_to_report.py`, the README's first run, works again and CI
+  runs it.
+
+### Not taken from the three passes
+
+- `pearson_r` and `linear_fit` (#2): a new computation, not a repair; AGENTS.md
+  "Scope" puts that to the owner.
+- #3's preflight change: #1 had already made optional installs need no answer,
+  and moved them to `optional_preflight_decisions`.
+- The recorded runs under `benchmarks/evidence/usability_*` (about a hundred
+  logs and documents, several printing the recording machine's paths); the
+  pull requests keep their findings.
+
 ## 4.41.0 - 2026-10-21
 
 `check-draft`: the second check for a report that is already written. Where

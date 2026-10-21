@@ -35,10 +35,13 @@ from report_workflow.automation_harness import (
 )
 from report_workflow.engineering_audit import run_engineering_audit as run_engineering_lab_audit
 from report_workflow.config import load_config
+from report_workflow.policies import get_policy
 from report_workflow.preflight import discover_features, check_preflight
 from report_workflow.preflight_decisions import (
     evaluate_preflight_start,
     feature_flags_from_decisions,
+    enabled_feature_ids,
+    optional_preflight_decision_shape,
     pending_preflight_installs,
     required_preflight_decision_shape,
 )
@@ -244,6 +247,17 @@ def check_setup() -> dict:
         else:
             lines.append("No optional feature decisions are pending.")
 
+        required_shape = required_preflight_decision_shape(
+            pending_installs, ask_user, enabled_feature_ids(discovery)
+        )
+        if not required_shape["install_decisions"] and not required_shape["feature_decisions"]:
+            # Everything listed above is optional. Say so: the list reads as
+            # a set of questions, and agents asked them before every report.
+            lines.append(
+                "Nothing above needs the user's answer to start a report: pass "
+                "required_preflight_decisions as preflight_decisions. Optional items "
+                "left out count as skipped; ask only if the user wants one turned on."
+            )
 
         return {
             "status": "ready" if preflight.ok and not manual_only else (
@@ -251,7 +265,8 @@ def check_setup() -> dict:
             ),
             "message": "\n".join(lines),
             "pending_installs": pending_installs,
-            "required_preflight_decisions": required_preflight_decision_shape(
+            "required_preflight_decisions": required_shape,
+            "optional_preflight_decisions": optional_preflight_decision_shape(
                 pending_installs, ask_user
             ),
             "feature_discovery": features_dict,
@@ -381,7 +396,37 @@ def start_report_task(
             notebooklm_storage_path=cfg.notebooklm_storage_path,
         )
 
-        warnings = state.runtime.get("warnings", [])
+        warnings = list(state.runtime.get("warnings", []))
+        blueprint_sections = (state.plan.get("blueprint") or {}).get("sections") or {}
+        untitled = (
+            not str(title or "").strip()
+            and task_intent == "new_draft"
+            and "cover" not in blueprint_sections
+        )
+        if untitled:
+            # Nothing else carries a title for these profiles: the document
+            # opened on its table of contents and every QA summary said pass.
+            warnings.append(
+                "no title was given, so the delivered document will have no title. "
+                "Start again with title=\"...\" (prepare is cheap; nothing is written yet)."
+            )
+        missing_front_matter = []
+        if task_intent == "new_draft" and get_policy(state.spec.get("report_profile", "")).front_matter.required:
+            given = {
+                "title": title, "author_block": author_block,
+                "affiliation_block": affiliation_block, "correspondence": correspondence,
+                "keywords": keywords,
+            }
+            missing_front_matter = [field for field, value in given.items() if not str(value or "").strip()]
+        if missing_front_matter:
+            # METADATA_GATE refuses to render without these, and only
+            # start_report sets them: found at publish, the cure was a new run.
+            warnings.append(
+                f"{state.spec.get('report_profile')} will not publish without "
+                f"{', '.join(missing_front_matter)}; ask the user for them and put them in "
+                "outline.json as \"front_matter\": {...} (or start again with them as "
+                "start_report arguments)."
+            )
         controlled_action = None
         if state.status == "awaiting_agent_artifacts":
             _controlled_state, controlled_run_dir, _manifest = load_or_create_manifest(
@@ -416,6 +461,19 @@ def start_report_task(
                     "This run is outside the default workspace. Pass "
                     f'workspace_root="{workspace_root}" to get_next_action, '
                     "submit_action, and publish_report.",
+                    "",
+                ])
+
+            if missing_front_matter:
+                msg_lines.extend([
+                    f"This profile will not publish without {', '.join(missing_front_matter)}. "
+                    'Ask the user for them and add "front_matter" to outline.json.',
+                    "",
+                ])
+            if untitled:
+                msg_lines.extend([
+                    "No title was given: the document will have none. Start again "
+                    'with title="..." before writing anything.',
                     "",
                 ])
 
@@ -572,9 +630,16 @@ def lint_agent_artifacts(job_id: str, workspace_root: str | None = None) -> dict
     try:
         state = ReportState.resume(job_id, workspace_root=workspace_root)
         report = run_artifact_lint(state)
+        errors = [issue for issue in report.get("issues", []) if issue.get("severity") == "error"]
         return {
             "status": "ok" if report.get("error_count", 0) == 0 else "issues_found",
             "job_id": job_id,
+            # The harness repeats error_details as the reason a stage failed;
+            # without it a lint failure arrived with an empty reason.
+            "error_details": "; ".join(
+                f"{issue.get('artifact')} {issue.get('json_path')}: {issue.get('message')}"
+                for issue in errors[:5]
+            ),
             "report_path": report.get("report_path", ""),
             "issue_count": report.get("issue_count", 0),
             "error_count": report.get("error_count", 0),
@@ -671,11 +736,11 @@ def submit_and_publish_report(
             # owns the fix and returns allowed_repair_paths. That was
             # discoverable only by guessing.
             "next_step": (
-                f"Call submit_action(job_id=\"{job_id}\") to route this failure to "
-                "the authoring stage that can repair it. It returns "
-                "allowed_repair_paths naming the files you may edit. Until then "
-                "get_next_action reports the publish stage, whose write scope is "
-                "empty by design."
+                f"Fix the artifacts the error names, then call submit_action(job_id=\"{job_id}\"): "
+                "it re-opens the run at the earliest stage that owns a changed file and "
+                "re-validates from there. Calling submit_action before editing instead "
+                "routes the failure and returns allowed_repair_paths, which cover every "
+                "authoring stage from that one onward."
             ),
             "error_details": str(e),
             "rendered_but_not_publishable": rendered_docx.exists(),
@@ -902,33 +967,79 @@ def register_derived_evidence(
 
         # Registering again replaces the entry with the same id and leaves the
         # rest alone: an author refining one figure must not silently lose the
-        # others they already cited.
-        existing = {str(item.get("id") or ""): item for item in load_requests(run_dir)}
-        for item in derivations or []:
-            if isinstance(item, dict) and str(item.get("id") or "").strip():
-                existing[str(item["id"]).strip()] = item
-        (run_dir / DERIVED_EVIDENCE_FILE).write_text(
-            json.dumps({"derivations": list(existing.values())}, ensure_ascii=False, indent=2),
-            encoding="utf-8",
-        )
+        # others they already cited. A replaced entry moves to where this call
+        # puts it, because comparisons read figures listed before them: kept
+        # at its old position, a ratio first asked for ahead of its table
+        # stayed ahead of it however the author reordered the next call.
+        previous = load_requests(run_dir)
+        submitted = [
+            item for item in derivations or []
+            if isinstance(item, dict) and str(item.get("id") or "").strip()
+        ]
+        submitted_ids = {str(item["id"]).strip() for item in submitted}
+        merged = [
+            item for item in previous if str(item.get("id") or "").strip() not in submitted_ids
+        ] + submitted
 
+        def _store(requests: list[dict]) -> None:
+            (run_dir / DERIVED_EVIDENCE_FILE).write_text(
+                json.dumps({"derivations": requests}, ensure_ascii=False, indent=2),
+                encoding="utf-8",
+            )
+
+        _store(merged)
         report = apply_derived_evidence(state)
+        problems = report["problems"]
+        if problems:
+            # A derivation that cannot be computed is not registered. Kept on
+            # file, it was recomputed at validate time and stopped publish over
+            # a figure no sentence cited, from a file no stage lets the author
+            # edit. A failed replacement leaves the previous, working version
+            # in place, so a figure already cited does not disappear.
+            failed = {str(problem.get("id") or "").strip() for problem in problems}
+            prior = {str(item.get("id") or "").strip(): item for item in previous}
+            kept = []
+            for item in merged:
+                key = str(item.get("id") or "").strip()
+                if key not in failed:
+                    kept.append(item)
+                elif key in submitted_ids and key in prior:
+                    kept.append(prior[key])
+            _store(kept)
+            retry = apply_derived_evidence(state)
+            if retry["problems"]:
+                still = {str(problem.get("id") or "").strip() for problem in retry["problems"]}
+                _store([item for item in kept if str(item.get("id") or "").strip() not in still])
+                retry = apply_derived_evidence(state)
+            report = {**retry, "problems": problems}
         restamped = _restamp_author_artifacts(state, run_dir)
         state.checkpoint("DERIVED_EVIDENCE_REGISTERED")
+        if problems:
+            not_registered = ", ".join(
+                sorted({str(problem.get("id") or "<no id>") for problem in problems})
+            )
+            kept_previous = sorted(failed & submitted_ids & set(prior))
+            message = (
+                f"Not registered: {not_registered}. Fix the request and register it "
+                "again; everything else registered is unchanged and citable."
+                + (
+                    f" The previous version of {', '.join(kept_previous)} is still registered."
+                    if kept_previous else ""
+                )
+            )
+        else:
+            message = (
+                "Cite these evidence_ids with [CITE:<id>] in the section drafts "
+                "and list them in claim_matrix.json."
+            )
         return {
-            "status": "blocked" if report["problems"] else "ok",
+            "status": "blocked" if problems else "ok",
             "job_id": job_id,
             "registered": report["computed"],
             "evidence": report["evidence"],
-            "problems": report["problems"],
+            "problems": problems,
             "restamped_artifacts": restamped,
-            "message": (
-                "Cite these evidence_ids with [CITE:<id>] in the section drafts "
-                "and list them in claim_matrix.json."
-                if not report["problems"]
-                else "Some derivations could not be produced from the rows; fix "
-                     "them before drafting the sentences that need them."
-            ),
+            "message": message,
         }
     except Exception as e:
         return {"status": "failed", "job_id": job_id, "error": str(e)}
@@ -1083,10 +1194,30 @@ def remap_agent_artifacts(
     previous_job_id: str,
     write: bool = False,
     workspace_root: str | None = None,
+    previous_workspace_root: str | None = None,
 ) -> dict:
-    """Remap evidence IDs in agent artifacts from a previous run to this run."""
+    """Bring an earlier run's authored files into this run, with this run's evidence ids.
+
+    With ``write=True`` the author's files missing here are copied from the
+    earlier run (under the controlled workflow, only the open stage's), then
+    every evidence id and ``_contract`` is rewritten for this run. The earlier
+    run is looked for under ``previous_workspace_root``, defaulting to this
+    run's ``workspace_root``.
+    """
     try:
-        return remap_evidence_ids(job_id, previous_job_id, write=write, workspace_root=workspace_root)
+        if write:
+            # The skill's runs are controlled: open the stage manifest first so
+            # a later stage's file is not copied in ahead of its stage.
+            from .automation_harness import get_controlled_next_action
+
+            get_controlled_next_action(job_id, workspace_root=workspace_root)
+        return remap_evidence_ids(
+            job_id,
+            previous_job_id,
+            write=write,
+            workspace_root=workspace_root,
+            previous_workspace_root=previous_workspace_root,
+        )
     except Exception as e:
         return {"status": "failed", "error": str(e)}
 
@@ -1149,6 +1280,15 @@ def submit_revision_plan(job_id: str, workspace_root: str | None = None) -> dict
         )
 
         if has_errors:
+            # The counts alone sent the author into diff_report_path to learn
+            # which change failed and why; the harness passes `message` on as
+            # the error, so the reasons belong in it.
+            details = "; ".join(
+                f"change {item['change_index']}: {item['reason']}"
+                for item in diff_result["unresolvable"][:5]
+            ) + "".join(
+                f"; changes {a} and {b} overlap" for a, b in diff_result["conflicts"][:5]
+            )
             return {
                 "status": "validation_failed",
                 "job_id": job_id,
@@ -1156,6 +1296,7 @@ def submit_revision_plan(job_id: str, workspace_root: str | None = None) -> dict
                     f"Revision plan has issues: "
                     f"{len(diff_result['unresolvable'])} unresolvable change(s), "
                     f"{len(diff_result['conflicts'])} conflict(s). "
+                    f"{details.lstrip('; ')}. "
                     f"Fix revision_plan.json and call again."
                 ),
                 "diff_report_path": report_path,

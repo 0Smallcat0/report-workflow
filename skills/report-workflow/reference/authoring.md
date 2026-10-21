@@ -38,10 +38,11 @@ paths are accepted for new drafts.
 ### Declaring what a source is a copy of
 
 A source file is not a publication, so by default a `.md`, `.txt` or `.csv`
-source is cited as the report's own material — `（本研究整理，計算附件 C3）` /
-`(compiled in this study, calculation record C3)` — and nothing is guessed from
-its file name. A figure the pipeline computed is labelled `本研究計算` /
-`calculated in this study`. Both point at an entry of the calculation record, a
+source is the report's own material: a sentence restating it carries no label in
+the text, and nothing is guessed from its file name. Which row or paragraph
+backs each sentence is in `published/traceability/client_readable_qa_note.md`.
+A figure the pipeline computed is labelled `本研究計算` /
+`calculated in this study` and points at an entry of the calculation record, a
 document published beside the report (`published/calculation_record.docx`) that
 gives the result, the formula and every input with its unit, the row it was read
 from and its source — for a formula table, each row's value of a per-row input.
@@ -93,6 +94,11 @@ checks against.
 
 For academic-style profiles, pass structured front matter when available:
 `title`, `author_block`, `affiliation_block`, `correspondence`, and `keywords`.
+`academic_paper` does not render without any of them, and keywords are never
+inferred for it. A field `start_report`
+was not given can still be supplied during the run as a top-level
+`"front_matter": {"correspondence": "..."}` block in `outline.json` — values
+the user gives you, never invented; `start_report` arguments take precedence.
 For school/company fixed templates, pass `template_fields` such as `course_name`,
 `student_id`, `instructor`, `lab_section`, `date`, or `department`. Use
 `project_identity` when a report must preserve specific project terms, domain
@@ -141,6 +147,11 @@ authoring for new drafts:
   }
 }
 ```
+
+The keys under `sections` are this run's blueprint section ids, the ones the
+outline brief lists — `results` above is only an example. Profiles differ:
+`engineering_lab_report` writes its results under `results_discussion`, and
+`business_report` under `findings`.
 
 When validation sees `structured_drafts.json` and the canonical draft files are
 missing, the pipeline writes `section_drafts/*.md`, inserts `[CITE:]` markers from
@@ -263,6 +274,10 @@ contains the value, put it in the sentence ("the error rate fell from 9.0% to
 pass. A quantitative section with no numbers reads as evasive even when every
 claim is verified.
 
+Optional: a `facts_freeze.json` in the run directory (`{"total_files": "388"}`)
+lists confirmed facts; render hard-blocks if any frozen value is missing from
+the document.
+
 ## Document Language
 
 Write body prose in the language of the source evidence. When the evidence is
@@ -293,9 +308,18 @@ Failure returns:
 
 - `validation_failed`: repair only the returned `allowed_repair_paths` using
   `repair_context`.
-- `scope_violation`: undo or isolate the out-of-scope artifact changes before
-  retrying the same stage. Do not manually advance stages by editing
-  `harness_manifest.json`.
+- `scope_violation`: a file owned by a *later* stage was written early; remove
+  it (or restore it) and retry the same stage. Do not manually advance stages by
+  editing `harness_manifest.json`. Changing a file an *earlier* stage already
+  accepted — fixing the claim matrix during the outline stage because lint
+  named it — is not a violation: the run goes back to that stage, validates it
+  again, and says so in `note`; submit again for each later stage.
+- A failure routed back to an earlier stage (a publish failure goes to the
+  earliest stage that owns part of the fix) opens every artifact from that stage
+  onward for repair, and keeps the later artifacts you already wrote: fix the
+  claim and the sentence together, then submit stage by stage. After a
+  `publish_report` failure you may also edit first and call `submit_action`
+  afterwards; the run re-opens at the stage that owns what you changed.
 - `blocked_non_author_repair`: the failure is outside the current controlled
   authoring surface. Inspect the returned evidence paths; it needs a workflow,
   source, environment, or deterministic-code fix, not edits to read-only workflow
@@ -309,8 +333,13 @@ stage or all required artifacts are already present.
 
 If you reuse artifacts from an older run, call
 `remap_agent_artifacts(job_id=..., previous_job_id=...)` first in dry-run mode,
-then rerun with `write=True` only after the mapping is reasonable. Do not manually
-edit evidence IDs.
+then rerun with `write=True` only after the mapping is reasonable. The write
+copies the files this run does not have yet from the earlier run; under the
+controlled workflow only the open stage's files are copied, and
+`files_deferred` names the rest with the stage that accepts them - call it again
+with `write=True` when that stage opens. Pass `previous_workspace_root` when the
+earlier run was started with a different `output_dir`. Do not manually edit
+evidence IDs.
 
 ## Validation Failure Repair
 

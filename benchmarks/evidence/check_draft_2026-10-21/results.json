@@ -45,7 +45,7 @@
           }
         },
         "untouched_correct": {
-          "items": 40,
+          "items": 39,
           "not_found": 0
         },
         "missed": [
@@ -791,15 +791,6 @@
             "item": "0.95",
             "status": "found",
             "page": 3,
-            "label": "correct"
-          },
-          {
-            "sentence": 10,
-            "sentence_text": "The models are trained with AdamW using β1 = 0.9 and β2 = 0.95, a weight decay of 0.95 and gradient clipping of 1.0.",
-            "kind": "figure",
-            "item": "0.95",
-            "status": "found",
-            "page": 3,
             "label": "misattributed"
           },
           {
@@ -1191,7 +1182,7 @@
           }
         ]
       },
-      "_seconds": 7.0
+      "_seconds": 11.3
     },
     {
       "name": "qlora",
@@ -2780,7 +2771,7 @@
           }
         ]
       },
-      "_seconds": 5.9
+      "_seconds": 9.4
     },
     {
       "name": "cot_zh",
@@ -4090,13 +4081,13 @@
           }
         ]
       },
-      "_seconds": 11.3
+      "_seconds": 20.3
     }
   ],
   "dev": {
     "correct_items": 59,
     "false_alarms": 0,
-    "untouched_items_in_planted": 40,
+    "untouched_items_in_planted": 39,
     "untouched_false_alarms": 0,
     "planted": 20,
     "caught": 17,

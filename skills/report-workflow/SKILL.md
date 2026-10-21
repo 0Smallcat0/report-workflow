@@ -76,10 +76,14 @@ parameters: [reference/tools.md](reference/tools.md).
 ## Required Setup
 
 Python 3.11+, `pip install -e .`, and Pandoc 3.x for high-quality DOCX rendering.
-Call `check_environment` before every `start_report`, ask the user about every
-pending install and optional integration, then pass `preflight_confirmed=True`
-with a complete `preflight_decisions` record. Required dependencies must actually
-pass preflight; a decision string does not override a still-missing dependency.
+Call `check_environment` before `start_report`. Ask the user only about what it
+reports as `required` or `critical` (pandoc), or about an optional integration
+they want to turn on; optional tools and integrations nobody asked for are
+skipped without an answer, so a long task is not interrupted by the same
+questions every report. Pass `preflight_confirmed=True` with a
+`preflight_decisions` record — the one in "Start a Run" below is complete when
+nothing required is missing. Required dependencies must actually pass
+preflight; a decision string does not override a still-missing dependency.
 Details, UTF-8 setup, and decision examples: [reference/setup-and-preflight.md](reference/setup-and-preflight.md).
 
 ## Tool Surface
@@ -134,6 +138,7 @@ start_report(
     output_dir="/path/to/output",
     report_profile="engineering_lab_report",
     task_intent="new_draft",
+    title="Step response of a second-order system",  # profiles without a cover section print no title without it
     template_fields={"course_name": "Control Systems", "student_id": "S12345"},
     preflight_confirmed=True,
     preflight_decisions={
