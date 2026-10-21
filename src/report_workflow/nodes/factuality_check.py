@@ -582,6 +582,10 @@ def _per_prefix_unit(text: str, number_start: int) -> str:
     unit = match.group("unit")
     if unit in _NOUN_CLASSIFIERS and re.match(r"[㐀-鿿]", between):
         return ""
+    # 「每月底依過去 6 個月排序」 is "at each month-end", a point in time: read as
+    # 6 個月/月 it was a rate the sentence never states.
+    if unit in _CALENDAR_UNITS and re.match(r"[底初末]", between):
+        return ""
     return unit
 
 
@@ -1325,6 +1329,14 @@ def _is_heading_only(evidence: dict) -> bool:
     return str(evidence.get("block_type", "")) == "heading"
 
 
+#: A claim that reports the question rather than answering it: 「研究問題是…是否…」,
+#: "the review asks whether…". A question is evidence of what was asked.
+_QUESTION_FRAMING_RE = re.compile(
+    r"研究問題|問題是|要回答|探討.{0,20}是否|\bwhether\b|\bquestions? (?:is|was|asks?)\b|\basks? (?:whether|which|how|what|why)\b",
+    re.IGNORECASE,
+)
+
+
 def _is_question_only(text: str) -> bool:
     """True when the text asks something and asserts nothing.
 
@@ -1405,7 +1417,7 @@ def _is_dataset_scope_claim(claim_text: str, row_columns: Iterable[str] = ()) ->
     return False
 
 
-def _claim_names_column(claim_text: str, column: str) -> bool:
+def _claim_names_column(claim_text: str, column: str, row_text: str = "") -> bool:
     """True when the claim mentions this column by name.
 
     Deliberately one-directional. A claim that names no column is left alone,
@@ -1413,13 +1425,28 @@ def _claim_names_column(claim_text: str, column: str) -> bool:
     Chinese and demanding a mention would block honest work. But a claim that
     *does* name one has told us which cell it is talking about, and a number
     from a different cell is then not its evidence.
+
+    A Chinese header is a compound a sentence rarely repeats whole:
+    「回看 12 個月」 names 回看月數 without writing it. Two characters of the
+    header that no other column of the row contains name it too; 年化 in
+    年化報酬 and 年化波動 names neither, and 波動 does not name 年化波動 in a row
+    whose portfolio is 低波動.
     """
     text = (claim_text or "").casefold()
     name = _COLUMN_BRACKET_RE.sub(" ", str(column or ""))
     for token in re.findall(r"[A-Za-z][A-Za-z0-9]{2,}", name):
         if token.casefold() in text:
             return True
-    return any(token in (claim_text or "") for token in re.findall(r"[㐀-鿿]{2,}", name))
+    tokens = re.findall(r"[㐀-鿿]{2,}", name)
+    if any(token in (claim_text or "") for token in tokens):
+        return True
+    others = (row_text or "").replace(str(column or ""), " ")
+    return any(
+        token[index:index + 2] in (claim_text or "") and token[index:index + 2] not in others
+        for token in tokens
+        if len(token) >= 3
+        for index in range(len(token) - 1)
+    )
 
 
 _LATIN_TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9²³/-]{1,}")
@@ -1552,7 +1579,7 @@ def _content_overlap_findings(
             f"{evidence_content[:60]}"
         ))]
 
-    if _is_question_only(evidence_content):
+    if _is_question_only(evidence_content) and not _QUESTION_FRAMING_RE.search(claim_text):
         return [((
             "question",
         ), (
@@ -1600,7 +1627,10 @@ def _content_overlap_findings(
         ))]
 
     named_columns = (
-        {column for _n, _u, column in row_measured if _claim_names_column(claim_text, column)}
+        {
+            column for _n, _u, column in row_measured
+            if _claim_names_column(claim_text, column, evidence_content)
+        }
         if is_raw_row
         else set()
     )
