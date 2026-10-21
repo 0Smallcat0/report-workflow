@@ -1086,8 +1086,7 @@ with no `rows` filter is the group's share of the whole selection; a `share`
 
 Ops: `count`, `sum`, `mean`, `median`, `min`, `max`, `distinct`, `share`,
 `hhi`, `top_share` (CR-k, with `k`); `ratio`, `pp_diff` and `formula` on their
-own; `pearson_r` and `linear_fit` (slope, intercept, R², n of `y` on `x`) on
-their own, with `"x"` and `"y"` naming two numeric columns. Filters: `col=value`, `col!=value`,
+own. Filters: `col=value`, `col!=value`,
 `col>=n`, `col~text`, joined with `&`; omit for every row.
 
 Joins: `inner` on a single key; `on` when both files name it the same way,
