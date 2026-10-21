@@ -739,8 +739,10 @@ def _decimal_comma_to_point(text: str) -> str:
 #: lookbehind that keeps "A4" from yielding a 4 then hid the second number, so
 #: a source saying the desk is "staffed 7x24" stated a 7 and nothing else, and
 #: the claim restating it as 7×24 was blocked for a 24 "not stated in the
-#: evidence". Every spelling is folded to one before numbers are read.
-_PRODUCT_SIGN_RE = re.compile(r"\b(\d+)\s*[xX×*＊]\s*(\d+)\b")
+#: evidence". Every spelling is folded to one before numbers are read, one
+#: character for one, so a span still points into the caller's text
+#: (check-draft reads each figure of a page by its span).
+_PRODUCT_SIGN_RE = re.compile(r"\b(\d+)(\s*)[xX×*＊](\s*)(\d+)\b")
 
 
 def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
@@ -758,7 +760,7 @@ def numbers_with_spans(text: str) -> tuple[str, list[tuple[str, str, int, int]]]
     """
     results = []
     normalized = _decimal_comma_to_point(_normalize_for_numbers(text))
-    normalized = _PRODUCT_SIGN_RE.sub(r"\1 × \2", normalized)
+    normalized = _PRODUCT_SIGN_RE.sub(r"\1\2×\3\4", normalized)
     for m in _BARE_NUMBER_RE.finditer(normalized):
         suffix = _unit_after(normalized, m.end())
         unit = _combined_unit(normalized, m.start(1), suffix)
