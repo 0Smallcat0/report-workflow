@@ -355,17 +355,65 @@ def _is_year_column(column: str, numbers: list[float]) -> bool:
     )
 
 
+#: Fewer values than this and a column's quartiles are its rows read back:
+#: "a first quartile of 20, a median of 24 … a third quartile of 28" over two
+#: rows says 20 and 28 four times.
+MIN_SUMMARY_VALUES = 3
+
+
+def _is_row_index(numbers: list[float]) -> bool:
+    """A column counting the rows, 1..n: a trial number, not a measure.
+
+    "trial 欄平均數 3" is the middle of the sequence, not a finding.
+    """
+    return len(numbers) >= MIN_SUMMARY_VALUES and (
+        numbers == [float(n) for n in range(1, len(numbers) + 1)]
+        or numbers == [float(n) for n in range(len(numbers))]
+    )
+
+
+def _is_design_factor(dataset: "Dataset", column: str) -> bool:
+    """A setting the rows were laid out over, not something they measured.
+
+    A backtest table holds every lookback (3, 6, 12) once per sample period,
+    so lookback crossed with the period names each row exactly once. Its mean,
+    7, is the average of the settings somebody chose to try.
+    """
+    values = [str(value).strip() for value in dataset.column_values(column)]
+    counts = Counter(values)
+    if len(counts) < 2 or "" in counts or len(set(counts.values())) != 1:
+        return False
+    if next(iter(counts.values())) < 2:
+        return False
+    for other in dataset.columns:
+        if other == column:
+            continue
+        other_values = [str(value).strip() for value in dataset.column_values(other)]
+        levels = set(other_values)
+        if (
+            len(levels) >= 2
+            and len(levels) * len(counts) == len(dataset.rows)
+            and len(set(zip(values, other_values))) == len(dataset.rows)
+        ):
+            return True
+    return False
+
+
 def _is_summable_measure(dataset: "Dataset", column: str, numbers: list[float]) -> bool:
     """Whether a numeric column's mean, median and range say anything.
 
     Not when the rows are in different units, not when the column is a year,
     and not when every row holds the same value — "最小值 2,025 … 最大值
-    2,025" is the column restated as if it varied.
+    2,025" is the column restated as if it varied. Not over fewer than three
+    values, and not for a row counter or a setting the rows were laid out over.
     """
     return (
         _mixed_unit_column(dataset) is None
         and not _is_year_column(column, numbers)
         and len(set(numbers)) > 1
+        and len(numbers) >= MIN_SUMMARY_VALUES
+        and not _is_row_index(numbers)
+        and not _is_design_factor(dataset, column)
     )
 
 
@@ -964,8 +1012,16 @@ def joinable_key_report(source_registry: list[dict]) -> list[dict]:
             )
             if len(left_counts) < 2 or len(right_counts) < 2:
                 continue
+            # A measured value is not a key. Two files that both record a
+            # median of 20.0 minutes share a number, not a row.
+            if any(
+                (number := parse_number(value)) is not None and number != int(number)
+                for value in itertools.chain(left_counts, right_counts)
+            ):
+                continue
             shared = set(left_counts) & set(right_counts)
-            if not shared:
+            # One shared value joins one row: a coincidence, not a connection.
+            if len(shared) < 2:
                 continue
             overlap = len(shared) / min(len(left_counts), len(right_counts))
             uniqueness = max(
@@ -2450,7 +2506,9 @@ def dataset_summary_units(
             # description, not a category. Its "distribution" is the column
             # reprinted with 1 beside every line, which tells a reader
             # nothing and buries the columns that do.
-            if len(counts) > max(2, 0.9 * len(dataset.rows)):
+            if len(counts) > max(2, 0.9 * len(dataset.rows)) or all(
+                count == 1 for _value, count in counts
+            ):
                 continue
             if 2 <= len(counts) <= MAX_CATEGORY_CARDINALITY:
                 category_content, category_derivation = _category_text(
@@ -2507,6 +2565,11 @@ def _column_kinds(dataset: Dataset) -> tuple[list[str], list[str]]:
         if not 2 <= len(counts) <= MAX_CATEGORY_CARDINALITY:
             continue
         if len(counts) > max(2, 0.5 * len(dataset.rows)):
+            continue
+        # One row per group is the file reprinted with a "share of rows" of
+        # 50% beside each line — and a table the outline must then place or
+        # waive, for nothing.
+        if all(count == 1 for _value, count in counts):
             continue
         # A column filled in for a handful of rows describes those rows, not
         # the file. Crossing `seller` — stated on 11 listings out of 544 — puts
