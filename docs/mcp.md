@@ -1,12 +1,12 @@
 # MCP Server
 
-`report-workflow-mcp` exposes the deterministic verification gates over the
-Model Context Protocol, so any MCP-capable agent (Claude Code, Codex, Cursor,
-or a custom harness) can ask the same question the pipeline enforces: *is this
-claim allowed to ship?*
+`report-workflow-mcp` exposes the whole pipeline over the Model Context
+Protocol, so any MCP-capable agent (Claude Code, Codex, Cursor, or a custom
+harness) can take a folder of sources to a finished DOCX, and ask the question
+the pipeline enforces at every step: *is this claim allowed to ship?*
 
-The server is deterministic and offline — no LLM, no network, no API key. The
-agent drafts; the server verifies.
+The server calls no LLM and needs no API key, and it stays offline unless the
+run turns web research on. The agent drafts; the server verifies.
 
 ## Install
 
@@ -26,25 +26,44 @@ installing this server from the registry gets the same command.
 
 ## Register
 
-Claude Code:
+The Claude Code plugin registers the server itself (see the README). Otherwise,
+with [uv](https://docs.astral.sh/uv/getting-started/installation/) installed:
 
 ```bash
-claude mcp add report-workflow -- report-workflow-mcp
+# Claude Code
+claude mcp add report-workflow -- uvx --from "report-workflow[mcp,render]" report-workflow-mcp
+# Codex
+codex mcp add report-workflow -- uvx --from "report-workflow[mcp,render]" report-workflow-mcp
 ```
 
-Generic MCP client configuration (stdio):
+Cursor (`.cursor/mcp.json` in the project, or `~/.cursor/mcp.json`) and other
+stdio clients:
 
 ```json
 {
   "mcpServers": {
     "report-workflow": {
-      "command": "report-workflow-mcp"
+      "command": "uvx",
+      "args": ["--from", "report-workflow[mcp,render]", "report-workflow-mcp"]
     }
   }
 }
 ```
 
+After `pip install "report-workflow[mcp,render]"`, the command can be plain
+`report-workflow-mcp` instead.
+
 ## Tools
+
+Fifteen tools. The pipeline, in the order a run calls them:
+`check_environment` → `start_report` → `get_next_action` / `submit_action`
+(repeat) → `publish_report`. Helpers along the way: `query_evidence`,
+`register_derived_evidence` (makes a count, mean, share or formula over the
+source rows citable), `lint_artifacts`, `remap_agent_artifacts`,
+`audit_engineering_report`. Revising an existing document:
+`submit_revision_plan`, `preview_revision_diff`. Each tool's description in
+the server says what it takes. The three below also work on their own, with no
+run at all.
 
 ### `verify_claims`
 
@@ -114,10 +133,9 @@ job (`job_id`, optional `workspace_root`).
 
 ## Scope
 
-The MCP surface is the verification gate, not the full authoring pipeline.
-Preparing sources, authoring artifacts, and rendering DOCX stay with the CLI
-and the agent skill (see [`skills/report-workflow/SKILL.md`](../skills/report-workflow/SKILL.md)) —
-those steps need files on disk and explicit preflight decisions, which are
-better handled by the harness's own tools. The measured behavior of the gates
-this server exposes is documented in
+Authoring stays with the agent: it writes `claim_matrix.json`, `outline.json`,
+`section_drafts/*.md` and `sentence_map.jsonl` into the run directory, and
+`get_next_action` says which one is due and where writing is allowed. How to
+drive a run: [`skills/report-workflow/SKILL.md`](../skills/report-workflow/SKILL.md).
+The measured behavior of the gates is in
 [`benchmarks/evidence/adversarial_2026-07-14/summary.md`](../benchmarks/evidence/adversarial_2026-07-14/summary.md).

@@ -13,11 +13,13 @@ Load this when preparing a run, resolving a missing dependency, or building the
 
 ## Required Runtime
 
-- Python 3.11+
-- `pip install -e .` from the repository root
-- Pandoc 3.x for high-quality DOCX rendering. Without pandoc, the pipeline falls
-  back to a limited `python-docx` renderer with degraded table, list, and layout
-  fidelity.
+- Through the plugin or the MCP server: nothing. `uvx --from
+  "report-workflow[mcp,render]" report-workflow-mcp` brings Python packages and
+  a pandoc binary of its own.
+- From a clone: Python 3.11+ and `pip install -e ".[render]"` from the
+  repository root. Without `[render]` (or a system Pandoc 3.x), the pipeline
+  falls back to a limited `python-docx` renderer with degraded table, list,
+  and layout fidelity.
 
 Optional integrations:
 

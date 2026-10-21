@@ -30,7 +30,8 @@ whatever you already have. Plus one sentence, like "write a lab report on this".
 and charts drawn from your own numbers. It can follow your department's or your
 company's template. Chinese or English.
 
-Two lines to install. No API key. Nothing to configure.
+It runs inside an AI agent you already use — Claude Code, Codex, Cursor. Two
+lines to install, no API key of its own, nothing to configure.
 
 ## Look before you install
 
@@ -51,18 +52,26 @@ repository, so you can see the output before you run anything:
 
 ## Use it
 
-In Claude Code:
+It starts with [uv](https://docs.astral.sh/uv/getting-started/installation/),
+so install that first. Then, in Claude Code:
 
 ```text
 /plugin marketplace add 0Smallcat0/report-workflow
+/plugin install report-workflow@report-workflow
 ```
 
-Then `/plugin install report-workflow@report-workflow`. Using something else
-that speaks MCP (Codex, Cursor, your own setup)? One command instead:
+In Codex:
 
 ```bash
-claude mcp add report-workflow -- uvx --from "report-workflow[mcp,render]" report-workflow-mcp
+codex mcp add report-workflow -- uvx --from "report-workflow[mcp,render]" report-workflow-mcp
 ```
+
+In Cursor or any other MCP client, register that same `uvx` command; the JSON
+is in [docs/mcp.md](docs/mcp.md#register).
+
+The first start downloads its Python packages and a pandoc binary, several
+hundred MB, so on a slow connection give it a few minutes; later starts reuse
+them.
 
 Then just ask, in your own words:
 
@@ -156,7 +165,8 @@ set exists yet to test it on.
 
 The references can all be real and the sentence citing them still wrong: 76%
 where the paper says 67.0%, "not the cheapest to train" where it says "not the
-fastest". Give the command the files the draft cites:
+fastest". Give the command the files the draft cites (`.pdf`, `.docx`, `.md`
+or `.txt`):
 
 ```bash
 uvx report-workflow check-draft draft.docx --source llama.pdf --source qlora.pdf --appendix appendix.md
@@ -165,7 +175,9 @@ uvx report-workflow check-draft draft.docx --source llama.pdf --source qlora.pdf
 Only sentences that state a figure or quote are checked. Each figure must be
 printed on a page at the precision the draft gives, a few lines from the
 sentence's own words; each quotation must be on a page word for word. Every
-answer names the file, page and the source's own sentence:
+answer names the file, page and the source's own sentence. The draft and PDFs
+below are in [`benchmarks/check_draft/`](benchmarks/check_draft/), so you can
+run it yourself:
 
 ```text
 [4] NOT_FOUND: In their words, "the preferred model is not the cheapest to train but the fastest at inference".
@@ -196,9 +208,9 @@ in the text really appear in your files. It cannot tell whether the AI
 understood your data. If the AI writes a smooth sentence that gets your result
 backwards, that sentence goes through.
 
-We measured that limit instead of talking around it: 69 hand-checked attempts to
-sneak something false past it, plus 10,000 test pairs from a public dataset
-nobody here wrote. **The cases it still misses are kept in the test set on
+We measured that limit instead of talking around it: 46 hand-checked attempts to
+sneak something false past it and 27 true claims it must let through, plus
+10,000 test pairs from a public dataset nobody here wrote. **The cases it still misses are kept in the test set on
 purpose** — [docs/EVIDENCE.md](docs/EVIDENCE.md).
 
 **It does not write.** Your AI writes; this decides what stays. So you need an
@@ -256,8 +268,9 @@ python scripts/run_drone_market_benchmark.py --check
 Three CSVs and one market question. Three recorded documents — a hand-written
 control, this pipeline's delivered output, and the strongest of four drafts by
 an AI given the same files. Three axes: counted (numeric), rule-scored
-(layout), and judged against a fixed rubric by three independent blind judges
-who are told nothing about how any arm was produced (argument). Every number
+(layout), and judged against a fixed rubric by three blind judges — one model
+in three fresh contexts — who are told nothing about how any arm was produced
+(argument). Every number
 below is from
 [`benchmarks/evidence/drone_market_2026-09-16/`](benchmarks/evidence/drone_market_2026-09-16/summary.md).
 Check the date: the next re-recording moves these.
@@ -301,7 +314,7 @@ this benchmark. That is the largest known limitation of these numbers.
 | --- | --- | --- |
 | numeric — counted properties of the document | 3–2 won | 4–1 won |
 | layout — rule-scored structure and table furniture | 4–2 won | 4–2 won |
-| argument — three blind judges against a fixed rubric | **0–0 lost** | **0–0 lost** |
+| argument — three blind judges against a fixed rubric | **0–0 tied, not won** | **0–0 tied, not won** |
 
 Argument axis, median of three votes per dimension
 (`claim_strength`/`evidence_depth`/`counter_specificity`): hand **4/4/4**,

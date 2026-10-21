@@ -1625,16 +1625,18 @@ class DocumentationContractTests(unittest.TestCase):
             for side, opponent in (("vs_hand", "the hand-written control"),
                                    ("vs_llm_direct", "the AI-direct arm")):
                 entry = record[side]
-                expected.append((
-                    f"{entry['wins']}–{entry['losses']} "
-                    f"{'won' if entry['won'] else 'lost'}",
-                    f"the {axis} axis against {opponent}",
-                ))
+                score = f"{entry['wins']}–{entry['losses']}"
+                tokens = [f"{score} {'won' if entry['won'] else 'lost'}"]
+                if entry["wins"] == entry["losses"] and not entry["won"]:
+                    # A 0–0 is not won, and "lost" beside "nothing was lost"
+                    # reads as a contradiction; either word is the archive's.
+                    tokens.append(f"{score} tied, not won")
+                expected.append((tokens, f"the {axis} axis against {opponent}"))
         for arm in ("hand", "tool", "llm_direct"):
             argument = scores[arm]["argument"]
             expected.append((
-                "/".join(str(argument[dimension]) for dimension in
-                         ("claim_strength", "evidence_depth", "counter_specificity")),
+                ["/".join(str(argument[dimension]) for dimension in
+                          ("claim_strength", "evidence_depth", "counter_specificity"))],
                 f"the {arm} arm's argument medians",
             ))
         # The boolean, in the one short stem each language states it with.
@@ -1666,7 +1668,10 @@ class DocumentationContractTests(unittest.TestCase):
                     f"records it: archive says stop_condition_met="
                     f"{str(stop_met).lower()}, so the page must say {stem!r}",
                 )
-                for token, what in expected:
+                for tokens, what in expected:
+                    if any(token in text for token in tokens[1:]):
+                        continue
+                    token = tokens[0]
                     require(
                         text, token,
                         f"{doc} does not carry {token!r} for {what}; that is what "

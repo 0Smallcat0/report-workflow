@@ -88,6 +88,34 @@ verdicts are unchanged. Run record:
 - `examples/source_to_report.py`, the README's first run, works again and CI
   runs it.
 
+### Fixed — `check-draft` names the unit when only the unit is wrong
+
+A figure that is not found names the nearest figure printed beside the
+sentence's words. When the page prints the same number in another unit, that is
+now the one it names: "3.3GB" gets `p. 2 states 3.3TB there`, where it used to
+get the 2.45 in the next column. On the planted drafts in
+`benchmarks/check_draft/`, the hint names the original figure for 19 of the 34
+planted figures, up from 12; all seven wrong units are among them. Verdicts do
+not change (`scripts/run_draft_benchmark.py --check` passes).
+
+### Docs — what you need to install, said once and correctly
+
+- README: it says up front that it runs inside an AI agent; install uv first;
+  then two lines in Claude Code, one `codex mcp add` line in Codex, and the
+  same `uvx` command for Cursor or any other MCP client (JSON in
+  `docs/mcp.md`). The first start downloads several hundred MB, and the README
+  now says so.
+- `docs/mcp.md`: the server runs the whole pipeline, not only the gates; all
+  fifteen tools listed in the order a run calls them; register commands for
+  Claude Code, Codex and Cursor.
+- `SKILL.md` and `reference/setup-and-preflight.md`: through the plugin or the
+  MCP server there is nothing else to install; from a clone, Python 3.11+ and
+  `pip install -e ".[render]"`. The quickstart notebook's last cell installs the
+  plugin instead of copying a folder that no longer exists.
+- README figures checked against their archives: 46 attempts to sneak a false
+  claim through and 27 true claims (not 69 attempts), the three blind judges
+  are one model in three fresh contexts, and a 0–0 axis reads "tied, not won".
+
 ### Not taken from the three passes
 
 - `pearson_r` and `linear_fit` (#2): a new computation, not a repair; AGENTS.md

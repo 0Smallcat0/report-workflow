@@ -709,7 +709,11 @@ def check_figure(number: str, unit: str, sentence: DraftSentence, sources: list[
 
 
 def _nearest_in_context(number: str, unit: str, sentence: DraftSentence, sources: list[Source]):
-    """The closest figure in a passage that does share the sentence's words: the likely typo."""
+    """The closest figure in a passage that does share the sentence's words: the likely typo.
+
+    The same figure in another unit is closest of all: "21 hours" beside a
+    printed "21 days" is the unit gone wrong, not a different number.
+    """
 
     try:
         target = _normalize_number_str(number)
@@ -724,19 +728,23 @@ def _nearest_in_context(number: str, unit: str, sentence: DraftSentence, sources
         for page in source.pages:
             for reading in page.readings[:1]:
                 for source_number, source_unit, start, end in reading.figures:
-                    if not units_agree(unit, source_unit):
-                        continue
                     try:
                         value = _normalize_number_str(source_number)
                     except ValueError:
                         continue
                     distance = abs(value - target)
-                    if distance == 0 or distance > 0.5 * max(abs(target), 1e-9):
+                    if units_agree(unit, source_unit):
+                        if distance == 0 or distance > 0.5 * max(abs(target), 1e-9):
+                            continue
+                        shown = source_number
+                    elif distance == 0:
+                        shown = _figure_label(source_number, source_unit)
+                    else:
                         continue
                     if best is not None and distance >= best[0]:
                         continue
                     if len(_matched(terms, reading.window(start, end))) >= required:
-                        best = (distance, source_number, Location(source, page.number, reading, start, end))
+                        best = (distance, shown, Location(source, page.number, reading, start, end))
     return (best[1], best[2]) if best else None
 
 

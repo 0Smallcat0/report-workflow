@@ -75,7 +75,8 @@ parameters: [reference/tools.md](reference/tools.md).
 
 ## Required Setup
 
-Python 3.11+, `pip install -e .`, and Pandoc 3.x for high-quality DOCX rendering.
+Through the plugin or MCP server, nothing to install: the server brings its own
+packages and pandoc. From a clone, Python 3.11+ and `pip install -e ".[render]"`.
 Call `check_environment` before `start_report`. Ask the user only about what it
 reports as `required` or `critical` (pandoc), or about an optional integration
 they want to turn on; optional tools and integrations nobody asked for are

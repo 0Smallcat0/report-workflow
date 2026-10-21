@@ -173,6 +173,7 @@ class MatchingTest(_WithSource):
         items = self.check("LLaMA-13B scores 68.93% on the reading benchmark. Training took 21 hours on 2,048 GPUs.")
         self.assertEqual(items["68.93%"].status, NOT_FOUND)
         self.assertEqual(items["21 hours"].status, NOT_FOUND)
+        self.assertIn("paper.pdf p. 2 states 21 days", items["21 hours"].message)
         self.assertEqual(items["2,048"].status, FOUND)
 
     def test_a_figure_beside_other_words_is_not_found(self):
