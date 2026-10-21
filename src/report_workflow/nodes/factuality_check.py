@@ -1637,6 +1637,14 @@ def _content_overlap_findings(
             f"these rows, or register the one you need. Row: {evidence_content[:80]}"
         ))]
 
+    # A figure in a column's own name — resolved_within_24h_pct — is the
+    # definition the claim restates ("resolved within 24 hours"), not a reading.
+    header_numbers = [
+        (number, number_unit)
+        for column in {column for _n, _u, column in row_measured}
+        for number, number_unit in _extract_numbers_with_unit(str(column).replace("_", " "))
+    ]
+
     named_columns = (
         {
             column for _n, _u, column in row_measured
@@ -1725,6 +1733,11 @@ def _content_overlap_findings(
             found = True
             break
 
+        if not found and unit and any(
+            _same_value(claim_val, number) and _units_match(unit, number_unit) and number_unit
+            for number, number_unit in header_numbers
+        ):
+            found = True
         if not found:
             number_key = ("number", num_str, unit)
             if misplaced:

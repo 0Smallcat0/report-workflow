@@ -150,5 +150,23 @@ class RunDirectoryPunctuationTests(unittest.TestCase):
         self.assertEqual(name, "Support-Channel-Pressure-Q2-2026--run_1")
 
 
+class AFigureInTheColumnNameTests(unittest.TestCase):
+    _ROW = {
+        "evidence_id": "E4",
+        "content": '{"month": "2026-04", "channel": "email", "tickets": "412", '
+                   '"resolved_within_24h_pct": "71", "csat_score": "3.9"}',
+        "granularity": "row",
+        "block_type": "table_row",
+        "evidence_type": "quantitative",
+    }
+
+    def test_the_window_a_column_is_defined_over_may_be_written(self):
+        self.assertEqual(_fe("In April, 71% of email tickets were resolved within 24 hours.", self._ROW), [])
+
+    def test_a_different_window_or_unit_is_still_refused(self):
+        self.assertTrue(_fe("In April, 71% of email tickets were resolved within 48 hours.", self._ROW))
+        self.assertTrue(_fe("In April, 24% of email tickets were resolved.", self._ROW))
+
+
 if __name__ == "__main__":
     unittest.main()
