@@ -1,0 +1,9 @@
+{
+  "prompt": "Write a short business report for the support operations manager: which support channel is under the most pressure in Q2 2026, whether it is getting worse, and whether the two agents moved to chat in June should return to email.",
+  "source_files": [
+    {"path": "support_tickets.csv", "role": "source_data"},
+    {"path": "ops_memo.md", "role": "source_data"}
+  ],
+  "report_profile": "business_report",
+  "title": "Support Channel Pressure, Q2 2026"
+}

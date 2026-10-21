@@ -1,0 +1,140 @@
+{
+ "claims": [
+  {
+   "claim_id": "c1",
+   "claim_text": "Email's median first response rose from 95 minutes in April to 131 minutes in June.",
+   "claim_type": "statistical",
+   "risk_level": "medium",
+   "status": "supported",
+   "evidence_ids": [
+    "E_2336ba52_7012b67ea7",
+    "E_2336ba52_314dc8a645"
+   ],
+   "requires_hedged_wording": false
+  },
+  {
+   "claim_id": "c2",
+   "claim_text": "The share of email tickets resolved within 24 hours fell from 71% in April to 64% in June.",
+   "claim_type": "statistical",
+   "risk_level": "medium",
+   "status": "supported",
+   "evidence_ids": [
+    "E_2336ba52_7012b67ea7",
+    "E_2336ba52_314dc8a645"
+   ],
+   "requires_hedged_wording": false
+  },
+  {
+   "claim_id": "c3",
+   "claim_text": "Across the quarter, email's median first response was 95 minutes against 5 minutes for chat and 3 minutes for phone, and its median satisfaction score was 3.90 against 4.20 and 4.40.",
+   "claim_type": "statistical",
+   "risk_level": "medium",
+   "status": "supported",
+   "evidence_ids": [
+    "E_2336ba52_99d274497f"
+   ],
+   "requires_hedged_wording": false
+  },
+  {
+   "claim_id": "c4",
+   "claim_text": "Chat handled 655 tickets in April and 748 in June while its median first response stayed between 4 and 6 minutes.",
+   "claim_type": "statistical",
+   "risk_level": "medium",
+   "status": "supported",
+   "evidence_ids": [
+    "E_2336ba52_ca83700421",
+    "E_2336ba52_1435856cb0"
+   ],
+   "requires_hedged_wording": false
+  },
+  {
+   "claim_id": "c5",
+   "claim_text": "Email tickets rose from 398 in May to 451 in June.",
+   "claim_type": "statistical",
+   "risk_level": "medium",
+   "status": "supported",
+   "evidence_ids": [
+    "E_2336ba52_5d7bdccf23",
+    "E_2336ba52_314dc8a645"
+   ],
+   "requires_hedged_wording": false
+  },
+  {
+   "claim_id": "c6",
+   "claim_text": "Two email agents moved to the chat queue at the start of June.",
+   "claim_type": "factual",
+   "risk_level": "low",
+   "status": "supported",
+   "evidence_ids": [
+    "E_6999f0bd_937237a938"
+   ],
+   "requires_hedged_wording": false
+  },
+  {
+   "claim_id": "c7",
+   "claim_text": "Chat moved to a 7x24 schedule in April 2026, while email and phone are staffed on weekdays only.",
+   "claim_type": "factual",
+   "risk_level": "low",
+   "status": "supported",
+   "evidence_ids": [
+    "E_6999f0bd_dfcdff8468"
+   ],
+   "requires_hedged_wording": false
+  },
+  {
+   "claim_id": "c8",
+   "claim_text": "Customer satisfaction comes from a post-ticket survey that fewer than one in five customers answer.",
+   "claim_type": "factual",
+   "risk_level": "medium",
+   "status": "supported",
+   "evidence_ids": [
+    "E_6999f0bd_a7444a21ae"
+   ],
+   "requires_hedged_wording": true
+  },
+  {
+   "claim_id": "c9",
+   "claim_text": "Ticket counts do not separate new customers from existing ones.",
+   "claim_type": "factual",
+   "risk_level": "low",
+   "status": "supported",
+   "evidence_ids": [
+    "E_6999f0bd_a7444a21ae"
+   ],
+   "requires_hedged_wording": false
+  },
+  {
+   "claim_id": "c10",
+   "claim_text": "The mean of the three channels' median first response rose from 33.67 minutes in April to 46.67 minutes in June, while the median across channels moved only from 4 to 6 minutes.",
+   "claim_type": "statistical",
+   "risk_level": "medium",
+   "status": "supported",
+   "evidence_ids": [
+    "E_2336ba52_2004dc1ca0"
+   ],
+   "requires_hedged_wording": false
+  },
+  {
+   "claim_id": "c11",
+   "claim_text": "The ticket sheet and memo use illustrative figures prepared for a training exercise.",
+   "claim_type": "factual",
+   "risk_level": "low",
+   "status": "supported",
+   "evidence_ids": [
+    "E_6999f0bd_c2bd31f07f"
+   ],
+   "requires_hedged_wording": false
+  },
+  {
+   "claim_id": "c12",
+   "claim_text": "A billing change on 3 June produced a spike of email questions about invoices.",
+   "claim_type": "factual",
+   "risk_level": "low",
+   "status": "supported",
+   "evidence_ids": [
+    "E_6999f0bd_937237a938"
+   ],
+   "requires_hedged_wording": false
+  }
+ ]
+}

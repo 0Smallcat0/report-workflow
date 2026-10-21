@@ -1,0 +1,10 @@
+{
+  "prompt": "根據量測資料與實驗講義，寫一份繁體中文的普通物理實驗報告：虎克定律與彈簧常數。",
+  "source_files": [
+    {"path": "彈簧量測.csv", "role": "source_data"},
+    {"path": "實驗講義.md", "role": "source_data"}
+  ],
+  "report_profile": "engineering_lab_report",
+  "title": "實驗三：虎克定律與彈簧常數",
+  "template_fields": {"course_name": "普通物理實驗", "date": "2026-10-21"}
+}

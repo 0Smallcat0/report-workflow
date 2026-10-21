@@ -1,0 +1,324 @@
+{
+ "sections": {
+  "executive_summary": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "Email is the channel under the most pressure, and it got worse in June."
+      },
+      {
+       "text": "Across the quarter its median first response was 95 minutes, against 5 minutes for chat and 3 minutes for phone, and its median satisfaction score was the lowest at 3.90.",
+       "claim_ids": [
+        "c3"
+       ],
+       "evidence_ids": [
+        "E_2336ba52_99d274497f"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "In June the median first response on email reached 131 minutes, up from 95 minutes in April.",
+       "claim_ids": [
+        "c1"
+       ],
+       "evidence_ids": [
+        "E_2336ba52_7012b67ea7",
+        "E_2336ba52_314dc8a645"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "A billing change on 3 June also produced a spike of email questions about invoices.",
+       "claim_ids": [
+        "c12"
+       ],
+       "evidence_ids": [
+        "E_6999f0bd_937237a938"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "Two email agents moved to the chat queue at the start of June, so the two agents should return to the email queue.",
+       "claim_ids": [
+        "c6"
+       ],
+       "evidence_ids": [
+        "E_6999f0bd_937237a938"
+       ],
+       "wording_strength": "hedged"
+      }
+     ]
+    }
+   ]
+  },
+  "findings": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "The gap between email and the other two channels is large in every measure."
+      },
+      {
+       "text": "Email's median first response over the quarter was 95 minutes, chat's 5 minutes and phone's 3 minutes, and email's median satisfaction score of 3.90 sat below chat at 4.20 and phone at 4.40.",
+       "claim_ids": [
+        "c3"
+       ],
+       "evidence_ids": [
+        "E_2336ba52_99d274497f"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "Email is the only channel where customers routinely wait more than an hour for a first answer."
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "[TABLE:E_2336ba52_99d274497f Ticket volume, first response and satisfaction by channel, April to June 2026]"
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "June is where email deteriorated."
+      },
+      {
+       "text": "Its median first response rose from 95 minutes in April to 131 minutes in June.",
+       "claim_ids": [
+        "c1"
+       ],
+       "evidence_ids": [
+        "E_2336ba52_7012b67ea7",
+        "E_2336ba52_314dc8a645"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "Over the same months the share of email tickets resolved within 24 hours fell from 71% to 64%.",
+       "claim_ids": [
+        "c2"
+       ],
+       "evidence_ids": [
+        "E_2336ba52_7012b67ea7",
+        "E_2336ba52_314dc8a645"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "Volume rose as well: email tickets went from 398 in May to 451 in June.",
+       "claim_ids": [
+        "c5"
+       ],
+       "evidence_ids": [
+        "E_2336ba52_5d7bdccf23",
+        "E_2336ba52_314dc8a645"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "Two causes are on record: two email agents moved to the chat queue at the start of June, and a billing change on 3 June produced a spike of email questions about invoices.",
+       "claim_ids": [
+        "c6",
+        "c12"
+       ],
+       "evidence_ids": [
+        "E_6999f0bd_937237a938"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "Slower answers and more tickets in the same month point to a capacity problem rather than a one-off delay."
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "Chat absorbed its own growth without slowing down."
+      },
+      {
+       "text": "Chat handled 655 tickets in April and 748 in June, and its median first response stayed between 4 and 6 minutes.",
+       "claim_ids": [
+        "c4"
+       ],
+       "evidence_ids": [
+        "E_2336ba52_ca83700421",
+        "E_2336ba52_1435856cb0"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "Chat moved to a 7x24 schedule in April 2026, while email and phone are staffed on weekdays only.",
+       "claim_ids": [
+        "c7"
+       ],
+       "evidence_ids": [
+        "E_6999f0bd_dfcdff8468"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "The chat queue therefore has headroom that the email queue does not."
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "Averages across channels hide where the problem sits."
+      },
+      {
+       "text": "The mean of the three channels' median first response rose from 33.67 minutes in April to 46.67 minutes in June, while the median across channels moved only from 4 to 6 minutes.",
+       "claim_ids": [
+        "c10"
+       ],
+       "evidence_ids": [
+        "E_2336ba52_2004dc1ca0"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "Almost all of that rise is email; a team-wide target would understate it."
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "[TABLE:E_2336ba52_2004dc1ca0 Ticket volume, first response and satisfaction by month, all channels]"
+      }
+     ]
+    }
+   ]
+  },
+  "limitations": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "Two gaps in the data limit how far these findings go."
+      },
+      {
+       "text": "Customer satisfaction comes from a post-ticket survey that fewer than one in five customers answer.",
+       "claim_ids": [
+        "c8"
+       ],
+       "evidence_ids": [
+        "E_6999f0bd_a7444a21ae"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "If unhappy customers answer more often, the satisfaction gap between email and the other channels is overstated, although the response-time gap does not depend on the survey."
+      },
+      {
+       "text": "Ticket counts also do not separate new customers from existing ones.",
+       "claim_ids": [
+        "c9"
+       ],
+       "evidence_ids": [
+        "E_6999f0bd_a7444a21ae"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "If the June email spike came mostly from new customers confused by the billing change, it may fade without extra staff, which would weaken the case for moving the agents back permanently."
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "The figures themselves are illustrative."
+      },
+      {
+       "text": "The ticket sheet and memo use illustrative figures prepared for a training exercise.",
+       "claim_ids": [
+        "c11"
+       ],
+       "evidence_ids": [
+        "E_6999f0bd_c2bd31f07f"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "The recommendation below should be checked against live queue data before it is acted on."
+      }
+     ]
+    }
+   ]
+  },
+  "recommendations": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "Email is the channel under the most pressure in Q2 2026: its median first response of 95 minutes is many times that of chat at 5 minutes and phone at 3 minutes.",
+       "claim_ids": [
+        "c3"
+       ],
+       "evidence_ids": [
+        "E_2336ba52_99d274497f"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "It is getting worse: email's median first response rose from 95 minutes in April to 131 minutes in June.",
+       "claim_ids": [
+        "c1"
+       ],
+       "evidence_ids": [
+        "E_2336ba52_7012b67ea7",
+        "E_2336ba52_314dc8a645"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "Its 24-hour resolution share fell from 71% to 64% over the same months.",
+       "claim_ids": [
+        "c2"
+       ],
+       "evidence_ids": [
+        "E_2336ba52_7012b67ea7",
+        "E_2336ba52_314dc8a645"
+       ],
+       "wording_strength": "hedged"
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "The two agents moved to chat in June should return to email.",
+       "claim_ids": [
+        "c6"
+       ],
+       "evidence_ids": [
+        "E_6999f0bd_937237a938"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "Chat kept its median first response between 4 and 6 minutes while handling 655 tickets in April and 748 in June, so it can spare the capacity.",
+       "claim_ids": [
+        "c4"
+       ],
+       "evidence_ids": [
+        "E_2336ba52_ca83700421",
+        "E_2336ba52_1435856cb0"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "Because the June spike may be partly a one-off from the billing change, review the email queue again at the end of July and keep the move only if the response time stays above its April level."
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

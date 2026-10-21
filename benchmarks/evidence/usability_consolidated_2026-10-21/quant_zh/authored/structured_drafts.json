@@ -1,0 +1,318 @@
+{
+ "sections": {
+  "summary": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "這份備忘錄檢驗低波動因子在台股大型股是否有效，以及結論在樣本外是否仍然成立。"
+      },
+      {
+       "text": "樣本內的結果明確：回看 12 個月時，低波動組合的夏普值為 0.81，高波動組合只有 0.17。",
+       "claim_ids": [
+        "c1"
+       ],
+       "evidence_ids": [
+        "E_d78b8cdf_f8a9f7175c",
+        "E_d78b8cdf_bc21185905"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "樣本外的低波動組合仍領先，但差距縮小，回看 12 個月為 0.48 對 0.11，回看 6 個月為 0.38 對 0.25。",
+       "claim_ids": [
+        "c3"
+       ],
+       "evidence_ids": [
+        "E_d78b8cdf_115acc15a5",
+        "E_d78b8cdf_b46017d066",
+        "E_d78b8cdf_22e09997da",
+        "E_d78b8cdf_2cc546b950"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "因此，低波動在風險調整後的優勢可以保留，但不能當成穩定的超額報酬來源。"
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "不成立的地方在報酬本身：樣本外回看 6 個月時，高波動組合的年化報酬為 8.9%，高於低波動組合的 6.4%。",
+       "claim_ids": [
+        "c4"
+       ],
+       "evidence_ids": [
+        "E_d78b8cdf_2cc546b950",
+        "E_d78b8cdf_22e09997da"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "主要的保留是樣本外期間短，而且測試的設定有限，下一步應先補上更多回看期間與組合檔數的測試，再決定是否採用。"
+      }
+     ]
+    }
+   ]
+  },
+  "question_and_data": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "研究問題是：在台股大型股中，過去波動較低的股票在扣除交易成本後，是否有較好的風險調整後報酬，而這個結果在樣本外是否成立。",
+       "claim_ids": [
+        "c12"
+       ],
+       "evidence_ids": [
+        "E_2c4ada37_b73b455a1b"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "股票池是市值前 150 大的上市股票，樣本內期間為 2012 年 1 月至 2019 年 12 月，樣本外期間為 2020 年 1 月至 2024 年 12 月。",
+       "claim_ids": [
+        "c7"
+       ],
+       "evidence_ids": [
+        "E_2c4ada37_7c1d1f7649"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "本備忘錄的數據是教學示範用的模擬回測，不代表任何真實投資組合。",
+       "claim_ids": [
+        "c11"
+       ],
+       "evidence_ids": [
+        "E_2c4ada37_2f36b072df"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "讀者若不同意這個樣本與期間的切法，後面的結論也就不適用。"
+      }
+     ]
+    }
+   ]
+  },
+  "method": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "組合在每月底建立，依過去 6 個月或 12 個月的日報酬標準差排序，最低 30 檔為低波動組合、最高 30 檔為高波動組合，組合內等權重並每月再平衡，交易成本以單邊 0.3% 從報酬中扣除。",
+       "claim_ids": [
+        "c8"
+       ],
+       "evidence_ids": [
+        "E_2c4ada37_2a6cabdaae"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "兩種回看期間分別在樣本內與樣本外各跑一次，所以每個組合共有四組結果可以比較。"
+      }
+     ]
+    }
+   ]
+  },
+  "results": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "樣本內兩種回看期間都支持低波動因子。"
+      },
+      {
+       "text": "回看 12 個月時，低波動組合的夏普值為 0.81，高波動組合為 0.17。",
+       "claim_ids": [
+        "c1"
+       ],
+       "evidence_ids": [
+        "E_d78b8cdf_f8a9f7175c",
+        "E_d78b8cdf_bc21185905"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "回看 6 個月時，兩者分別為 0.71 與 0.21。",
+       "claim_ids": [
+        "c2"
+       ],
+       "evidence_ids": [
+        "E_d78b8cdf_2a8e5a1f4c",
+        "E_d78b8cdf_5f3045d456"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "兩種設定的方向一致，代表樣本內的結果不是只靠某一個回看期間撐起來。"
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "這個優勢主要來自風險較低，而不是報酬較高。"
+      },
+      {
+       "text": "把四組結果合在一起看，低波動組合的年化波動中位數為 11.65%，高波動組合為 26.45%；最大回撤中位數分別為 -18.95% 與 -40.95%；年化報酬中位數則只差 8.55% 對 6.65%。",
+       "claim_ids": [
+        "c5"
+       ],
+       "evidence_ids": [
+        "E_d78b8cdf_494a49882e"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "換句話說，低波動組合少賠的部分比多賺的部分重要得多。"
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "[TABLE:E_d78b8cdf_494a49882e 低波動與高波動組合的報酬、波動與回撤（四組回測合併）]"
+      }
+     ]
+    }
+   ]
+  },
+  "robustness": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "樣本外的結果較弱，但方向沒有反轉。"
+      },
+      {
+       "text": "回看 12 個月時，樣本外低波動組合的夏普值為 0.48，高波動組合為 0.11；回看 6 個月時為 0.38 對 0.25。",
+       "claim_ids": [
+        "c3"
+       ],
+       "evidence_ids": [
+        "E_d78b8cdf_115acc15a5",
+        "E_d78b8cdf_b46017d066",
+        "E_d78b8cdf_22e09997da",
+        "E_d78b8cdf_2cc546b950"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "回看 6 個月的差距只剩 0.13，已經小到不足以作為決策依據。"
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "報酬面則在一個設定下反轉。"
+      },
+      {
+       "text": "樣本外回看 6 個月時，高波動組合的年化報酬為 8.9%，低波動組合為 6.4%。",
+       "claim_ids": [
+        "c4"
+       ],
+       "evidence_ids": [
+        "E_d78b8cdf_2cc546b950",
+        "E_d78b8cdf_22e09997da"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "圖 1 把四種設定並排，可以看到這是唯一一個高波動組合報酬較高的設定。"
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "[FIGURE:3]"
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "從樣本期間整體來看，樣本外的夏普值中位數為 0.32，低於樣本內的 0.46。",
+       "claim_ids": [
+        "c6"
+       ],
+       "evidence_ids": [
+        "E_d78b8cdf_423b7abb7d"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "所以樣本外表現變差是整體現象，不只發生在低波動組合。"
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "[TABLE:E_d78b8cdf_423b7abb7d 樣本內與樣本外的報酬、波動與夏普值（兩種組合合併）]"
+      }
+     ]
+    }
+   ]
+  },
+  "limitations": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "樣本外結果有一部分可能來自特定事件。"
+      },
+      {
+       "text": "研究筆記指出，2020 年疫情期間的反彈由高波動股帶動，是樣本外結果的主要來源之一。",
+       "claim_ids": [
+        "c9"
+       ],
+       "evidence_ids": [
+        "E_2c4ada37_c769db9272"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "若排除這段期間，樣本外的差距可能與上面不同，這份回測沒有做這個拆解。"
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "測試範圍也有限。"
+      },
+      {
+       "text": "回測只測了兩種回看期間，樣本外期間只有 5 年，交易成本也假設為固定。",
+       "claim_ids": [
+        "c10"
+       ],
+       "evidence_ids": [
+        "E_2c4ada37_46bc93d6c0"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "此外，數據是教學示範用的模擬回測，不代表任何真實投資組合。",
+       "claim_ids": [
+        "c11"
+       ],
+       "evidence_ids": [
+        "E_2c4ada37_2f36b072df"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "在補上更多設定與衝擊成本之前，這份結論只適合當作是否值得深入研究的依據。"
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

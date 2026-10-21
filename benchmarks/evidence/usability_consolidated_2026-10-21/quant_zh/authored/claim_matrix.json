@@ -1,0 +1,16 @@
+{
+  "claims": [
+    {"claim_id": "c1", "claim_text": "樣本內回看 12 個月時，低波動組合夏普值 0.81，高波動組合 0.17。", "claim_type": "statistical", "risk_level": "medium", "status": "supported", "evidence_ids": ["E_d78b8cdf_f8a9f7175c", "E_d78b8cdf_bc21185905"], "requires_hedged_wording": false},
+    {"claim_id": "c2", "claim_text": "樣本內回看 6 個月時，低波動組合夏普值 0.71，高波動組合 0.21。", "claim_type": "statistical", "risk_level": "medium", "status": "supported", "evidence_ids": ["E_d78b8cdf_2a8e5a1f4c", "E_d78b8cdf_5f3045d456"], "requires_hedged_wording": false},
+    {"claim_id": "c3", "claim_text": "樣本外低波動組合的夏普值仍較高，但差距縮小：回看 12 個月為 0.48 對 0.11，回看 6 個月為 0.38 對 0.25。", "claim_type": "statistical", "risk_level": "medium", "status": "supported", "evidence_ids": ["E_d78b8cdf_115acc15a5", "E_d78b8cdf_b46017d066", "E_d78b8cdf_22e09997da", "E_d78b8cdf_2cc546b950"], "requires_hedged_wording": false},
+    {"claim_id": "c4", "claim_text": "樣本外回看 6 個月時，高波動組合年化報酬 8.9%，高於低波動組合的 6.4%。", "claim_type": "statistical", "risk_level": "medium", "status": "supported", "evidence_ids": ["E_d78b8cdf_2cc546b950", "E_d78b8cdf_22e09997da"], "requires_hedged_wording": false},
+    {"claim_id": "c5", "claim_text": "低波動組合的優勢主要來自風險較低：年化波動中位數 11.65% 對 26.45%，最大回撤中位數 -18.95% 對 -40.95%，年化報酬中位數只差 8.55% 對 6.65%。", "claim_type": "statistical", "risk_level": "medium", "status": "supported", "evidence_ids": ["E_d78b8cdf_494a49882e"], "requires_hedged_wording": false},
+    {"claim_id": "c6", "claim_text": "樣本外的夏普值中位數為 0.32，低於樣本內的 0.46。", "claim_type": "statistical", "risk_level": "medium", "status": "supported", "evidence_ids": ["E_d78b8cdf_423b7abb7d"], "requires_hedged_wording": false},
+    {"claim_id": "c7", "claim_text": "股票池為市值前 150 大的上市股票，樣本內期間為 2012 年 1 月至 2019 年 12 月，樣本外期間為 2020 年 1 月至 2024 年 12 月。", "claim_type": "methodological", "risk_level": "low", "status": "supported", "evidence_ids": ["E_2c4ada37_7c1d1f7649"], "requires_hedged_wording": false},
+    {"claim_id": "c8", "claim_text": "每月底依過去 6 個月或 12 個月的日報酬標準差排序，最低 30 檔為低波動組合、最高 30 檔為高波動組合，等權重、每月再平衡，交易成本單邊 0.3%。", "claim_type": "factual", "risk_level": "low", "status": "supported", "evidence_ids": ["E_2c4ada37_2a6cabdaae"], "requires_hedged_wording": false},
+    {"claim_id": "c9", "claim_text": "2020 年疫情期間的反彈由高波動股帶動，是樣本外結果的主要來源之一。", "claim_type": "methodological", "risk_level": "medium", "status": "supported", "evidence_ids": ["E_2c4ada37_c769db9272"], "requires_hedged_wording": true},
+    {"claim_id": "c10", "claim_text": "回測只測了兩種回看期間，樣本外期間只有 5 年，交易成本假設固定。", "claim_type": "methodological", "risk_level": "low", "status": "supported", "evidence_ids": ["E_2c4ada37_46bc93d6c0"], "requires_hedged_wording": false},
+    {"claim_id": "c11", "claim_text": "本備忘錄的數據是教學示範用的模擬回測，不代表任何真實投資組合。", "claim_type": "factual", "risk_level": "low", "status": "supported", "evidence_ids": ["E_2c4ada37_2f36b072df"], "requires_hedged_wording": false},
+    {"claim_id": "c12", "claim_text": "研究問題是低波動股票在扣除交易成本後是否有較好的風險調整後報酬，以及樣本外是否成立。", "claim_type": "methodological", "risk_level": "low", "status": "supported", "evidence_ids": ["E_2c4ada37_b73b455a1b"], "requires_hedged_wording": false}
+  ]
+}

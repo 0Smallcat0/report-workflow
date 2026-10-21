@@ -1,0 +1,10 @@
+{
+  "sections": {
+    "summary": {"section_id": "summary", "goals": "先講結論：樣本內成立、樣本外變弱、主要保留。", "claim_ids": ["c1", "c3", "c4"], "paragraph_order": ["測了什麼、什麼成立", "什麼不成立與主要保留"], "figure_ids": []},
+    "question_and_data": {"section_id": "question_and_data", "goals": "說明問題與樣本。", "claim_ids": ["c12", "c7", "c11"], "paragraph_order": ["問題", "樣本與期間"], "figure_ids": []},
+    "method": {"section_id": "method", "goals": "說明組合建構與成本假設。", "claim_ids": ["c8"], "paragraph_order": ["排序與組合建構"], "figure_ids": []},
+    "results": {"section_id": "results", "goals": "樣本內的夏普值差距，以及差距來自風險較低。", "claim_ids": ["c1", "c2", "c5"], "paragraph_order": ["樣本內夏普值", "差距來自波動與回撤"], "figure_ids": []},
+    "robustness": {"section_id": "robustness", "goals": "樣本外是否成立，回看期間的影響。", "claim_ids": ["c3", "c4", "c6"], "paragraph_order": ["樣本外夏普值縮小", "回看 6 個月報酬反轉"], "figure_ids": ["3"]},
+    "limitations": {"section_id": "limitations", "goals": "樣本外結果的來源與測試範圍的限制。", "claim_ids": ["c9", "c10", "c11"], "paragraph_order": ["疫情反彈", "測試範圍"], "figure_ids": []}
+  }
+}

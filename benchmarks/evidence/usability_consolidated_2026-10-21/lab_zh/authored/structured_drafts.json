@@ -1,0 +1,296 @@
+{
+ "sections": {
+  "objectives": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "本實驗量測彈簧在不同負重下的伸長量，驗證伸長量與拉力成正比，並由斜率求出彈簧常數。",
+       "claim_ids": [
+        "c5"
+       ],
+       "evidence_ids": [
+        "E_7aedca59_707b997ec8"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "後面各節依序說明原理、量測方法、資料與計算，最後回答講義的兩個討論問題。"
+      }
+     ]
+    }
+   ]
+  },
+  "requirements": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "講義要回答兩個問題：伸長量與拉力是否成正比，以及三次量測之間的差異可能來自哪些因素。",
+       "claim_ids": [
+        "c9"
+       ],
+       "evidence_ids": [
+        "E_7aedca59_0c198908d9"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "第一個問題在「結果與討論」的第一段回答，第二個問題在同一節的第二段回答，計算過程則列在「計算與單位檢核」。"
+      }
+     ]
+    }
+   ]
+  },
+  "theory": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "在彈性限度內，彈簧的伸長量 x 與拉力 F 成正比，F = k x，其中 k 為彈簧常數；砝碼的重力為 F = m g，重力加速度取 g = 9.8 m/s²。",
+       "claim_ids": [
+        "c6"
+       ],
+       "evidence_ids": [
+        "E_7aedca59_5f49a4d0db"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "因此只要量出各負重下的伸長量，就能由 k = m g / x 逐組算出彈簧常數，並檢查各組是否一致。"
+      }
+     ]
+    }
+   ]
+  },
+  "apparatus": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "實驗使用的器材為彈簧一條、鐵架與夾具、50 g 砝碼六個，以及最小刻度 1 mm 的直尺。",
+       "claim_ids": [
+        "c7"
+       ],
+       "evidence_ids": [
+        "E_7aedca59_db7ef3df42"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "直尺的刻度決定了伸長量的讀數精度。"
+      }
+     ]
+    }
+   ]
+  },
+  "procedure": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "先將彈簧懸掛在鐵架上並記下未掛砝碼時指針的位置，之後每次增加一個 50 g 砝碼，靜止後讀取伸長量，每個質量重複量測 3 次並取平均值。",
+       "claim_ids": [
+        "c8"
+       ],
+       "evidence_ids": [
+        "E_7aedca59_4078ddc35d"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "最後以平均伸長量對拉力作圖並計算彈簧常數。"
+      }
+     ]
+    }
+   ]
+  },
+  "data": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "表 1 列出六種負重下三次量測的伸長量與平均值。"
+      },
+      {
+       "text": "負重從 50 g 增加到 300 g 時，平均伸長量從 2.0 cm 增加到 12.1 cm。",
+       "claim_ids": [
+        "c2"
+       ],
+       "evidence_ids": [
+        "E_94f564b3_fbf1000feb",
+        "E_94f564b3_b104374b20"
+       ],
+       "wording_strength": "hedged"
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "[TABLE:彈簧量測 各負重下三次量測的伸長量與平均值]"
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "圖 1 以砝碼質量為橫軸、平均伸長量為縱軸，六個點大致落在通過原點的直線上。"
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "[FIGURE:1]"
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "三次量測之間的差異在大負重時較明顯。"
+      },
+      {
+       "text": "250 g 的伸長讀數為 10.2、9.9、10.2 cm，300 g 為 12.0、12.3、12.0 cm，讀數之間的差異在各組中最大。",
+       "claim_ids": [
+        "c4"
+       ],
+       "evidence_ids": [
+        "E_94f564b3_2041300b99",
+        "E_94f564b3_b104374b20"
+       ],
+       "wording_strength": "hedged"
+      }
+     ]
+    }
+   ]
+  },
+  "calculations": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "每組的拉力以 F = m g 計算，彈簧常數以 k = F / x 計算，其中質量換算為公斤、伸長量換算為公尺，g 取 9.8 m/s²。",
+       "claim_ids": [
+        "c6"
+       ],
+       "evidence_ids": [
+        "E_7aedca59_5f49a4d0db"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "六組負重算出的彈簧常數介於 24.26 與 24.50 N/m 之間。",
+       "claim_ids": [
+        "c1"
+       ],
+       "evidence_ids": [
+        "E_D_spring_k"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "各組數值與單位列於表 2。"
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "[TABLE:E_D_spring_k 各負重下的拉力與彈簧常數]"
+      }
+     ]
+    }
+   ]
+  },
+  "results_discussion": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "伸長量與拉力成正比。"
+      },
+      {
+       "text": "負重從 50 g 增加到 300 g，平均伸長量從 2.0 cm 增加到 12.1 cm，負重與伸長量以大致相同的倍數增加。",
+       "claim_ids": [
+        "c2"
+       ],
+       "evidence_ids": [
+        "E_94f564b3_fbf1000feb",
+        "E_94f564b3_b104374b20"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "由各組算出的彈簧常數也幾乎相同，前四組都是 24.50 N/m，250 g 與 300 g 略降為 24.26 與 24.30 N/m。",
+       "claim_ids": [
+        "c3"
+       ],
+       "evidence_ids": [
+        "E_D_spring_k"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "因此在本實驗的負重範圍內，量測結果符合虎克定律。"
+      }
+     ]
+    },
+    {
+     "sentences": [
+      {
+       "text": "三次量測的差異主要來自讀數。"
+      },
+      {
+       "text": "250 g 的伸長讀數為 10.2、9.9、10.2 cm，300 g 為 12.0、12.3、12.0 cm，差異都在直尺的幾個最小刻度之內。",
+       "claim_ids": [
+        "c4"
+       ],
+       "evidence_ids": [
+        "E_94f564b3_2041300b99",
+        "E_94f564b3_b104374b20"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "負重較大時彈簧較難完全靜止，指針位置也較難判讀，這可能也是最後兩組彈簧常數略低的原因。"
+      },
+      {
+       "text": "若要降低差異，可以在讀數前等待更久，或改用更細的刻度。"
+      }
+     ]
+    }
+   ]
+  },
+  "conclusion": {
+   "paragraphs": [
+    {
+     "sentences": [
+      {
+       "text": "本實驗在 50 g 到 300 g 的負重範圍內，量得平均伸長量從 2.0 cm 增加到 12.1 cm。",
+       "claim_ids": [
+        "c2"
+       ],
+       "evidence_ids": [
+        "E_94f564b3_fbf1000feb",
+        "E_94f564b3_b104374b20"
+       ],
+       "wording_strength": "hedged"
+      },
+      {
+       "text": "由此算出的彈簧常數介於 24.26 與 24.50 N/m 之間，各組彼此一致，驗證了伸長量與拉力成正比。",
+       "claim_ids": [
+        "c1"
+       ],
+       "evidence_ids": [
+        "E_D_spring_k"
+       ],
+       "wording_strength": "hedged"
+      }
+     ]
+    }
+   ]
+  }
+ }
+}

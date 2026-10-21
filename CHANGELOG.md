@@ -1,5 +1,103 @@
 # Changelog
 
+## Unreleased
+
+Three usability passes on the same question — what stops an author between
+`start_report` and a document they can hand in — consolidated into one change,
+then checked by writing three new reports end to end on the result: a
+quantitative research memo (Chinese), an engineering lab report (Chinese) and a
+business report (English). On master, on the head of the first two passes and
+on the head of the third, none of the three publishes from the same authored
+files; here all three publish on the first pass with no refusal. Nothing here
+adds a gate, a profile or a public option, and the adversarial benchmark's
+verdicts are unchanged. Run record:
+`benchmarks/evidence/usability_consolidated_2026-10-21/`.
+
+### Fixed — what stopped a report
+
+- A numeric column named `units` marked a file mixed-unit and dropped every
+  numeric summary. 「每個擺長重複 5 次」 read as the rate 5 次/個, 「每月底依過去
+  6 個月」 as 6 個月/月, and `7x24` lost its 24; English function words ("and")
+  were read as units. Folding `7x24` now keeps every character offset, so
+  `check-draft` finds the same figures it did before.
+- FE misread a backtest's and a lab sheet's own vocabulary. 「樣本內」/「樣本外」
+  read as dataset scope; 「12 個月」 against `lookback_months` as a different
+  unit; 「回看 12 個月」 as not naming 回看月數, so the 12 had to come from the
+  Sharpe column; 「負重 50 g」 as not naming 砝碼質量_g; 「前四組」 as a count of
+  4; "resolved within 24 hours" as a 24 the row does not state, although the
+  column is `resolved_within_24h_pct`; a claim reporting the research question
+  as answered by nothing. Each still blocks its false twin: 年化報酬 10.8%
+  against a volatility of 10.8, 平均伸長 9.9 cm against the second trial's
+  9.9 cm, 48 hours, 24%, 實驗分三組.
+- 「每月…20%」 against evidence that itself says 每月 read as 20%/月, and a
+  paraphrase of a statistic whose figures all checked failed on vocabulary.
+- A failure routed back to an earlier stage kept the old baseline, so work
+  already written became a `scope_violation`; publish re-stamping `_contract`
+  was taken for the author editing a file. The repair scope spans the rewound
+  stages, editing an accepted artifact re-opens its stage, and the harness
+  hashes artifacts without the stamp.
+- `lint_artifacts` passed claim matrices that submission and FA refuse, and
+  the claim stage now refuses them too; revise_existing's pre-check refused
+  the documented `retitle`/`remove_section`, and FA ignored revision-plan
+  claim links.
+- The structured-drafts brief lists the sections to write without `cover`,
+  and SECTION_DRAFT and lint refused the draft for a missing `cover`.
+- academic_paper: the thesis is checked at the outline stage, missing author
+  metadata is named at start and can be supplied in `outline.json`, the
+  abstract labels the brief shows pass, keywords never come from another
+  project, a sentence may open with a spelled-out number.
+- A derivation that failed to register stayed in `derived_evidence.json` and
+  later stopped publish; a band printed `7.50–9` refused the author's `7.5-9`;
+  ratio and formula can read the cross tables intake built; a claim citing an
+  unregistered `E_D_` id is told so.
+- `remap_agent_artifacts` finds an earlier run in another workspace and copies
+  the files the current stage may write.
+- `check_environment`'s `required_preflight_decisions` lists only what needs
+  an answer; optional tools left out are skipped instead of refusing the start.
+
+### Fixed — what made the document worse than its sources
+
+- Every sentence restating the author's own files ended 「（本研究整理，計算附件
+  C4）」/"(compiled in this study, …)", pointing at a file the reader was not
+  sent and, after an image, costing the figure its caption. Only computed
+  figures carry a label now.
+- Placed tables printed raw headers (「年化報酬_pct 平均」, `review_count`);
+  chart titles did too. Both use the reader's words; the evidence keeps the
+  column names, so no id moves. A formula label naming its unit printed it
+  twice (「拉力 (N) (N)」).
+- An empty cover section after the front matter printed a 「封面」 chapter.
+- Starter figures: unplaced ones are neither demanded nor built; a computed
+  table's counts, shares and total row are not stacked; a chart with no values
+  is stopped; two or three crossed label columns (lookback × sample ×
+  portfolio) are a grid with one series per value, not an axis reading 6, 6, 6,
+  6, 12, …; a lab sheet plots measured against theory, or the mean of its
+  trials against the setting; Chinese renders on Linux.
+- Intake statistics that restated rows are gone: quartiles of two values,
+  one-row-per-group tables the outline then had to waive, the mean of a row
+  counter or of a design setting — including a setting crossed with two label
+  columns, which took the Sharpe ratio's slot in both memo tables — and a
+  "joinable" pair meeting on one median. An empty open band above the last
+  bucket edge is not a row.
+- Briefs carry their own profile's guidance only (a business report's
+  drafting brief 29 → 20 KB); `paper_spine`/`lab_spine` are no longer asked
+  for (a `paper_spine.contribution` already written still counts as the
+  thesis), and `results_mode` is shown only where it is read.
+  The questions a task asks start after the request's colon and lose a leading
+  "and". Heading numbers count the sections the document has.
+- Run directories use hyphens and no commas, so unquoted paths work.
+- `examples/source_to_report.py`, the README's first run, works again and CI
+  runs it.
+
+### Not taken from the three passes
+
+- `pearson_r` and `linear_fit` (#2): a new computation, not a repair; AGENTS.md
+  "Scope" puts that to the owner.
+- #3's preflight change: #1 had already made optional installs need no answer,
+  and moved them to `optional_preflight_decisions`.
+- The recorded runs under `benchmarks/evidence/usability_*` (about a hundred
+  logs and documents, several printing the recording machine's paths); the
+  pull requests keep their findings.
+
 ## 4.41.0 - 2026-10-21
 
 `check-draft`: the second check for a report that is already written. Where
@@ -94,131 +192,6 @@ again and arXiv answered 429. OpenAlex without a key allows about 100 searches a
 at midnight UTC, and a reference with no identifier takes one or two; a free
 key in `OPENALEX_API_KEY` raises that, and a spent budget is reported as
 `unreachable`, not as a missing reference.
-
-### Fixed — two more reports written through the pipeline, as a new user would
-
-An independent review of the 2026-10-19 audit: a Chinese proposal (visitor
-counts, a survey, a budget memo) and an English course paper (a 40-row survey
-and notes), each written from `start_report` to `publish_report`. Records,
-logs and the delivered documents: `benchmarks/evidence/usability_review_2026-10-20/`.
-
-- A derivation that failed to register stayed in `derived_evidence.json`, kept
-  its first position when registered again, and later stopped publish at
-  DERIVED_EVIDENCE from a file no stage lets the author edit. Failed requests
-  are no longer kept, and a re-registered id moves to its new position.
-- A band printed `7.50–9` refused the author's `7.5-9`.
-- The claim stage now refuses a claim type its evidence does not allow and a
-  non-publishable status, which FA used to find after the drafts.
-- Editing an accepted artifact during a later authoring stage (as lint
-  advised) was a scope violation asking for content the pipeline had
-  rewritten; the run now re-opens the owning stage and validates again.
-- Heading numbers skipped an omitted optional section (5, then 7).
-- The drafts brief shows `structured_drafts.json` first.
-- `check_environment`'s `required_preflight_decisions` lists only what needs an
-  answer; optional items move to `optional_preflight_decisions`.
-- Starter charts of computed tables no longer stack counts, shares, means and
-  the total row, or read the table's own label as a composition.
-- A new draft with no title and no cover section is named at start.
-- academic_paper: the thesis is checked at the outline stage and
-  `paper_spine.contribution` counts as it; missing author metadata is named at
-  start and can be supplied as `front_matter` in `outline.json`; the abstract
-  labels the brief shows (`**Background:**`) pass; a sentence may open with a
-  spelled-out number; keywords are never filled from another project's list.
-- FIGURE_QUALITY accepts the figure number the document prints, counts a
-  titled plan entry as captioned, and names its issues instead of `[None]`.
-- A chart with no values to plot is stopped at FIGURE_PLAN_AUDIT.
-- A claim citing an unregistered `E_D_` id is told so, not sent to remap.
-
-### Fixed — three real reports written through the pipeline, and what stopped them
-
-A Chinese lab report from a CSV and notes, an English business report from a
-sales sheet and a memo, and a revision of an existing Chinese progress report,
-each driven step by step through the controlled harness on HEAD, on v4.29.1,
-and on this change. Records and deliverables:
-`benchmarks/evidence/usability_audit_2026-10-19/`.
-
-- A numeric column named `units` was read as a unit-of-measure column, the file
-  was declared mixed-unit, and every numeric summary and every auto cross-table
-  measure was dropped (`2ad0542`). A sales sheet reached the author as row
-  counts of a balanced design.
-- 「每個擺長重複 5 次」 was read as the rate 5 次/個 (`899e086`), so the claim
-  restating it was blocked by FE and FS. 每 + a counting classifier followed by
-  its noun no longer forms a rate; 每噸, 每人 still do.
-- `7x24` lost its 24 and `7×24` in a claim was blocked; English function words
-  ("and", "with") are no longer read as units. The engineering audit folds the
-  same spellings.
-- SKILL.md's own preflight record (`"install_decisions": {}`) was refused for
-  the optional `mmdc`. Optional installs left out are skipped; the skill docs
-  no longer tell the agent to re-ask every optional question before each report.
-- The outline brief sent `engineering_lab_report` authors to
-  `sections.results.results_mode`, a section that profile does not have. The
-  brief, the outline check and QA_GATE now read the profile's results section
-  (`results_discussion`).
-- A failure routed back to an earlier stage kept the old baseline, so drafts
-  already written became a `scope_violation`, and only the earlier stage's file
-  was writable though the message named both. The repair scope now spans the
-  rewound stages, and editing after a `publish_report` failure re-opens the
-  owning stage instead of refusing.
-- `lint_artifacts` passed claim matrices that submission and FA refuse (no
-  primary claim, a non-publishable status, a claim type the evidence does not
-  allow), and reported not-yet-due drafts as missing. It now applies the same
-  rules and lints only the stages reached.
-- revise_existing: the pre-check refused the documented `retitle` and
-  `remove_section`; FA ignored the claim links in `revision_plan.json`; the
-  failure message gave counts without reasons.
-- Starter figures no section placed were still built, and POST_RENDER blocked on
-  them; an edited plan made every leftover suggestion mandatory.
-- Charts drew Chinese as boxes on Linux with WenQuanYi installed; a caption
-  written 「表 1　…」 (authoring.md's own form) was numbered twice.
-
-### Fixed — generating a report got harder, and three things were why
-
-Three reports driven end to end through the controlled harness — a business
-report, a quantitative research memo and a Chinese lab report — took 2, 4 and 3
-attempts. The causes, in the order they cost the most:
-
-- **Every sentence carried a label.** A sentence restating a row or a paragraph
-  of the author's own files ended `(compiled in this study, calculation record
-  C4)` / `（本研究整理，計算附件 C4）`: 44 labels across the three documents,
-  quoting the author's own notes as "compiled in this study" and pointing at a
-  file the reader was not sent. Appended after an image, the label also cost the
-  figure its caption, and publish stopped on "figure references without matching
-  captions". Only a computed figure is labelled now; the trace of the rest is in
-  the QA note, as before. A structured-draft lead-in followed by its
-  `[FIGURE:]` takes its citation on the lead-in.
-- **The harness refused the pipeline's own rewrite.** Publish re-stamps the
-  `_contract` of accepted artifacts; after a failed publish every later submit
-  was a scope violation, and putting the file back — the advice given — was
-  undone by the next publish. The harness hashes artifacts without the stamp.
-- **FE blocked a backtest's own vocabulary.** 「樣本內」/「樣本外」 and
-  in-sample/out-of-sample read as claims about the whole dataset, so a quant
-  memo could not cite the row it restated; and 「12 個月」 against a
-  `lookback_months` column was "a unit the evidence does not state". Durations
-  now alias across Chinese and English (個月/months, 年/years, 天/days, …).
-
-What else stood between a request and a document, fixed in the same pass:
-
-- **Briefs carried every profile.** Admissions, lab, academic-methods,
-  results-mode, facts-freeze and project-identity guidance went to every
-  author, the registration guide was printed twice, and the outline asked for
-  `paper_spine`/`lab_spine`, which nothing reads. The three test reports' briefs
-  went from 57, 57 and 55 KB to 40, 45 and 45 KB.
-- **Statistics that restated rows.** Quartiles of two values, a one-row-per-group
-  table the outline then had to place or waive, a mean of a trial counter and of
-  a backtest's lookback setting, and a "joinable" pair meeting on one median.
-- **Charts of settings.** A backtest table was recommended as a bar chart with
-  the lookback as a series and `in_sample` three times on the axis; a lab sheet
-  as capacitance against resistance. Now: one bar group per lookback and one
-  series per sample period, and measured against theoretical.
-- **Two more FE misfires.** 「每月…前 20%」 against evidence that itself says
-  每月 read as 20%/月, and a paraphrase of a statistic whose figures all
-  checked failed on vocabulary. The adversarial benchmark is unchanged.
-- **Preflight and paths.** Optional tools (mmdc, notebooklm-py) no longer need
-  a "skip" before every run, and run directories use hyphens, not spaces.
-
-`examples/source_to_report.py`, the run the README sends a new user to, had
-failed since the business report gained its counter-evidence section; it runs
-again and CI now runs it.
 
 ### Measured — the tool arm re-records after a month in which it could not be recorded at all
 
