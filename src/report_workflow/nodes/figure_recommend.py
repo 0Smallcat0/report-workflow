@@ -5,6 +5,7 @@ author prose; it recommends chart types from table-shaped evidence.
 """
 from __future__ import annotations
 
+import itertools
 import re
 from pathlib import Path
 from typing import Any
@@ -528,6 +529,31 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
             "unparsed_cell_count": len(unparsed),
         })
 
+    # A setting the rows were laid out over: every lookback (3, 6, 12) once per
+    # sample period. It varies, so it read as a measure and was drawn as a bar
+    # series beside the returns it parameterises. Crossed with a label column
+    # it names each row exactly once, which no observed quantity does.
+    for column in columns:
+        if column["role"] != "numeric_measure":
+            continue
+        values = [_clean_text(value) for value in _column_values(rows, int(column["index"]))]
+        counts: dict[str, int] = {}
+        for value in values:
+            counts[value] = counts.get(value, 0) + 1
+        if len(counts) < 2 or "" in counts or len(set(counts.values())) != 1 or min(counts.values()) < 2:
+            continue
+        for other in columns:
+            if other is column or other["role"] != "categorical":
+                continue
+            other_values = [_clean_text(value) for value in _column_values(rows, int(other["index"]))]
+            if (
+                len(set(other_values)) * len(counts) == len(data_rows)
+                and len(set(zip(values, other_values))) == len(data_rows)
+            ):
+                column["role"] = "categorical"
+                column["design_factor"] = True
+                break
+
     composition_total: float | None = None
     for column in columns:
         if column["role"] != "numeric_measure":
@@ -791,6 +817,84 @@ def _row_totals_are_composition_like(rows: list[list[str]], numeric_indices: lis
     return all(99 <= total <= 101 or 0.99 <= total <= 1.01 for total in totals)
 
 
+def _crossed_label_pair(rows: list[list[str]], label_indices: list[int]) -> tuple[int, int] | None:
+    """Two label columns whose pairs name each row once, when no single one does.
+
+    Returned as (axis, series): the column with more values along the axis.
+    """
+    data_rows = rows[1:]
+    columns = {index: [_clean_text(row[index] if index < len(row) else "") for row in data_rows] for index in label_indices}
+    if any(len(set(values)) == len(data_rows) for values in columns.values()):
+        return None
+    for left, right in itertools.combinations(label_indices, 2):
+        pairs = set(zip(columns[left], columns[right]))
+        if len(pairs) == len(data_rows) and len(set(columns[left])) * len(set(columns[right])) == len(data_rows):
+            if len(set(columns[right])) > len(set(columns[left])):
+                left, right = right, left
+            return left, right
+    return None
+
+
+def _pivot_payload(rows: list[list[str]], label_index: int, series_index: int, value_index: int) -> dict:
+    data_rows = rows[1:MAX_CHART_ROWS + 1]
+    labels: list[str] = []
+    series_names: list[str] = []
+    cells: dict[tuple[str, str], float] = {}
+    for row in data_rows:
+        label = _clean_text(row[label_index] if label_index < len(row) else "")
+        name = _clean_text(row[series_index] if series_index < len(row) else "")
+        if label not in labels:
+            labels.append(label)
+        if name not in series_names:
+            series_names.append(name)
+        cells[(label, name)] = _to_float(row[value_index] if value_index < len(row) else "") or 0
+    if all(_to_float(label) is not None for label in labels):
+        labels.sort(key=lambda label: _to_float(label) or 0)
+    return {
+        "labels": labels,
+        "series": [
+            {"name": name, "values": [cells.get((label, name), 0) for label in labels]}
+            for name in series_names
+        ],
+        "series_label": _clean_text(rows[0][series_index]),
+    }
+
+
+#: Words that say which side of a comparison a column is on. Stripped, two
+#: headers that are left with the same name measure the same quantity.
+_COMPARISON_SIDE_TERMS = {
+    "theoretical", "theory", "expected", "predicted", "calculated", "calc", "nominal", "model",
+    "measured", "actual", "observed", "experimental", "exp", "meas",
+    "理論", "理論值", "預期", "預測", "計算", "實測", "量測", "實驗", "觀測",
+}
+_REFERENCE_SIDE_TERMS = {
+    "theoretical", "theory", "expected", "predicted", "calculated", "calc", "nominal", "model",
+    "理論", "理論值", "預期", "預測", "計算",
+}
+
+
+def _paired_measure_indices(headers: list[str], indices: list[int]) -> tuple[int, int] | None:
+    """The theory-versus-measurement pair, when the table has one.
+
+    A lab sheet of resistance, capacitance, theoretical τ and measured τ was
+    drawn as capacitance against resistance — two settings, plotted as if one
+    caused the other. The pair a reader wants is the one whose names differ only
+    by which side of the comparison they are on; the reference goes on x.
+    """
+    def parts(header: str) -> tuple[set[str], set[str]]:
+        tokens = {token for token in re.split(r"[\s_\-()（）/]+", header.casefold()) if token}
+        return tokens & _COMPARISON_SIDE_TERMS, tokens - _COMPARISON_SIDE_TERMS
+
+    for left, right in itertools.combinations(indices, 2):
+        left_side, left_rest = parts(headers[left])
+        right_side, right_rest = parts(headers[right])
+        if left_side and right_side and left_side != right_side and left_rest and left_rest == right_rest:
+            if right_side & _REFERENCE_SIDE_TERMS and not left_side & _REFERENCE_SIDE_TERMS:
+                left, right = right, left
+            return left, right
+    return None
+
+
 def _grouped_numeric_series(rows: list[list[str]], group_index: int, value_index: int) -> list[dict]:
     grouped: dict[str, list[float]] = {}
     for row in rows[1:MAX_CHART_ROWS + 1]:
@@ -888,6 +992,13 @@ def _human_figure_title(
         columns = [_clean_text(str(c)) for c in data.get("columns", []) if _clean_text(str(c))]
     subject = ", ".join(series_names[:3]) or _clean_text(ylabel)
     group = _clean_text(xlabel) or (columns[0] if columns else "")
+    # A grid's series are values of a second label column, not measures:
+    # "in_sample, out_of_sample by lookback" names no quantity at all.
+    series_label = _clean_text(str(data.get("series_label") or "")) if isinstance(data, dict) else ""
+    if series_label and ylabel and group:
+        if CJK_RE.search(ylabel + group + series_label):
+            return f"{ylabel}(依{group}與{series_label}){transform_label}"
+        return f"{ylabel} by {group} and {series_label}{transform_label}"
     measures = [column for column in columns[1:] if column != group]
     if not subject and measures:
         # Joining two column headers is a column dump, not a caption
@@ -1222,7 +1333,10 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
             selection_warnings=warnings,
         )
 
-    if categorical_indices and len(measure_indices) == 1:
+    # Rows a second label column tells apart are not repeated measurements: a
+    # boxplot of three returns per lookback hides that each is a different
+    # sample period.
+    if categorical_indices and len(measure_indices) == 1 and not _crossed_label_pair(rows, categorical_indices):
         cat_index = categorical_indices[0]
         value_index = measure_indices[0]
         grouped_series = _grouped_numeric_series(rows, cat_index, value_index)
@@ -1338,6 +1452,36 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
             selection_warnings=warnings,
         )
 
+    crossed = _crossed_label_pair(rows, categorical_indices)
+    value_indices = relationship_indices or composition_indices
+    if crossed and value_indices:
+        # Two label columns that together name each row — lookback by sample
+        # period — are a grid, not a list: one measure, one bar group per value
+        # of the first, one series per value of the second. Drawn as a list it
+        # repeated "in_sample" three times along the axis.
+        label_index, series_index = crossed
+        value_index = value_indices[0]
+        reason = (
+            "Two label columns that together identify each row compare one measure "
+            "across a grid: one bar group per value of the first, one series per value of the second."
+        )
+        chart_candidates.append(_chart_candidate("bar", 0.88, "high", reason))
+        return _make_recommendation(
+            state,
+            table,
+            rec_index,
+            "bar",
+            ["bar"],
+            "high",
+            reason,
+            _pivot_payload(rows, label_index, series_index, value_index),
+            xlabel=headers[label_index],
+            ylabel=headers[value_index],
+            data_profile=profile,
+            chart_candidates=chart_candidates,
+            selection_warnings=warnings,
+        )
+
     if categorical_indices and (measure_indices or composition_indices):
         cat_index = _distinct_label_index(rows, categorical_indices)
         y_indices = (relationship_indices or composition_indices)[:3]
@@ -1360,7 +1504,7 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
         )
 
     if len(relationship_indices) >= 2 and len(rows) - 1 >= 3:
-        x_index, y_index = relationship_indices[:2]
+        x_index, y_index = _paired_measure_indices(headers, relationship_indices) or relationship_indices[:2]
         reason = (
             "Two numeric measurement variables across multiple observations are suited "
             "to scatter plots for relationship inspection."
