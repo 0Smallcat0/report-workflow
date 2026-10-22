@@ -1,12 +1,12 @@
 # Changelog
 
-## Unreleased
+## 4.41.1 - 2026-10-22
 
 Three usability passes on the same question — what stops an author between
 `start_report` and a document they can hand in — consolidated into one change,
 then checked by writing three new reports end to end on the result: a
 quantitative research memo (Chinese), an engineering lab report (Chinese) and a
-business report (English). On master, on the head of the first two passes and
+business report (English). On 4.41.0, on the head of the first two passes and
 on the head of the third, none of the three publishes from the same authored
 files; here all three publish on the first pass with no refusal. Nothing here
 adds a gate, a profile or a public option, and the adversarial benchmark's
