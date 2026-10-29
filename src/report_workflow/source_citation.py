@@ -279,4 +279,7 @@ def merge_adjacent_parentheticals(text: str) -> str:
 
     text = _ADJACENT_LATIN_RE.sub(lambda m: merge(m, "(", ")", "; ", _LATIN_PAREN), text)
     text = _ADJACENT_CJK_RE.sub(lambda m: merge(m, "（", "）", "；", _CJK_PAREN), text)
-    return _ADJACENT_MIXED_RE.sub(merge_mixed, text)
+    text = _ADJACENT_MIXED_RE.sub(merge_mixed, text)
+    # A full-width bracket closes up to the text before it; after a Latin unit
+    # the space the marker was inserted with printed "3,520 kWp （林菁樺，2025）".
+    return re.sub(rf"[ \t]+({_CJK_PAREN})", r"\1", text)

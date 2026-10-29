@@ -162,6 +162,10 @@ class FormatterTests(unittest.TestCase):
             merge_adjacent_parentheticals("50% (Kahana, 2026; Tsanakas, 2025)（林菁樺，2025）。"),
             "50%（Kahana, 2026；Tsanakas, 2025；林菁樺，2025）。",
         )
+        self.assertEqual(
+            merge_adjacent_parentheticals("容量為 3,520 kWp （林菁樺，2025）。"),
+            "容量為 3,520 kWp（林菁樺，2025）。",
+        )
 
     def test_a_year_letter_without_its_pair_is_dropped(self):
         from report_workflow.nodes.citation_bind import drop_unpaired_year_suffixes
