@@ -247,6 +247,8 @@ _LATIN_PAREN = r"\([^()（）]*?,\s*(?:\d{4}[a-z]?|n\.d\.(?:-[a-z])?)\)"
 _CJK_PAREN = r"（[^()（）]*?，\s*(?:\d{4}[a-z]?|無日期(?:-?[a-z])?)）"
 _ADJACENT_LATIN_RE = re.compile(rf"({_LATIN_PAREN})(?:\s*;?\s*({_LATIN_PAREN}))+")
 _ADJACENT_CJK_RE = re.compile(rf"({_CJK_PAREN})(?:\s*[;；]?\s*({_CJK_PAREN}))+")
+_ANY_PAREN = rf"(?:{_LATIN_PAREN}|{_CJK_PAREN})"
+_ADJACENT_MIXED_RE = re.compile(rf"[ \t]*{_ANY_PAREN}(?:\s*[;；]?\s*{_ANY_PAREN})+")
 
 
 def merge_adjacent_parentheticals(text: str) -> str:
@@ -254,7 +256,9 @@ def merge_adjacent_parentheticals(text: str) -> str:
 
     Two sentences' worth of evidence from two sources resolve to two separate
     parentheticals side by side, which APA writes as one. Only the plain
-    author-year shape is merged, in one bracket style at a time.
+    author-year shape is merged. A Chinese and an English work cited together
+    printed as "（林菁樺，2025） (Tsanakas, 2025)"; a run that still mixes the
+    two styles becomes one full-width bracket, as Chinese text writes it.
     """
 
     def merge(match: re.Match, opener: str, closer: str, separator: str, inner_re: str) -> str:
@@ -265,5 +269,14 @@ def merge_adjacent_parentheticals(text: str) -> str:
                 items.append(inner)
         return opener + separator.join(items) + closer
 
+    def merge_mixed(match: re.Match) -> str:
+        items: list[str] = []
+        for token in re.findall(_ANY_PAREN, match.group(0)):
+            for item in re.split(r"；|;\s*", token[1:-1]):
+                if item.strip() and item.strip() not in items:
+                    items.append(item.strip())
+        return "（" + "；".join(items) + "）"
+
     text = _ADJACENT_LATIN_RE.sub(lambda m: merge(m, "(", ")", "; ", _LATIN_PAREN), text)
-    return _ADJACENT_CJK_RE.sub(lambda m: merge(m, "（", "）", "；", _CJK_PAREN), text)
+    text = _ADJACENT_CJK_RE.sub(lambda m: merge(m, "（", "）", "；", _CJK_PAREN), text)
+    return _ADJACENT_MIXED_RE.sub(merge_mixed, text)

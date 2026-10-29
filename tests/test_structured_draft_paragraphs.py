@@ -51,6 +51,15 @@ class StructuredDraftParagraphTests(unittest.TestCase):
         rows = load_jsonl_without_contract(result.drafts["sentence_map_path"])
         self.assertEqual([(row["sentence_id"], row["claim_ids"]) for row in rows], [("results_1", ["c1"]), ("results_2", ["c2"])])
 
+    def test_a_bold_chinese_lead_in_is_followed_without_a_space(self):
+        state = _state()
+        _write(state, {"paragraphs": [{"sentences": [
+            {"text": "**出廠就多排。**"},
+            {"text": "電動車出廠時多排 3.6 t。", "claim_ids": ["c1"], "evidence_ids": ["E001"]},
+        ]}]})
+        text = Path(run_section_draft(state).drafts["section_drafts"]["results"]).read_text(encoding="utf-8")
+        self.assertIn("**出廠就多排。**電動車出廠時多排 3.6 t [CITE:E001]。", text)
+
     def test_english_sentences_are_joined_with_a_space_and_a_block_cannot_share_a_paragraph(self):
         state = _state()
         _write(state, {"paragraphs": [{"sentences": [

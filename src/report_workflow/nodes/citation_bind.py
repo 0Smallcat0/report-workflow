@@ -599,6 +599,43 @@ def merge_adjacent_trace_labels(text: str) -> str:
     return _CITATION_RUN_RE.sub(merge, text)
 
 
+#: The date of an APA entry that carries a disambiguating letter:
+#: 謝怡璇（2026b）。, Bellini, E. (2026b)., 環境部（無日期-a）。, DOE. (n.d.-a).
+_SUFFIXED_DATE_RE = re.compile(r"[（(](\d{4}|n\.d\.|無日期)-?([a-z])[）)]")
+
+
+def drop_unpaired_year_suffixes(body: str, refs: list[str]) -> tuple[str, list[str]]:
+    """A 2026b whose 2026a is not in the reference list loses its letter.
+
+    The letter tells apart two works by one author in one year, and authors
+    declare it across their whole source set. When only one of the pair is
+    cited, the published text read "謝怡璇，2026b" against a list with no
+    2026a — to a reader, a missing entry. The letter is dropped from the entry
+    and from the in-text citations that name the same author.
+    """
+    groups: dict[tuple[str, str], list[int]] = {}
+    for index, ref in enumerate(refs):
+        match = _SUFFIXED_DATE_RE.search(ref)
+        if match:
+            author = ref[:match.start()].strip().rstrip(".")
+            groups.setdefault((author, match.group(1)), []).append(index)
+    refs = list(refs)
+    for (author, base), indices in groups.items():
+        if len(indices) != 1:
+            continue
+        ref = refs[indices[0]]
+        match = _SUFFIXED_DATE_RE.search(ref)
+        suffixed = match.group(0)[1:-1]
+        refs[indices[0]] = ref[:match.start() + 1] + base + ref[match.end() - 1:]
+        name = re.split(r"[,，、]", author)[0].strip()
+        body = re.sub(
+            rf"({re.escape(name)}[^（）()；;\n]{{0,40}}?(?:[，,]\s*|[（(])){re.escape(suffixed)}(?![a-z])",
+            lambda m: m.group(1) + base,
+            body,
+        )
+    return body, refs
+
+
 _UNIT_HEADER_RE = re.compile(r"^(?:單位|单位|計量單位|计量单位|units?|uom)$", re.IGNORECASE)
 _SOURCE_HEADER_RE = re.compile(r"(?:出處|出处|來源|来源|source|reference|citation)", re.IGNORECASE)
 
@@ -1647,6 +1684,9 @@ def run_citation_bind(state: ReportState) -> ReportState:
         if entry.strip().casefold() not in seen_refs:
             seen_refs.add(entry.strip().casefold())
             literature_refs.append(entry)
+
+    if citation_style != "gb_t_7714_2015":
+        stripped_md, literature_refs = drop_unpaired_year_suffixes(stripped_md, literature_refs)
 
     publication_refs_md = ""
     if literature_refs and citation_style == "gb_t_7714_2015":

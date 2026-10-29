@@ -96,8 +96,10 @@ def _structured_sections(payload: dict) -> dict[str, dict]:
 _BLOCK_LINE_RE = re.compile(r"^\s*(?:#{1,6}\s|\[(?:TABLE|FIGURE):|!\[|```|\||\$\$)")
 
 #: Characters after which the next sentence follows with no space: Chinese and
-#: Japanese sentences are not separated by one.
-_NO_SPACE_AFTER = re.compile(r"[　-〿㐀-鿿＀-￯]$")
+#: Japanese sentences are not separated by one. A bold lead-in such as
+#: "**災後一次湧出。**" ends in emphasis markers, which hid the 。 and put a
+#: space before the next sentence.
+_NO_SPACE_AFTER = re.compile(r"[　-〿㐀-鿿＀-￯][*_]*$")
 
 
 def section_paragraphs(section: dict, section_id: str) -> list[list[tuple[str, dict]]]:

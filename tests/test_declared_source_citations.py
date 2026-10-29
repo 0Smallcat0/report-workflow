@@ -153,6 +153,32 @@ class FormatterTests(unittest.TestCase):
             "0.467（經濟部能源署，2026；經濟部，2026a）。",
         )
 
+    def test_a_chinese_and_an_english_citation_share_one_bracket(self):
+        self.assertEqual(
+            merge_adjacent_parentheticals("只有 10 到 15 年（林菁樺，2025） (Tsanakas, 2025)。"),
+            "只有 10 到 15 年（林菁樺，2025；Tsanakas, 2025）。",
+        )
+        self.assertEqual(
+            merge_adjacent_parentheticals("50% (Kahana, 2026; Tsanakas, 2025)（林菁樺，2025）。"),
+            "50%（Kahana, 2026；Tsanakas, 2025；林菁樺，2025）。",
+        )
+
+    def test_a_year_letter_without_its_pair_is_dropped(self):
+        from report_workflow.nodes.citation_bind import drop_unpaired_year_suffixes
+
+        body = "高峰（謝怡璇，2026b；環境部資源循環署，無日期-a）。另見 (Bellini, 2026a; Bellini, 2026b)。"
+        refs = [
+            "謝怡璇（2026b）。經部電力供需報告。*中央社*。",
+            "環境部資源循環署（無日期-a）。廢太陽光電板回收處理說明。",
+            "Bellini, E. (2026a). First. *pv magazine*.",
+            "Bellini, E. (2026b). Second. *pv magazine*.",
+        ]
+        body, refs = drop_unpaired_year_suffixes(body, refs)
+        self.assertEqual(body, "高峰（謝怡璇，2026；環境部資源循環署，無日期）。另見 (Bellini, 2026a; Bellini, 2026b)。")
+        self.assertEqual(refs[0], "謝怡璇（2026）。經部電力供需報告。*中央社*。")
+        self.assertEqual(refs[1], "環境部資源循環署（無日期）。廢太陽光電板回收處理說明。")
+        self.assertEqual(refs[2:], ["Bellini, E. (2026a). First. *pv magazine*.", "Bellini, E. (2026b). Second. *pv magazine*."])
+
 
 class InputSurfaceTests(unittest.TestCase):
     def test_the_agent_surface_keys_citations_like_roles(self):

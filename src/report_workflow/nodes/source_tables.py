@@ -205,6 +205,11 @@ def _display_width(text: str) -> int:
 #: "電池容" / "量" — reads as two words. Longer runs wrap anywhere.
 WHOLE_TERM_CHARACTERS = 5
 
+#: A Chinese cell no wider than this stays on one line. Word breaks Chinese
+#: between any two characters, so a short label that wraps at all splits a
+#: word: 「第 1–6 個」/「月」, 「二手板缺少證」/「據」.
+SHORT_CJK_CELL_COLUMNS = 20
+
 
 def _atoms(text: str, latin_columns: float) -> list[tuple[float, bool]]:
     """A cell's text as the pieces a line breaks between: (display columns, follows a space)."""
@@ -291,13 +296,19 @@ def _column_dashes(headers: list[str], rows: list[list[str]]) -> list[int]:
                              *(_lines_at(cell, width) for cell in cells[index]))
         return measured[key]
 
+    short_cjk = [[bool(CJK_RE.search(str(cell))) and _display_width(cell) <= SHORT_CJK_CELL_COLUMNS
+                  for cell in cells[index]] for index in range(count)]
+
     def height(units: list[float]) -> float:
         columns = [column_lines(index, units[index]) for index in range(count)]
         lines_by_row = list(zip(*columns))
         # Row heights are what the page pays for; every wrapped cell still
-        # breaks ties between layouts that are equally tall.
+        # breaks ties between layouts that are equally tall. A short Chinese
+        # cell that wraps splits a word, which costs as much as a line.
         tall = sum(max(row) for row in lines_by_row)
-        return tall + 0.1 * sum(map(sum, columns))
+        split = sum(1 for index in range(count) for short, lines in zip(short_cjk[index], columns[index][1:])
+                    if short and lines > 1)
+        return tall + split + 0.1 * sum(map(sum, columns))
 
     if sum(natural) <= available:
         units = natural
