@@ -1517,7 +1517,7 @@ Use this deterministic chart-selection guidance when deciding `figure_ids` and f
 
 {outline_obligations}## Hard Rules
 - Assign every claim to at least one non-reference/non-appendix section.
-- Use only section IDs defined by the blueprint.
+- Use only section IDs defined by the blueprint. When the user's form fixes a chapter name, set that section's `"title"`; it replaces the blueprint heading.
 - Use only claim IDs from `claim_matrix.json`.
 {results_mode_rule}{thesis_rule}{front_matter_rule}
 - The outline should create a real argument path: problem/gap/objective before methods, results before interpretation, and limitations before conclusion.

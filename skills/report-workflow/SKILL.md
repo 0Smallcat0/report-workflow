@@ -70,7 +70,9 @@ supports:
   ```
 
 CLI exit codes: `0` success, `1` crash, `2` hard-block validation failure,
-`3` waiting for user decisions or agent-authored artifacts. Full signatures and
+`3` waiting for user decisions or agent-authored artifacts. A `prepare` that
+ends at `awaiting_agent_artifacts` exits `0`: writing the briefs is its job; `3`
+comes from `validate`/`run` called before those artifacts exist. Full signatures and
 parameters: [reference/tools.md](reference/tools.md).
 
 ## Required Setup

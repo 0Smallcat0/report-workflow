@@ -68,6 +68,18 @@ _ID_COLUMN_RE = re.compile(
 #: km had its "數值" column averaged to 4,695.72 and offered as citable.
 _UNIT_COLUMN_RE = re.compile(r"^(?:單位|单位|計量單位|计量单位|units?|uom|unit of measure)$", re.IGNORECASE)
 
+
+def is_unit_column(column: object) -> bool:
+    """A unit column labels the value beside it; it is not a category.
+
+    A metric sheet with "%" on five rows and "秒" on two was summarised as
+    "單位 欄共 2 個相異值 … HHI 為 5918" and crossed into a "單位 分組交叉表"
+    the outline then had to place or waive. How many rows are measured in
+    seconds says nothing about anything the rows measure.
+    """
+    return bool(_UNIT_COLUMN_RE.match(str(column).strip()))
+
+
 #: A column of calendar years. Its mean is not a quantity ("年份 平均 2,015.00")
 #: and a year printed as "2,025" is not how anyone writes one; grouped by, it
 #: is a category.
@@ -2368,7 +2380,7 @@ def dataset_summary_units(
             (shape_content, shape_derivation, None)
         ]
         for column in dataset.columns[:MAX_COLUMNS_SUMMARIZED]:
-            if _ID_COLUMN_RE.search(str(column)):
+            if _ID_COLUMN_RE.search(str(column)) or is_unit_column(column):
                 continue
             values = dataset.column_values(column)
             filled = [value for value in values if str(value).strip()]
@@ -2430,7 +2442,7 @@ def _column_kinds(dataset: Dataset) -> tuple[list[str], list[str]]:
     categorical: list[tuple[int, int, str]] = []
     numeric: list[str] = []
     for column in dataset.columns[:MAX_COLUMNS_SUMMARIZED]:
-        if _ID_COLUMN_RE.search(str(column)):
+        if _ID_COLUMN_RE.search(str(column)) or is_unit_column(column):
             continue
         values = dataset.column_values(column)
         filled = [value for value in values if str(value).strip()]

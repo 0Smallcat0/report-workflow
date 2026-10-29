@@ -18,9 +18,10 @@ def validate_required_outline_sections(blueprint: dict, outline_sections: dict) 
 
 # Section types whose text is not prose making assertions, so there is nothing
 # for a claim to be about. A cover page carries a title, a course, an author and
-# a date; a reference list carries sources; an appendix carries raw material.
-# Demanding claim ids for these forces the author to invent a link.
-CLAIMLESS_SECTION_TYPES = frozenset({"front_matter", "references", "appendix"})
+# a date; a reference list carries sources; an appendix carries raw material;
+# a team section says who does what. Demanding claim ids for these forces the
+# author to invent a link.
+CLAIMLESS_SECTION_TYPES = frozenset({"front_matter", "references", "appendix", "team"})
 
 # Fallback for blueprints that predate `section_type` on every section.
 _CLAIMLESS_SECTION_IDS = frozenset({"cover", "references", "appendix"})

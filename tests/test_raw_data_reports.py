@@ -414,6 +414,30 @@ class EvidenceMustSupportTheClaimTests(unittest.TestCase):
         self.assertEqual(result["status"], "blocked")
         self.assertIn("rating", result["reason"])
 
+    def test_a_column_name_qualifies_the_figure_written_with_it(self):
+        # 「準確率為 86.7%（標準差 1.4）」: 標準差 names the 1.4 after it, not the
+        # 86.7 before it. Reading every figure of the sentence as a standard
+        # deviation refused the mean the row states under 平均.
+        row = _row_evidence({"指標": "有無缺陷判讀準確率", "平均": "86.7", "標準差": "1.4", "單位": "%"})
+        result = _fe("有無缺陷判讀準確率為 86.7%（標準差 1.4）。", row)
+        self.assertEqual(result["status"], "verified", result.get("reason"))
+
+    def test_a_figure_the_claim_ties_to_a_column_must_be_that_columns(self):
+        row = _row_evidence({"指標": "有無缺陷判讀準確率", "平均": "86.7", "標準差": "1.4", "單位": "%"})
+        result = _fe("有無缺陷判讀準確率的標準差為 86.7%。", row)
+        self.assertEqual(result["status"], "blocked")
+        self.assertIn("not the column the claim names", result["reason"])
+
+    def test_a_total_the_row_itself_states_is_not_dataset_scope(self):
+        # The row's item *is* 年收入合計: the scope word names this row, the
+        # way a scope word in a column name names that cell.
+        row = _row_evidence({"項目": "年收入合計", "數值": "968.3", "單位": "萬元/年"})
+        result = _fe("年收入合計 968.3 萬元。", row)
+        self.assertEqual(result["status"], "verified", result.get("reason"))
+        # 合計 that no cell of the cited row says still asks it for the whole set.
+        other = _row_evidence({"項目": "檢測分流服務費收入", "數值": "320", "單位": "萬元/年"})
+        self.assertIn("single data row", _fe("各項收入合計 320 萬元。", other)["reason"])
+
     def test_a_derived_statistic_can_ground_a_dataset_claim(self):
         units = dataset_summary_units(_registry(_product_rows()), CREATED_AT, zh=True)
         shape = next(

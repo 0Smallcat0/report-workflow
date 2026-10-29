@@ -84,6 +84,29 @@ def _hoist_subsections(section_id: str, section: dict) -> None:
         section["figure_ids"] = figure_ids
 
 
+def _apply_section_title(state: ReportState, section_id: str, section: dict) -> None:
+    """Print the heading the outline names instead of the blueprint's.
+
+    Competition and grant forms fix their chapter names — 摘要、原創性說明、
+    團隊成員分工說明 — and a proposal could only print its blueprint's
+    (執行摘要、問題陳述), so the author had to rename headings by hand in
+    the delivered file. A section's ``title`` replaces both blueprint titles
+    for this run; the blueprint is reloaded from YAML every run, so removing
+    the field restores the default.
+    """
+    if "title" not in section:
+        return
+    title = section.get("title")
+    if not isinstance(title, str) or not title.strip():
+        raise QAHardBlockError(
+            f"Outline section {section_id} title must be a non-empty string; "
+            "it becomes the heading in the rendered document."
+        )
+    blueprint_section = ((state.plan.get("blueprint") or {}).get("sections") or {}).get(section_id)
+    if isinstance(blueprint_section, dict):
+        blueprint_section["title"] = blueprint_section["title_zh"] = title.strip()
+
+
 def _planned_figure_ids(state: ReportState) -> list[str] | None:
     """Figure ids declared in figure_plan.json, or None when there is no plan."""
     path = run_dir_for(state) / "section_drafts" / "figure_plan.json"
@@ -442,6 +465,7 @@ def run_outline_plan(state: ReportState) -> ReportState:
             raise QAHardBlockError(f"Outline section {section_id} must be an object")
         section.setdefault("section_id", section_id)
         _hoist_subsections(section_id, section)
+        _apply_section_title(state, section_id, section)
         claim_ids = section.get("claim_ids", [])
         if not isinstance(claim_ids, list):
             raise QAHardBlockError(f"Outline section {section_id} claim_ids must be a list")

@@ -6,6 +6,7 @@ Fallback path: python-docx regex-based converter (legacy).
 The pandoc path uses a reference.docx template for consistent academic styling
 (A4, Times New Roman 12pt, heading styles, 1.5x line spacing).
 """
+import copy
 import json
 import logging
 import re
@@ -20,6 +21,7 @@ from docx.shared import Pt, Inches
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.oxml.ns import qn
 from docx.oxml import OxmlElement
+from lxml import etree
 
 from ..state import ReportState, WORKFLOW_RUNS_DIR
 from ..errors import QAHardBlockError
@@ -638,6 +640,74 @@ def _resolve_reference_doc(spec: dict) -> Path:
     return path
 
 
+def _with_pandoc_styles(template: Path, dest: Path) -> Path:
+    """Write `template` to `dest` with the styles pandoc needs that it lacks.
+
+    A competition or course template is usually formatted by hand and defines
+    no heading, caption, or body-text styles. pandoc points every heading at
+    `Heading1`, finds no such style in the template, and Word shows the
+    heading as body text: the table of contents comes up empty and the
+    figure captions are plain paragraphs. The missing styles are copied from
+    the built-in reference; every style the template does define is left as
+    it is, so its fonts and spacing still win.
+    """
+    def styles_of(path: Path):
+        with zipfile.ZipFile(path) as archive:
+            return etree.fromstring(archive.read("word/styles.xml"))
+
+    def name_of(style) -> str:
+        name = style.find(qn("w:name"))
+        return (name.get(qn("w:val")) if name is not None else "").lower()
+
+    ours, base = styles_of(template), styles_of(_REFERENCE_DOC)
+    ours_styles = ours.findall(qn("w:style"))
+    have_ids = {style.get(qn("w:styleId")) for style in ours_styles}
+    id_by_name = {name_of(style): style.get(qn("w:styleId")) for style in ours_styles}
+    base_name_by_id = {style.get(qn("w:styleId")): name_of(style) for style in base.findall(qn("w:style"))}
+    added = [
+        copy.deepcopy(style) for style in base.findall(qn("w:style"))
+        if style.get(qn("w:styleId")) not in have_ids and name_of(style) not in id_by_name
+    ]
+    if not added:
+        return template
+    added_ids = {style.get(qn("w:styleId")) for style in added}
+    for style in added:
+        # The reference calls its body style `Normal`; a Chinese Word template
+        # calls the same style `a`. Point the links at the template's own ids.
+        for tag in ("w:basedOn", "w:next", "w:link"):
+            ref = style.find(qn(tag))
+            if ref is None or ref.get(qn("w:val")) in have_ids | added_ids:
+                continue
+            target = id_by_name.get(base_name_by_id.get(ref.get(qn("w:val")), ""))
+            if target:
+                ref.set(qn("w:val"), target)
+            else:
+                style.remove(ref)
+        if style.get(qn("w:styleId")) == "Compact":
+            # Table cells are `Compact`, based on the body text. A template's
+            # body text is often indented for prose — a hanging indent of
+            # 1.7 cm in one competition form — and every cell inherited it:
+            # a number wrapped onto a line that started past the cell's edge
+            # and printed "86." for 86.7.
+            ppr = style.find(qn("w:pPr"))
+            if ppr is None:
+                ppr = etree.SubElement(style, qn("w:pPr"))
+            for old in ppr.findall(qn("w:ind")):
+                ppr.remove(old)
+            ind = etree.SubElement(ppr, qn("w:ind"))
+            for side in ("w:left", "w:right", "w:firstLine"):
+                ind.set(qn(side), "0")
+        ours.append(style)
+
+    with zipfile.ZipFile(template) as source, zipfile.ZipFile(dest, "w", zipfile.ZIP_DEFLATED) as out:
+        for item in source.infolist():
+            data = source.read(item.filename)
+            if item.filename == "word/styles.xml":
+                data = etree.tostring(ours, xml_declaration=True, encoding="UTF-8", standalone=True)
+            out.writestr(item, data)
+    return dest
+
+
 def _pandoc_warnings(stderr: str) -> list[str]:
     """The first line of each pandoc warning, which is the actionable one.
 
@@ -682,7 +752,10 @@ def _render_via_pandoc(
 
     # Use reference doc for styling if available
     ref_doc = reference_doc if reference_doc is not None else _REFERENCE_DOC
+    merged_ref = Path(output_path).with_name(Path(output_path).stem + ".reference.docx")
     if ref_doc.exists():
+        if ref_doc != _REFERENCE_DOC:
+            ref_doc = _with_pandoc_styles(ref_doc, merged_ref)
         cmd.extend(["--reference-doc", str(ref_doc)])
 
     # Standalone output
@@ -722,6 +795,8 @@ def _render_via_pandoc(
     except Exception as exc:
         logger.error(f"[DOCX_RENDER] pandoc error: {exc}")
         return False
+    finally:
+        merged_ref.unlink(missing_ok=True)
 
 
 # ------------------------------------------------------------------
@@ -806,6 +881,48 @@ def _sect_break(width: int, height: int, margins: dict[str, int], landscape: boo
         f"<w:p><w:pPr><w:sectPr>{pg}</w:sectPr></w:pPr></w:p>\n"
         "```\n"
     )
+
+
+_UNSIZED_SEPARATOR_RE = re.compile(r"^\s*\|(?:\s*:?-{3}:?\s*\|)+\s*$")
+_CELL_SPLIT_RE = re.compile(r"(?<!\\)\|")
+
+
+def _size_author_tables(md: str) -> str:
+    """Give an author's pipe table the column widths its content needs.
+
+    Tables built from source data are sized when they are placed; a table the
+    author wrote into a draft kept its " --- " separators, which pandoc prints
+    as equal columns: a column of ①②③ took a quarter of the page while the
+    sentences beside it wrapped every four characters. A separator someone
+    sized by hand (any column with more than three dashes) is left alone.
+    """
+    from .source_tables import _column_dashes
+
+    def cells(line: str) -> list[str]:
+        parts = _CELL_SPLIT_RE.split(line.strip())
+        return [part.strip() for part in parts[1:-1]]
+
+    lines = md.split("\n")
+    i = 0
+    while i + 1 < len(lines):
+        if not (lines[i].lstrip().startswith("|") and _UNSIZED_SEPARATOR_RE.match(lines[i + 1])):
+            i += 1
+            continue
+        j = i + 2
+        while j < len(lines) and lines[j].lstrip().startswith("|"):
+            j += 1
+        headers = cells(lines[i])
+        marks = cells(lines[i + 1])
+        rows = [cells(line) for line in lines[i + 2:j]]
+        if len(headers) == len(marks) >= 2:
+            plain = lambda text: text.replace("**", "").replace("`", "")
+            dashes = _column_dashes([plain(h) for h in headers], [[plain(c) for c in row] for row in rows])
+            lines[i + 1] = "|" + "|".join(
+                f" {mark[0] if mark.startswith(':') else ''}{'-' * width}{mark[-1] if mark.endswith(':') else ''} "
+                for mark, width in zip(marks, dashes)
+            ) + "|"
+        i = j
+    return "\n".join(lines)
 
 
 def _wrap_wide_tables(md: str, reference_doc: Path | None) -> tuple[str, int]:
@@ -1600,8 +1717,9 @@ def _style_tables_post_render(docx_path: str) -> None:
 #: A table this many body rows or shorter fits on one page and is kept whole.
 SHORT_TABLE_MAX_ROWS = 15
 
-_TABLE_CAPTION_RE = re.compile(r"^\s*(?:表|Table)\s*\d+\s*[.．:：]", re.IGNORECASE)
-_FIGURE_CAPTION_RE = re.compile(r"^\s*(?:圖|图|Figure)\s*\d+\s*[.．:：]", re.IGNORECASE)
+#: 「表 1　標題」: Chinese typesetting may end the number with an ideographic space.
+_TABLE_CAPTION_RE = re.compile(r"^\s*(?:表|Table)\s*\d+(?:\s*[.．:：]|　)", re.IGNORECASE)
+_FIGURE_CAPTION_RE = re.compile(r"^\s*(?:圖|图|Figure)\s*\d+(?:\s*[.．:：]|　)", re.IGNORECASE)
 _TABLE_ATTRIBUTION_RE = re.compile(r"^\s*(?:來源|来源|資料來源|Source)\s*[:：]", re.IGNORECASE)
 _TABLE_NOTE_RE = re.compile(r"^\s*(?:註|注|Note|Notes)\s*[.．:：]", re.IGNORECASE)
 
@@ -1977,7 +2095,7 @@ def run_docx_render(state: ReportState) -> ReportState:
     pandoc_input_md = run_dir / "pandoc_input.md"
     pandoc_md, flipped = _wrap_wide_tables(
         _inject_toc(
-            md_content,
+            _size_author_tables(md_content),
             has_front_matter,
             cover_title=cover_title,
             title_leads=title_leads,

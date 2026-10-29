@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from docx import Document
+from docx.shared import Cm
 from docx.oxml.ns import qn
 
 from report_workflow.errors import QAHardBlockError
@@ -19,6 +20,7 @@ from report_workflow.nodes.docx_render import (
     _inject_toc,
     _render_via_pandoc,
     _resolve_reference_doc,
+    _size_author_tables,
     _toc_openxml_block,
     reference_docx_error,
 )
@@ -64,6 +66,81 @@ class TocInjectionTest(unittest.TestCase):
 
 
 class ReferenceTemplateTest(unittest.TestCase):
+    @unittest.skipUnless(_find_pandoc(), "pandoc not installed")
+    def test_a_hand_formatted_template_still_gets_headings(self):
+        # A competition template with no heading styles and Chinese Word's
+        # `a` for Normal turned every heading into body text and left the
+        # table of contents empty.
+        with tempfile.TemporaryDirectory() as tmp:
+            template = Path(tmp) / "hand_formatted.docx"
+            document = Document(str(_REFERENCE_DOC))
+            styles = document.styles.element
+            for style in styles.findall(qn("w:style")):
+                name = style.find(qn("w:name")).get(qn("w:val")).lower()
+                if name.startswith("heading") or "caption" in name:
+                    styles.remove(style)
+            for element in styles.iter(qn("w:style"), qn("w:basedOn"), qn("w:next")):
+                for attr in (qn("w:styleId"), qn("w:val")):
+                    if element.get(attr) == "Normal":
+                        element.set(attr, "a")
+            document.save(str(template))
+
+            md = Path(tmp) / "in.md"
+            md.write_text("# 摘要\n\n內文一句。\n", encoding="utf-8")
+            out = Path(tmp) / "out.docx"
+            self.assertTrue(_render_via_pandoc(str(md), str(out), reference_doc=template))
+
+            rendered = Document(str(out))
+            heading = next(p for p in rendered.paragraphs if p.text == "摘要")
+            self.assertEqual(heading.style.name, "Heading 1")
+            self.assertEqual(heading.style.base_style.style_id, "a")
+            self.assertFalse((Path(tmp) / "out.reference.docx").exists())
+
+    @unittest.skipUnless(_find_pandoc(), "pandoc not installed")
+    def test_table_cells_do_not_inherit_an_indented_body_text(self):
+        # A competition form's Body Text carried a 1.7 cm hanging indent; the
+        # cells inherited it and a wrapped "86.7" printed as "86.".
+        with tempfile.TemporaryDirectory() as tmp:
+            template = Path(tmp) / "indented_body.docx"
+            document = Document(str(_REFERENCE_DOC))
+            styles = document.styles.element
+            for style in styles.findall(qn("w:style")):
+                if style.get(qn("w:styleId")) == "Compact":
+                    styles.remove(style)
+            body = document.styles["Body Text"].paragraph_format
+            body.left_indent = Cm(1.74)
+            body.first_line_indent = Cm(-1.27)
+            document.save(str(template))
+
+            md = Path(tmp) / "in.md"
+            md.write_text("內文一句。\n\n| 指標 | 平均 |\n| --- | --- |\n| 準確率 | 86.7 |\n", encoding="utf-8")
+            out = Path(tmp) / "out.docx"
+            self.assertTrue(_render_via_pandoc(str(md), str(out), reference_doc=template))
+
+            rendered = Document(str(out))
+            cell = rendered.tables[0].cell(1, 1).paragraphs[0]
+            self.assertEqual(cell.style.name, "Compact")
+            self.assertEqual(cell.style.paragraph_format.left_indent, 0)
+            self.assertEqual(cell.style.paragraph_format.first_line_indent, 0)
+            self.assertAlmostEqual(rendered.styles["Body Text"].paragraph_format.left_indent.cm, 1.74, places=2)
+
+    def test_an_author_table_gets_widths_from_its_content(self):
+        # A four-column table of a numbering mark, two short terms and a
+        # sentence printed as four equal columns: the sentence wrapped every
+        # four characters beside a quarter-page column holding "①".
+        md = (
+            "| 編號 | 新做法 | 盲點 | 與既有做法的差別 |\n"
+            "| --- | --- | :---: | --- |\n"
+            "| ① | 拆除現場先檢測再分流 | 先拆再說 | 檢測點從回收廠前移到案場，每片模組先決定走再用或回收 |\n"
+        )
+        separator = _size_author_tables(md).split("\n")[1]
+        widths = [len(cell.strip().strip(":")) for cell in separator.split("|")[1:-1]]
+        self.assertLess(widths[0], widths[1])
+        self.assertEqual(max(widths), widths[3])
+        self.assertIn(":-", separator)
+        sized = md.replace("| --- | --- | :---: | --- |", "| -- | ------ | --- | ---------- |")
+        self.assertEqual(_size_author_tables(sized), sized)
+
     def test_template_footer_has_page_field(self):
         with zipfile.ZipFile(_REFERENCE_DOC) as z:
             footers = [n for n in z.namelist() if re.match(r"word/footer\d*\.xml", n)]
@@ -706,6 +783,16 @@ class ClaimlessSectionTypeTest(unittest.TestCase):
         self.assertFalse(section_requires_claims(blueprint, "cover"))
         self.assertTrue(section_requires_claims(blueprint, "results"))
 
+    def test_a_proposal_team_section_needs_no_claims(self):
+        # A competition form asking for 團隊成員分工 had nowhere to go but
+        # `evaluation`, which then failed PLAN_LOCK for citing nothing.
+        from report_workflow.nodes.section_contract import section_requires_claims
+
+        blueprint = next(bp for path, bp in self._blueprints() if path.endswith("proposal.yaml"))
+        self.assertIn("team", blueprint["section_order"])
+        self.assertFalse(section_requires_claims(blueprint, "team"))
+        self.assertTrue(section_requires_claims(blueprint, "evaluation"))
+
 
 class LocalArtifactTableConsistencyTest(unittest.TestCase):
     """One table drives the label, the citation, and the curation filter.
@@ -1142,6 +1229,12 @@ class DuplicateCitationCollapseTest(unittest.TestCase):
 
     def test_a_chinese_caption_alone_is_not_a_dangling_reference(self):
         self.assertEqual(self._captions(["圖 1. 流量與有效度", "說明文字。"]), "")
+
+    def test_an_ideographic_space_ends_a_chinese_caption_number(self):
+        # 「圖 1　標題」 is how a Chinese caption is typeset; all five figures of
+        # a proposal were reported as referenced but uncaptioned.
+        self.assertNotIn("without matching captions",
+                         self._captions(["圖 1　流量與有效度", "如圖 1 所示。"]))
 
     def _outline_figure_check(self, declared_ids, built_ids):
         from report_workflow.errors import QAHardBlockError

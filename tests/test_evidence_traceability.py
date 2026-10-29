@@ -587,6 +587,42 @@ class OutlineSubsectionTests(unittest.TestCase):
             self.assertIn("title", str(ctx.exception))
 
 
+class OutlineSectionTitleTests(unittest.TestCase):
+    """A competition form fixes its chapter names; the blueprint's could not change."""
+
+    def _outline(self, state: ReportState, findings_title) -> None:
+        state.plan["claim_matrix"] = {
+            "claims": [{"claim_id": "c1"}, {"claim_id": "c_limit_1"}, {"claim_id": "c_limit_2"}]
+        }
+        sections = {
+            section_id: {"section_id": section_id, "claim_ids": ["c1"], "figure_ids": []}
+            for section_id in state.plan["blueprint"]["section_order"]
+        }
+        sections["limitations"] = {
+            "section_id": "limitations", "claim_ids": ["c_limit_1", "c_limit_2"], "figure_ids": [],
+        }
+        sections["findings"]["title"] = findings_title
+        OutlineSubsectionTests._write_outline(self, state, sections)
+
+    def test_section_title_replaces_the_blueprint_heading(self):
+        from report_workflow.language import localized_section_title
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state, _src = _prepare_market_report(tmpdir)
+            self._outline(state, "原創性說明")
+            state = run_outline_plan(state)
+            findings = state.plan["blueprint"]["sections"]["findings"]
+            self.assertEqual(localized_section_title(findings, "findings", "zh"), "原創性說明")
+
+    def test_a_blank_section_title_is_refused(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state, _src = _prepare_market_report(tmpdir)
+            self._outline(state, "  ")
+            with self.assertRaises(QAHardBlockError) as ctx:
+                run_outline_plan(state)
+            self.assertIn("title", str(ctx.exception))
+
+
 class SourceTableTests(unittest.TestCase):
     """A source's tables had no route back into the deliverable.
 

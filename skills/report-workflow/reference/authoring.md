@@ -286,7 +286,10 @@ canonical Chinese section headings; the pipeline detects the document language
 deterministically and renders section headings from the blueprint's localized
 titles (`title_zh`), so do not hand-translate headings or mix English
 boilerplate sentences into a Chinese document. English documents keep the
-blueprint's English titles unchanged.
+blueprint's English titles unchanged. When a competition or grant form fixes
+the chapter names, set `"title"` on that section in `outline.json`
+(`"problem_statement": {"title": "原創性說明", ...}`); it replaces the blueprint
+heading in either language.
 
 For `academic_paper` and `engineering_lab_report`, make Methods/Procedure
 reproducible: name the source or sample basis, procedure, parameters or

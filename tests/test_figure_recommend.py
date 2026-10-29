@@ -769,6 +769,52 @@ class FigureRecommendationTests(unittest.TestCase):
             self.assertEqual(len(rec["figure_plan"]["data"]["rows"]), MAX_TABLE_FIGURE_ROWS)
             self.assertIn("sharing one y-axis", rec["reason"])
 
+    def test_a_unit_column_naming_two_units_recommends_table(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "metrics",
+                "source_file_name": "metrics.csv",
+                "granularity": "table",
+                "content": "模型測試結果",
+                "table_data": [
+                    ["指標", "平均", "標準差", "單位"],
+                    ["準確率", "86.7", "1.4", "%"],
+                    ["找回率", "78.7", "2.0", "%"],
+                    ["單次推論", "0.24", "0.003", "秒"],
+                    ["八次平均", "1.9", "0.02", "秒"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "table")
+            self.assertTrue(rec["data_profile"]["summary"]["mixed_measure_units"])
+            roles = {c["header"]: c["role"] for c in rec["data_profile"]["columns"]}
+            self.assertEqual(roles["單位"], "unit_label")
+
+    def test_a_chinese_standard_deviation_column_is_the_error_bar(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state = _state(tmpdir)
+            evidence = [{
+                "evidence_id": "E1",
+                "source_id": "accuracy",
+                "source_file_name": "accuracy.csv",
+                "granularity": "table",
+                "content": "各模型準確率",
+                "table_data": [
+                    ["模型", "準確率平均", "標準差", "單位"],
+                    ["ResNet-18", "83.5", "1.2", "%"],
+                    ["ResNet-50", "86.7", "1.4", "%"],
+                    ["ViT-B", "84.1", "1.8", "%"],
+                ],
+            }]
+
+            rec = recommend_figures_from_evidence(state, evidence)[0]
+
+            self.assertEqual(rec["recommended_figure_type"], "error_bar")
+
     def test_unsorted_iso_dates_are_sorted_for_line_chart(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             state = _state(tmpdir)

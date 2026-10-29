@@ -178,6 +178,18 @@ class ColumnWidthTests(unittest.TestCase):
         units = self._units(headers, rows)
         self.assertGreaterEqual(units[0], 17 - 0.05, units)
 
+    def test_a_stage_label_with_an_enumeration_comma_stays_on_one_line(self):
+        # 「、」 was measured as a narrow Latin character that a line may break
+        # at, so 「一、原型」 was sized as 「原型」 and printed 「一、原」 / 「型」
+        # beside cells that took two lines anyway.
+        headers = ["階段", "期間", "工作", "驗收指標"]
+        rows = [
+            ["一、原型", "第 1–6 個月", "改裝貨櫃原型、整合 EL 與 IV 量測、AI 判讀在地化", "節拍 ≤ 30 秒；AI 與人工判讀一致率 ≥ 90%"],
+            ["二、示範", "第 7–12 個月", "與一個除役案場合作", "處理 1,000 片以上；實測 A＋B 比例與二手售出率"],
+        ]
+        units = self._units(headers, rows)
+        self.assertGreaterEqual(units[0], 8 - 0.05, units)
+
     def test_widths_are_estimated_at_the_type_size_the_template_prints(self):
         # Widths were estimated for 10.5 pt text and the template prints tables
         # at 12 pt, so a unit header came out as "電力係數 (g" / "CO2e/kWh" / ")".

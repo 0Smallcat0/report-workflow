@@ -489,6 +489,9 @@ _GLUED_SPECIES_TAIL_RE = re.compile(r"2(?:-?eq\.?|e)?(?![A-Za-z0-9])", re.IGNORE
 #: Either spelling folded out of a normalised unit component.
 _SPECIES_IN_UNIT_RE = re.compile(r"^(%s)(?:co2(?:-?eq\.?|e)?|ch4|n2o)$" % _MASS_UNITS)
 
+#: "$0.100 per watt": a denominator English writes as a word.
+_PER_WORD_RE = re.compile(r"per[ \t]+([A-Za-z]+)", re.IGNORECASE)
+
 
 def _unit_after(text: str, position: int) -> str:
     """The unit stated immediately after a number, or "" when none is.
@@ -497,6 +500,11 @@ def _unit_after(text: str, position: int) -> str:
     reading only the numerator would let a price per tonne match a price per
     kilogram. A gas named between the mass and the slash — g CO2e/km — is
     read past, so the compound is g/km.
+
+    "$0.100 per watt" is /watt, its numerator the currency in front; read as
+    the unit "per" it matched nothing. After a unit, "per" is left alone:
+    "28 minutes per note" names what was timed, and a column in minutes
+    states that figure.
     """
     rest = text[position:]
     stripped = rest.lstrip(" \t　")
@@ -508,6 +516,9 @@ def _unit_after(text: str, position: int) -> str:
     unit = _APOSTROPHE_SUFFIX_RE.sub("", match.group(0))
     if not unit or unit in _ENGLISH_FUNCTION_WORDS:
         return ""
+    if unit.casefold() == "per":
+        per = _PER_WORD_RE.match(text, position + offset)
+        return f"/{per.group(1)}" if per else unit
 
     after = position + offset + match.end()
     glued = _GLUED_SPECIES_RE.match(unit)
@@ -520,7 +531,12 @@ def _unit_after(text: str, position: int) -> str:
             after = species.end()
     if text[after:after + 1] == "/":
         tail = text[after + 1:]
-        tail_match = _CJK_UNIT_RE.match(tail) or _ASCII_UNIT_RE.match(tail)
+        # After a written slash one character is enough to name the
+        # denominator: 元/片 is per piece though no unit list holds 片, and
+        # read as 元 it disagreed with a column headed 「售價（元/片）」.
+        tail_match = (
+            _CJK_UNIT_RE.match(tail) or _ASCII_UNIT_RE.match(tail) or re.match(r"[㐀-鿿]", tail)
+        )
         if tail_match:
             unit = f"{unit}/{tail_match.group(0)}"
     return unit
@@ -657,6 +673,10 @@ _LIMITING_PHRASE_RE = re.compile(
 #: the two-character 其中 and the rest are checked here instead.
 _DETERMINER_RE = re.compile(r"(?:這|这|那|每|同|另|前|後|后)\s*$")
 
+#: 是一座, 為一台: a copula in front of 一 and a classifier says what something
+#: is, not how many of it there are -- the 一 is the article.
+_COPULA_RE = re.compile(r"(?:是|為|为)\s*$")
+
 
 def _normalize_for_numbers(text: str) -> str:
     shielded = (text or "").replace(_FULLWIDTH_COMMA, _COMMA_SHIELD)
@@ -683,7 +703,10 @@ def _with_sign(text: str, start: int, number: str) -> str:
     sign = text[start - 1]
     if sign not in "-−–":
         return number
-    if start >= 2 and text[start - 2].isdigit():
+    # After a Latin letter the minus is a hyphen too: ResNet-50 and COVID-19
+    # are names, and reading -50 out of one blocked a claim for a negative
+    # figure nobody wrote.
+    if start >= 2 and (text[start - 2].isdigit() or re.match(r"[A-Za-z]", text[start - 2])):
         return number
     return "-" + number
 
@@ -770,12 +793,15 @@ def numbers_with_spans(text: str) -> tuple[str, list[tuple[str, str, int, int]]]
         suffix = _unit_after(normalized, m.end())
         unit = _combined_unit(normalized, m.start(1), suffix)
         # "標價 $71.99" states a currency the same way "71.99 美元" does; only
-        # the side it is written on differs.
+        # the side it is written on differs. In "$0.100 per watt" it is the
+        # numerator of the rate.
         if _is_bounded_claim_number(normalized, m.start(1), m.end(1)):
             continue
+        if not unit or unit.startswith("/"):
+            unit = _currency_before(normalized, m.start(1)) + unit
         results.append((
             _with_sign(normalized, m.start(1), m.group(1).lstrip("~")),
-            unit or _currency_before(normalized, m.start(1)),
+            unit,
             m.start(1),
             m.end(1),
         ))
@@ -805,6 +831,19 @@ def numbers_with_spans(text: str) -> tuple[str, list[tuple[str, str, int, int]]]
         # by a counter and then 就/獨/便 is a quantifier idiom, and reading it
         # as the quantity 1 blocked a sentence whose only figure was the 92.
         if m.group(1) == "一" and normalized[m.end(1) + 1:m.end(1) + 2] in ("就", "獨", "便"):
+            continue
+        # 「核心是一座 20 呎貨櫃改裝的分級站」 is "a 20-foot container station":
+        # the figure the sentence reports is the 20, and read as 1 座 the 一 met
+        # the evidence's 「一條輸送線」 as a unit conflict. Both marks are needed,
+        # because this text may be the evidence: 「硬體為一張 NVIDIA 顯示卡」 is
+        # what a claim of 「只用一張」 cites for its one card. 是三座 and 是 3 座
+        # still count.
+        if (
+            m.group(1) == "一"
+            and suffix in _NOUN_CLASSIFIERS
+            and _COPULA_RE.search(normalized[max(0, m.start(1) - 2):m.start(1)])
+            and re.match(rf"\s*{re.escape(suffix)}\s*\d", normalized[m.end(1):])
+        ):
             continue
         # 「低分並非只有一家」 means "not just one brand", and 家 counts real
         # companies elsewhere ("五家廠商"), so the classifier cannot be
@@ -965,8 +1004,8 @@ def _unit_from_header(header: str) -> str:
     return ""
 
 
-def _row_numbers_with_unit(content: str) -> tuple[list, list] | None:
-    """Number/unit pairs from a serialized table row: (measured, bounded).
+def _row_numbers_with_unit(content: str) -> tuple[list, list, list] | None:
+    """Number/unit pairs from a serialized table row: (measured, bounded, labels).
 
     A CSV row keeps its units in the column names and its numbers in the
     cells — `{"Efficiency (%)": "88.4"}`. The text extractor needs the unit
@@ -976,6 +1015,9 @@ def _row_numbers_with_unit(content: str) -> tuple[list, list] | None:
 
     Bounded cells come back separately. "<0.01" is a detection limit, not a
     reading, and must not satisfy a claim stating 0.01 as measured.
+
+    So do the figures of a text cell. 「判讀一片 60 片電池模組時間」 labels
+    what the row measured; its 60 is the row's wording, not a reading.
 
     None when the content is not a serialized row, so prose evidence keeps
     its existing behaviour.
@@ -989,6 +1031,7 @@ def _row_numbers_with_unit(content: str) -> tuple[list, list] | None:
 
     measured: list[tuple[str, str, str]] = []
     bounded: list[tuple[str, str, str]] = []
+    labels: list[tuple[str, str]] = []
     for key, value in record.items():
         unit = _unit_from_header(str(key))
         text = unicodedata.normalize("NFKC", str(value)).strip()
@@ -1006,12 +1049,14 @@ def _row_numbers_with_unit(content: str) -> tuple[list, list] | None:
         try:
             _normalize_number_str(text)
         except ValueError:
+            if not bound:
+                labels.extend(_extract_numbers_with_unit(str(value)))
             continue
         if bound:
             bounded.append((text, unit, f"{bound.group(1)}{text}"))
         else:
             measured.append((text, unit, str(key)))
-    return measured, bounded
+    return measured, bounded, labels
 
 
 def _normalize_number_str(s: str) -> float:
@@ -1072,6 +1117,7 @@ _UNIT_ALIASES = {
     "\u7c73": "m",
     "\u4f0f\u7279": "v",
     "\u5b89\u57f9": "a",
+    "\u74e6": "w", "watt": "w", "watts": "w",
     "\u6b50\u59c6": "ohm",
     "\u6b27\u59c6": "ohm",
     "\u79d2": "s",
@@ -1178,7 +1224,16 @@ def _units_match(claim_unit: str, evidence_unit: str) -> bool:
     evidence_norm = _normalize_unit(evidence_unit)
     if not claim_norm or not evidence_norm:
         return True
-    return claim_norm == evidence_norm or _singular_unit(claim_norm) == _singular_unit(evidence_norm)
+    if claim_norm == evidence_norm or _singular_unit(claim_norm) == _singular_unit(evidence_norm):
+        return True
+    # The same unknown one level down: 「每小時 20 片」 states the hour and not
+    # what was counted, since no unit list holds 片. Against "20 modules/h" the
+    # denominators are what both sides state, and they agree.
+    claim_top, claim_slash, claim_per = claim_norm.partition("/")
+    evidence_top, evidence_slash, evidence_per = evidence_norm.partition("/")
+    if claim_slash and evidence_slash and not (claim_top and evidence_top):
+        return _singular_unit(claim_per) == _singular_unit(evidence_per)
+    return False
 
 
 def _cjk_chars(text: str) -> list[str]:
@@ -1406,6 +1461,10 @@ def _is_dataset_scope_claim(claim_text: str, row_columns: Iterable[str] = ()) ->
     blocked the honest sentence and sent its author to rewrite the metric out
     of it. Every other scope word still counts, so "the median across the
     sample" stays blocked on "across" and "sample".
+
+    The row's cells are passed in with its column names, for the same reason:
+    a row whose item is 「年收入合計」 states that total, and 「年收入合計 968.3
+    萬元」 restates it.
     """
     column_words: set[str] = set()
     for column in row_columns:
@@ -1425,8 +1484,8 @@ def _is_dataset_scope_claim(claim_text: str, row_columns: Iterable[str] = ()) ->
 _CJK_NUMERAL_CHARS_RE = re.compile(r"[第一二三四五六七八九十百兩两〇零]")
 
 
-def _claim_names_column(claim_text: str, column: str, row_text: str = "") -> bool:
-    """True when the claim mentions this column by name.
+def _column_mentions(claim_text: str, column: str, row_text: str = "") -> list[tuple[int, int]]:
+    """Where the claim mentions this column by name, as spans; [] when it does not.
 
     Deliberately one-directional. A claim that names no column is left alone,
     because column names are English in exports whose reports are written in
@@ -1440,28 +1499,58 @@ def _claim_names_column(claim_text: str, column: str, row_text: str = "") -> boo
     年化報酬 and 年化波動 names neither, and 波動 does not name 年化波動 in a row
     whose portfolio is 低波動.
     """
-    text = (claim_text or "").casefold()
+    text = claim_text or ""
     name = _COLUMN_BRACKET_RE.sub(" ", str(column or ""))
-    for token in re.findall(r"[A-Za-z][A-Za-z0-9]{2,}", name):
-        if token.casefold() in text:
-            return True
     tokens = re.findall(r"[㐀-鿿]{2,}", name)
-    if any(token in (claim_text or "") for token in tokens):
-        return True
+    spans = [
+        match.span()
+        for token in re.findall(r"[A-Za-z][A-Za-z0-9]{2,}", name)
+        for match in re.finditer(re.escape(token), text, re.IGNORECASE)
+    ] + [match.span() for token in tokens for match in re.finditer(re.escape(token), text)]
+    if spans:
+        return spans
     others = (row_text or "").replace(str(column or ""), " ")
-    return any(
-        token[index:index + 2] in (claim_text or "")
-        and token[index:index + 2] not in others
-        # 「三次伸長為 10.2、9.9…」 is "the three readings", not 第三次伸長.
-        and not _CJK_NUMERAL_CHARS_RE.search(token[index:index + 2])
+    return [
+        match.span()
         for token in tokens
         if len(token) >= 3
         for index in range(len(token) - 1)
-    )
+        if token[index:index + 2] not in others
+        # 「三次伸長為 10.2、9.9…」 is "the three readings", not 第三次伸長.
+        and not _CJK_NUMERAL_CHARS_RE.search(token[index:index + 2])
+        for match in re.finditer(re.escape(token[index:index + 2]), text)
+    ]
+
+
+def _figure_named_at(text: str, figures: list, mention: tuple[int, int]) -> int | None:
+    """Index of the claim figure a column mention qualifies, or None.
+
+    「準確率為 86.7%（標準差 1.4）」 names 標準差 for the 1.4 written after it,
+    not for the 86.7 before it. The figure is the first one after the mention
+    in its clause, or when none follows, the last one before it.
+    """
+    start, end = mention
+    after = [
+        (figure_start, index)
+        for index, (_n, _u, figure_start, _e) in enumerate(figures)
+        if figure_start >= end and not _CLAUSE_BREAK_RE.search(text[end:figure_start])
+    ]
+    if after:
+        return min(after)[1]
+    before = [
+        (figure_end, index)
+        for index, (_n, _u, _s, figure_end) in enumerate(figures)
+        if figure_end <= start and not _CLAUSE_BREAK_RE.search(text[figure_end:start])
+    ]
+    return max(before)[1] if before else None
 
 
 _LATIN_TOKEN_RE = re.compile(r"[A-Za-z][A-Za-z0-9²³/-]{1,}")
 _LATIN_TOKEN_STOPWORDS = {"the", "and", "for", "with", "per", "vs", "et", "al"}
+
+#: Citation fields that name a source -- who wrote it, what it is called,
+#: who issued it. Not the url or doi, whose path segments name nothing.
+_CITATION_NAME_FIELDS = ("author", "in_text", "title", "container", "publisher", "description", "reference")
 
 
 def _check_cross_script_tokens(claim_text: str, evidence_content: str) -> list[str]:
@@ -1616,16 +1705,17 @@ def _content_overlap_findings(
             ))
 
     # 2. Numeric overlap check — claim numbers must appear in evidence
-    claim_numbers = _extract_numbers_with_unit(claim_text)
+    claim_read, claim_figures = numbers_with_spans(claim_text)
+    claim_numbers = [(number, unit) for number, unit, _start, _end in claim_figures]
     row_pairs = _row_numbers_with_unit(evidence_content)
-    row_measured, row_bounded = row_pairs if row_pairs else ([], [])
+    row_measured, row_bounded, row_labels = row_pairs if row_pairs else ([], [], [])
     is_raw_row = (
         row_pairs is not None
         and str(evidence.get("block_type", "")) in _RAW_ROW_BLOCK_TYPES
     )
 
     if is_raw_row and claim_numbers and _is_dataset_scope_claim(
-        claim_text, json.loads(evidence_content).keys()
+        claim_text, itertools.chain(*json.loads(evidence_content).items())
     ):
         return [((
             "dataset_scope",
@@ -1639,22 +1729,31 @@ def _content_overlap_findings(
 
     # A figure in a column's own name — resolved_within_24h_pct — is the
     # definition the claim restates ("resolved within 24 hours"), not a reading.
+    # So is a figure in the row's label, 「判讀一片 60 片電池模組時間」.
     header_numbers = [
         (number, number_unit)
         for column in {column for _n, _u, column in row_measured}
         for number, number_unit in _extract_numbers_with_unit(str(column).replace("_", " "))
-    ]
+    ] + row_labels
 
-    named_columns = (
+    mentions = (
         {
-            column for _n, _u, column in row_measured
-            if _claim_names_column(claim_text, column, evidence_content)
+            column: _column_mentions(claim_read, column, evidence_content)
+            for column in {column for _n, _u, column in row_measured}
         }
         if is_raw_row
-        else set()
+        else {}
     )
+    named_columns = {column for column, spans in mentions.items() if spans}
+    # Only the figure a mention qualifies is tied to the named columns: in
+    # 「準確率為 86.7%（標準差 1.4）」 the 86.7 is not a standard deviation.
+    tied = {
+        _figure_named_at(claim_read, claim_figures, span)
+        for spans in mentions.values()
+        for span in spans
+    }
 
-    for num_str, unit in claim_numbers:
+    for index, (num_str, unit) in enumerate(claim_numbers):
         try:
             claim_val = _normalize_number_str(num_str)
         except ValueError:
@@ -1684,7 +1783,7 @@ def _content_overlap_findings(
             for _ev_num, ev_unit, ev_column in evidence_numbers
             if ev_column in named_columns and ev_unit
         )
-        if named_columns:
+        if index in tied:
             kept = []
             for ev_num, ev_unit, ev_column in evidence_numbers:
                 # 「負重 50 g」 does not write 砝碼質量_g, but a figure carrying
@@ -1733,8 +1832,11 @@ def _content_overlap_findings(
             found = True
             break
 
-        if not found and unit and any(
-            _same_value(claim_val, number) and _units_match(unit, number_unit) and number_unit
+        # Only the same figure in the same unit: a definition's 24h is no 24%,
+        # and the unitless 60 of 「60 片」 is no 60% either.
+        if not found and any(
+            _same_value(claim_val, number)
+            and (_units_match(unit, number_unit) if unit and number_unit else unit == number_unit)
             for number, number_unit in header_numbers
         ):
             found = True
@@ -1837,7 +1939,13 @@ def _content_overlap_findings(
         # unconditionally, so this was the one direction of the four with no
         # vocabulary check at all. The mirror (English claim, CJK evidence)
         # was closed earlier; this is its neighbour.
-        term_reasons = _check_cross_script_tokens(claim_text, evidence_content)
+        #
+        # The tokens it compares are often the source's own name: 「Deitsch
+        # 等人」, 「IEA PVPS 報告」. The cited sentence rarely repeats them; the
+        # citation the author declared for it does.
+        citation = evidence.get("citation") if isinstance(evidence.get("citation"), dict) else {}
+        named_by = " ".join(str(citation.get(field) or "") for field in _CITATION_NAME_FIELDS)
+        term_reasons = _check_cross_script_tokens(claim_text, f"{evidence_content} {named_by}")
     else:
         term_reasons = _check_term_overlap(
             claim_text, evidence_content, source_role, row_shaped=row_shaped

@@ -191,7 +191,9 @@ HEADER_LATIN_COLUMNS = 1.2
 
 
 def _is_wide(char: str) -> bool:
-    return bool(CJK_RE.match(char)) or "＀" <= char <= "￯"
+    # 「、」「。」「（」 are full-width too; measured as Latin, 「一、原型」 was
+    # sized as 「原型」 and printed 「一、原」 / 「型」.
+    return bool(CJK_RE.match(char)) or "＀" <= char <= "￯" or "　" <= char <= "〿"
 
 
 def _display_width(text: str) -> int:

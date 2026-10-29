@@ -2502,6 +2502,29 @@ class CrossScriptClaimTests(unittest.TestCase):
     def test_the_evidences_own_term_grounds_the_claim(self):
         self.assertEqual(self._reasons("文獻指出有效度隨 NTU 上升後趨於飽和。"), [])
 
+    def test_a_name_the_cited_source_carries_grounds_the_claim(self):
+        """The author and the publisher are in the citation, not the sentence."""
+        from report_workflow.nodes.factuality_check import _check_content_overlap
+
+        evidence = {
+            "content": "The CNN is more accurate, and reaches an average accuracy of 88.42 %.",
+            "citation": {
+                "author": "Deitsch, S., Christlein, V., & Riess, C.",
+                "title": "Automatic classification of defective photovoltaic module cells",
+                "publisher": "IEA PVPS",
+            },
+        }
+        for claim in ("Deitsch 等人的卷積神經網路準確率為 88.42%。",
+                      "IEA PVPS 引述的卷積神經網路準確率為 88.42%。"):
+            with self.subTest(claim=claim):
+                self.assertEqual(_check_content_overlap({"claim_text": claim}, evidence), [])
+        # A name neither the sentence nor its source carries is still caught.
+        reasons = _check_content_overlap(
+            {"claim_text": "Reynolds 等人的卷積神經網路準確率為 88.42%。"}, evidence
+        )
+        self.assertTrue(reasons)
+        self.assertIn("Reynolds", reasons[0])
+
     def test_a_claim_with_no_shared_token_is_passed_knowingly(self):
         """Documented: nothing the two scripts share, so nothing to compare.
 
@@ -3301,6 +3324,27 @@ class RowEvidenceNumberTests(unittest.TestCase):
         reasons = self._reasons("Efficiency reached 88.42% in trial 1.")
         self.assertTrue(reasons)
         self.assertIn("precision", reasons[0])
+
+    def test_a_figure_in_the_rows_label_is_one_the_row_states(self):
+        """「判讀一片 60 片電池模組時間」 says what the row measured.
+
+        A claim restating it writes the 60 and the 8 too, and was refused for
+        figures the row plainly holds because only numeric cells were read.
+        """
+        from report_workflow.nodes.factuality_check import _check_content_overlap
+
+        row = {
+            "block_type": "table_row",
+            "content": '{"指標": "判讀一片 60 片電池模組時間（8 次翻轉旋轉平均）", '
+                       '"平均": "1.9", "單位": "秒"}',
+        }
+        claim = "判讀一片 60 片電池的模組，8 次翻轉旋轉平均只要 1.9 秒。"
+        self.assertEqual(_check_content_overlap({"claim_text": claim}, row), [])
+        # The label is the row's wording, not a reading: its 60 does not
+        # become a 60% the row never states.
+        reasons = _check_content_overlap({"claim_text": "判讀準確率 60%，平均 1.9 秒。"}, row)
+        self.assertTrue(reasons)
+        self.assertIn("'60'%", reasons[0])
 
 
 class UnfilledTableTests(unittest.TestCase):

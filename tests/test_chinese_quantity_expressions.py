@@ -127,6 +127,14 @@ class FactualityReaderTests(unittest.TestCase):
                 for _number, unit in _extract_numbers_with_unit(text):
                     self.assertNotIn("/", unit, f"{text!r} — {why}")
 
+    def test_a_hyphen_after_a_letter_is_not_a_minus(self):
+        # 「ResNet-50 模型」 names a model; read as -50 it was a negative figure
+        # that no evidence states. After a space or a Chinese character the
+        # minus is still a sign.
+        values = [v for v, _ in _extract_numbers_with_unit("以 ResNet-50 模型判讀，報酬 -0.378%")]
+        self.assertEqual(values, ["50", "-0.378"])
+        self.assertEqual([v for v, _ in _extract_numbers_with_unit("降幅-1.2%")], ["-1.2"])
+
 
 class ChartReaderTests(unittest.TestCase):
     """What the chart recommender sees. A miss here costs a figure."""
@@ -214,6 +222,21 @@ class ProseIsNotAMeasurementTests(unittest.TestCase):
         self.assertEqual(
             _extract_numbers_with_unit("歷時三個月"), [("3", "個月")]
         )
+
+    def test_one_after_a_copula_is_an_article(self):
+        # 「核心是一座 20 呎貨櫃改裝的分級站」 says what the core is, not how many
+        # of it there are. Read as 1 座 it met the evidence's 「一條輸送線」 as a
+        # unit conflict, on a sentence whose figures were all right.
+        self.assertEqual(self._values("核心是一座 20 呎貨櫃改裝的移動分級站"), ["20"])
+        self.assertEqual(self._values("本系統為一台 3 噸的貨車"), ["3"])
+        # The same words may be the evidence a count cites: 「只用一張」 rests on
+        # this sentence's one card, so without a figure after it 一 still counts.
+        self.assertIn("1", self._values("硬體為一張 NVIDIA GeForce RTX 4060 筆電顯示卡"))
+        # A count is still a count, after 是 too, and 一年 is a duration.
+        self.assertEqual(self._values("共設置三座分級站"), ["3"])
+        self.assertEqual(self._values("分級站是 3 座"), ["3"])
+        self.assertEqual(self._values("分級站是三座"), ["3"])
+        self.assertEqual(self._values("期限是一年"), ["1"])
 
     def test_the_digit_form_is_a_figure_and_stays_checked(self):
         # The carve-out reads the numeral's spelling, not the classifier alone:

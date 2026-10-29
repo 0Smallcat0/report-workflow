@@ -10,6 +10,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from ..derived_evidence import is_unit_column
 from ..language import CJK_RE
 from ..runtime_support import load_jsonl, write_json_artifact
 from ..state import ReportState
@@ -120,6 +121,16 @@ ERROR_HEADER_TERMS = {
     "uncertainty",
     "margin",
     "deviation",
+    "標準差",
+    "标准差",
+    "標準誤",
+    "标准误",
+    "誤差",
+    "误差",
+    "信賴區間",
+    "置信区间",
+    "不確定度",
+    "不确定度",
 }
 MATRIX_TERMS = {
     "matrix",
@@ -521,6 +532,7 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
         ordered = _is_ordered_values(values)
 
         id_like = _header_contains(header, ID_HEADER_TERMS)
+        unit_label = is_unit_column(header)
         numeric_column = len(non_empty) >= MIN_CHART_ROWS and numeric_ratio >= NUMERIC_RATIO_THRESHOLD
         time_like = not id_like and _is_time_like(header, values) and ordered
         categorical = (
@@ -536,6 +548,9 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
 
         if id_like:
             role = "id_like"
+        elif unit_label:
+            # It labels the value beside it: neither an axis nor a group.
+            role = "unit_label"
         elif flag_string:
             # Not categorical: a verdict string must not become an axis.
             role = TEXT_MIXED_ROLE
@@ -555,6 +570,8 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
             "index": index,
             "header": header,
             "role": role,
+            # A blank unit beside "%" is a different quantity, as below.
+            "unit_values": sorted({_clean_text(value) for value in values}) if unit_label else [],
             "missing_ratio": round(missing / max(len(data_rows), 1), 3),
             "numeric_ratio": round(numeric_ratio, 3),
             "unique_count": unique_count,
@@ -635,6 +652,12 @@ def _profile_table(headers: list[str], rows: list[list[str]], content: str) -> d
     ]
     measure_units = sorted({unit for unit in measure_signatures if unit})
     mixed_measure_units = len(set(measure_signatures)) > 1
+    # A long table names each row's unit in a column of its own — 指標 / 平均
+    # / 標準差 / 單位 with "%" on five rows and "秒" on two. The headers carry
+    # no unit, so the check above saw one, and 86.7% and 0.24 秒 were offered
+    # as bars on one axis.
+    if any(len(column["unit_values"]) > 1 for column in columns):
+        mixed_measure_units = True
     negative_numeric_value_count = sum(int(column.get("negative_value_count", 0) or 0) for column in columns)
 
     return {

@@ -19,6 +19,7 @@ section_order:
   - budget_resources
   - risks
   - evaluation
+  - team
   - appendix
   - references
 
@@ -86,13 +87,22 @@ sections:
     required: false
     section_type: evaluation
     order: 9
+  # Who does what. Grant calls and competition forms ask for it; it states
+  # facts about the authors, so it cites nothing.
+  team:
+    section_id: team
+    title: Team and Roles
+    title_zh: 團隊與分工
+    required: false
+    section_type: team
+    order: 10
   appendix:
     section_id: appendix
     title: Appendix
     title_zh: 附錄
     required: false
     section_type: appendix
-    order: 10
+    order: 11
   # Generated from the evidence ledger by CITATION_BIND and appended at
   # render; the author writes nothing here.
   references:
@@ -101,4 +111,4 @@ sections:
     title_zh: 參考文獻
     required: false
     section_type: references
-    order: 11
+    order: 12

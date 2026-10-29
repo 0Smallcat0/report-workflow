@@ -40,6 +40,14 @@ REGIONS = _source("r1", "regions.csv", [
     {"地區": "波蘭", "年份": "2015", "調查年": "2017", "電動車": "342.3", "判定": "red"},
     {"地區": "印度", "年份": "2015", "調查年": "2017", "電動車": "404.4", "判定": "red"},
 ])
+METRICS = _source("m1", "metrics.csv", [
+    {"指標": "準確率", "平均": "86.7", "單位": "%"},
+    {"指標": "F1", "平均": "0.787", "單位": ""},
+    {"指標": "找回率", "平均": "78.7", "單位": "%"},
+    {"指標": "精確率", "平均": "79.0", "單位": "%"},
+    {"指標": "單次推論", "平均": "0.24", "單位": "秒"},
+    {"指標": "八次平均", "平均": "1.9", "單位": "秒"},
+])
 
 
 def _contents(source):
@@ -65,6 +73,13 @@ class IntakeMeasureTests(unittest.TestCase):
         self.assertNotIn("調查年 平均", joined)
         self.assertTrue([text for text in contents if "調查年 欄共 3 個相異值" in text])
         self.assertTrue([text for text in contents if "電動車 欄共 4 筆數值" in text])
+
+    def test_the_unit_column_is_neither_a_distribution_nor_a_cross_table(self):
+        units = dataset_summary_units([METRICS], CREATED_AT, zh=True)
+        joined = "\n".join(unit["content"] for unit in units)
+        self.assertNotIn("單位 欄共", joined)
+        self.assertNotIn("單位 分組交叉表", joined)
+        self.assertFalse([unit for unit in units if unit.get("table_grid")])
 
 
 if __name__ == "__main__":

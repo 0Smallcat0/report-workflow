@@ -497,6 +497,53 @@ class ChineseParaphraseTests(unittest.TestCase):
         self.assertIn("states a unit the evidence does not", verdict["reason"])
 
 
+class RateUnitTests(unittest.TestCase):
+    """One rate, written the Chinese way in the claim and the English way in the source."""
+
+    def _reasons(self, claim_text: str, content: str) -> list[str]:
+        from report_workflow.nodes.factuality_check import _check_content_overlap
+
+        return _check_content_overlap({"claim_text": claim_text}, {"content": content})
+
+    def test_the_same_rate_in_either_language_agrees(self):
+        # 片 is no unit the reader knows, so 「每小時 20 片」 states the hour and
+        # leaves the numerator open; "per watt" was read as the unit "per".
+        self.assertEqual(self._reasons(
+            "行動測試設備每小時只有 20 片。",
+            "A mobile test setup can reach only 20 modules/h.",
+        ), [])
+        self.assertEqual(self._reasons(
+            "現地行動單位每日約 200 片。", "On-site with mobile units = ~200 modules/day."
+        ), [])
+        self.assertEqual(self._reasons(
+            "二手模組均價為每瓦 0.100 美元。",
+            "Used module prices increased to an average of $0.100 per watt.",
+        ), [])
+
+    def test_a_different_denominator_still_disagrees(self):
+        reasons = self._reasons(
+            "行動測試設備每日只有 20 片。", "A mobile test setup can reach only 20 modules/h."
+        )
+        self.assertTrue(reasons)
+        self.assertIn("states a unit the evidence does not", reasons[0])
+        reasons = self._reasons("二手模組均價為每公斤 0.100 美元。", "an average of $0.100 per watt.")
+        self.assertTrue(reasons)
+        self.assertIn("states a unit the evidence does not", reasons[0])
+
+    def test_a_price_per_piece_is_read_whole(self):
+        # The header says 元/片; a claim writing 元/片 was read as 元 and told
+        # its unit differed from the very unit it wrote.
+        row = {"content": '{"A／B 級售價（元/片）": "250", "年淨收入（萬元）": "405.3"}'}
+        from report_workflow.nodes.factuality_check import _check_content_overlap
+
+        self.assertEqual(_check_content_overlap(
+            {"claim_text": "售價 250 元/片時，年淨收入 405.3 萬元。"}, row), [])
+        # A price without its denominator is a total, and the row states a rate.
+        reasons = _check_content_overlap({"claim_text": "售價 250 元時，年淨收入 405.3 萬元。"}, row)
+        self.assertTrue(reasons)
+        self.assertIn("states a unit the evidence does not", reasons[0])
+
+
 class DraftStatesItsClaimTests(unittest.TestCase):
     """A number vanished between the claim and the page, and everything passed.
 

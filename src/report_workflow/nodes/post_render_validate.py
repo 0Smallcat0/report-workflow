@@ -99,9 +99,10 @@ def _cited_numbers(text: str) -> set[int]:
         numbers.update(int(part) for part in re.findall(r"\d{1,3}", inner))
     return numbers
 
-#: "Figure 3." opening a paragraph, or "圖 3." — the caption itself.
+#: "Figure 3." opening a paragraph, or "圖 3." — the caption itself. Chinese
+#: typesetting ends the number with an ideographic space instead: 「圖 3　標題」.
 _FIGURE_CAPTION_RE = re.compile(
-    r"^(?:(?:Figure|Fig\.?)\s+|(?:圖|图)\s*)(\d+|[a-z])[:.、．：]\s*",
+    r"^(?:(?:Figure|Fig\.?)\s+|(?:圖|图)\s*)(\d+|[a-z])[:.、．：　]\s*",
     re.IGNORECASE,
 )
 
@@ -437,7 +438,9 @@ def run_post_render_validate(state: ReportState) -> ReportState:
     mention_ids: set[str] = set()
     for para in doc.paragraphs:
         para_text = " ".join(para.text.split())
-        caption_match = _FIGURE_CAPTION_RE.match(para_text)
+        # Matched before whitespace is folded, which would turn the
+        # ideographic space that ends a Chinese caption number into a plain one.
+        caption_match = _FIGURE_CAPTION_RE.match(para.text.strip())
         if caption_match:
             caption_ids.add(caption_match.group(1).lower())
             continue
