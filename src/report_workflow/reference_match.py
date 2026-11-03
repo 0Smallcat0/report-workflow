@@ -21,14 +21,18 @@ A reference with no identifier is searched by its text in Crossref and
 OpenAlex, and, when that settles nothing, by its likely title in OpenAlex's
 title index. Only a record whose title appears in the reference nearly whole is
 taken as the work it names, and it verifies the reference only when its
-authors agree too, since nothing but the text ties the two together.
+authors agree too, since nothing but the text ties the two together. When
+that verifies nothing and the reference links a web page -- a statute, a
+course, a news story -- the page is opened and its own title looked for in the
+reference.
 
 The comparison is lexical and deterministic: the same reference and the same
 record give the same verdict. It does not judge whether the work supports the
 sentence that cites it; that needs the work itself. The verdicts:
 
 ``verified``   the record's title, and its authors or year, are in the reference
-               (for a record found by search: its title, authors and year)
+               (for a record found by search: its title, authors and year;
+               for a web page the reference links: the page's own title)
 ``mismatch``   the identifier points at a different work, or the authors differ
 ``not_found``  the identifier is not registered, or is a placeholder
 ``retracted``  the work was retracted and the reference does not say so
@@ -41,6 +45,7 @@ web pages and books are often in neither -- so a reference no search finds is
 """
 from __future__ import annotations
 
+import html
 import json
 import os
 import re
@@ -214,6 +219,13 @@ def title_score(reference: str, title: str) -> tuple[float, int]:
 
 _INITIALS_RE = re.compile(r"^(?:[A-ZÀ-ɏ]\.?[\s\-]*){1,4}$")
 _AUTHOR_STOP = {"and", "et", "al", "in", "eds", "ed", "editor", "editors", "with", "others"}
+#: Words that make an author an organisation, which has no surname to compare.
+_ORG_RE = re.compile(
+    r"\b(?:Institute|Institut|Foundation|Association|Organi[sz]ation|Society|University|Department|"
+    r"Ministry|Agency|Office|Council|Commission|Committee|Bureau|Center|Centre|Corporation|Company|"
+    r"Inc|Ltd|LLC|Board|Authority|Administration|Laboratory|Consortium|Academy|Federation|Union|"
+    r"Observatory|Forum|Programme|Parliament|Government)\b"
+)
 
 
 def cited_surnames(author_text: str) -> list[str]:
@@ -226,7 +238,10 @@ def cited_surnames(author_text: str) -> list[str]:
     # "(2025, October)" is a date, closed or cut off where the title starts.
     text = re.sub(r"\([^)]*(?:\)|$)", " ", author_text)
     text = re.sub(r"\bet\s+al\b\.?", ",", text, flags=re.I)
-    parts = re.split(r",|;|&|\band\b|\bund\b|\bet\b|、|，", text)
+    # "National Institute of Standards and Technology" is one author with no
+    # surname; split on its "and" it would give "Standards" and "Technology".
+    chunks = [chunk for chunk in re.split(r",|;|&|、|，", text) if not _ORG_RE.search(chunk)]
+    parts = [part for chunk in chunks for part in re.split(r"\band\b|\bund\b|\bet\b", chunk)]
     surnames: list[str] = []
     for part in parts:
         part = part.strip(" .:\"'“”‘’?")
@@ -306,7 +321,9 @@ def extract_doi(reference: str) -> str:
     match = _DOI_RE.search(reference)
     if not match:
         return ""
-    return match.group(1).rstrip(".,;)]}>")
+    # A DOI copied from a link keeps its escapes ("5:3%3C305::AID"); doi.org
+    # knows it by the characters, and quoting the escape again finds nothing.
+    return urllib.parse.unquote(match.group(1).rstrip(".,;)]}>"))
 
 
 def extract_arxiv(reference: str) -> str:
@@ -706,14 +723,100 @@ def _check_by_search(reference: str, get: HttpGet) -> ReferenceCheck:
         except LookupUnavailable as exc:
             errors.append(str(exc))
         verdict = _best_search_verdict(reference, candidates)
+    if verdict is not None and verdict.status == VERIFIED:
+        return verdict
+    page = _check_by_page(reference, get)
+    if page is not None and page.status == VERIFIED:
+        return page
     if verdict is None:
         if errors and not candidates:
             return ReferenceCheck(UNREACHABLE, f"could not be checked: {'; '.join(errors)}")
-        return ReferenceCheck(
-            NEEDS_REVIEW,
-            "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title",
-        )
+        message = "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+        if page is not None:
+            return ReferenceCheck(NEEDS_REVIEW, f"{message}; {page.message}", identifier=page.identifier)
+        return ReferenceCheck(NEEDS_REVIEW, message)
     return verdict
+
+
+# ---------------------------------------------------------------------------
+# Web pages
+
+#: A web address in a reference, up to the punctuation that closes it.
+_URL_RE = re.compile(r"https?://[^\s<>\"'）】」』，。；]+", re.I)
+#: Hosts whose links are identifiers, checked as DOIs or arXiv IDs instead.
+_IDENTIFIER_HOSTS = ("doi.org", "arxiv.org")
+#: Many sites refuse a client that names itself, and answer a browser.
+_PAGE_HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+    "Accept": "text/html,application/xhtml+xml",
+    "Accept-Language": "en,zh-TW;q=0.8",
+}
+_META_TITLE_RES = (
+    re.compile(r"<meta\b[^>]*?(?:property|name)\s*=\s*[\"'](?:og|twitter):title[\"'][^>]*?content\s*=\s*[\"']([^\"']+)", re.I),
+    re.compile(r"<meta\b[^>]*?content\s*=\s*[\"']([^\"']+)[\"'][^>]*?(?:property|name)\s*=\s*[\"'](?:og|twitter):title[\"']", re.I),
+)
+_TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
+#: Where a page title joins the page's own name to its site's ("AI Essentials |
+#: Coursera", "人工智慧基本法-全國法規資料庫").
+_TITLE_JOINER_RE = re.compile(r"\s*[|｜·•»–—]\s*|\s+-\s+|(?<=[㐀-鿿])-(?=[㐀-鿿])")
+
+
+def page_titles(body: str) -> list[str]:
+    """The page's own title: og:title, then <title> and its part before the site's name."""
+
+    found: list[str] = []
+    for pattern in _META_TITLE_RES:
+        found.extend(pattern.findall(body))
+    title = _TITLE_RE.search(body)
+    if title:
+        found.append(title.group(1))
+        found.append(_TITLE_JOINER_RE.split(title.group(1))[0])
+    out: list[str] = []
+    for text in found:
+        text = " ".join(html.unescape(text).split())
+        if text and text not in out:
+            out.append(text)
+    return out
+
+
+def _check_by_page(reference: str, get: HttpGet) -> ReferenceCheck | None:
+    """Open the page the reference links and look for the page's title in it.
+
+    A web page, a statute or a course is in no index, but it names itself.
+    Only the page's own title counts, not the site's name alone, and the
+    reference's links are taken out first so a title cannot be found in its
+    own address. Authors are not compared: the page does not list them.
+    """
+
+    urls = [url.rstrip(".,;:)]}") for url in _URL_RE.findall(reference)]
+    urls = [url for url in urls if not any(host in urllib.parse.urlsplit(url).netloc for host in _IDENTIFIER_HOSTS)]
+    if not urls:
+        return None
+    url = urls[0]
+    try:
+        status, body = get(url, _PAGE_HEADERS)
+    except LookupUnavailable as exc:
+        return ReferenceCheck(NEEDS_REVIEW, f"the page it links could not be opened ({exc})", identifier=url)
+    if status != 200:
+        return ReferenceCheck(NEEDS_REVIEW, f"the page it links answered {status}", identifier=url)
+    titles = [title for title in page_titles(body) if len(_title_tokens(title)) >= 2]
+    if not titles:
+        return ReferenceCheck(NEEDS_REVIEW, "the page it links has no title to compare", identifier=url)
+    text = _URL_RE.sub(" ", reference)
+    for title in titles:
+        score = title_score(text, title)[0]
+        if score >= TITLE_STRONG:
+            return ReferenceCheck(
+                VERIFIED,
+                f"the page it links is titled “{title}”, which the reference names",
+                identifier=url,
+                title_score=score,
+            )
+    return ReferenceCheck(
+        NEEDS_REVIEW,
+        f"the page it links is titled “{titles[0]}”, which the reference does not name",
+        identifier=url,
+    )
 
 
 def _best_search_verdict(reference: str, candidates: list[WorkRecord]) -> ReferenceCheck | None:

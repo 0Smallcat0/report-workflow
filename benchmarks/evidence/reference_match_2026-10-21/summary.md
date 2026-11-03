@@ -4,7 +4,7 @@
 
 | Tool | Problematic flagged (TP) | Missed (FN) | Verified flagged (FP) | Verified passed (TN) |
 | --- | --- | --- | --- | --- |
-| **report-workflow check-references** | 30 | 3 | 15 | 56 |
+| **report-workflow check-references** | 30 | 3 | 10 | 61 |
 | checkifexist | 31 | 2 | 34 | 37 |
 | hallucitechecker | 18 | 15 | 20 | 51 |
 | hallucinator | 29 | 4 | 28 | 43 |
@@ -13,21 +13,21 @@
 
 Definite verdicts (mismatch, not found, retracted): 13 on problematic references, 0 on verified ones. The other flags are `needs_review`: a web page, standard or conference paper that no index holds, or a record that agrees only in part.
 
-Registry answers were recorded on the run date and are replayed from `registry_responses.json`, so `--check` reproduces these numbers offline. The matcher was developed against this dataset.
+Registry answers were recorded on the run date, and the title tags of the web pages the references link on 2026-11-03; both are replayed from `registry_responses.json`, so `--check` reproduces these numbers offline. The matcher was developed against this dataset.
 
 ## Verdicts
 
 | Reference | Label | Verdict | Why |
 | --- | --- | --- | --- |
 | P1 R1 | verified | verified | matches arXiv:2507.19457: title, authors |
-| P1 R2 | verified | needs_review | no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title |
+| P1 R2 | verified | needs_review | no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title; the page it links is titled “ANSI/NISO Z39.96-2024, JATS: Journal Article Tag Suite, version 1.4 / NISO website”, which the reference does not name |
 | P1 R3 | verified | verified | matches https://openalex.org/W4404309352: title, authors |
 | P1 R4 | problematic | needs_review | no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title |
-| P1 R5 | verified | needs_review | no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title |
-| P1 R6 | verified | needs_review | no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title |
+| P1 R5 | verified | verified | the page it links is titled “CiteX 2026”, which the reference names |
+| P1 R6 | verified | verified | the page it links is titled “cometadata/citation-parsing-lora-qwen3-0.6b”, which the reference names |
 | P1 R7 | verified | verified | matches doi:10.5281/zenodo.17199853: title, authors |
-| P1 R8 | verified | needs_review | no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title |
-| P1 R9 | verified | needs_review | doi:10.59350/6jqa2-n7z39 is “The XML Markup Evaluation Corpus” by Rivera (2016); Garnett is not among its authors |
+| P1 R8 | verified | verified | the page it links is titled “Open Research Europe”, which the reference names |
+| P1 R9 | verified | verified | the page it links is titled “The XML Markup Evaluation Corpus - Public Knowledge Project”, which the reference names |
 | P1 R10 | verified | verified | matches arXiv:2503.19786: title, authors |
 | P1 R11 | verified | verified | matches arXiv:2407.21783: title, authors |
 | P1 R12 | verified | verified | matches https://openalex.org/W3013681456: title, authors |
@@ -35,9 +35,9 @@ Registry answers were recorded on the run date and are replayed from `registry_r
 | P1 R14 | verified | verified | matches doi:10.5281/zenodo.14751899: title, authors |
 | P1 R15 | verified | verified | matches doi:10.1145/2467696.2467753: title, authors |
 | P1 R16 | problematic | verified | matches doi:10.1007/978-3-642-04346-8_62: title, authors |
-| P1 R17 | verified | needs_review | no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title |
+| P1 R17 | verified | needs_review | no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title; the page it links is titled “GitHub - microsoft/markitdown: Python tool for converting files and office documents to Markdown.”, which the reference does not name |
 | P1 R18 | verified | verified | matches arXiv:2508.10925: title, authors |
-| P1 R19 | verified | needs_review | no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title |
+| P1 R19 | verified | verified | the page it links is titled “Workshop on Open Citations & Open Scholarly Metadata 2027”, which the reference names |
 | P1 R20 | verified | verified | matches arXiv:2505.15948: title, authors |
 | P1 R21 | problematic | needs_review | no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title |
 | P1 R22 | verified | verified | matches doi:10.5281/zenodo.16325125: title, authors |
@@ -117,7 +117,7 @@ Registry answers were recorded on the run date and are replayed from `registry_r
 | P3 R57 | problematic | mismatch | doi:10.18653/v1/2020.emnlp-main.466 is “AmbigQA: Answering Ambiguous Open-domain Questions” by Min et al. (2020); Lewis, Jurafsky are not among its authors |
 | P3 R58 | problematic | mismatch | arXiv:2205.01068 is “OPT: Open Pre-trained Transformer Language Models” by Zhang et al. (2022); Jiang, Kos are not among its authors |
 | P3 R59 | problematic | mismatch | arXiv:2302.13971 is “LLaMA: Open and Efficient Foundation Language Models” by Touvron et al. (2023); Stone, Albert are not among its authors |
-| P3 R60 | verified | needs_review | no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title |
+| P3 R60 | verified | needs_review | no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title; the page it links is titled “llama3/MODEL_CARD.md at main · meta-llama/llama3”, which the reference does not name |
 | P3 R61 | verified | needs_review | doi:10.1002/9781118445112.stat05402 is “Importance Sampling” by Kong (2014); note on is not among its authors |
 | P3 R62 | verified | verified | matches doi:10.18653/v1/W19-8609: title, authors |
 | P3 R63 | verified | verified | matches arXiv:1707.06347: title, authors |

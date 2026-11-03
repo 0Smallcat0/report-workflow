@@ -172,6 +172,7 @@ class SearchTest(unittest.TestCase):
         get = registry({
             "api.crossref.org": (200, {"message": {"items": []}}),
             "api.openalex.org": (200, {"results": []}),
+            "open-research-europe": (403, ""),
         })
         check = rm.check_reference(
             "European Commission. (2025). Open Research Europe: Full article corpus. "
@@ -180,6 +181,7 @@ class SearchTest(unittest.TestCase):
         )
         self.assertEqual(check.status, rm.NEEDS_REVIEW)
         self.assertIn("no Crossref or OpenAlex record carries its title", check.message)
+        self.assertIn("answered 403", check.message)
 
     def test_a_search_hit_must_carry_the_title_not_just_resemble_it(self):
         crossref = {"message": {"items": [{
@@ -222,6 +224,72 @@ class SearchTest(unittest.TestCase):
         )
         self.assertEqual(check.status, rm.MISMATCH)
         self.assertEqual(set(check.unmatched_authors), {"Chen", "Smith"})
+
+
+NO_INDEX = {
+    "api.crossref.org": (200, {"message": {"items": []}}),
+    "api.openalex.org": (200, {"results": []}),
+}
+
+
+class PageTitleTest(unittest.TestCase):
+    """A statute, a course or a news story is in no index, but its page names itself."""
+
+    def test_a_page_whose_title_the_reference_names_is_verified(self):
+        get = registry({
+            **NO_INDEX,
+            "law.moj.gov.tw": (200, "<html><head><title>人工智慧基本法-全國法規資料庫</title></head></html>"),
+        })
+        check = rm.check_reference(
+            "人工智慧基本法（2026 年 1 月 14 日制定公布）。全國法規資料庫。取自 "
+            "https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=H0160093",
+            get=get,
+        )
+        self.assertEqual(check.status, rm.VERIFIED, check.message)
+        self.assertIn("人工智慧基本法", check.message)
+
+    def test_og_title_is_the_page_title(self):
+        page = '<meta property="og:title" content="AI Essentials"><title>Coursera | Online Courses</title>'
+        get = registry({**NO_INDEX, "coursera.org": (200, page)})
+        check = rm.check_reference(
+            "Holweg, M. (n.d.). AI Essentials [MOOC]. Coursera. https://www.coursera.org/learn/ai-essentials",
+            get=get,
+        )
+        self.assertEqual(check.status, rm.VERIFIED, check.message)
+
+    def test_the_site_name_alone_does_not_verify(self):
+        """Another law on the same site shares "全國法規資料庫", not the law's name."""
+
+        get = registry({
+            **NO_INDEX,
+            "law.moj.gov.tw": (200, "<title>個人資料保護法-全國法規資料庫</title>"),
+        })
+        check = rm.check_reference(
+            "人工智慧基本法。全國法規資料庫。取自 https://law.moj.gov.tw/LawClass/LawAll.aspx?pcode=H0160093",
+            get=get,
+        )
+        self.assertEqual(check.status, rm.NEEDS_REVIEW)
+        self.assertIn("個人資料保護法", check.message)
+
+    def test_the_address_is_not_where_the_title_is_found(self):
+        get = registry({**NO_INDEX, "example.org": (200, "<title>Learning Tays Introduction</title>")})
+        check = rm.check_reference(
+            "Lee, P. (2016). A post. https://example.org/learning-tays-introduction/", get=get
+        )
+        self.assertEqual(check.status, rm.NEEDS_REVIEW)
+
+    def test_a_page_that_cannot_be_opened_stays_for_a_person(self):
+        indexes = registry(NO_INDEX)
+
+        def get(url, headers):
+            if "gartner.com" in url:
+                raise rm.LookupUnavailable("timed out")
+            return indexes(url, headers)
+
+        check = rm.check_reference("Gartner. (n.d.). Hype Cycle. https://www.gartner.com/en/x", get=get)
+        self.assertEqual(check.status, rm.NEEDS_REVIEW)
+        self.assertIn("could not be opened", check.message)
+
 
 
 KUHN = (
@@ -312,6 +380,30 @@ class NameParsingTest(unittest.TestCase):
             ["Schindler", "Zapilko", "Krüger"],
         )
         self.assertEqual(rm.cited_surnames("S. Zhang, S. Roller, N. Goyal, et al."), ["Zhang", "Roller", "Goyal"])
+
+    def test_an_organisation_is_an_author_with_no_surname(self):
+        self.assertEqual(rm.cited_surnames("National Institute of Standards and Technology. (2023)."), [])
+        self.assertEqual(rm.cited_surnames("Smith, J., & OWASP Foundation. (2024)."), ["Smith"])
+
+    def test_an_organisation_author_on_its_doi_record_is_verified(self):
+        nist = {
+            "title": "Artificial Intelligence Risk Management Framework (AI RMF 1.0)",
+            "author": [{"given": "Elham", "family": "Tabassi"}],
+            "issued": {"date-parts": [[2023, 1]]},
+        }
+        get = registry({"doi.org/10.6028/NIST.AI.100-1": (200, nist)})
+        check = rm.check_reference(
+            "National Institute of Standards and Technology. (2023). Artificial intelligence risk "
+            "management framework (AI RMF 1.0) (NIST AI 100-1). https://doi.org/10.6028/NIST.AI.100-1",
+            get=get,
+        )
+        self.assertEqual(check.status, rm.VERIFIED, check.message)
+
+    def test_an_escaped_doi_is_read_as_its_characters(self):
+        self.assertEqual(
+            rm.extract_doi("https://doi.org/10.1002/(SICI)1234-981X(199707)5:3%3C305::AID-EURO184%3E3.0.CO;2-4"),
+            "10.1002/(SICI)1234-981X(199707)5:3<305::AID-EURO184>3.0.CO;2-4",
+        )
 
     def test_accents_and_mis_encoding_do_not_make_a_stranger(self):
         missing, cited = rm.unmatched_surnames(

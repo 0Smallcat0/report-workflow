@@ -11,7 +11,7 @@ mcp-name: io.github.0Smallcat0/report-workflow
 
 [![CI](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml/badge.svg)](https://github.com/0Smallcat0/report-workflow/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue)
-![Tests](https://img.shields.io/badge/tests-1463%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/tests-1471%20passing-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 **繁體中文說明 → [README.zh-TW.md](README.zh-TW.md)**
@@ -107,7 +107,9 @@ installed: `uvx report-workflow check-references draft.docx`.
 
 It reads `.docx`, `.md`, `.txt` and `.bib`. Each DOI is looked up at doi.org
 (which also carries retraction notices), each arXiv id at arXiv, and a reference
-with neither is searched for in Crossref and OpenAlex. No API key, no account,
+with neither is searched for in Crossref and OpenAlex; when that settles
+nothing and the reference links a web page (a statute, a course, a news
+story), the page is opened and its own title looked for in the reference. No API key, no account,
 and no AI deciding anything: the same file gets the same verdicts.
 
 A five-reference draft with four errors planted in it:
@@ -141,7 +143,7 @@ references here:
 
 | Checker | Problem references caught (of 33) | Correct references flagged (of 71) |
 | --- | ---: | ---: |
-| **report-workflow** | **30** | **15** |
+| **report-workflow** | **30** | **10** |
 | RefChecker | 32 | 36 |
 | CheckIfExist | 31 | 34 |
 | Hallucinator | 29 | 28 |
@@ -149,9 +151,10 @@ references here:
 | HalRef | 24 | 53 |
 
 "Flagged" counts anything short of accepted — for the five tools that includes
-"requires verification", here it is every verdict except `verified`. All 15 of
-those here are `needs_review`, and seven of them are standards, software, datasets,
-model cards and workshop pages that no bibliographic registry holds. Of the 13
+"requires verification", here it is every verdict except `verified`. All 10 of
+those here are `needs_review`; three are a standard, a software repository and a
+model card that no bibliographic registry holds and whose pages title them
+differently from the reference. Of the 13
 references it called `mismatch`, `not_found` or `retracted`, every one is wrong
 in the hand-checked labels. The three it passes cite the wrong venue or the
 wrong first name, which it does not compare.

@@ -7,8 +7,8 @@
   "report_workflow": {
     "tp": 30,
     "fn": 3,
-    "fp": 15,
-    "tn": 56
+    "fp": 10,
+    "tn": 61
   },
   "definite_verdicts": {
     "problematic": 13,
@@ -19,8 +19,8 @@
     "problematic/needs_review": 17,
     "problematic/not_found": 6,
     "problematic/verified": 3,
-    "verified/needs_review": 15,
-    "verified/verified": 56
+    "verified/needs_review": 10,
+    "verified/verified": 61
   },
   "tools": {
     "checkifexist": {
@@ -65,7 +65,7 @@
       "id": "P1 R2",
       "label": "verified",
       "status": "needs_review",
-      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title; the page it links is titled “ANSI/NISO Z39.96-2024, JATS: Journal Article Tag Suite, version 1.4 | NISO website”, which the reference does not name"
     },
     {
       "id": "P1 R3",
@@ -82,14 +82,14 @@
     {
       "id": "P1 R5",
       "label": "verified",
-      "status": "needs_review",
-      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+      "status": "verified",
+      "message": "the page it links is titled “CiteX 2026”, which the reference names"
     },
     {
       "id": "P1 R6",
       "label": "verified",
-      "status": "needs_review",
-      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+      "status": "verified",
+      "message": "the page it links is titled “cometadata/citation-parsing-lora-qwen3-0.6b”, which the reference names"
     },
     {
       "id": "P1 R7",
@@ -100,14 +100,14 @@
     {
       "id": "P1 R8",
       "label": "verified",
-      "status": "needs_review",
-      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+      "status": "verified",
+      "message": "the page it links is titled “Open Research Europe”, which the reference names"
     },
     {
       "id": "P1 R9",
       "label": "verified",
-      "status": "needs_review",
-      "message": "doi:10.59350/6jqa2-n7z39 is “The XML Markup Evaluation Corpus” by Rivera (2016); Garnett is not among its authors"
+      "status": "verified",
+      "message": "the page it links is titled “The XML Markup Evaluation Corpus - Public Knowledge Project”, which the reference names"
     },
     {
       "id": "P1 R10",
@@ -155,7 +155,7 @@
       "id": "P1 R17",
       "label": "verified",
       "status": "needs_review",
-      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title; the page it links is titled “GitHub - microsoft/markitdown: Python tool for converting files and office documents to Markdown.”, which the reference does not name"
     },
     {
       "id": "P1 R18",
@@ -166,8 +166,8 @@
     {
       "id": "P1 R19",
       "label": "verified",
-      "status": "needs_review",
-      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+      "status": "verified",
+      "message": "the page it links is titled “Workshop on Open Citations & Open Scholarly Metadata 2027”, which the reference names"
     },
     {
       "id": "P1 R20",
@@ -647,7 +647,7 @@
       "id": "P3 R60",
       "label": "verified",
       "status": "needs_review",
-      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title"
+      "message": "no DOI or arXiv identifier, and no Crossref or OpenAlex record carries its title; the page it links is titled “llama3/MODEL_CARD.md at main · meta-llama/llama3”, which the reference does not name"
     },
     {
       "id": "P3 R61",

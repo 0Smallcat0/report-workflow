@@ -17,8 +17,9 @@ verdict but ``verified`` is a flag), and separately on its definite verdicts
 reference, so a wrong one costs an author a real citation.
 
 The registries change, so a live rerun is not reproducible. ``--record`` asks
-doi.org, arXiv, Crossref and OpenAlex once and archives every answer, cut to
-the fields the comparison reads; the default run and ``--check`` replay that
+doi.org, arXiv, Crossref, OpenAlex and the web pages the references link once
+and archives every answer, cut to the fields the comparison reads (a page to
+its title tags); the default run and ``--check`` replay that
 archive with no network::
 
     python scripts/run_reference_benchmark.py --download  # dataset -> benchmarks/external_data/
@@ -36,6 +37,7 @@ import csv
 import hashlib
 import io
 import json
+import re
 import time
 import urllib.parse
 import urllib.request
@@ -48,6 +50,8 @@ from report_workflow import reference_match as rm
 
 ROOT = Path(__file__).resolve().parents[1]
 RUN_DATE = "2026-10-21"
+#: When the linked web pages were added to the recorded answers.
+PAGES_DATE = "2026-11-03"
 EVIDENCE_ROOT = ROOT / "benchmarks" / "evidence" / f"reference_match_{RUN_DATE}"
 RESPONSES_PATH = EVIDENCE_ROOT / "registry_responses.json"
 DATASET_PATH = ROOT / "benchmarks" / "external_data" / "manual_reference_verification_dataset.csv"
@@ -154,10 +158,18 @@ def _trim_atom(body: str) -> str:
     return ET.tostring(feed, encoding="unicode")
 
 
+#: Hosts asked as registries; any other request is a web page a reference links.
+REGISTRY_HOSTS = ("doi.org", "export.arxiv.org", "api.crossref.org", "api.openalex.org")
+_PAGE_TITLE_TAG = re.compile(r"<meta\b[^>]*(?:og|twitter):title[^>]*>|<title[^>]*>.*?</title>", re.I | re.S)
+
+
 def _trim(url: str, status: int, body: str) -> str:
     if status != 200 or not body:
         return body
     host = urllib.parse.urlsplit(url).hostname
+    if host not in REGISTRY_HOSTS:
+        # A web page is read only for its title tags.
+        return "\n".join(_PAGE_TITLE_TAG.findall(body))
     if host == "export.arxiv.org":
         return _trim_atom(body)
     if not body.lstrip().startswith("{"):
@@ -172,6 +184,10 @@ def _trim(url: str, status: int, body: str) -> str:
     return json.dumps(payload, ensure_ascii=False, sort_keys=True)
 
 
+#: Recorded in place of a status for a web page that could not be opened.
+UNOPENED = -1
+
+
 class Recorder:
     """Ask the registries, politely, and keep every answer."""
 
@@ -183,13 +199,23 @@ class Recorder:
         key = _key(url, headers)
         if key in self.responses:
             status, body = self.responses[key]
+            if status == UNOPENED:
+                raise rm.LookupUnavailable(body)
             return status, body
         wait = 0.2 - (time.monotonic() - self.last)
         if wait > 0:
             time.sleep(wait)
-        status, body = rm._http_get(url, headers)  # arXiv's 3 s spacing is applied there
-        self.last = time.monotonic()
-        if status == 429 or status >= 500:
+        registry = urllib.parse.urlsplit(url).hostname in REGISTRY_HOSTS
+        try:
+            status, body = rm._http_get(url, headers)  # arXiv's 3 s spacing is applied there
+        except rm.LookupUnavailable as exc:
+            if registry:
+                raise
+            self.responses[key] = [UNOPENED, str(exc)]
+            raise
+        finally:
+            self.last = time.monotonic()
+        if registry and (status == 429 or status >= 500):
             raise SystemExit(f"{url} answered {status}; record again when the registry is available")
         self.responses[key] = [status, _trim(url, status, body)]
         return self.responses[key][0], self.responses[key][1]
@@ -204,6 +230,8 @@ class Replayer:
         if key not in self.responses:
             raise rm.LookupUnavailable(f"not in the recorded answers: {key}")
         status, body = self.responses[key]
+        if status == UNOPENED:
+            raise rm.LookupUnavailable(body)
         return status, body
 
 
@@ -269,9 +297,9 @@ def write_summary(results: dict[str, Any], path: Path) -> None:
         f"references, {definite['verified']} on verified ones. The other flags are `needs_review`: a "
         "web page, standard or conference paper that no index holds, or a record that agrees only in part.",
         "",
-        "Registry answers were recorded on the run date and are replayed from "
-        "`registry_responses.json`, so `--check` reproduces these numbers offline. The matcher was "
-        "developed against this dataset.",
+        "Registry answers were recorded on the run date, and the title tags of the web pages the "
+        f"references link on {PAGES_DATE}; both are replayed from `registry_responses.json`, so "
+        "`--check` reproduces these numbers offline. The matcher was developed against this dataset.",
         "",
         "## Verdicts",
         "",
