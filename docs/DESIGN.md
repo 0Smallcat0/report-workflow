@@ -122,16 +122,16 @@ Adversarial evidence
 ([`benchmarks/evidence/adversarial_2026-07-14/summary.md`](../benchmarks/evidence/adversarial_2026-07-14/summary.md),
 reproducible via `python scripts/run_adversarial_benchmark.py --check`):
 73 hand-audited cases — 27 honest controls, 46 hallucinated claims across the
-15 attack families above plus 5 documented evasion variants.
+17 attack families plus 5 documented evasion variants.
 
 | Checker | Recall | False-positive rate | Precision |
 | --- | --- | --- | --- |
 | `no_gate` (publish everything) | 0.0% | 0.0% | — |
-| `citation_presence` (shallow RAG-style check) | 9.1% (4/44) | 0.0% | 100% |
+| `citation_presence` (shallow RAG-style check) | 8.7% (4/46) | 0.0% | 100% |
 | **full gate stack (FA/FB/FE/FL/FT2/FD)** | **89.1%** (41/46) | **0.0%** (0/27) | **100%** |
 
-Every one of the 15 targeted attack families is caught at 100%. The missing
-11.4% is not noise — it is five *documented evasions*, each kept in the corpus
+Every one of the 17 targeted attack families is caught at 100%. The missing
+10.9% is not noise — it is five *documented evasions*, each kept in the corpus
 deliberately (§6). The 2026-07-14 hardening closed three former evasions
 (precision fudging, short fabricated quotes, cross-language laundering) and the
 2026-08 CJK tokenisation fix closed a fourth (invented bare quantities); all

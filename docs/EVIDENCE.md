@@ -32,7 +32,7 @@ with:
 
 A gate that only sees honest drafts proves nothing. The adversarial benchmark
 runs **73 hand-audited cases** — 27 honest controls and 46 hallucinated claims
-across 14 attack families (fabricated citations, invented statistics, unit
+across 17 attack families (fabricated citations, invented statistics, unit
 swaps, fabricated quotes, precision inflation, cross-language laundering,
 off-topic citations, status laundering, Chinese-text fabrication,
 overclaiming, …) — through the exact gate stack, and compares two baselines on
@@ -41,10 +41,10 @@ the same corpus:
 | Checker | Recall (hallucinations blocked) | False positives (honest blocked) | Precision |
 | --- | --- | --- | --- |
 | No gate (publish everything) | 0.0% | 0.0% | — |
-| Citation-presence check (shallow RAG-style) | 9.1% (4/44) | 0.0% | 100% |
+| Citation-presence check (shallow RAG-style) | 8.7% (4/46) | 0.0% | 100% |
 | **Full deterministic gate stack** | **89.1%** (41/46) | **0.0%** (0/27) | **100%** |
 
-All 15 targeted attack families are caught at 100%, with zero honest claims
+All 17 targeted attack families are caught at 100%, with zero honest claims
 wrongly blocked. The 2026-07-14 gate hardening closed three formerly documented
 evasions (within-tolerance precision fudging, sub-10-character fabricated
 quotes, cross-language citation laundering) and the 2026-08 CJK tokenisation fix
