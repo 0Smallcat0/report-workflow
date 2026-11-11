@@ -15,6 +15,7 @@ from ..state import ReportState
 from ..policies import get_policy
 from ..artifact_contract import load_jsonl_without_contract, make_artifact_contract, validate_artifact_contract, write_artifact_contract
 from ..artifact_contract import validate_evidence_ledger_provenance
+from ..quote_gate import degrade_claims, ledger_quote_problems, record_attempt
 from .agent_tasks import missing_agent_artifacts, write_agent_task_briefs
 
 
@@ -194,6 +195,18 @@ def run_claim_plan(state: ReportState) -> ReportState:
             )
         _refuse_what_fa_will_refuse(claims, evidence_path)
     validate_evidence_ledger_provenance(evidence_path)
+    quote_problems = ledger_quote_problems(load_jsonl_without_contract(evidence_path))
+    gate = record_attempt(run_dir_for(state), quote_problems)
+    if gate["status"] == "retry":
+        raise QAHardBlockError(
+            "evidence_ledger.jsonl rows are not contiguous verbatim source text: "
+            + "; ".join(f"{k}: {v}" for k, v in list(quote_problems.items())[:8])
+            + ". Re-run prepare so the ledger is rebuilt from the sources; a second "
+            "failure falls back to a statistics-only report."
+        )
+    if gate["status"] == "stats_only":
+        claims, dropped = degrade_claims(claims, quote_problems)
+        gate["dropped_claims"] = dropped
     state.plan["claim_matrix"] = {"claims": claims}
     state.plan["claim_matrix_path"] = write_json_artifact(state, "claim_matrix.json", state.plan["claim_matrix"])
     write_artifact_contract(state.plan["claim_matrix_path"], make_artifact_contract(state))
