@@ -98,9 +98,9 @@ class AppendixPlacementTests(unittest.TestCase):
             "# 參考文獻\n\n# 附錄\n\n本附錄說明計算式、參數與基準情境的代入範例。\n",
             blueprint,
         )
-        self.assertIn("# 1. 緒論", normalized)
+        self.assertIn("# 一、緒論", normalized)
         self.assertIn("# 附錄", normalized)
-        self.assertNotIn("# 2. 附錄", normalized)
+        self.assertNotIn("# 二、附錄", normalized)
 
 
 class ExplainedInTests(unittest.TestCase):

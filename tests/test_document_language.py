@@ -156,23 +156,23 @@ class HeadingContractLocalizationTest(unittest.TestCase):
         )
         normalized, issues = normalize_heading_contract(markdown, BLUEPRINT)
         self.assertEqual(issues, [])
-        self.assertIn("# 1. 執行摘要", normalized)
-        self.assertIn("# 2. 問題陳述", normalized)
+        self.assertIn("# 一、執行摘要", normalized)
+        self.assertIn("# 二、問題陳述", normalized)
         self.assertNotIn("Executive Summary", normalized)
 
     def test_zh_document_recognizes_chinese_headings(self):
         markdown = f"# 執行摘要\n\n{ZH_BODY}\n\n# 問題陳述\n\n{ZH_BODY}\n"
         normalized, issues = normalize_heading_contract(markdown, BLUEPRINT)
         self.assertEqual(issues, [])
-        self.assertIn("# 1. 執行摘要", normalized)
-        self.assertIn("# 2. 問題陳述", normalized)
+        self.assertIn("# 一、執行摘要", normalized)
+        self.assertIn("# 二、問題陳述", normalized)
 
     def test_zh_ordinal_prefix_headings_are_recognized(self):
         markdown = f"# 一、執行摘要\n\n{ZH_BODY}\n\n# （二）問題陳述\n\n{ZH_BODY}\n"
         normalized, issues = normalize_heading_contract(markdown, BLUEPRINT)
         self.assertEqual(issues, [])
-        self.assertIn("# 1. 執行摘要", normalized)
-        self.assertIn("# 2. 問題陳述", normalized)
+        self.assertIn("# 一、執行摘要", normalized)
+        self.assertIn("# 二、問題陳述", normalized)
 
     def test_normalization_is_idempotent_for_zh(self):
         markdown = f"# 執行摘要\n\n{ZH_BODY}\n\n# 問題陳述\n\n{ZH_BODY}\n"
@@ -216,7 +216,7 @@ class SpecialHeadingLocalizationTest(unittest.TestCase):
         normalized, issues = normalize_heading_contract(markdown, ACADEMIC_BLUEPRINT)
         self.assertEqual(issues, [])
         self.assertIn("# 摘要", normalized)
-        self.assertIn("# 1. 緒論", normalized)
+        self.assertIn("# 一、緒論", normalized)
         # References is a top-level section, at the same level as its siblings.
         self.assertIn("# 參考文獻", normalized)
         self.assertNotIn("## 參考文獻", normalized)
@@ -266,7 +266,7 @@ class ZhOrdinalPrefixTest(unittest.TestCase):
 class ReferenceHeadingRenderTest(unittest.TestCase):
     def test_split_body_references_matches_zh_heading(self):
         md = (
-            f"# 1. 緒論\n\n{ZH_BODY}\n\n## 參考文獻\n\n"
+            f"# 一、緒論\n\n{ZH_BODY}\n\n## 參考文獻\n\n"
             "- Li, J. (2023). HaluEval benchmark. In Proceedings of EMNLP 2023, 6449-6464.\n"
         )
         remaining, refs = _split_body_references(md)
@@ -285,7 +285,7 @@ class ReferenceHeadingRenderTest(unittest.TestCase):
         self.assertEqual(_localize_reference_heading(ref_md, body, ACADEMIC_BLUEPRINT), ref_md)
 
     def test_internal_document_refs_kept_for_non_academic_profiles(self):
-        md = f"# 1. 緒論\n\n{ZH_BODY}\n\n## 參考文獻\n\n- 資料管線監控告警系統導入提案(核准版)。\n- 內部維運手冊,第三章:告警分級規則。\n"
+        md = f"# 一、緒論\n\n{ZH_BODY}\n\n## 參考文獻\n\n- 資料管線監控告警系統導入提案(核准版)。\n- 內部維運手冊,第三章:告警分級規則。\n"
         _, strict_refs = _split_body_references(md, strict_refs=True)
         self.assertEqual(strict_refs, "")
         _, loose_refs = _split_body_references(md, strict_refs=False)

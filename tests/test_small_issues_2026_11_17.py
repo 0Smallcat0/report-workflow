@@ -90,5 +90,32 @@ class RegularGridIsAHeatmap(unittest.TestCase):
         plt.close(fig)
 
 
+class ChineseFirstLevelNumbering(unittest.TestCase):
+    def test_zh_ordinals(self):
+        from report_workflow.nodes.heading_contract_check import zh_ordinal
+
+        got = [zh_ordinal(n) for n in (1, 9, 10, 11, 12, 20, 21, 99)]
+        self.assertEqual(got, ["一", "九", "十", "十一", "十二", "二十", "二十一", "九十九"])
+
+    def test_zh_document_headings_use_dun_numbering_and_are_idempotent(self):
+        from report_workflow.nodes.heading_contract_check import normalize_heading_contract
+
+        blueprint = {
+            "section_order": ["intro", "method"],
+            "sections": {
+                "intro": {"title": "Introduction", "title_zh": "緒論", "required": True},
+                "method": {"title": "Methods", "title_zh": "方法", "required": True},
+            },
+        }
+        body = "這是一段用來判定文件語言的中文內容，說明研究背景與目的。" * 3
+        md = ("\n\n").join(["# 1. 緒論", body, "## 1.1 背景", body, "# 2. 方法", body]) + "\n"
+        once, issues = normalize_heading_contract(md, blueprint)
+        self.assertEqual(issues, [])
+        self.assertIn("# 一、緒論", once)
+        self.assertIn("# 二、方法", once)
+        self.assertNotIn("# 1. 緒論", once)
+        self.assertEqual(normalize_heading_contract(once, blueprint)[0], once)
+
+
 if __name__ == "__main__":
     unittest.main()

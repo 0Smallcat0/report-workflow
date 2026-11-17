@@ -68,7 +68,19 @@ def _section_id_for_heading(text: str, sections: dict, title_map: dict[str, str]
 _UNNUMBERED_SECTIONS = frozenset({"abstract", "references", "cover", "appendix"})
 
 
-def _canonical_heading(section_id: str, title: str, ordinal: int | None) -> str:
+_ZH_DIGITS = "零一二三四五六七八九"
+
+
+def zh_ordinal(number: int) -> str:
+    """1 -> 一, 10 -> 十, 12 -> 十二, 20 -> 二十, 21 -> 二十一 (1..99)."""
+    if not 0 < number < 100:
+        return str(number)
+    tens, ones = divmod(number, 10)
+    head = "" if tens == 0 else ("十" if tens == 1 else _ZH_DIGITS[tens] + "十")
+    return head + (_ZH_DIGITS[ones] if ones else "")
+
+
+def _canonical_heading(section_id: str, title: str, ordinal: int | None, language: str = "en") -> str:
     # Abstract/References stay unnumbered but follow the document language:
     # the caller passes the localized blueprint title ("Abstract"/"摘要"),
     # so English documents render byte-identically.
@@ -79,6 +91,11 @@ def _canonical_heading(section_id: str, title: str, ordinal: int | None) -> str:
         return f"# {title}"
     if ordinal is None:
         return f"# {title}"
+    # A Chinese document numbers its first-level headings 一、二、三、 — the
+    # form ZH_ORDINAL_PREFIX_RE already reads back — not "1." which is how an
+    # English one does it.
+    if language == "zh":
+        return f"# {zh_ordinal(ordinal)}、{title}"
     return f"# {ordinal}. {title}"
 
 
@@ -117,7 +134,7 @@ def normalize_heading_contract(markdown: str, blueprint: dict) -> tuple[str, lis
         if is_wrapper_level and sid in sections:
             seen.add(sid)
             title = localized_section_title(sections[sid], sid, language)
-            return _canonical_heading(sid, title, ordinal_by_sid.get(sid))
+            return _canonical_heading(sid, title, ordinal_by_sid.get(sid), language)
         return match.group(0)
 
     normalized = _HEADING_RE.sub(replace, markdown)
@@ -133,7 +150,7 @@ def normalize_heading_contract(markdown: str, blueprint: dict) -> tuple[str, lis
     # Catch subsection leakage: 3.1 Methods detail without # 3. Methods.
     for sid, ord_value in ordinal_by_sid.items():
         title = localized_section_title(sections.get(sid), sid, language)
-        wrapper = _canonical_heading(sid, title, ord_value)
+        wrapper = _canonical_heading(sid, title, ord_value, language)
         if re.search(rf"^#{2,6}\s+{ord_value}\.\d+\s+", normalized, re.MULTILINE) and wrapper not in normalized:
             issues.append(f"Subsections for section {ord_value} exist but wrapper heading is missing: {title}")
 
