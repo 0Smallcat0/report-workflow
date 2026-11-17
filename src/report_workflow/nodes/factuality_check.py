@@ -493,6 +493,9 @@ _SPECIES_IN_UNIT_RE = re.compile(r"^(%s)(?:co2(?:-?eq\.?|e)?|ch4|n2o)$" % _MASS_
 _PER_WORD_RE = re.compile(r"per[ \t]+([A-Za-z]+)", re.IGNORECASE)
 
 
+_NOT_A_COUNTER_RE = re.compile(r"[電电記记試试畫画跡迹名]")
+
+
 def _unit_after(text: str, position: int) -> str:
     """The unit stated immediately after a number, or "" when none is.
 
@@ -512,6 +515,10 @@ def _unit_after(text: str, position: int) -> str:
 
     match = _CJK_UNIT_RE.match(stripped) or _ASCII_UNIT_RE.match(stripped)
     if not match:
+        return ""
+    # 「4060 筆電」 is a laptop, not 4060 records: 筆 opening a word of its own
+    # (筆電, 筆記, 筆試, 筆畫) counts nothing.
+    if match.group(0) in ("筆", "笔") and _NOT_A_COUNTER_RE.match(stripped, match.end()):
         return ""
     unit = _APOSTROPHE_SUFFIX_RE.sub("", match.group(0))
     if not unit or unit in _ENGLISH_FUNCTION_WORDS:
@@ -778,6 +785,15 @@ def _extract_numbers_with_unit(text: str) -> list[tuple[str, str]]:
     return [(number, unit) for number, unit, _start, _end in numbers_with_spans(text)[1]]
 
 
+#: 「圖 2」, 「表 1」, 「圖 2-1」, 「Figure 3」, 「Table 2a」 name a figure or table.
+#: The number is a label the renderer assigns, not a quantity the evidence has
+#: to state, so FE must not ask for it.
+_FIGURE_LABEL_RE = re.compile(
+    r"(?:圖表|圖|图|表|Figure|Fig\.?|Table)\s*\d+(?:[-–.]\d+)*[a-z]?(?![\d%])",
+    re.IGNORECASE,
+)
+
+
 def numbers_with_spans(text: str) -> tuple[str, list[tuple[str, str, int, int]]]:
     """The text as the number reader sees it, and (number, unit, start, end) in it.
 
@@ -789,7 +805,14 @@ def numbers_with_spans(text: str) -> tuple[str, list[tuple[str, str, int, int]]]
     results = []
     normalized = _decimal_comma_to_point(_normalize_for_numbers(text))
     normalized = _PRODUCT_SIGN_RE.sub(r"\1\2×\3\4", normalized)
+    labels = [m.span() for m in _FIGURE_LABEL_RE.finditer(normalized)]
+
+    def _in_label(start: int) -> bool:
+        return any(a <= start < b for a, b in labels)
+
     for m in _BARE_NUMBER_RE.finditer(normalized):
+        if _in_label(m.start(1)):
+            continue
         suffix = _unit_after(normalized, m.end())
         unit = _combined_unit(normalized, m.start(1), suffix)
         # "標價 $71.99" states a currency the same way "71.99 美元" does; only
@@ -806,6 +829,8 @@ def numbers_with_spans(text: str) -> tuple[str, list[tuple[str, str, int, int]]]
             m.end(1),
         ))
     for m in _CJK_NUMBER_RE.finditer(normalized):
+        if _in_label(m.start(1)) or re.search(r"(?:圖|图|表)\s*$", normalized[max(0, m.start(1) - 3):m.start(1)]):
+            continue
         value = _cjk_numeral_value(m.group(1))
         if value is None:
             continue
