@@ -549,3 +549,85 @@ def resolvable_placeholder_count(markdown: str, evidence_ledger: list[dict]) -> 
         for match in TABLE_PLACEHOLDER_RE.finditer(markdown or "")
         if match.group(1).strip() in tables
     )
+
+
+_PIPE_ROW_RE = re.compile(r"^\s*\|.*\|\s*$")
+_PIPE_SEPARATOR_RE = re.compile(r"^\s*\|?\s*:?-{2,}:?\s*(?:\|\s*:?-{2,}:?\s*)*\|?\s*$")
+_NUMBERED_CAPTION_RE = re.compile(r"^\s*\**\s*(?:表|Table)\s*\d+\s*[.．、：:]", re.IGNORECASE)
+_BARE_CAPTION_RE = re.compile(r"^\s*\**\s*(?:表|Table)\s*[：:]\s*(.+?)\s*\**\s*$", re.IGNORECASE)
+_ATX_HEADING_RE = re.compile(r"^#{1,6}\s+(.+?)\s*$")
+_HEADING_NUMBER_RE = re.compile(
+    r"^(?:\d+(?:\.\d+)*\.?|[（(]?[一二三四五六七八九十百]+[)）、.．])\s*"
+)
+
+
+def caption_author_tables(markdown: str, *, start_number: int = 0, language: str = "en") -> tuple[str, int]:
+    """Give every pipe table the author wrote a numbered caption, "表 N. 標題".
+
+    Source tables and chart tables get one from the renderer; a table the author
+    typed into a draft did not, so it printed bare. A table that already has a
+    numbered caption above it is left alone. The title is the author's own
+    "表：標題" line when there is one (that line becomes the caption), else the
+    nearest heading above that no earlier caption used, else the header cells.
+    Numbers continue from ``start_number`` in reading order.
+    """
+    label = "表" if language == "zh" else "Table"
+    lines = (markdown or "").split("\n")
+    out: list[str] = []
+    number = start_number
+    added = 0
+    heading = ""
+    used_titles: set[str] = set()
+    in_fence = False
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        if line.lstrip().startswith("```"):
+            in_fence = not in_fence
+        if in_fence:
+            out.append(line)
+            i += 1
+            continue
+        heading_match = _ATX_HEADING_RE.match(line)
+        if heading_match:
+            heading = _HEADING_NUMBER_RE.sub("", heading_match.group(1)).strip()
+        starts_table = (
+            _PIPE_ROW_RE.match(line)
+            and i + 1 < len(lines)
+            and _PIPE_SEPARATOR_RE.match(lines[i + 1])
+            and (i == 0 or not _PIPE_ROW_RE.match(lines[i - 1]))
+        )
+        if not starts_table:
+            out.append(line)
+            i += 1
+            continue
+        prev_index = len(out) - 1
+        while prev_index >= 0 and not out[prev_index].strip():
+            prev_index -= 1
+        previous = out[prev_index] if prev_index >= 0 else ""
+        if _NUMBERED_CAPTION_RE.match(previous):
+            out.append(line)
+            i += 1
+            continue
+        title = ""
+        bare = _BARE_CAPTION_RE.match(previous)
+        if bare:
+            title = bare.group(1).strip()
+            del out[prev_index:]
+        if not title and heading and heading not in used_titles:
+            title = heading
+        if not title:
+            cells = [c.strip() for c in line.strip().strip("|").split("|") if c.strip()]
+            title = ("、" if language == "zh" else ", ").join(cells[:3])
+        used_titles.add(title)
+        number += 1
+        added += 1
+        while out and not out[-1].strip():
+            out.pop()
+        if out:
+            out.append("")
+        out.append(f"{label} {number}. {title}")
+        out.append("")
+        out.append(line)
+        i += 1
+    return "\n".join(out), added

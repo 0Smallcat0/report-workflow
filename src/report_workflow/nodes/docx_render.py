@@ -33,7 +33,7 @@ from .citation_bind import (
     SOURCE_LIST_INTRO,
     SOURCE_LIST_INTRO_ZH,
 )
-from .source_tables import replace_table_placeholders
+from .source_tables import caption_author_tables, replace_table_placeholders
 from ..runtime_support import PLACEHOLDER_TEXT, load_jsonl
 from ..policies import get_policy
 
@@ -1977,6 +1977,15 @@ def run_docx_render(state: ReportState) -> ReportState:
     md_content, resolved_figures, unresolved_figures = _replace_figure_placeholders(
         md_content, figure_manifest, table_start_number=placed_tables
     )
+    # Tables the author typed into the draft still need "表 N 標題".
+    native_tables = len(re.findall(r"^(?:表|Table)\s+\d+\.", md_content, re.MULTILINE))
+    md_content, captioned_author_tables = caption_author_tables(
+        md_content,
+        start_number=max(placed_tables, native_tables),
+        language=detect_document_language(md_content),
+    )
+    if captioned_author_tables:
+        state.output["author_tables_captioned"] = captioned_author_tables
     if resolved_figures:
         state.output["figure_placeholders_resolved"] = resolved_figures
     if unresolved_figures:

@@ -117,5 +117,48 @@ class ChineseFirstLevelNumbering(unittest.TestCase):
         self.assertEqual(normalize_heading_contract(once, blueprint)[0], once)
 
 
+class AuthorTablesAreCaptioned(unittest.TestCase):
+    def _cap(self, md, **kw):
+        from report_workflow.nodes.source_tables import caption_author_tables
+
+        return caption_author_tables(md, **kw)
+
+    def test_uncaptioned_table_takes_heading_title(self):
+        md = "## 方案比較\n\n三案如下。\n\n| 方案 | 成本 |\n| --- | --- |\n| A | 1 |\n"
+        out, n = self._cap(md, language="zh")
+        self.assertEqual(n, 1)
+        self.assertIn("表 1. 方案比較\n\n| 方案 | 成本 |", out)
+
+    def test_bare_caption_line_becomes_the_caption(self):
+        md = "表：各方案成本\n\n| 方案 | 成本 |\n|---|---|\n| A | 1 |\n"
+        out, n = self._cap(md, language="zh", start_number=2)
+        self.assertEqual(n, 1)
+        self.assertTrue(out.startswith("表 3. 各方案成本\n\n| 方案"))
+        self.assertNotIn("表：", out)
+
+    def test_numbered_caption_is_left_alone_and_numbers_continue(self):
+        md = (
+            "表 1. 已有標題\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n\n"
+            "## 結果\n\n| c | d |\n| --- | --- |\n| 3 | 4 |\n"
+        )
+        out, n = self._cap(md, language="zh", start_number=1)
+        self.assertEqual(n, 1)
+        self.assertEqual(out.count("表 1."), 1)
+        self.assertIn("表 2. 結果", out)
+
+    def test_english_and_fenced_code(self):
+        md = "```\n| a | b |\n| - | - |\n```\n\n## Costs\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n"
+        out, n = self._cap(md, language="en")
+        self.assertEqual(n, 1)
+        self.assertIn("Table 1. Costs", out)
+
+    def test_render_path_captions_an_author_table(self):
+        import inspect
+
+        from report_workflow.nodes import docx_render
+
+        self.assertIn("caption_author_tables(", inspect.getsource(docx_render.run_docx_render))
+
+
 if __name__ == "__main__":
     unittest.main()
