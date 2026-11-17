@@ -1,5 +1,17 @@
 # Changelog
 
+## 4.41.2 - 2026-11-18
+
+Six small fixes found by writing reports end to end; no gate, profile or public
+option changes.
+
+- FE no longer reads figure/table labels (圖 2, 表 1, Figure 2) or 筆電 as quantities.
+- A complete two-parameter grid (one row per cell) is recommended as a heatmap, and
+  the build-time density check uses the recommender's own 16 x 12 ceiling.
+- A Chinese document numbers first-level headings 一、二、三、 instead of 1. 2. 3.
+- A pipe table the author typed gets a numbered caption, 表 N. 標題.
+- Test count 1490.
+
 ## 4.41.1 - 2026-10-22
 
 Three usability passes on the same question — what stops an author between
