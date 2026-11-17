@@ -275,6 +275,9 @@ def _overlapping_text_issue(axis: str, bboxes: list[Any], figure_id: str) -> dic
     return None
 
 
+_MAX_HEATMAP_CELLS = 16 * 12
+
+
 def _dense_heatmap_issue(fig: Any, ax: Any, figure_id: str, data: dict) -> dict | None:
     values = data.get("values", [])
     if not isinstance(values, list) or not values:
@@ -286,7 +289,10 @@ def _dense_heatmap_issue(fig: Any, ax: Any, figure_id: str, data: dict) -> dict 
     axis_box = ax.get_window_extent()
     cell_width = axis_box.width / max(column_count, 1)
     cell_height = axis_box.height / max(row_count, 1)
-    if row_count * column_count <= 100 and cell_width >= 12 and cell_height >= 10:
+    # The pixel test is what tells a readable matrix from a dense one. A flat
+    # 100-cell cap refused a 10 x 11 sensitivity grid whose cells were ~69 px
+    # square; the ceiling is the recommender's own 16 x 12 limit.
+    if row_count * column_count <= _MAX_HEATMAP_CELLS and cell_width >= 12 and cell_height >= 10:
         return None
     return _visual_issue(
         "dense_heatmap",

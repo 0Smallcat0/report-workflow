@@ -1047,6 +1047,54 @@ def _numeric_column_series(headers: list[str], rows: list[list[str]], numeric_in
     return series
 
 
+def _regular_grid(headers: list[str], rows: list[list[str]], candidate_indices: list[int], value_indices: list[int]):
+    """A full two-parameter sweep written one row per cell, pivoted to a matrix.
+
+    Returns (row_index, column_index, value_index, payload) or None. The rows
+    must be exactly the Cartesian product of two columns' distinct values, one
+    row per pair, so the pivot invents and drops nothing.
+    """
+    body = rows[1:]
+    if len(body) < 9:
+        return None
+    for value_index in reversed(value_indices):
+        axes = [i for i in candidate_indices if i != value_index]
+        for a_pos, a in enumerate(axes):
+            for b in axes[a_pos + 1:]:
+                a_vals = list(dict.fromkeys(_clean_text(r[a]) for r in body if a < len(r)))
+                b_vals = list(dict.fromkeys(_clean_text(r[b]) for r in body if b < len(r)))
+                if min(len(a_vals), len(b_vals)) < 3:
+                    continue
+                if len(a_vals) * len(b_vals) != len(body):
+                    continue
+                cells: dict[tuple[str, str], float] = {}
+                for r in body:
+                    number = _to_float(r[value_index]) if value_index < len(r) else None
+                    key = (_clean_text(r[a]), _clean_text(r[b]))
+                    if number is None or key in cells:
+                        cells = {}
+                        break
+                    cells[key] = number
+                if len(cells) != len(body):
+                    continue
+                row_idx, col_idx, row_vals, col_vals = a, b, a_vals, b_vals
+                if len(row_vals) > MAX_HEATMAP_ROWS or len(col_vals) > MAX_HEATMAP_COLUMNS:
+                    row_idx, col_idx, row_vals, col_vals = b, a, b_vals, a_vals
+                if len(row_vals) > MAX_HEATMAP_ROWS or len(col_vals) > MAX_HEATMAP_COLUMNS:
+                    continue
+                transposed = row_idx != a
+                payload = {
+                    "x_labels": col_vals,
+                    "y_labels": row_vals,
+                    "values": [
+                        [cells[(c, r_) if transposed else (r_, c)] for c in col_vals]
+                        for r_ in row_vals
+                    ],
+                }
+                return row_idx, col_idx, value_index, payload
+    return None
+
+
 def _heatmap_payload(headers: list[str], rows: list[list[str]], label_index: int, numeric_indices: list[int]) -> dict:
     values: list[list[float]] = []
     y_labels: list[str] = []
@@ -1358,6 +1406,28 @@ def _recommend_single_table(state: ReportState, table: dict, rec_index: int) -> 
             data_profile=profile,
             chart_candidates=chart_candidates,
             selection_warnings=warnings,
+        )
+
+    # A sweep over two parameters, one row per cell, is a matrix that happens to
+    # be stored long. Left alone it reads as three numeric columns and becomes
+    # a scatter of the parameters, which hides the response surface.
+    grid = _regular_grid(headers, rows, categorical_indices + measure_indices, measure_indices)
+    if grid is not None:
+        row_idx, col_idx, value_idx, payload = grid
+        reason = (
+            f"Rows form a complete {len(payload['y_labels'])} x {len(payload['x_labels'])} grid of "
+            f"{headers[row_idx]} by {headers[col_idx]}; a heatmap shows how {headers[value_idx]} "
+            "varies across it."
+        )
+        chart_candidates.append(_chart_candidate("heatmap", 0.9, "high", reason))
+        chart_candidates.append(_chart_candidate(
+            "table", 0.68, "medium",
+            "A table remains acceptable when exact cell values matter more than pattern visibility.",
+        ))
+        return _make_recommendation(
+            state, table, rec_index, "heatmap", ["heatmap", "table"], "high", reason, payload,
+            xlabel=headers[col_idx], ylabel=headers[row_idx],
+            data_profile=profile, chart_candidates=chart_candidates, selection_warnings=warnings,
         )
 
     # Mixed units are a problem for charts that share one y-axis, which is
