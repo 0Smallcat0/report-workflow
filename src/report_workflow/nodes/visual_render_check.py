@@ -47,6 +47,65 @@ def _find_executable(name: str, candidates: list[str]) -> str | None:
     return None
 
 
+def _resolve_soffice_executable(path: str) -> str:
+    """The soffice.exe a `.cmd`/`.bat` shim launches, else `path` unchanged.
+
+    A shim such as ``~/.local/bin/soffice.cmd`` hands its arguments to cmd.exe,
+    which reads them in the console code page: a document under a Chinese
+    folder name came back as "returned non-zero exit status" while the same
+    command on soffice.exe converted it in seven seconds. The shim is a text
+    file naming the real program, so the program is found by reading it.
+    """
+    if not str(path).lower().endswith((".cmd", ".bat")):
+        return path
+    try:
+        text = Path(path).read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return path
+    for quoted in re.findall(r'"([^"]+?soffice\.exe)"', text, flags=re.IGNORECASE):
+        if Path(quoted).exists():
+            return quoted
+    for name in ("soffice.exe",):
+        sibling = Path(path).with_name(name)
+        if sibling.exists():
+            return str(sibling)
+    return path
+
+
+def _convert_to_pdf(soffice: str, docx_path: str | Path, visual_dir: Path) -> Path:
+    """Convert with soffice; a path with non-ASCII characters goes through an ASCII copy.
+
+    LibreOffice's command line is fragile with such paths on Windows, so the
+    document is copied under an ASCII name in an ASCII temp folder, converted
+    there, and the PDF is brought back as ``<docx stem>.pdf`` in `visual_dir`.
+    """
+    docx_path = Path(docx_path)
+    final_pdf = visual_dir / (docx_path.stem + ".pdf")
+    options = dict(capture_output=True, text=True, timeout=120, encoding="utf-8", errors="replace", check=True)
+    if str(docx_path).isascii() and str(visual_dir).isascii():
+        subprocess.run(
+            [soffice, "--headless", "--convert-to", "pdf", "--outdir", str(visual_dir), str(docx_path)],
+            **options,
+        )
+        return final_pdf
+    import tempfile
+
+    with tempfile.TemporaryDirectory(prefix="rw_visual_") as tmp:
+        work = Path(tmp)
+        source = work / "report.docx"
+        shutil.copyfile(docx_path, source)
+        out_dir = work / "out"
+        out_dir.mkdir()
+        subprocess.run(
+            [soffice, "--headless", "--convert-to", "pdf", "--outdir", str(out_dir), str(source)],
+            **options,
+        )
+        produced = out_dir / "report.pdf"
+        if produced.exists():
+            shutil.copyfile(produced, final_pdf)
+    return final_pdf
+
+
 def document_sha256(docx_path: str | Path) -> str:
     """What a review applies to: the document body and its images.
 
@@ -148,6 +207,8 @@ def run_visual_render_check(state: ReportState) -> ReportState:
         r"C:\Program Files\LibreOffice\program\soffice.exe",
         r"C:\Program Files\LibreOffice\program\soffice.com",
     ])
+    if soffice:
+        soffice = _resolve_soffice_executable(soffice)
     pdftoppm = _find_executable("pdftoppm", [
         str(Path.home() / "AppData/Local/Microsoft/WinGet/Packages/oschwartz10612.Poppler_Microsoft.Winget.Source_8wekyb3d8bbwe/poppler-25.07.0/Library/bin/pdftoppm.exe"),
     ])
@@ -186,16 +247,7 @@ def run_visual_render_check(state: ReportState) -> ReportState:
         return state
 
     try:
-        subprocess.run(
-            [soffice, "--headless", "--convert-to", "pdf", "--outdir", str(visual_dir), str(docx_path)],
-            capture_output=True,
-            text=True,
-            timeout=120,
-            encoding="utf-8",
-            errors="replace",
-            check=True,
-        )
-        pdf_path = visual_dir / (Path(docx_path).stem + ".pdf")
+        pdf_path = _convert_to_pdf(soffice, docx_path, visual_dir)
         if not pdf_path.exists():
             raise QAHardBlockError("VISUAL_RENDER_CHECK: LibreOffice did not produce a PDF")
         report["conversion_status"] = "succeeded"
@@ -242,7 +294,14 @@ def run_visual_render_check(state: ReportState) -> ReportState:
         # a missing dependency reading as a defect in the document. Here the
         # tool was on PATH as a shim whose own quoted path would not launch,
         # which is a fact about this machine and about nothing else.
-        detail = str(getattr(exc, "stderr", "") or exc).strip()[:300]
+        detail = str(getattr(exc, "stderr", "") or exc).strip()
+        if isinstance(exc, subprocess.CalledProcessError):
+            # "returned non-zero exit status 1" says nothing about which command
+            # or which file; the full detail is what a person needs to fix it.
+            detail = f"exit {exc.returncode}: {detail}"
+            if exc.stdout and str(exc.stdout).strip():
+                detail += f" | stdout: {str(exc.stdout).strip()}"
+        detail = detail[:4000]
         if report["conversion_status"] != "succeeded":
             report["conversion_status"] = "failed"
         if state.flags.get("strict_visual_render_check"):
