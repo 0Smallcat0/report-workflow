@@ -584,16 +584,21 @@ _NOUN_CLASSIFIERS = frozenset({
 })
 
 
-def _per_prefix_unit(text: str, number_start: int) -> str:
+#: Money units that make 「每X ... N 元」 a price per X even across a longer gap.
+_MONEY_UNIT_WORDS = frozenset({"元", "美元", "萬元", "億元", "千元", "新台幣", "新臺幣", "台幣", "臺幣", "美金", "人民幣", "歐元", "日圓", "日元"})
+_PER_PREFIX_MONEY_GAP = 14
+
+
+def _per_prefix_unit(text: str, number_start: int, max_gap: int = _PER_PREFIX_MAX_GAP) -> str:
     """The "每X" denominator governing a number, or "" when none does."""
-    window = text[max(0, number_start - (_PER_PREFIX_MAX_GAP + 6)):number_start]
+    window = text[max(0, number_start - (max_gap + 6)):number_start]
     match = None
     for candidate in _PER_PREFIX_RE.finditer(window):
         match = candidate
     if match is None:
         return ""
     between = window[match.end():]
-    if len(between) > _PER_PREFIX_MAX_GAP or _CLAUSE_BREAK_RE.search(between):
+    if len(between) > max_gap or _CLAUSE_BREAK_RE.search(between):
         return ""
     # 「每個擺長重複 5 次」 is "for each length, 5 times": 個 is the classifier
     # of the noun that follows it, and that noun is the denominator, not 個.
@@ -615,7 +620,16 @@ def _per_prefix_unit(text: str, number_start: int) -> str:
 def _combined_unit(text: str, number_start: int, suffix_unit: str) -> str:
     """Join a "每X" denominator to the unit written after the number."""
     prefix = _per_prefix_unit(text, number_start)
+    if not prefix and suffix_unit and "/" not in suffix_unit and suffix_unit in _MONEY_UNIT_WORDS:
+        # 「每度平均售電價格約為 3.9674 元」: the denominator sits further from the
+        # number than the usual gap because the sentence names what is priced.
+        # A money amount after a 每X in the same clause is a price per X.
+        prefix = _per_prefix_unit(text, number_start, max_gap=_PER_PREFIX_MONEY_GAP)
     if not prefix:
+        return suffix_unit
+    # 「每度 … 4.1007 元/度」 writes the denominator twice. The sentence already
+    # states the rate, so the 每X restates it rather than adding a second /X.
+    if suffix_unit.endswith("/" + prefix):
         return suffix_unit
     # A calendar word on both sides is a date, not a rate.
     if prefix in _CALENDAR_UNITS and suffix_unit in _CALENDAR_UNITS:
