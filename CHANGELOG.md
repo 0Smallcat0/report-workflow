@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+Six fixes found by rewriting a Chinese policy report end to end (2026-11-18). No
+gate, profile or public default changes; each option is opt-in.
+
+- FE: 「每度售電成本 4.1007 元/度」 is read as 元/度, not 元/度/度, and
+  「每度平均售電價格約為 3.9674 元」 reads as 元/度, so either spelling matches a
+  claim of 元/度.
+- FE: 3,668 and 3668 were already the same number (pinned by a test); a missing
+  minus is still a different number, on purpose.
+- A title that already starts with its ordinal (一、 / 第一章 / （一） / 2.) is
+  not numbered a second time (no more 「二、二、」); artifact lint warns about it.
+- `cjk_font` (prepare / start_report / render, `--cjk-font`) names the East
+  Asian font of the rendered DOCX, e.g. 標楷體; the default is unchanged.
+- `toc=False` (`--no-toc`) leaves the empty contents page out of the DOCX; the
+  default is unchanged.
+- The visual check runs the real soffice.exe behind a `.cmd` shim, converts a
+  non-ASCII path from an ASCII copy, and keeps the whole error message.
+
 ## 4.41.2 - 2026-11-18
 
 Six small fixes found by writing reports end to end; no gate, profile or public
