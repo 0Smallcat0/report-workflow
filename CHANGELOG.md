@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.41.3 — 2026-11-18
+## 4.41.3 - 2026-11-18
 
 Six fixes found by rewriting a Chinese policy report end to end (2026-11-18). No
 gate, profile or public default changes; each option is opt-in.
