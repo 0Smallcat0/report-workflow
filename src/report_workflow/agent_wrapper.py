@@ -300,6 +300,8 @@ def start_report_task(
     preflight_decisions: dict | None = None,
     allow_degraded_render: bool = False,
     source_citation_columns: list[str] | None = None,
+    cjk_font: str | None = None,
+    toc: bool | None = None,
 ) -> dict:
     """Step 1: Start the report generation workflow.
 
@@ -375,6 +377,8 @@ def start_report_task(
             intent=task_intent,
             artifact_role_map=artifact_role_map,
             source_citation_columns=source_citation_columns,
+            cjk_font=cjk_font,
+            toc=toc,
             source_citations=source_citations,
             source_selections=source_selections,
             front_matter={

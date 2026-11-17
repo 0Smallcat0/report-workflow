@@ -215,6 +215,15 @@ def build_parser() -> argparse.ArgumentParser:
         help="Fixed-template/front-matter field in KEY=VALUE form; may be repeated",
     )
     prepare.add_argument(
+        "--cjk-font",
+        help="East Asian font for the rendered document, e.g. 標楷體 or DFKai-SB (default: the template's own)",
+    )
+    prepare.add_argument(
+        "--no-toc",
+        action="store_true",
+        help="Leave the table of contents out of the rendered document",
+    )
+    prepare.add_argument(
         "--keyword",
         action="append",
         default=[],
@@ -260,6 +269,15 @@ def build_parser() -> argparse.ArgumentParser:
         "--reference-docx",
         help="Path to a .docx whose styles, margins, and header/footer the output should follow",
     )
+    render.add_argument(
+        "--cjk-font",
+        help="East Asian font for the rendered document, e.g. 標楷體 or DFKai-SB (default: the template's own)",
+    )
+    render.add_argument(
+        "--no-toc",
+        action="store_true",
+        help="Leave the table of contents out of the rendered document",
+    )
 
     status = subcommands.add_parser("status", help="Show current workflow status")
     status.add_argument("--job-id", required=True, help="Workflow job id")
@@ -271,6 +289,15 @@ def build_parser() -> argparse.ArgumentParser:
     run.add_argument(
         "--reference-docx",
         help="Path to a .docx whose styles, margins, and header/footer the output should follow",
+    )
+    run.add_argument(
+        "--cjk-font",
+        help="East Asian font for the rendered document, e.g. 標楷體 or DFKai-SB (default: the template's own)",
+    )
+    run.add_argument(
+        "--no-toc",
+        action="store_true",
+        help="Leave the table of contents out of the rendered document",
     )
     run.add_argument(
         "--verbose",
@@ -920,6 +947,8 @@ def main(argv: list[str] | None = None) -> int:
                 notebooklm_notebook_id=cfg.notebooklm_notebook_id,
                 notebooklm_storage_path=cfg.notebooklm_storage_path,
                 reference_docx=args.reference_docx,
+                cjk_font=args.cjk_font,
+                toc=False if args.no_toc else None,
                 source_citations=source_citations or None,
                 source_selections=source_selections or None,
             )
@@ -944,6 +973,8 @@ def main(argv: list[str] | None = None) -> int:
                 args.job_id,
                 workspace_root=args.workspace_root,
                 reference_docx=args.reference_docx,
+                cjk_font=args.cjk_font,
+                toc=False if args.no_toc else None,
             )
             _print_state(state)
             return 0
@@ -964,6 +995,8 @@ def main(argv: list[str] | None = None) -> int:
                 state.job_id,
                 workspace_root=args.workspace_root,
                 reference_docx=args.reference_docx,
+                cjk_font=args.cjk_font,
+                toc=False if args.no_toc else None,
             )
             _print_state(state)
             return 0

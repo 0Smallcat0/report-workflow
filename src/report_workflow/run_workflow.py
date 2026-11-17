@@ -352,6 +352,8 @@ def prepare_workflow(
     source_citation_columns: list[str] | None = None,
     source_citations: dict[str, dict] | None = None,
     source_selections: dict[str, dict] | None = None,
+    cjk_font: str | None = None,
+    toc: bool | None = None,
 ) -> ReportState:
     """Prepare deterministic artifacts and agent task briefs.
 
@@ -370,8 +372,16 @@ def prepare_workflow(
         source_selections: ``{"pages": [(start, end), ...]}`` or ``"lines"``
             per source, keyed the same way; only blocks inside the span enter
             the ledger, with their real page and line numbers.
+        cjk_font: East Asian font for the rendered document, e.g. 標楷體 or
+            DFKai-SB. Unset keeps the template's own choice.
+        toc: ``False`` leaves the table of contents out of the rendered
+            document; unset or ``True`` keeps it.
     """
     state = ReportState.new(user_prompt, uploaded_files, output_dir, front_matter=front_matter)
+    if cjk_font and str(cjk_font).strip():
+        state.spec["cjk_font"] = str(cjk_font).strip()
+    if toc is False:
+        state.spec["toc"] = False
     if report_profile:
         state.spec["report_profile_override"] = report_profile
     state.spec["task_intent"] = intent
@@ -553,6 +563,8 @@ def render_workflow(
     *,
     workspace_root: str | None = None,
     reference_docx: str | None = None,
+    cjk_font: str | None = None,
+    toc: bool | None = None,
 ) -> ReportState:
     """Render and package a validated report workflow.
 
@@ -560,10 +572,18 @@ def render_workflow(
         reference_docx: optional user-supplied .docx whose styles, margins,
             and header/footer the rendered document should follow. Persists
             into the run's spec so later re-renders keep the same template.
+        cjk_font: East Asian font name (e.g. 標楷體); persists in the spec.
+        toc: ``False`` drops the table of contents; ``True`` restores it.
     """
     state = ReportState.resume(job_id, workspace_root=workspace_root)
     if reference_docx:
         state.spec["reference_docx_path"] = str(Path(reference_docx).resolve())
+    if cjk_font and str(cjk_font).strip():
+        state.spec["cjk_font"] = str(cjk_font).strip()
+    if toc is False:
+        state.spec["toc"] = False
+    elif toc is True:
+        state.spec.pop("toc", None)
     _assert_render_ready(state)
     return _run_nodes(state, render_nodes())
 

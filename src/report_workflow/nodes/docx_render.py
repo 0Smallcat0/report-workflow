@@ -394,7 +394,7 @@ _TOC_PLACEHOLDERS = {
 }
 
 
-def _toc_openxml_block(language: str, page_break_before: bool) -> str:
+def _toc_openxml_block(language: str, page_break_before: bool, include_toc: bool = True) -> str:
     """Raw OOXML table-of-contents block for the pandoc input.
 
     pandoc's own --toc places the TOC ahead of everything, which puts it in
@@ -403,6 +403,12 @@ def _toc_openxml_block(language: str, page_break_before: bool) -> str:
     template, so the heading styles correctly and stays out of the TOC
     field's own listing.
     """
+    if not include_toc:
+        # No contents page (``toc: false``): keep only the page break that
+        # separates a cover from the body.
+        if not page_break_before:
+            return ""
+        return '```{=openxml}\n<w:p><w:r><w:br w:type="page"/></w:r></w:p>\n```'
     title = _TOC_TITLES.get(language, _TOC_TITLES["en"])
     placeholder = _TOC_PLACEHOLDERS.get(language, _TOC_PLACEHOLDERS["en"])
     parts = []
@@ -534,6 +540,7 @@ def _inject_toc(
     has_front_matter: bool,
     cover_title: str = "",
     title_leads: bool = False,
+    include_toc: bool = True,
 ) -> str:
     """Insert the TOC block after the front matter or a leading cover section.
 
@@ -550,7 +557,7 @@ def _inject_toc(
         separator = "\n\n---\n\n"
         idx = md_content.find(separator)
         if idx != -1:
-            block = _toc_openxml_block(language, page_break_before=True)
+            block = _toc_openxml_block(language, page_break_before=True, include_toc=include_toc)
             head = md_content[:idx]
             body = md_content[idx + len(separator):]
             # The front matter is the cover. A cover section with nothing in
@@ -567,7 +574,7 @@ def _inject_toc(
         if headings and cover_title in headings[0].group(0):
             end = headings[1].start() if len(headings) >= 2 else len(md_content)
             cover_body = md_content[headings[0].end():end].strip()
-            toc_block = _toc_openxml_block(language, page_break_before=True)
+            toc_block = _toc_openxml_block(language, page_break_before=True, include_toc=include_toc)
             head = md_content[:headings[0].start()]
             if cover_body:
                 cover_block = _cover_openxml_block(cover_body)
@@ -578,11 +585,61 @@ def _inject_toc(
         # the TOC belongs after it, not on top of it.
         headings = list(re.finditer(r"^# .*$", md_content, flags=re.MULTILINE))
         if len(headings) >= 2:
-            block = _toc_openxml_block(language, page_break_before=True)
+            block = _toc_openxml_block(language, page_break_before=True, include_toc=include_toc)
             idx = headings[1].start()
             return md_content[:idx] + block + "\n\n" + md_content[idx:]
-    block = _toc_openxml_block(language, page_break_before=False)
-    return block + "\n\n" + md_content
+    block = _toc_openxml_block(language, page_break_before=False, include_toc=include_toc)
+    return block + "\n\n" + md_content if block else md_content
+
+
+def _apply_cjk_font(docx_path: str, font: str) -> None:
+    """Name `font` as the East Asian font of every style in the rendered DOCX.
+
+    The shipped template leaves the East Asian font to the theme, so Chinese
+    text came out in whatever Word or LibreOffice picked for it (MingLiU,
+    YaHei, JhengHei) and a course that asks for 標楷體 could not be met without
+    editing styles by hand. Only the East Asian slot changes: Latin text and
+    the document's words stay as they were. The theme reference is removed
+    where the font is set, because a theme attribute wins over the explicit name.
+    """
+    font = (font or "").strip()
+    if not font or not Path(docx_path).exists():
+        return
+    w = "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+    qn_ea, qn_theme = f"{{{w}}}eastAsia", f"{{{w}}}eastAsiaTheme"
+
+    def restyle(root) -> None:
+        for fonts in root.iter(f"{{{w}}}rFonts"):
+            fonts.attrib.pop(qn_theme, None)
+            fonts.set(qn_ea, font)
+
+    def ensure_default(root) -> None:
+        defaults = root.find(f"{{{w}}}docDefaults")
+        if defaults is None:
+            return
+        run_defaults = defaults.find(f"{{{w}}}rPrDefault")
+        if run_defaults is None:
+            run_defaults = etree.SubElement(defaults, f"{{{w}}}rPrDefault")
+        rpr = run_defaults.find(f"{{{w}}}rPr")
+        if rpr is None:
+            rpr = etree.SubElement(run_defaults, f"{{{w}}}rPr")
+        if rpr.find(f"{{{w}}}rFonts") is None:
+            rpr.insert(0, etree.Element(f"{{{w}}}rFonts"))
+
+    tmp = Path(str(docx_path) + ".cjkfont.tmp")
+    with zipfile.ZipFile(docx_path) as source, zipfile.ZipFile(tmp, "w", zipfile.ZIP_DEFLATED) as out:
+        for item in source.infolist():
+            data = source.read(item.filename)
+            if item.filename in {"word/styles.xml", "word/document.xml"} or re.fullmatch(
+                r"word/(?:header|footer)\d*\.xml", item.filename
+            ):
+                root = etree.fromstring(data)
+                if item.filename == "word/styles.xml":
+                    ensure_default(root)
+                restyle(root)
+                data = etree.tostring(root, xml_declaration=True, encoding="UTF-8", standalone=True)
+            out.writestr(item, data)
+    tmp.replace(docx_path)
 
 
 def reference_docx_error(path: Path) -> str | None:
@@ -2108,6 +2165,7 @@ def run_docx_render(state: ReportState) -> ReportState:
             has_front_matter,
             cover_title=cover_title,
             title_leads=title_leads,
+            include_toc=state.spec.get("toc") is not False,
         ),
         reference_doc,
     )
@@ -2171,6 +2229,9 @@ def run_docx_render(state: ReportState) -> ReportState:
         if repaired_figures:
             state.output["post_render_figures_repaired"] = repaired_figures
         _style_tables_post_render(str(final_docx_path))
+        cjk_font = str(state.spec.get("cjk_font") or "").strip()
+        if cjk_font:
+            _apply_cjk_font(str(final_docx_path), cjk_font)
         if has_front_matter:
             _style_front_matter_title(
                 str(final_docx_path), (state.plan.get("front_matter") or {}).get("title", "")
@@ -2180,6 +2241,8 @@ def run_docx_render(state: ReportState) -> ReportState:
             record_md, run_dir, _resolve_reference_doc(state.spec) if used_pandoc else None, used_pandoc
         )
         if record_path:
+            if str(state.spec.get("cjk_font") or "").strip():
+                _apply_cjk_font(str(record_path), str(state.spec["cjk_font"]))
             state.output["calculation_record_docx_path"] = str(record_path)
 
     # --- Post-render validation ---
