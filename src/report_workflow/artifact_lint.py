@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .artifact_contract import load_jsonl_without_contract
+from .language import has_heading_ordinal
 from .runtime_support import PLACEHOLDER_TEXT, write_json_artifact
 from .errors import QAHardBlockError
 from .nodes.claim_plan import _validate_claim_matrix
@@ -301,6 +302,14 @@ def _lint_outline(
         if not isinstance(section, dict):
             _issue(issues, "error", "outline", path, section_path, "Outline section must be an object", "Replace this section with an object.")
             continue
+        title = section.get("title")
+        if isinstance(title, str) and has_heading_ordinal(title):
+            _issue(
+                issues, "warning", "outline", path, f"{section_path}.title",
+                f"Section title already starts with an ordinal (序號): {title!r}",
+                "Headings are numbered by the renderer; the title's own ordinal is kept as written and not numbered again. "
+                "Drop it from the title if you want the automatic numbering.",
+            )
         raw_claim_ids = section.get("claim_ids", [])
         if not isinstance(raw_claim_ids, list):
             _issue(issues, "error", "outline", path, f"{section_path}.claim_ids", "claim_ids must be a list", "Use an array of claim IDs.")

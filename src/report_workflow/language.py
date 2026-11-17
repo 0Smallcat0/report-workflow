@@ -19,6 +19,29 @@ ZH_ORDINAL_PREFIX_RE = re.compile(
     r"^(?:[（(][一二三四五六七八九十百]+[)）]|[一二三四五六七八九十百]+[、.．])\s*"
 )
 
+# Any ordinal an author may already have typed in front of a heading: 一、 /
+# 第一章 / 第3節 / （一） / 1. / 1.2 / 2、 . The renderer numbers headings
+# itself, so a title that carries one must not get a second.
+HEADING_ORDINAL_RE = re.compile(
+    r"^\s*(?:"
+    r"[（(][一二三四五六七八九十百]+[)）]"
+    r"|[一二三四五六七八九十百]+[、.．]"
+    r"|第\s*[一二三四五六七八九十百零\d]+\s*[章節节篇部分]"
+    r"|\d+(?:\.\d+)*[.、．)）]\s*"
+    r"|\d+(?:\.\d+)+\s+"
+    r")"
+)
+
+
+def has_heading_ordinal(title: str) -> bool:
+    """Does this heading title already begin with its own number?"""
+    text = (title or "").strip()
+    # 「2025 年回顧」 is a year, not an ordinal.
+    if re.match(r"\d+\s*[年月日]", text):
+        return False
+    return bool(HEADING_ORDINAL_RE.match(text))
+
+
 _CJK_RE = CJK_RE
 _LATIN_RE = re.compile(r"[A-Za-z]")
 _LATIN_WORD_RE = re.compile(r"\b[A-Za-z0-9]+\b")

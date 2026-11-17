@@ -10,6 +10,7 @@ from ..language import (
     ZH_ORDINAL_PREFIX_RE,
     derived_section_title,
     detect_document_language,
+    has_heading_ordinal,
     localized_section_title,
 )
 from ..runtime_support import write_json_artifact
@@ -90,6 +91,10 @@ def _canonical_heading(section_id: str, title: str, ordinal: int | None, languag
         # in the table of contents instead of listing it as a section.
         return f"# {title}"
     if ordinal is None:
+        return f"# {title}"
+    # The author's own 「二、」「第二章」「2.」 stands; numbering it again printed
+    # 「二、二、台灣電力現況」. artifact_lint warns about the title.
+    if has_heading_ordinal(title):
         return f"# {title}"
     # A Chinese document numbers its first-level headings 一、二、三、 — the
     # form ZH_ORDINAL_PREFIX_RE already reads back — not "1." which is how an
